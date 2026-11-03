@@ -6,22 +6,22 @@ import pino, { type Logger } from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { createHttpApp } from "../../../../src/app/bootstrap/http.js";
-import { AniListError } from "../../../../src/modules/anime/anilist/public.js";
-import type { TrackingAccountApplication } from "../../../../src/modules/anime/tracking/application/account.js";
+import { AniListError } from "../../../../src/modules/anime/external-works/anilist/public.js";
+import type { TrackingAccountApplication } from "../../../../src/modules/anime/external-works/tracking/application/account.js";
 import {
 	createTrackingAccounts,
 	createTrackingModule,
-} from "../../../../src/modules/anime/tracking/create.js";
-import { registerTrackingListRoutes } from "../../../../src/modules/anime/tracking/http/lists.js";
-import { registerTrackingRoutes } from "../../../../src/modules/anime/tracking/http/tracking.js";
-import { registerTrackingUpdateRoutes } from "../../../../src/modules/anime/tracking/http/updates.js";
-import { AniListAccountProvider } from "../../../../src/modules/anime/tracking/infrastructure/account-provider.js";
-import { TrackingCredentialFiles } from "../../../../src/modules/anime/tracking/infrastructure/credentials.js";
-import { aniListTracking } from "../../../../src/modules/anime/tracking/infrastructure/provider-mapping.js";
+} from "../../../../src/modules/anime/external-works/tracking/create.js";
+import { registerTrackingListRoutes } from "../../../../src/modules/anime/external-works/tracking/http/lists.js";
+import { registerTrackingRoutes } from "../../../../src/modules/anime/external-works/tracking/http/tracking.js";
+import { registerTrackingUpdateRoutes } from "../../../../src/modules/anime/external-works/tracking/http/updates.js";
+import { AniListAccountProvider } from "../../../../src/modules/anime/external-works/tracking/infrastructure/account-provider.js";
+import { TrackingCredentialFiles } from "../../../../src/modules/anime/external-works/tracking/infrastructure/credentials.js";
+import { aniListTracking } from "../../../../src/modules/anime/external-works/tracking/infrastructure/provider-mapping.js";
 import type {
 	TrackingCredentials,
 	TrackingStore,
-} from "../../../../src/modules/anime/tracking/ports.js";
+} from "../../../../src/modules/anime/external-works/tracking/ports.js";
 import { createAuthenticationModule } from "../../../../src/modules/system/create.js";
 import type { AniListClient } from "../../../support/anilist-fixture.js";
 import {
@@ -75,7 +75,7 @@ async function setup(
 	return { app, database, dataDir };
 }
 async function connect(
-	app: import("../../../../src/modules/anime/tracking/public.js").TrackingAccountsApi,
+	app: import("../../../../src/modules/anime/external-works/tracking/public.js").TrackingAccountsApi,
 	session = "one",
 	token = "fixture-first",
 ) {

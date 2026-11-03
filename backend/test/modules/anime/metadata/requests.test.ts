@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { metadataDefaults } from "../../../../src/modules/anime/metadata/defaults.js";
+import { metadataDefaults } from "../../../../src/modules/anime/external-works/metadata/defaults.js";
 import { createHttpApp } from "../../../support/http.js";
 
 import {

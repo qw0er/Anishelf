@@ -4,10 +4,7 @@ import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
-import {
-	metadataReferences,
-	metadataWorks,
-} from "../../metadata/persistence.js";
+import { metadataWorks } from "../../external-works/metadata/persistence.js";
 
 import type {
 	Association,
@@ -233,18 +230,11 @@ export class CatalogRepository implements CatalogStore {
 	}
 	findWork(reference: MetadataLink["reference"]): LocalWork | null {
 		const row = this.workQuery()
-			.where(
-				and(
-					sql`(${catalogMetadataLinks.metadataWorkId} = ${reference.id} or ${catalogMetadataLinks.metadataWorkId} in (select ${metadataReferences.id} from ${metadataReferences} where ${metadataReferences.workId} = (select ${metadataReferences.workId} from ${metadataReferences} where ${metadataReferences.id} = ${reference.id})))`,
-				),
-			)
-			.orderBy(
-				sql`case when ${catalogMetadataLinks.metadataWorkId} = ${reference.id} then 0 else 1 end`,
-				asc(catalogWorks.id),
-			)
+			.where(eq(catalogMetadataLinks.metadataWorkId, reference.id))
 			.get();
 		return row ? readCatalogWorks(row.work, row.info) : null;
 	}
+
 	list(
 		scopeIds: readonly string[],
 		query: CatalogQuery,

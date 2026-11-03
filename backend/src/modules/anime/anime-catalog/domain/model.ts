@@ -1,12 +1,12 @@
 import type {
-	ExtractionEvidence,
-	IdentificationResult,
-} from "../../identification/public.js";
-import type {
 	CachedMetadata,
 	WorkReference as ProviderReference,
 	WorkDetails,
-} from "../../metadata/public.js";
+} from "../../external-works/metadata/public.js";
+import type {
+	ExtractionEvidence,
+	IdentificationResult,
+} from "../../identification/public.js";
 
 export interface EpisodeTarget {
 	kind: "regular" | "special" | "movie";

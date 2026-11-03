@@ -87,6 +87,7 @@ test("Configuration validates and persists the direct browser URL", async () => 
 	});
 	expect(saved.statusCode).toBe(200);
 	expect(saved.json()).toEqual({
+		defaultMetadataProvider: "anilist",
 		autoPreparationEnabled: false,
 		autoPreparationPresetId: "builtin:web",
 		resourceRoots: [],

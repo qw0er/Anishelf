@@ -9,7 +9,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { mediaSources } from "../../../resources/persistence.js";
-import { metadataSnapshots } from "../../metadata/persistence.js";
+import { metadataSnapshots } from "../../external-works/metadata/persistence.js";
 
 export const catalogMetadataLinks = sqliteTable(
 	"catalog_provider_links",

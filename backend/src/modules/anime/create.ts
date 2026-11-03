@@ -1,26 +1,17 @@
 import type { Logger } from "pino";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
-import { AniListWrapper } from "./anilist/public.js";
 import { AnimeCatalogApplication } from "./anime-catalog/application/catalog.js";
 import { AnimeLibraryQueries } from "./anime-library/application/library.js";
+import { createExternalWorks } from "./external-works/create.js";
 import { registerAnimeHttp } from "./http.js";
 import { AnitomyIdentificationParser } from "./identification/infrastructure/parser.js";
-import {
-	createAniListMetadata,
-	createAniListTracking,
-} from "./integration/anilist.js";
-import { createBangumiMetadata } from "./integration/bangumi.js";
 import { createIdentificationMetadata } from "./integration/identification-metadata.js";
-import { createMetadataModule } from "./metadata/create.js";
-import type { MetadataModule } from "./metadata/public.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";
 import { AnimeQueries } from "./queries.js";
 import { AnimeReleaseAssessment } from "./release-assessment/application.js";
 import { AcquisitionIngestion } from "./release-assessment/ingestion.js";
-import { TrackingViewingCommands } from "./tracking/application/viewing.js";
-import { createTrackingModule } from "./tracking/create.js";
 import { createIdentificationModule } from "./workflows/create-identification.js";
 export async function createAnimeModule(options: {
 	system: SystemApi;
@@ -29,38 +20,8 @@ export async function createAnimeModule(options: {
 	logger: Logger;
 }) {
 	const { system, resources: library, database, logger } = options;
-	const requests = new AniListWrapper({ logger });
-	const tracking = await createTrackingModule({
-		dataDir: system.deployment.dataDir,
-		store: database.tracking,
-		listStore: database.trackingLists,
-		operationStore: database.trackingOperations,
-		...createAniListTracking(requests),
-		logger,
-	});
-	const bangumi = createBangumiMetadata(logger);
-	const metadataSources = createAniListMetadata(requests);
-	let metadata: MetadataModule | undefined;
-	try {
-		metadata = await createMetadataModule({
-			dataDir: system.deployment.dataDir,
-			store: database.metadata,
-			...metadataSources,
-			providers: [...metadataSources.providers, bangumi.provider],
-			artworkHosts: [...metadataSources.artworkHosts, "lain.bgm.tv"],
-			canAssociate: (target, other) => {
-				const left = database.catalog.findWork(target),
-					right = database.catalog.findWork(other);
-				return !left || !right || left.id === right.id;
-			},
-			logger,
-		});
-	} catch (err) {
-		logger.warn(
-			{ event: "metadata.unavailable", err },
-			"Metadata cache unavailable; local identification remains usable.",
-		);
-	}
+	const externalWorks = await createExternalWorks({ system, database, logger });
+	const { metadata, tracking } = externalWorks;
 	const catalog = metadata
 		? new AnimeCatalogApplication({
 				store: database.catalog,
@@ -73,9 +34,11 @@ export async function createAnimeModule(options: {
 		catalog,
 		lists: tracking,
 		logger,
-		...(metadata ? { associations: metadata.associations } : {}),
+		...(metadata ? { identities: metadata.identities } : {}),
 	});
 	const identification = createIdentificationModule({
+		metadataContext: () =>
+			system.snapshot.settings.defaultMetadataProvider ?? "anilist",
 		library,
 		sources: library.sources,
 		logger,
@@ -92,7 +55,7 @@ export async function createAnimeModule(options: {
 				new AnitomyIdentificationParser(),
 				metadata,
 				catalog,
-				metadata.associations,
+				metadata.identities,
 			)
 		: undefined;
 	const api: AnimeApi = {
@@ -108,7 +71,7 @@ export async function createAnimeModule(options: {
 			metadata,
 			tracking,
 			logger,
-			metadata?.associations,
+			metadata?.identities,
 		),
 		...(assessment && catalog
 			? {
@@ -141,15 +104,7 @@ export async function createAnimeModule(options: {
 				}
 			: undefined,
 	};
-	const viewing = catalog
-		? new TrackingViewingCommands(
-				catalog,
-				tracking,
-				undefined,
-				logger,
-				metadata?.associations,
-			)
-		: undefined;
+	const viewing = catalog ? externalWorks.createViewing(catalog) : undefined;
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
 	const quiesce = () =>
@@ -157,7 +112,7 @@ export async function createAnimeModule(options: {
 			await Promise.all([
 				identification.close(),
 				catalog?.quiesce(),
-				tracking.close(),
+				externalWorks.quiesce(),
 			]);
 		})());
 	return {
@@ -177,9 +132,7 @@ export async function createAnimeModule(options: {
 			(closed ??= (async () => {
 				await quiesce();
 				catalog?.close();
-				await metadata?.close();
-				await bangumi.close();
-				await requests.close();
+				await externalWorks.close();
 			})()),
 	};
 }

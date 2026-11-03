@@ -39,7 +39,7 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `catalog_operations` | Command identity/fingerprint, confirmed work/revision and ordered review receipts |
 | `metadata_snapshots` | Snapshot/cache identity, kind, indexed freshness/failure columns and one JSON `data` projection for search/detail/relation/airing payloads |
 | `metadata_works` | Qualified work key, indexed current description fields, ordered JSON titles and current detail snapshot foreign key |
-| `metadata_references` | Permanent issued UUIDs, canonical work IDs and unique private source/ID mappings; independent of cache eviction |
+| `metadata_references` | Permanent one-to-one project/source identities; independent of cache eviction |
 | `metadata_pins` | Composite snapshot/owner primary key and cascading snapshot foreign key |
 | `media_inspections` | One JSON FFprobe result per scope/file, source version and inspection/FFprobe format version |
 | `metadata_artwork` | Existing scalar asset attributes, nonnegative size and LRU index |
@@ -167,32 +167,27 @@ explicit diagnostics reads return it.
 
 ### Project metadata identities
 
-Migration `0013_metadata_work_identities` adds a permanent identity registry.
-Migration `0014_metadata_source_associations` adds `metadata_references.work_id`
-without regenerating existing UUIDs. Every row retains its originally issued `id`;
-`work_id` selects the canonical project identity. Several source rows may share a
-canonical identity, and old row IDs remain permanent aliases. The unique source/ID
-constraint prevents duplicate source registrations. Association updates every member
-of the other group transactionally, rejects conflicting sources, and never deletes
-identity records. Cache pruning does not touch this registry.
+Migrations `0013`–`0015` introduced permanent project identities and converted Catalog
+references. Migration `0019_isolated_external_works` removes historical cross-source
+identity groups. It validates canonical membership and one entry per provider before
+changing records, then splits each group in the migration transaction. Invalid identity
+registries stop the upgrade without changing the existing records.
 
-Migration `0015_catalog_metadata_identities` registers any legacy Catalog/proposal
-references missing from the registry, replaces Catalog external link columns with
-`metadata_work_id`, and converts proposal references to project IDs. It preserves
-local work/episode IDs, review children, snapshot pins and Tracking state. The
-private description index also retains project projections for Catalog queries;
-source indexes continue to serve Tracking independently. Project descriptions fill
-missing fields across explicitly associated sources; scalar conflicts keep a stable
-primary source. Ordinary business ports never read the source association columns.
+The first entry ordered by provider and provider ID retains the group's canonical ID
+and Catalog links. Other entries regain their registered IDs; if a secondary entry's
+old ID was the canonical ID now assigned to the primary entry, it receives a new UUID.
+Each row then has `work_id = id`, enforced by a unique work-ID index. Runtime code
+has no merge or alias-resolution operation. Split groups and counts are logged after
+successful migration.
 
-Source evidence stays private. Public composite documents use `project:` snapshot
-keys and contain their projected content plus private artwork evidence and source
-snapshot IDs for freshness. They share the existing pin/prune tables but are not
-interpreted as provider payloads. Source-cache eviction cannot change their retained
-content or artwork URLs. Old source snapshots still project their original issued
-identity, even after an association; new reads resolve the canonical identity.
-Cross-source reconciliation requires explicit verified identity and episode-number
-agreement, never a guessed title match.
+Current project summaries are rebuilt from each independent source index. If source
+detail evidence was evicted, migration creates stale source-only details from the
+source summary, leaving unsupported fields empty; missing source summaries receive
+an explicit source/ID placeholder. A later refresh replaces this incomplete evidence.
+Old combined snapshots, artwork evidence, pins and local confirmation records remain
+unchanged. They are retained history, never interpreted as current source payloads.
+AniList credentials, remote entries, queued updates, command deduplication and local
+playback history are preserved.
 
 
 Migration `0016_prepared_media_descriptions` adds `prepared_artifacts.info` as a

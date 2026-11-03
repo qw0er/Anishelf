@@ -4,7 +4,7 @@
 	"workspaces": {
 		"backend": {
 			"ignoreIssues": {
-				"src/modules/anime/bangumi/openapi.gen.ts": ["types"]
+				"src/modules/anime/external-works/bangumi/openapi.gen.ts": ["types"]
 			}
 		},
 		"web": {

@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import type { MetadataProvider } from "../../../../src/modules/anime/metadata/ports.js";
+import type { MetadataProvider } from "../../../../src/modules/anime/external-works/metadata/ports.js";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 
 import {

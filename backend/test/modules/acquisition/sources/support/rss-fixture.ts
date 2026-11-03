@@ -10,7 +10,7 @@ import type { FeedTransport } from "../../../../../src/modules/acquisition/sourc
 import { AnitomyIdentificationParser } from "../../../../../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../../../../../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../../../../../src/modules/anime/release-assessment/application.js";
-import { fixtureAssociations } from "../../../../support/metadata-associations.js";
+import { fixtureIdentities } from "../../../../support/metadata-identities.js";
 
 export const cleanup: (() => Promise<unknown>)[] = [];
 
@@ -55,7 +55,7 @@ export const assessor = new AnimeReleaseAssessment(
 	new AnitomyIdentificationParser(),
 	{} as never,
 	undefined,
-	fixtureAssociations(),
+	fixtureIdentities(),
 );
 
 export async function fixture(

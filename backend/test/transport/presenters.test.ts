@@ -93,6 +93,7 @@ test("settings responses expose only the public setting for setup and configured
 		const stored = { resourceRoots, internalPath: "private-settings" };
 		expect(settingsResponse(stored)).toEqual({
 			resourceRoots,
+			defaultMetadataProvider: "anilist",
 			autoPreparationEnabled: false,
 			autoPreparationPresetId: "builtin:web",
 		});

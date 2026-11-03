@@ -18,7 +18,7 @@ import {
 import { AnitomyIdentificationParser } from "../../../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../../../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../../../src/modules/anime/release-assessment/application.js";
-import { fixtureAssociations } from "../../support/metadata-associations.js";
+import { fixtureIdentities } from "../../support/metadata-identities.js";
 
 const target: AcquisitionTarget = {
 	work: {
@@ -38,7 +38,7 @@ const assessor = new AnimeReleaseAssessment(
 	new AnitomyIdentificationParser(),
 	{} as never,
 	undefined,
-	fixtureAssociations(),
+	fixtureIdentities(),
 );
 const assessReleaseTitle = assessor.assessReleaseTitle.bind(assessor);
 const entry = (

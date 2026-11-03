@@ -13,7 +13,7 @@
 		"start": "node dist/index.js",
 		"test:watch": "vitest",
 		"db:generate": "drizzle-kit generate",
-		"generate:bangumi": "openapi-typescript src/modules/anime/bangumi/openapi.yaml -o src/modules/anime/bangumi/openapi.gen.ts && biome check --write src/modules/anime/bangumi/openapi.gen.ts",
+		"generate:bangumi": "openapi-typescript src/modules/anime/external-works/bangumi/openapi.yaml -o src/modules/anime/external-works/bangumi/openapi.gen.ts && biome check --write src/modules/anime/external-works/bangumi/openapi.gen.ts",
 		"auth": "tsx src/cli.ts auth",
 		"prebuild": "node ../scripts/build-info.mjs",
 		"predev": "node ../scripts/build-info.mjs"

@@ -1,5 +1,5 @@
+import type { MetadataApi } from "../external-works/metadata/public.js";
 import type { IdentificationResult } from "../identification/public.js";
-import type { MetadataApi } from "../metadata/public.js";
 
 export type { CatalogMetadata } from "./ports.js";
 
@@ -19,7 +19,7 @@ import type {
 export type * from "./domain/model.js";
 export interface AnimeCatalogApi {
 	availableEpisodes(
-		reference: import("../metadata/public.js").WorkReference,
+		reference: import("../external-works/metadata/public.js").WorkReference,
 	): Promise<{ episodes: number[]; revision: string }>;
 	publish(
 		results: readonly IdentificationResult[],
@@ -30,7 +30,7 @@ export interface AnimeCatalogApi {
 	list(query?: CatalogQuery): Promise<Page<WorkCard>>;
 	index(query?: CatalogQuery): Promise<{
 		items: (import("./domain/model.js").LocalWork & {
-			reference: import("../metadata/public.js").WorkReference;
+			reference: import("../external-works/metadata/public.js").WorkReference;
 			available: boolean;
 		})[];
 		epoch: number;
@@ -38,7 +38,7 @@ export interface AnimeCatalogApi {
 	cards(ids: readonly string[], epoch: number): Promise<WorkCard[]>;
 	getLocalWorkDetail(id: string): Promise<LocalWorkDetail>;
 	findLocalWork(
-		reference: import("../metadata/public.js").WorkReference,
+		reference: import("../external-works/metadata/public.js").WorkReference,
 	): Promise<string | null>;
 	artwork(
 		id: string,

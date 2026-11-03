@@ -4,15 +4,15 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../../src/app/bootstrap/database.js";
-import { AniListMetadataClient } from "../../../../../src/modules/anime/anilist/infrastructure/metadata-client.js";
+import { AniListMetadataClient } from "../../../../../src/modules/anime/external-works/anilist/infrastructure/metadata-client.js";
 import {
 	type AniListOptions,
 	AniListWrapper,
-} from "../../../../../src/modules/anime/anilist/public.js";
-import { SourceMetadataApplication as MetadataApplication } from "../../../../../src/modules/anime/metadata/application/source-metadata.js";
-import { createMetadataApplication as createPublicMetadata } from "../../../../../src/modules/anime/metadata/create.js";
-import { AniListProvider } from "../../../../../src/modules/anime/metadata/infrastructure/anilist.js";
-import { MetadataArtworkCache } from "../../../../../src/modules/anime/metadata/infrastructure/artwork.js";
+} from "../../../../../src/modules/anime/external-works/anilist/public.js";
+import { SourceMetadataApplication as MetadataApplication } from "../../../../../src/modules/anime/external-works/metadata/application/source-metadata.js";
+import { createMetadataApplication as createPublicMetadata } from "../../../../../src/modules/anime/external-works/metadata/create.js";
+import { AniListProvider } from "../../../../../src/modules/anime/external-works/metadata/infrastructure/anilist.js";
+import { MetadataArtworkCache } from "../../../../../src/modules/anime/external-works/metadata/infrastructure/artwork.js";
 
 export const logger = pino({ enabled: false });
 

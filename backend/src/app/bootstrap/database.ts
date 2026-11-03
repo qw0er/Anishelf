@@ -76,11 +76,13 @@ export class ApplicationDatabase {
 	static open(
 		dataDir: string,
 		playbackPolicy?: DeepReadonly<PlaybackPolicy>,
+		logger?: Logger,
 	): ApplicationDatabase {
 		mkdirSync(dataDir, { recursive: true, mode: storageRules.directoryMode });
 		return ApplicationDatabase.initialize(
 			new Database(join(dataDir, storageRules.databaseFile)),
 			playbackPolicy,
+			logger,
 		);
 	}
 
@@ -97,6 +99,7 @@ export class ApplicationDatabase {
 	private static initialize(
 		connection: Database.Database,
 		playbackPolicy?: DeepReadonly<PlaybackPolicy>,
+		logger?: Logger,
 	): ApplicationDatabase {
 		try {
 			const schemaVersion = connection.pragma("user_version", { simple: true });
@@ -129,12 +132,29 @@ export class ApplicationDatabase {
 				"anishelf_provider_id",
 				(key: string) => workReference(key).id,
 			);
+			const splits: { workId: string; entries: number }[] = [];
+			connection.function(
+				"anishelf_identity_split",
+				(workId: string, entries: number) => {
+					splits.push({ workId, entries });
+					return 1;
+				},
+			);
 			connection.pragma("foreign_keys = OFF");
 			migrate(store, {
 				migrationsFolder: fileURLToPath(
 					new URL("../../../migrations/", import.meta.url),
 				),
 			});
+			if (splits.length)
+				logger?.info(
+					{
+						event: "external_works.identities_split",
+						works: splits,
+						count: splits.length,
+					},
+					"Historical cross-source identities split.",
+				);
 			connection.pragma("foreign_keys = ON");
 			if ((connection.pragma("foreign_key_check") as unknown[]).length)
 				throw new Error("Database schema contains invalid foreign keys.");
@@ -156,7 +176,7 @@ export function openDatabase(
 	playbackPolicy?: DeepReadonly<PlaybackPolicy>,
 ): ApplicationDatabase {
 	try {
-		const database = ApplicationDatabase.open(dataDir, playbackPolicy);
+		const database = ApplicationDatabase.open(dataDir, playbackPolicy, logger);
 		logger.info(
 			{
 				event: "database.ready",

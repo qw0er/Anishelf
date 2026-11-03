@@ -1,5 +1,8 @@
 import { DomainError } from "../../../../shared/errors.js";
-import type { CachedMetadata, WorkDetails } from "../../metadata/public.js";
+import type {
+	CachedMetadata,
+	WorkDetails,
+} from "../../external-works/metadata/public.js";
 import {
 	artworkVersion,
 	conflict,
@@ -19,7 +22,7 @@ import { type CatalogContext, page } from "./context.js";
 export class CatalogQueries {
 	constructor(private readonly context: CatalogContext) {}
 	async availableEpisodes(
-		reference: import("../../metadata/public.js").WorkReference,
+		reference: import("../../external-works/metadata/public.js").WorkReference,
 	) {
 		const scope = await this.context.scope();
 		const work = this.context.options.store.findWork(reference);

@@ -4,16 +4,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
-import { AniListError } from "../../../../src/modules/anime/anilist/public.js";
-import { TrackingUpdates } from "../../../../src/modules/anime/tracking/application/updates.js";
-import { TrackingProviderError } from "../../../../src/modules/anime/tracking/domain/list.js";
-import type { TrackingStatus } from "../../../../src/modules/anime/tracking/domain/model.js";
+import { AniListError } from "../../../../src/modules/anime/external-works/anilist/public.js";
+import { TrackingUpdates } from "../../../../src/modules/anime/external-works/tracking/application/updates.js";
+import { TrackingProviderError } from "../../../../src/modules/anime/external-works/tracking/domain/list.js";
+import type { TrackingStatus } from "../../../../src/modules/anime/external-works/tracking/domain/model.js";
 import type {
 	TrackingRemoteState,
 	TrackingUpdate,
-} from "../../../../src/modules/anime/tracking/domain/operation.js";
-import { aniListTracking } from "../../../../src/modules/anime/tracking/infrastructure/provider-mapping.js";
-import type { TrackingUpdateProvider } from "../../../../src/modules/anime/tracking/ports.js";
+} from "../../../../src/modules/anime/external-works/tracking/domain/operation.js";
+import { aniListTracking } from "../../../../src/modules/anime/external-works/tracking/infrastructure/provider-mapping.js";
+import type { TrackingUpdateProvider } from "../../../../src/modules/anime/external-works/tracking/ports.js";
 import type { AniListClient } from "../../../support/anilist-fixture.js";
 import { AniListUpdatesClient } from "../../../support/anilist-fixture.js";
 

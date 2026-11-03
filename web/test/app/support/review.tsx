@@ -8,6 +8,11 @@ export function mockReview(confirmed = false) {
 	const fallback = fetcher.getMockImplementation();
 	fetcher.mockImplementation(async (input, init) => {
 		const path = String(input);
+		if (path === "/api/metadata/providers")
+			return json([
+				{ key: "anilist", name: "AniList", metadata: true, tracking: true },
+				{ key: "bangumi", name: "Bangumi", metadata: true, tracking: false },
+			]);
 		if (path.startsWith("/api/catalog/reviews?"))
 			return json({ items: [item], page: 1, perPage: 20, hasNextPage: false });
 		if (path === `/api/catalog/reviews/${item.id}`) return json(item);

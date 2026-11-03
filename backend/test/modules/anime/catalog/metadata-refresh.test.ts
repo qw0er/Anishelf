@@ -1,7 +1,7 @@
 import { expect, test, vi } from "vitest";
 import { catalogDefaults } from "../../../../src/modules/anime/anime-catalog/defaults.js";
-import { MetadataError } from "../../../../src/modules/anime/metadata/domain/source-model.js";
-import type { MetadataProvider } from "../../../../src/modules/anime/metadata/ports.js";
+import { MetadataError } from "../../../../src/modules/anime/external-works/metadata/domain/source-model.js";
+import type { MetadataProvider } from "../../../../src/modules/anime/external-works/metadata/ports.js";
 
 import {
 	confirm,

@@ -4,13 +4,13 @@ import type {
 	AnimeCatalogApi,
 	CatalogMetadata,
 } from "../anime-catalog/public.js";
+import type { MetadataIdentitiesApi } from "../external-works/metadata/public.js";
 import {
 	matchingTitle,
 	proposeMapping,
 	rankCandidates,
 	titleEvidence,
 } from "../identification/public.js";
-import type { MetadataAssociations } from "../metadata/public.js";
 import { releaseAttributes } from "./attributes.js";
 import type {
 	AcquisitionTarget,
@@ -26,7 +26,7 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 		private readonly catalog:
 			| Pick<AnimeCatalogApi, "availableEpisodes">
 			| undefined,
-		private readonly associations: MetadataAssociations,
+		private readonly identities: MetadataIdentitiesApi,
 	) {}
 	async target(key: string, signal?: AbortSignal): Promise<AcquisitionTarget> {
 		let reference: ReturnType<typeof workReference>;
@@ -36,7 +36,7 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 			throw new DomainError("INVALID_REQUEST", "Invalid subscription target.");
 		}
 		const snapshot = await this.metadata.get(
-			this.associations.referenceForExternal(reference),
+			this.identities.referenceForExternal(reference),
 			{
 				...(signal ? { signal } : {}),
 			},

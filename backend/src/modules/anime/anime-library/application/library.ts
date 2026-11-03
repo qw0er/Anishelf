@@ -9,12 +9,12 @@ import type {
 	EpisodePlaybackTarget,
 	WorkCard,
 } from "../../anime-catalog/public.js";
-import type { MetadataAssociations } from "../../metadata/public.js";
+import type { MetadataIdentitiesApi } from "../../external-works/metadata/public.js";
 import type {
 	TrackingListEntry,
 	TrackingListsApi,
-} from "../../tracking/public.js";
-import { isActiveViewing } from "../../tracking/public.js";
+} from "../../external-works/tracking/public.js";
+import { isActiveViewing } from "../../external-works/tracking/public.js";
 import type {
 	AnimeLibraryQuery,
 	LibraryCard,
@@ -29,7 +29,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			catalog: Pick<AnimeCatalogApi, "index" | "cards"> | undefined;
 			lists: TrackingListsApi;
 			logger: Logger;
-			associations?: MetadataAssociations;
+			identities?: MetadataIdentitiesApi;
 		},
 	) {}
 	async list(
@@ -58,7 +58,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 		const cards = new Map<string, LibraryCard>();
 		const localKeys = new Set(
 			index?.items.flatMap((work) => {
-				const ref = this.options.associations?.externalReference(
+				const ref = this.options.identities?.externalReference(
 					work.reference,
 					tracking.provider.key,
 				);
@@ -66,12 +66,12 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			}) ?? [],
 		);
 		for (const work of index?.items ?? []) {
-			const mapped = this.options.associations?.externalReference(
+			const mapped = this.options.identities?.externalReference(
 				work.reference,
 				tracking.provider.key,
 			);
 			const reference =
-				mapped ?? this.options.associations?.externalReference(work.reference);
+				mapped ?? this.options.identities?.externalReference(work.reference);
 			if (!reference) continue;
 			const viewing = mapped ? tracked.get(workKey(mapped)) : undefined;
 			const key = workKey(reference);
@@ -112,7 +112,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				nextPlayback: null,
 				viewing: viewing ? viewingState(viewing) : null,
 				viewingAvailability: !mapped
-					? "unmapped"
+					? "unsupported"
 					: tracking.fetchedAt === null
 						? "unknown"
 						: viewing

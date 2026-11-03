@@ -4,7 +4,10 @@ import {
 } from "../identification/public.js";
 /** Explicit provider title ordinals only; calendar seasons/relations are not ordinals. */
 export function createIdentificationMetadata(
-	metadata: Pick<import("../metadata/public.js").MetadataApi, "search">,
+	metadata: Pick<
+		import("../external-works/metadata/public.js").MetadataApi,
+		"search"
+	>,
 ): IdentificationMetadata {
 	return {
 		search: async (query, signal, options) => {

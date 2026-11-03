@@ -72,6 +72,7 @@ export function animeFixture(): LocalWorkDetailResponse {
 			refreshing: false,
 			refreshError: null,
 			data: {
+				provider: "anilist",
 				reference: { id: "metadata-work-1" },
 				titles: [{ value: "Frieren", language: "en", kind: "english" }],
 				unavailableFields: ["endDate"],

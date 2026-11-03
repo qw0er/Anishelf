@@ -25,8 +25,14 @@ export function ViewingSummary({
 	if (state.unmapped)
 		return (
 			<p className="text-sm text-muted-foreground">
-				{t("trackingList.unmapped")}
+				{t("metadataSource.unsupported")}
 			</p>
+		);
+	if (state.disconnected)
+		return (
+			<Link to="/settings?section=account" className="text-sm underline">
+				{t("metadataSource.connect")}
+			</Link>
 		);
 	const snapshot = state.snapshot;
 	const entry = snapshot?.entry;

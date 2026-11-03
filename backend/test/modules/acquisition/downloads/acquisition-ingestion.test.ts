@@ -6,16 +6,16 @@ import { afterEach, expect, test } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { AnimeCatalogApplication } from "../../../../src/modules/anime/anime-catalog/application/catalog.js";
 import type { CatalogMetadata } from "../../../../src/modules/anime/anime-catalog/ports.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import type {
 	CachedMetadata,
 	WorkDetails,
-} from "../../../../src/modules/anime/metadata/domain/source-model.js";
+} from "../../../../src/modules/anime/external-works/metadata/domain/source-model.js";
+import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import { AnimeReleaseAssessment } from "../../../../src/modules/anime/release-assessment/application.js";
 import { AcquisitionIngestion } from "../../../../src/modules/anime/release-assessment/ingestion.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
 import { createLibraryModule } from "../../../support/library.js";
-import { fixtureAssociations } from "../../../support/metadata-associations.js";
+import { fixtureIdentities } from "../../../support/metadata-identities.js";
 import { settingsStore } from "../../../support/settings-store.js";
 
 const cleanup: (() => Promise<unknown>)[] = [];
@@ -68,13 +68,15 @@ async function fixture() {
 		streamingEpisodes: [],
 		episodeCatalog: "unavailable",
 	};
-	const snapshot: CachedMetadata<WorkDetails> = {
+	const snapshot: CachedMetadata<
+		import("../../../../src/modules/anime/external-works/metadata/domain/model.js").WorkDetails
+	> = {
 		snapshotId: "snapshot",
 		fetchedAt: Date.now(),
 		stale: false,
 		refreshing: false,
 		refreshError: null,
-		data,
+		data: { ...data, provider: data.reference.provider },
 	};
 	db.metadata.save({
 		id: "snapshot",
@@ -113,7 +115,7 @@ async function fixture() {
 			parser,
 			metadata as never,
 			catalog,
-			fixtureAssociations(),
+			fixtureIdentities(),
 		),
 		ingestion = new AcquisitionIngestion(
 			assessment,

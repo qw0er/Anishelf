@@ -488,3 +488,19 @@ test.each([0, -1, 1.5, 1441, "30", null])(
 		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 	},
 );
+
+test("metadata source selection persists through reload and rejects unsupported sources", async () => {
+	const service = await ConfigurationService.load(environment());
+	await service.patchSettings({ defaultMetadataProvider: "bangumi" });
+	expect(
+		(await ConfigurationService.load(environment())).settings
+			.defaultMetadataProvider,
+	).toBe("bangumi");
+	await writeFile(
+		join(dataDir, "settings.json"),
+		JSON.stringify({ resourceRoots: [], defaultMetadataProvider: "unknown" }),
+	);
+	await expect(ConfigurationService.load(environment())).rejects.toMatchObject({
+		code: "CONFIG_INVALID",
+	});
+});

@@ -18,8 +18,9 @@ export function useDetailViewing(
 		onSettled: () => invalidateAnimeQueries(client, "viewing"),
 	});
 	return {
+		disconnected: snapshot?.accountId === null,
 		mediaId,
-		visible: snapshot === undefined || snapshot.accountId !== null,
+		visible: true,
 		unmapped:
 			snapshot !== undefined &&
 			!mediaId.startsWith(

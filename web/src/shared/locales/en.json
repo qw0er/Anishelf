@@ -1361,5 +1361,18 @@
 		"paused": "Automatic preparation is paused until an available preset is selected.",
 		"configIssue": "Could not load custom presets from {{file}}. Built-in presets remain available.",
 		"taskSource": "Automatic · {{preset}}"
+	},
+	"metadataSource": {
+		"title": "Metadata source",
+		"description": "Choose the source for future searches and automatic identification. Existing works keep their source.",
+		"source": "Source",
+		"default": "Use default source",
+		"saved": "Metadata source saved.",
+		"unsupported": "This source does not support Tracking yet.",
+		"connect": "Connect your tracking account",
+		"names": {
+			"anilist": "AniList",
+			"bangumi": "Bangumi"
+		}
 	}
 }

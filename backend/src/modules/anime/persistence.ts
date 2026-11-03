@@ -2,17 +2,17 @@ import type { Store } from "../../platform/database/store.js";
 import type { SourceRegistry } from "../resources/public.js";
 import { CatalogRepository } from "./anime-catalog/infrastructure/repository.js";
 import type { CatalogStore } from "./anime-catalog/ports.js";
-import { MetadataRepository } from "./metadata/infrastructure/repository.js";
-import type { MetadataStore } from "./metadata/ports.js";
+import { MetadataRepository } from "./external-works/metadata/infrastructure/repository.js";
+import type { MetadataStore } from "./external-works/metadata/ports.js";
 
-import { TrackingListRepository } from "./tracking/infrastructure/list-repository.js";
-import { TrackingOperationRepository } from "./tracking/infrastructure/operation-repository.js";
-import { TrackingRepository } from "./tracking/infrastructure/repository.js";
+import { TrackingListRepository } from "./external-works/tracking/infrastructure/list-repository.js";
+import { TrackingOperationRepository } from "./external-works/tracking/infrastructure/operation-repository.js";
+import { TrackingRepository } from "./external-works/tracking/infrastructure/repository.js";
 import type {
 	TrackingListStore,
 	TrackingOperationStore,
 	TrackingStore,
-} from "./tracking/ports.js";
+} from "./external-works/tracking/ports.js";
 
 export {
 	catalogAssociations,
@@ -27,14 +27,14 @@ export {
 	metadataPins,
 	metadataReferences,
 	metadataSnapshots,
-} from "./metadata/persistence.js";
+} from "./external-works/metadata/persistence.js";
 export {
 	trackingCommands,
 	trackingConnection,
 	trackingIntentVersions,
 	trackingListCache,
 	trackingOperations,
-} from "./tracking/persistence.js";
+} from "./external-works/tracking/persistence.js";
 export interface AnimePersistence {
 	tracking: TrackingStore;
 	trackingOperations: TrackingOperationStore;
@@ -56,5 +56,5 @@ export function createAnimePersistence(
 }
 
 export * from "./anime-catalog/infrastructure/schema.js";
-export * from "./metadata/infrastructure/schema.js";
-export * from "./tracking/infrastructure/schema.js";
+export * from "./external-works/metadata/infrastructure/schema.js";
+export * from "./external-works/tracking/infrastructure/schema.js";

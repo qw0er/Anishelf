@@ -79,16 +79,16 @@ Preserve each rule's source confirmations and applicable context, explain its ef
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| M06 | Multiple metadata providers and cross-provider ID mapping | Partial | Unassigned | [Explicit work associations; automatic mapping and management UI pending](#delivery-notes-m) | 1.0.6 |
+| M06 | Multiple independently selectable metadata providers | Complete | — | Default source, per-search selection and source-isolated identities; no cross-source mapping | 1.0.6 |
 | M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Later | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08); no active iteration assigned | — |
 
 #### Delivery Notes (M)
 
-- **M06:** **Delivered:** AniList/Bangumi search, explicit verified work associations, combined descriptions and permanent ID aliases. **Remaining:** Automatic cross-source matching, association management UI and cross-source episode mappings. **Release record:** 1.0.6 (partial).
+- **M06:** **Delivered:** Independently selectable AniList/Bangumi search, a persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. **Release record:** 1.0.6 (partial).
 
 #### External Metadata and Local Catalog (M01–M07)
 
-See [implemented metadata requirements](implemented-requirements.md#external-metadata-and-local-catalog-m01m07) for the current boundary. Automatic cross-source matching, association management and independent cross-source episode mappings remain unassigned.
+See [implemented metadata requirements](implemented-requirements.md#external-metadata-and-local-catalog-m01m07) for the current boundary. Sources are independent. Cross-source identity association, metadata composition and cross-source episode mappings are outside the supported behavior.
 
 #### Per-episode Metadata (M08)
 
@@ -357,14 +357,11 @@ Collect representative local failure cases with user-confirmed expected works an
 
 #### Chinese Title Fallback (M09)
 
-Improve Chinese title presentation when the preferred metadata lacks a Chinese title.
-Obtain an available Chinese title from Bangumi for the same work and display it when
-Chinese is preferred. Reuse confirmed cross-provider associations; a candidate must
-not be treated as the same work solely because its title is similar. If identity is
-uncertain, leave it unresolved rather than displaying another work's title. Preserve
-the original titles, source information and existing user corrections. When Bangumi
-has no Chinese title or is unavailable, use the existing title fallback and keep
-cached browsing and playback available.
+Improve Chinese title presentation using titles supplied by the explicitly selected
+metadata source. Prefer that source's Chinese title when available and otherwise
+retain its existing fallback. Users can select Bangumi through Review when its title
+coverage is preferred. Cross-source title lookup, identity association and automatic
+fallback to another provider are outside this requirement.
 
 #### Transcoding Progress (P26)
 
@@ -402,10 +399,9 @@ The display must remain usable on desktop and narrow screens.
   source and keyword context to explain the outcome. Define how partial search
   failures affect the combined results and feedback.
 - **WI14:** Improve searches for Chinese resources using available Chinese titles
-  and aliases. This depends on reliable Chinese title availability, including the
-  Bangumi fallback proposed in M09. Use confirmed work associations, retain existing
-  search behavior when Chinese titles are unavailable, and avoid treating similar
-  titles alone as proof of work identity.
+  and aliases from the selected metadata source. Retain existing search behavior
+  when Chinese titles are unavailable; do not infer cross-source identity or query
+  another metadata source automatically.
 
 ## 5. Bugs
 

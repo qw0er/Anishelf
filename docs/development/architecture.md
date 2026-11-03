@@ -219,67 +219,42 @@ Individual directory failures are counted while other directories continue, and
 shutdown drains the run. Restart clears this transient status; no durable job is
 created and saved Catalog decisions remain authoritative.
 
-Metadata's ordinary content API uses permanent project work IDs (`reference: { id }`).
-Search, detail, relations, schedules, retained snapshots and artwork use this identity.
-Search accepts a query and pagination, never a provider selector. Metadata searches
-its configured sources, interleaves results in stable source order and deduplicates
-only verified associations. Equal titles alone never establish identity. Source
-prefix pages are cached independently; the public search window is bounded to 500
-results, with at most 50 items per page. One source failing leaves available results
-with a generic partial-failure status; all sources failing returns a Metadata error.
+External Works owns metadata and tracking under `anime/external-works/`. Its factory
+assembles source adapters, the permanent identity registry, metadata cache/artwork,
+tracking credentials, account state and synchronization workers. AniList supports
+metadata and Tracking; Bangumi currently supports metadata only. Catalog, resource
+files and local playback history retain their own identities and lifecycles.
 
-A project identity may have several source associations. Explicit association keeps
-the target ID canonical and every previously issued ID as a permanent alias. It
-requires confirmation that the entries describe the same work with equivalent
-regular-episode numbering, and rejects conflicting entries from the same source.
-No automatic title matching or episode-offset inference is performed. Detail reads
-combine only associated sources in stable order: the first available source owns
-conflicting scalar values and ratings, later sources fill missing fields, and titles
-are deduplicated. Cache state, freshness and safe failures remain visible without
-exposing source identities. Unsupported schedules/relations return an empty page
-with `unavailable: true`, rather than requiring consumers to inspect a provider.
+Each permanent project work ID (`reference: { id }`) identifies exactly one source
+entry. Source identities are explicit in metadata responses. Cross-source linking,
+identity aliases, field composition and cross-source Tracking are unsupported.
+Matching titles never establish identity across providers.
 
-Project documents retain their exact projected content and artwork evidence inside
-immutable snapshots, independently of source cache eviction or later associations.
-Snapshot pins and pruning use the existing Metadata lifecycle. Descriptive results
-omit source page/update fields and studio/schedule IDs; artwork uses project URLs.
+`defaultMetadataProvider` is persisted in settings and defaults to `anilist`.
+Automatic identification and searches without an explicit provider use this source
+only. Review offers a source selector; changing it resets search pagination. A failed
+source produces its own error or stale cached content, never a fallback search.
+Changing the default affects future searches and recognition; confirmed works retain
+their source. Directory recognition reuse includes the selected source in its key.
+Changing an existing file to another source uses Review's explicit replacement
+confirmation and invalidates captured playback targets through the existing mapping
+revision checks.
 
-Identification and Catalog use project references, including persisted proposals
-and confirmed metadata links. They read the ordinary Metadata port. External
-Tracking and Acquisition identities are translated through the separate
-`MetadataAssociations` integration capability, not the content API. Combined
-Library/detail views may expose explicit Tracking associations for viewing commands;
-this does not make source selection part of metadata retrieval. Provider protocols
-do not import Metadata or Tracking business contracts.
+Details, titles, artwork, relations and airing schedules come from the work's source.
+Unsupported capabilities return `unavailable: true`. Immutable historical snapshots
+remain confirmation evidence; new current reads never compose source fields.
+Tracking resolves the work's own source ID. Bangumi works show unsupported Tracking;
+AniList works without an account show a connection action. Existing queued AniList
+updates retain their captured target and delivery state.
 
 ### Metadata implementation responsibilities
 
-`metadata/create.ts` assembles Metadata's collaborators and binds their methods once into
-`MetadataApi`. Anime and HTTP consumers use these bound functions directly; there
-is no forwarding facade or repeated content-method wrapper. The external identity
-bridge is injected into Tracking and other integrations separately from ordinary
-content reads. The public content contract, project UUIDs and persisted snapshot
-format do not depend on this internal split.
-
-| Implementation | Responsibility |
-| --- | --- |
-| `application/identities.ts` | Register project IDs, resolve aliases/external inputs, translate external identities and validate explicit associations |
-| `application/search.ts` | Federate source searches, preserve pagination/order, deduplicate verified identities and report partial results |
-| `application/work-reader.ts` | Read current/detail content and select supported relation/schedule capabilities |
-| `domain/projection.ts`, `domain/composition.ts` | Pure content projection and field merge policy; no database, requests or UUID generation |
-| `application/snapshots.ts` | Persist/read immutable project documents, adapt retained legacy evidence and expose artwork evidence |
-| `application/artwork.ts` | Select current or historical artwork and delegate binary caching/downloads to the existing artwork adapter |
-| `application/results.ts`, `application/operations.ts` | Project safe result envelopes and normalize storage/read/partial-failure outcomes |
-
-Application collaborators receive only the source/store methods they need. The
-source-facing application, cache reader, provider adapters and binary artwork cache
-retain their existing responsibilities. Snapshot serialization and database-index
-maintenance continue to use the same persistent format; no migration is needed.
-Snapshot retain/release and binary artwork reads bind directly to the existing source
-cache lifecycle instead of passing through content services.
-
-Manual decisions survive recognition refreshes. AniList outages leave local playback,
-subtitles, preparation, resume and history available.
+`external-works/create.ts` owns assembly and shutdown. Within the module, metadata
+and Tracking share source identity translation directly. Metadata application services
+handle single-source searches, content projection, immutable snapshots and artwork;
+Tracking services retain account, list-cache and operation-queue responsibilities.
+Protocol clients remain independent of business contracts and arrive through adapter
+ports. Module and dependency checks cover the nested External Works directories.
 
 ### Local work detail query naming
 
@@ -779,25 +754,18 @@ An administrator password still requires site setup in Jackett management.
 
 ### Bangumi protocol and project metadata
 
-Bangumi implements the internal Metadata provider port through a separate protocol
-client. `GET /api/metadata/search?query=...` includes configured sources automatically.
+Bangumi implements the internal metadata provider port through a separate protocol
+client. `GET /api/metadata/search?query=...&provider=bangumi` searches Bangumi only;
+omitting `provider` uses the persisted default. `GET /api/metadata/providers` lists
+source names and metadata/Tracking availability.
 `GET /api/metadata/reference?value=https://bgm.tv/subject/400602` (also `bangumi.tv`,
-`chii.in`, or `bangumi:anime:400602`) resolves a permanent project ID; details and
-artwork use project-ID routes. Unqualified numeric inputs resolve against the
-default source at this external-input boundary. AniList remains the only Tracking
-provider. Independent source entries remain distinct until explicitly associated.
-
-`POST /api/metadata/associations` is an authenticated management command, subject to
-the normal mutation protections. Its body contains `target: { id }`, `other: { id }`
-and `sameEpisodeNumbering: true`. The operator must verify both work identity and
-numbering first. The response is the canonical target reference; old IDs continue
-to resolve. This operation does not merge local Catalog works, episodes or files. App composition
-rejects association when both groups already own different local Catalog works; those
-local decisions must be reconciled first.
-There is no source-management UI or automatic cross-source matching in this change.
+`chii.in`, or `bangumi:anime:400602`) resolves an independent permanent project ID.
+Use qualified references or URLs to select a source at this input boundary; legacy
+unqualified numeric inputs resolve against AniList. Details and artwork use project-ID
+routes. The cross-source association command has been removed.
 
 The consumed OpenAPI subset is checked in at
-`backend/src/modules/anime/bangumi/openapi.yaml`, copied from the
+`backend/src/modules/anime/external-works/bangumi/openapi.yaml`, copied from the
 [official v0 schema](https://github.com/bangumi/api/blob/master/open-api/v0.yaml).
 Regenerate types with:
 

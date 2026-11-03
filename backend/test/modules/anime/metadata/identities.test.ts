@@ -1,8 +1,8 @@
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
-import { SourceMetadataApplication as MetadataApplication } from "../../../../src/modules/anime/metadata/application/source-metadata.js";
-import { createMetadataApplication as createPublicMetadata } from "../../../../src/modules/anime/metadata/create.js";
-import { MetadataError } from "../../../../src/modules/anime/metadata/public.js";
+import { SourceMetadataApplication as MetadataApplication } from "../../../../src/modules/anime/external-works/metadata/application/source-metadata.js";
+import { createMetadataApplication as createPublicMetadata } from "../../../../src/modules/anime/external-works/metadata/create.js";
+import { MetadataError } from "../../../../src/modules/anime/external-works/metadata/public.js";
 
 import {
 	cleanups,
@@ -42,8 +42,8 @@ test("public metadata uses durable project identities across search, detail, sna
 		publicMetadata.snapshot(search.snapshotId),
 	]) {
 		const value = JSON.stringify(result);
-		expect(value).not.toContain('"provider"');
-		expect(value).not.toContain("anilist");
+		expect(value).toContain('"provider":"anilist"');
+
 		expect(value).not.toContain("bannerImage");
 	}
 	// Identities are not evictable search/snapshot evidence.
@@ -52,7 +52,7 @@ test("public metadata uses durable project identities across search, detail, sna
 	try {
 		const projection = createPublicMetadata(application, reopened.metadata);
 		expect(projection.resolveReference("154587")).toEqual(identity);
-		expect(projection.associations.externalReference(identity)).toEqual(
+		expect(projection.identities.externalReference(identity)).toEqual(
 			reference,
 		);
 	} finally {
@@ -67,7 +67,7 @@ test("relations and airing snapshots use project references and episode identiti
 	const relations = await publicMetadata.relations(identity);
 	const related = relations.data.items[0]?.work.reference;
 	expect(related).toEqual(publicMetadata.resolveReference("200"));
-	expect(JSON.stringify(relations)).not.toContain("anilist");
+	expect(relations.data.items[0]?.work.provider).toBe("anilist");
 	expect(publicMetadata.snapshot(relations.snapshotId).data).toEqual(
 		relations.data,
 	);
@@ -147,8 +147,6 @@ test("different configured sources produce the same project contract without sou
 	expect(Object.keys(alternateDetail.data).sort()).toEqual(
 		Object.keys(otherDetail.data).sort(),
 	);
-	expect(JSON.stringify(search)).not.toMatch(/anilist|alternate|provider/);
-	expect(JSON.stringify(alternateDetail)).not.toMatch(
-		/anilist|alternate|provider/,
-	);
+	expect(search.data.items[0]?.provider).toBe("alternate");
+	expect(alternateDetail.data.provider).toBe("alternate");
 });

@@ -8,6 +8,7 @@ export interface ViewingState {
 	mediaId?: string | undefined;
 	visible: boolean;
 	unmapped?: boolean;
+	disconnected?: boolean;
 	loading: boolean;
 	refreshing: boolean;
 	reconnect: boolean;
@@ -40,9 +41,10 @@ export function useViewingState(mediaId: string | undefined): ViewingState {
 	});
 	const refresh = useTrackingRefresh(account.data);
 	return {
+		disconnected: account.data?.account === null,
 		unmapped,
 		mediaId,
-		visible: Boolean(mediaId && (account.isPending || account.data?.account)),
+		visible: Boolean(mediaId),
 		loading: account.isPending || entry.isPending,
 		refreshing:
 			refresh.isPending || entry.isFetching || Boolean(entry.data?.refreshing),

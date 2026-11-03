@@ -4,9 +4,9 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
-import { BangumiClient } from "../../../../src/modules/anime/bangumi/public.js";
-import { createMetadataModule } from "../../../../src/modules/anime/metadata/create.js";
-import { BangumiProvider } from "../../../../src/modules/anime/metadata/infrastructure/bangumi.js";
+import { BangumiClient } from "../../../../src/modules/anime/external-works/bangumi/public.js";
+import { createMetadataModule } from "../../../../src/modules/anime/external-works/metadata/create.js";
+import { BangumiProvider } from "../../../../src/modules/anime/external-works/metadata/infrastructure/bangumi.js";
 import { createHttpApp } from "../../../support/http.js";
 
 const logger = pino({ enabled: false });

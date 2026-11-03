@@ -3,11 +3,10 @@ import { DomainError } from "../../shared/errors.js";
 import { workKey, workReference } from "../../shared/external-reference.js";
 import type { CatalogMetadata as MetadataApi } from "./anime-catalog/ports.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
-import type { MetadataAssociations } from "./metadata/public.js";
-import { MetadataError, workTitle } from "./metadata/public.js";
-
+import type { MetadataIdentitiesApi } from "./external-works/metadata/public.js";
+import { MetadataError, workTitle } from "./external-works/metadata/public.js";
+import type { TrackingApi } from "./external-works/tracking/public.js";
 import type { AnimeApi, AnimeDetail } from "./public.js";
-import type { TrackingApi } from "./tracking/public.js";
 
 /** Anime-only reads; cross-module acquisition composition belongs to app. */
 type Queries = AnimeApi["queries"];
@@ -19,7 +18,7 @@ export class AnimeQueries implements Queries {
 		private readonly metadata: Pick<MetadataApi, "get"> | undefined,
 		private readonly tracking: Pick<TrackingApi, "list" | "status">,
 		private readonly logger: Logger,
-		private readonly associations?: MetadataAssociations,
+		private readonly identities?: MetadataIdentitiesApi,
 	) {}
 	async detail(
 		input: { localWorkId: string } | { key: string },
@@ -39,10 +38,10 @@ export class AnimeQueries implements Queries {
 				"Local Catalog is unavailable.",
 			);
 		const reference = local
-			? (this.associations?.externalReference(
+			? (this.identities?.externalReference(
 					local.work.reference,
 					tracking.provider.key,
-				) ?? this.associations?.externalReference(local.work.reference))
+				) ?? this.identities?.externalReference(local.work.reference))
 			: this.reference("key" in input ? input.key : "");
 		if (!reference)
 			throw new DomainError(
@@ -101,13 +100,13 @@ export class AnimeQueries implements Queries {
 	private projectReference(
 		reference: import("../../shared/external-reference.js").ExternalWorkReference,
 	) {
-		if (!this.associations)
+		if (!this.identities)
 			throw new MetadataError({
 				code: "unavailable",
 				message: "Work identity resolution is unavailable.",
 				retryAt: null,
 			});
-		return this.associations.referenceForExternal(reference);
+		return this.identities.referenceForExternal(reference);
 	}
 	private reference(key: string) {
 		try {

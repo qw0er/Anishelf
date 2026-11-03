@@ -56,6 +56,7 @@ export class AutomaticIdentificationCoordinator {
 			sources: ResourceAccessApi;
 			identification: IdentificationApi;
 			logger: Logger;
+			metadataContext?: () => string;
 			catalog?: Pick<AnimeCatalogApi, "reviews" | "review">;
 			onPublication?: (
 				results: readonly IdentificationResult[],
@@ -401,7 +402,13 @@ export class AutomaticIdentificationCoordinator {
 				affectedFiles.add(fileId);
 			for (const file of files) affectedFiles.add(file.id);
 			const fingerprint = createHash("sha256")
-				.update(JSON.stringify([this.options.identification.version, sources]))
+				.update(
+					JSON.stringify([
+						this.options.identification.version,
+						this.options.metadataContext?.(),
+						sources,
+					]),
+				)
 				.digest("hex");
 			const cached = this.cache.get(id);
 			let results: IdentificationResult[];
