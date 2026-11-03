@@ -266,7 +266,6 @@ The proposed implementation and staged validation are in the
 | O09 | Support multiple users and permissions | Not started | Optional | — | — |
 | O19 | In-app editor for hand-written configuration files | Not started | Later | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
 | O20 | Hot reload acquisition profile configuration | Not started | Later | [Validate and activate acquisition profiles without restart](#delivery-notes-o) | — |
-| O22 | View the changelog within the application | Not started | Later | [In-app changelog](#in-app-changelog-o22) | — |
 
 #### Proposed feature work
 
@@ -307,16 +306,6 @@ rejecting decisions based on outdated configuration. Preserve existing download
 reservations and submitted tasks; reloading must not grant acquisition permission
 or change a subscription's selected source. Preserve existing per-episode waiting
 history when the effective profile policy is unchanged. Current acquisition profiles are loaded only at startup.
-
-#### In-app Changelog (O22)
-
-Let users open the changelog within the application and read release notes grouped
-by version, including the installed version and available earlier releases. The
-display must identify the installed version and make clear when its release notes
-are unavailable. Fetch release notes from the project's GitHub changelog and display
-them within the application without requiring users to visit an external website.
-Show loading and retrieval failure states and allow retry; if cached notes are shown
-after a failed refresh, identify them as potentially outdated.
 
 #### Logging Maintenance (O11–O13)
 

@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import Markdown from "react-markdown";
+import changelog from "../../../../../CHANGELOG.md?raw";
 import { request } from "../../../shared/api/client.js";
 import type { BuildInfo, UpdateCheck } from "../../../shared/api/contracts.js";
 import { ActionButton } from "../../../shared/components/ui/action-button.js";
+import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Card,
 	CardContent,
@@ -16,12 +19,27 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../../shared/components/ui/collapsible.js";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "../../../shared/components/ui/dialog.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 
 declare const __ANISHELF_BUILD__: BuildInfo;
 const webBuild = __ANISHELF_BUILD__;
 const repository = "https://github.com/qw0er/Anishelf";
 const updateKey = ["system", "updates"];
+const releases = changelog
+	.split(/^## /m)
+	.slice(1)
+	.map((section) => {
+		const [version = "", ...body] = section.split("\n");
+		return { version: version.trim(), body: body.join("\n").trim() };
+	});
 
 function BuildDetails({ label, info }: { label: string; info: BuildInfo }) {
 	const { t, i18n } = useTranslation();
@@ -177,6 +195,61 @@ export function AboutSettings() {
 						{t("about.lastCheckFailed")}
 					</p>
 				)}
+				<Dialog>
+					<DialogTrigger
+						render={<Button variant="outline" className="w-fit" />}
+					>
+						{t("about.changelog")}
+					</DialogTrigger>
+					<DialogContent className="sm:max-w-2xl">
+						<DialogHeader>
+							<DialogTitle>{t("about.changelog")}</DialogTitle>
+							<DialogDescription>
+								{t("about.changelogVersion", { version: webBuild.version })}
+							</DialogDescription>
+						</DialogHeader>
+						{!releases.some(
+							(release) => release.version === webBuild.version,
+						) && (
+							<p className="text-sm text-muted-foreground">
+								{t("about.changelogMissing")}
+							</p>
+						)}
+						<div className="space-y-6 text-sm">
+							{releases.map((release) => (
+								<section key={release.version} className="space-y-2">
+									<h2 className="text-base font-semibold">
+										{release.version}
+										{release.version === webBuild.version &&
+											` · ${t("about.installed")}`}
+									</h2>
+									<Markdown
+										components={{
+											h3: ({ children }) => (
+												<h3 className="mt-3 font-medium">{children}</h3>
+											),
+											ul: ({ children }) => (
+												<ul className="list-disc space-y-1 pl-5">{children}</ul>
+											),
+											a: ({ href, children }) => (
+												<a
+													className="underline underline-offset-4"
+													href={href}
+													target="_blank"
+													rel="noreferrer"
+												>
+													{children}
+												</a>
+											),
+										}}
+									>
+										{release.body}
+									</Markdown>
+								</section>
+							))}
+						</div>
+					</DialogContent>
+				</Dialog>
 				<div className="flex flex-wrap items-start gap-x-4 gap-y-2 border-t pt-3 text-sm text-muted-foreground">
 					<Collapsible
 						className="min-w-0 flex-1"

@@ -32,6 +32,7 @@ FROM dependencies AS web-build
 # Web imports shared contracts and build defaults from the backend workspace.
 COPY backend/ ./backend/
 COPY web/ ./web/
+COPY CHANGELOG.md ./CHANGELOG.md
 RUN npm run build --workspace @anishelf/web
 
 FROM node:24-trixie-slim AS backend
