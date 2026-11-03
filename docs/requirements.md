@@ -266,6 +266,7 @@ The proposed implementation and staged validation are in the
 | O09 | Support multiple users and permissions | Not started | Optional | — | — |
 | O19 | In-app editor for hand-written configuration files | Not started | Later | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
 | O20 | Hot reload acquisition profile configuration | Not started | Later | [Validate and activate acquisition profiles without restart](#delivery-notes-o) | — |
+| O23 | Support multi-node deployments | Not started | Unassigned | — | — |
 
 #### Proposed feature work
 
