@@ -4,6 +4,8 @@ import type {
 } from "../identification/public.js";
 
 export interface AcquisitionTarget {
+	/** Ordered, deduplicated romaji/English/native/Chinese queries; at most four. */
+	searchTitles: string[];
 	work: WorkCandidate;
 	availableEpisodes: number[];
 	revision: string;

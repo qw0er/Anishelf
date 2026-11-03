@@ -12,6 +12,9 @@ const summary = {
 	titles: Type.Array(
 		Type.Object({
 			value: Type.String(),
+			searchKind: Type.Optional(
+				Type.Union([Type.Literal("romaji"), Type.Literal("english")]),
+			),
 			language: text,
 			kind: Type.Union([
 				Type.Literal("romaji"),

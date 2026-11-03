@@ -56,6 +56,7 @@ export async function createAnimeModule(options: {
 				metadata,
 				catalog,
 				metadata.identities,
+				logger,
 			)
 		: undefined;
 	const api: AnimeApi = {

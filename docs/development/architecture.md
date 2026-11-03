@@ -249,7 +249,8 @@ ambiguous results, stale data and provider failures leave the source names uncha
 Verification inspects at most 50 search results and five plausible details per source,
 with a five-second deadline. Verified names-only evidence is held in a bounded
 10-minute process cache, lost on restart and invalidated by changed source evidence.
-Supplemental names are aliases for identification and title search; they never change
+Supplemental names remain aliases, retaining an optional explicit `searchKind` for
+romanized/English query selection. They never change
 project IDs, primary display titles, other metadata fields, episode mappings or Tracking.
 Cached-only reads never initiate verification. Detail headers display only the selected
 primary title, without an alternative-title list or expansion control.
@@ -824,3 +825,13 @@ finished/releasing status. Unsupported schedules, relations and canonical episod
 catalogs remain unavailable. Scores are projected to the existing 0–100 scale.
 Bangumi Tracking and a canonical cross-source episode catalog remain unavailable.
 Source-specific capabilities are handled inside the project Metadata boundary.
+
+### Acquisition search title selection
+
+Release assessment prepares `AcquisitionTarget.searchTitles` from typed metadata names.
+Subscription discovery and one-off downloads use this list rather than the first four
+arbitrary aliases. Selection orders romaji, English, native and Chinese names, skips
+missing categories, prefers Simplified Chinese, rejects invalid queries and deduplicates
+normalized case-insensitive values. The full title list continues to drive release
+identity assessment. Confirmed subscription source definitions retain their captured
+keywords until the user rediscovers and confirms a source.

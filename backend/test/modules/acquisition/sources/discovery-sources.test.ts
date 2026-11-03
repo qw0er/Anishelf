@@ -66,6 +66,7 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 	const subscriptions = new Map<string, Subscription>();
 	const candidates = new Map<string, Candidate[]>();
 	const target: AcquisitionTarget = {
+		searchTitles: ["Frieren"],
 		work: {
 			reference: { id: "1" },
 			snapshotId: "metadata",

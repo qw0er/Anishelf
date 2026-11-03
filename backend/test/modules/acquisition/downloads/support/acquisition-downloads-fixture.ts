@@ -22,6 +22,7 @@ export const key = "anilist:anime:1",
 	hash = "a".repeat(40);
 
 export const target: AcquisitionTarget = {
+	searchTitles: ["Frieren"],
 	work: {
 		reference: { id: "1" },
 		snapshotId: "snapshot",

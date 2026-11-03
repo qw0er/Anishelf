@@ -36,6 +36,7 @@ export function feed(items = item()) {
 }
 
 export const target: AcquisitionTarget = {
+	searchTitles: ["Frieren"],
 	work: {
 		reference: { id: "1" },
 		snapshotId: "snapshot",

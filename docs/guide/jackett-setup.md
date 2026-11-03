@@ -85,3 +85,16 @@ Preserve native configuration and app state. Follow [deployment updates](deploym
 for backups and image handling. Internal contracts and historical verification are in
 [Architecture](../development/architecture.md#sources-api-and-lifecycle) and
 [History](../history.md#automatic-acquisition-archive-notes).
+
+## Anime search names
+
+New subscription discovery and one-off episode downloads select up to four queries,
+in order: romanized title, English title, original title and Chinese title. Each
+category contributes one available name; equivalent queries are sent once. Simplified
+Chinese is preferred when both Simplified and Traditional Chinese names are available.
+Missing categories are skipped; unlabelled aliases are not assigned a language by guess.
+Verified supplemental names can contribute their explicit search role without becoming
+primary display titles. All known aliases remain available for release-title matching.
+
+Existing subscriptions retain their confirmed search keywords. Creating a subscription
+or rediscovering and confirming its source uses the current name-selection rules.

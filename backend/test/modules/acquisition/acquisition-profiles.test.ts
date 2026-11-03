@@ -21,6 +21,7 @@ import { AnimeReleaseAssessment } from "../../../src/modules/anime/release-asses
 import { fixtureIdentities } from "../../support/metadata-identities.js";
 
 const target: AcquisitionTarget = {
+	searchTitles: ["Frieren"],
 	work: {
 		reference: { id: "1" },
 		snapshotId: "snapshot",
