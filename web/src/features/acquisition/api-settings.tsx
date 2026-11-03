@@ -43,15 +43,19 @@ import {
 } from "./api.js";
 import { downloadKeys } from "./downloads-api.js";
 
-const queryKey = ["acquisition", "qbittorrent"] as const;
+const qbittorrentConnectionKey = ["acquisition", "qbittorrent"] as const;
 
-export function QbittorrentApiSettings() {
-	const { t } = useTranslation();
-	const query = useQuery({
-		queryKey,
+export function useQbittorrentConnection() {
+	return useQuery({
+		queryKey: qbittorrentConnectionKey,
 		queryFn: ({ signal }) =>
 			getQbittorrentConnection({ signal: boundedSignal(signal) }),
 	});
+}
+
+export function QbittorrentApiSettings() {
+	const { t } = useTranslation();
+	const query = useQbittorrentConnection();
 	useRefreshError(
 		"qbittorrent-settings",
 		query.data ? query.error : null,
@@ -135,7 +139,7 @@ function ConnectionForm({
 	const sameAccount = url === settings.url && username === settings.username;
 	function saved(value: QbittorrentConnectionSettings) {
 		setPassword("");
-		client.setQueryData(queryKey, value);
+		client.setQueryData(qbittorrentConnectionKey, value);
 		void client.invalidateQueries({ queryKey: downloadKeys });
 	}
 	const save = useMutation({
@@ -293,15 +297,6 @@ function ConnectionForm({
 				}
 				configured={settings.state === "configured"}
 				label={t("acquisition.sources.connectionSettings")}
-				status={
-					settings.state === "configured"
-						? t(
-								settings.bundled
-									? "acquisition.connection.bundled"
-									: "acquisition.connection.external",
-							)
-						: t("acquisition.connection.unconfigured")
-				}
 			>
 				<Field className="flex flex-col gap-2 sm:col-span-2">
 					<FieldHeading

@@ -57,6 +57,7 @@ import {
 	NativeSelect,
 	NativeSelectOption,
 } from "../../shared/components/ui/native-select.js";
+import { StatusBadge } from "../../shared/components/ui/status-badge.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
 import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
@@ -70,6 +71,12 @@ import {
 	sourceSettingsKey,
 	testSource,
 } from "./sources-api.js";
+
+function sourceConnectionKey(settings: SourceConnectorSettings): string {
+	if (settings.origin === "bundled") return "acquisition.connection.bundled";
+	if (settings.url) return "acquisition.connection.external";
+	return "acquisition.connection.unconfigured";
+}
 
 export function SourceSettings() {
 	const { t } = useTranslation();
@@ -94,6 +101,20 @@ export function SourceSettings() {
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("acquisition.sources.title")}</CardTitle>
+				{query.data && (
+					<div role="status" className="flex flex-wrap items-center gap-1">
+						<StatusBadge>{t(sourceConnectionKey(query.data))}</StatusBadge>
+						{query.data.url && (
+							<StatusBadge>
+								{t(
+									query.data.ready
+										? "acquisition.sources.configured"
+										: "acquisition.connection.unconfigured",
+								)}
+							</StatusBadge>
+						)}
+					</div>
+				)}
 			</CardHeader>
 			<CardContent className="flex min-w-0 flex-col gap-4 lg:max-w-2xl">
 				{query.isPending ? (
@@ -267,12 +288,6 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		[next[index], next[target]] = [next[target] ?? "", next[index] ?? ""];
 		setProviders(next);
 	}
-	const status =
-		settings.origin === "bundled"
-			? t("acquisition.connection.bundled")
-			: settings.url
-				? t("acquisition.connection.external")
-				: t("acquisition.connection.unconfigured");
 	return (
 		<div className="flex min-w-0 flex-col gap-4">
 			{(settings.error ||
@@ -364,22 +379,6 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						Boolean(settings.url) && settings.hasApiKey && !settings.error
 					}
 					label={t("acquisition.sources.connectionSettings")}
-					status={
-						<>
-							<span>{status}</span>
-							{settings.url && (
-								<span>
-									{" "}
-									·{" "}
-									{t(
-										settings.ready
-											? "acquisition.sources.configured"
-											: "acquisition.connection.unconfigured",
-									)}
-								</span>
-							)}
-						</>
-					}
 				>
 					<Field className="flex flex-col gap-2 sm:col-span-2">
 						<FieldHeading

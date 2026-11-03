@@ -18,6 +18,7 @@
 - Prioritize announced upcoming broadcasts on work details, highlight the next
   broadcast and collapse aired history.
 - Accept 10-bit SDR H.264 and VP9 video in the automatic preparation Web preset.
+- Show qBittorrent and Jackett connection status below their settings section titles.
 
 ### Fixed
 
