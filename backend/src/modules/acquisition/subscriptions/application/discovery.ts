@@ -152,12 +152,7 @@ export class SubscriptionDiscovery {
 							(candidate.reasons.length === 1 &&
 								candidate.reasons[0] === "waiting_for_level"),
 					);
-				const publication = await options.sources.fetch(source, {
-					accept: (snapshot) => {
-						guard();
-						return eligibleCandidates(assess(snapshot)).length > 0;
-					},
-				});
+				const publication = await options.sources.fetch(source);
 				guard();
 				const candidates = assess(publication.snapshot);
 				const eligible = eligibleCandidates(candidates);

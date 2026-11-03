@@ -605,10 +605,11 @@ consumer's current local/profile assessment and permission checks.
 Jackett raw pages have bounded, connection-scoped caches (10 minutes for matches,
 five for empty pages, at most 128 pages / 10 MiB); capability results last 15 minutes.
 Identical in-flight requests coalesce, and canceling one reader leaves other
-readers running. Discovery evaluates pages progressively and stops only after
-business acceptance; partial coverage is explicit. Full recurring collection does
-not treat those partial snapshots as complete, but reuses their raw pages. RSS
-continues conditional ETag/Last-Modified requests and retains evidence on 304.
+readers running. All consumers search each configured title keyword and merge
+results by release ID before business assessment. Eligible results never stop later
+keywords or pages. Pagination and item limits still bound collection and expose
+partial coverage; old business-accepted snapshots are recollected. RSS continues
+conditional ETag/Last-Modified requests and retains evidence on 304.
 Torrent contents share a separate bounded 10-minute cache (64 entries / 32 MiB),
 with connection/authorization validation before reuse and independent cancellation.
 

@@ -131,11 +131,7 @@ export class JackettClient {
 		this.cacheLog(id, "search_page", result.cache);
 		return result.value;
 	}
-	async search(
-		plan: SourceQuery,
-		signal: AbortSignal,
-		accept?: (entries: readonly SourceEntry[]) => boolean,
-	) {
+	async search(plan: SourceQuery, signal: AbortSignal) {
 		if (plan.generation !== this.transport.generation)
 			throw new SourceError("source_conflict");
 		const titles = titleQueries(plan.titles),
@@ -181,11 +177,6 @@ export class JackettClient {
 						...entry,
 						download: entry.download ? { ...entry.download } : null,
 					});
-				}
-				if (accept?.([...found.values()])) {
-					coverage.limited = true;
-					coverage.reason = "accepted";
-					break outer;
 				}
 				if (!result.count) break;
 				if (result.offset !== null && result.offset !== offset) {
