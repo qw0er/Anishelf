@@ -85,7 +85,7 @@ test("future plans lead with the nearest broadcast and aired history is collapse
 			.getAllByRole("rowheader")
 			.map((row) => row.textContent),
 	).toEqual(["Episode 3", "Episode 4"]);
-	expect(screen.getByText("Next broadcast")).toBeTruthy();
+	expect(screen.getByText("Next")).toBeTruthy();
 	expect(screen.queryByText("Episode 1")).toBeNull();
 	fireEvent.click(
 		screen.getByRole("button", { name: "Aired history (2 episodes)" }),
@@ -113,7 +113,7 @@ test("next metadata remains visible while early schedule pages contain only hist
 	data.data.hasNextPage = true;
 	render(<Harness data={data} metadata={metadata} />);
 	expect(screen.getByText("Episode 100")).toBeTruthy();
-	expect(screen.getByText("Next broadcast")).toBeTruthy();
+	expect(screen.getByText("Next")).toBeTruthy();
 	expect(
 		screen.getByRole("button", { name: "Load more airing records" }),
 	).toBeTruthy();
@@ -124,11 +124,11 @@ test("elapsed plans await confirmation at airtime and only refreshed evidence mo
 	vi.setSystemTime(now);
 	const data = schedule([{ episode: 3, airingAt: now / 1000 + 1 }]);
 	const view = render(<Harness data={data} />);
-	expect(screen.getByText("Next broadcast")).toBeTruthy();
+	expect(screen.getByText("Next")).toBeTruthy();
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(1001);
 	});
-	expect(screen.getByText("Awaiting confirmation")).toBeTruthy();
+	expect(screen.getByText("Pending")).toBeTruthy();
 	expect(screen.queryByText("Aired")).toBeNull();
 	act(() =>
 		queryClient.setQueryData(["airing-test"], {
@@ -137,7 +137,7 @@ test("elapsed plans await confirmation at airtime and only refreshed evidence mo
 		}),
 	);
 	view.rerender(<Harness data={data} />);
-	expect(screen.queryByText("Awaiting confirmation")).toBeNull();
+	expect(screen.queryByText("Pending")).toBeNull();
 	expect(
 		screen.getByRole("button", { name: "Aired history (1 episode)" }),
 	).toBeTruthy();
@@ -158,6 +158,6 @@ test("cached future plans survive a failed refresh and remain unverified", () =>
 		/>,
 	);
 	expect(screen.getByText("Episode 3")).toBeTruthy();
-	expect(screen.getByText("Unverified")).toBeTruthy();
-	expect(screen.queryByText("Next broadcast")).toBeNull();
+	expect(screen.getByText("Stale")).toBeTruthy();
+	expect(screen.queryByText("Next")).toBeNull();
 });
