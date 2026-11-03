@@ -1,13 +1,6 @@
-import {
-	type ReactNode,
-	useId,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
-import { Button } from "../../../../shared/components/ui/button.js";
 import { Artwork } from "../../shared/components/artwork.js";
 import { airedEpisodeCount, fuzzyDate } from "../detail-format.js";
 export function WorkMetadataHeader({
@@ -34,15 +27,6 @@ export function WorkMetadataHeader({
 	const { t } = useTranslation();
 	const { work, metadata } = data;
 	const info = metadata.data;
-	const [expanded, setExpanded] = useState(false);
-	const aliasesId = useId();
-	const aliasesRef = useRef<HTMLParagraphElement>(null);
-	const [overflowing, setOverflowing] = useState(false);
-	const aliases = [...new Set(info.titles.map((title) => title.value))].filter(
-		(title) => title !== work.displayTitle,
-	);
-
-	const aliasesText = aliases.join(" · ");
 	const aired =
 		airedCount === undefined
 			? airedEpisodeCount(info, metadata.fetchedAt)
@@ -55,21 +39,6 @@ export function WorkMetadataHeader({
 			: info.episodeCount === null
 				? String(aired)
 				: `${aired} / ${info.episodeCount}`;
-	useLayoutEffect(() => {
-		const element = aliasesRef.current;
-		if (!element || !aliasesText) return;
-		const measure = () => {
-			const lineHeight =
-				Number.parseFloat(getComputedStyle(element).lineHeight) || 20;
-			const overflows = element.scrollHeight > lineHeight * 2 + 1;
-			setOverflowing(overflows);
-			if (!overflows) setExpanded(false);
-		};
-		measure();
-		const observer = new ResizeObserver(measure);
-		observer.observe(element);
-		return () => observer.disconnect();
-	}, [aliasesText]);
 
 	return (
 		<div className="work-hero">
@@ -96,33 +65,6 @@ export function WorkMetadataHeader({
 							defaultValue: info.provider,
 						})}
 					</p>
-					{aliases.length > 0 && (
-						<div className="space-y-1">
-							<p
-								id={aliasesId}
-								ref={aliasesRef}
-								className={`text-sm leading-5 text-muted-foreground wrap-anywhere ${expanded ? "" : "line-clamp-2"}`}
-							>
-								{aliasesText}
-							</p>
-							{overflowing && (
-								<Button
-									variant="ghost"
-									className="h-auto px-0 py-0 text-xs text-muted-foreground"
-									aria-expanded={expanded}
-									aria-controls={aliasesId}
-									onClick={() => {
-										console.debug("[AnimeDetail] Alternative titles toggled.", {
-											expanded: !expanded,
-										});
-										setExpanded(!expanded);
-									}}
-								>
-									{t(expanded ? "anime.hideTitles" : "anime.showTitles")}
-								</Button>
-							)}
-						</div>
-					)}
 					<dl className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
 						{[
 							["format", work.format?.replaceAll("_", " ")],

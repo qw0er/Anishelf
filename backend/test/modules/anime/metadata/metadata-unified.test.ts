@@ -284,6 +284,7 @@ test("search queries exactly one source and never merges equal titles or missing
 	expect(first.data.items[0]?.reference).not.toEqual(
 		second.data.items[0]?.reference,
 	);
+	f.second.get.mockClear();
 	const ref = first.data.items[0]?.reference;
 	if (!ref) throw new Error("Missing result");
 	expect((await f.metadata.get(ref)).data.description).toBeNull();
@@ -506,4 +507,40 @@ test("the configured default source is independent of provider registration orde
 		(await f.metadata.search({ query: "Same title" })).data.items[0]?.provider,
 	).toBe("bangumi");
 	expect(f.first.search).not.toHaveBeenCalled();
+});
+
+test("verified cross-source names enrich search and details without sharing identity or descriptive fields", async () => {
+	const f = await fixture();
+	f.first.data.startDate = { year: 2023, month: 9, day: 29 };
+	f.second.data.startDate = { year: 2023, month: 9, day: 29 };
+	f.second.data.titles = [
+		{ value: "Same title", kind: "native", language: null },
+		{ value: "Other-source alias", kind: "alias", language: null },
+	];
+	const first = f.metadata.resolveReference("anilist:anime:10"),
+		second = f.metadata.resolveReference("bangumi:anime:20");
+	const detail = await f.metadata.get(first);
+	expect(detail.data.titles).toContainEqual({
+		value: "Other-source alias",
+		kind: "alias",
+		language: null,
+	});
+	expect(detail.data).toMatchObject({
+		provider: "anilist",
+		reference: first,
+		description: null,
+		averageScore: 90,
+	});
+	expect(f.metadata.identities.externalReference(first, "bangumi")).toBeNull();
+	expect(first).not.toEqual(second);
+	const search = await f.metadata.search({ query: "Same title" });
+	expect(search.data.items).toHaveLength(1);
+	expect(search.data.items[0]?.reference).toEqual(first);
+	expect(search.data.items[0]?.titles).toContainEqual({
+		value: "Other-source alias",
+		kind: "alias",
+		language: null,
+	});
+	expect(f.metadata.current(first)?.data.titles).toEqual(detail.data.titles);
+	expect(f.metadata.snapshot(detail.snapshotId).data).toEqual(detail.data);
 });

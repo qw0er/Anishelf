@@ -24,3 +24,18 @@ test("keeps playback and viewing available without alternative titles or banner"
 	).toBeTruthy();
 	expect(screen.queryByRole("button", { name: /show.*titles/i })).toBeNull();
 });
+
+test("hides all alternative names while retaining the chosen title and source", () => {
+	const data = animeFixture();
+	data.metadata.data.titles.push({
+		value: "Hidden cross-source alias",
+		kind: "alias",
+		language: null,
+	});
+	render(<WorkMetadataHeader data={data} />);
+	expect(
+		screen.getByRole("heading", { name: data.work.displayTitle }),
+	).toBeTruthy();
+	expect(screen.queryByText("Hidden cross-source alias")).toBeNull();
+	expect(screen.queryByRole("button", { name: /titles/i })).toBeNull();
+});

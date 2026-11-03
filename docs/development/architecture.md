@@ -226,8 +226,8 @@ metadata and Tracking; Bangumi currently supports metadata only. Catalog, resour
 files and local playback history retain their own identities and lifecycles.
 
 Each permanent project work ID (`reference: { id }`) identifies exactly one source
-entry. Source identities are explicit in metadata responses. Cross-source linking,
-identity aliases, field composition and cross-source Tracking are unsupported.
+entry. Source identities are explicit in metadata responses. Cross-source identity linking, ID aliases, field composition and cross-source Tracking
+are unsupported.
 Matching titles never establish identity across providers.
 
 `defaultMetadataProvider` is persisted in settings and defaults to `anilist`.
@@ -240,7 +240,19 @@ Changing an existing file to another source uses Review's explicit replacement
 confirmation and invalidates captured playback targets through the existing mapping
 revision checks.
 
-Details, titles, artwork, relations and airing schedules come from the work's source.
+Details, primary titles, artwork, relations and airing schedules come from the work's source.
+Names are the sole exception: optional verification searches both providers for an
+identical native title (Unicode/whitespace normalization only), full premiere date,
+format and positive episode count. Each provider must return exactly one matching
+entry including the original entry. Missing fields, incomplete/truncated searches,
+ambiguous results, stale data and provider failures leave the source names unchanged.
+Verification inspects at most 50 search results and five plausible details per source,
+with a five-second deadline. Verified names-only evidence is held in a bounded
+10-minute process cache, lost on restart and invalidated by changed source evidence.
+Supplemental names are aliases for identification and title search; they never change
+project IDs, primary display titles, other metadata fields, episode mappings or Tracking.
+Cached-only reads never initiate verification. Detail headers display only the selected
+primary title, without an alternative-title list or expansion control.
 Unsupported capabilities return `unavailable: true`. Immutable historical snapshots
 remain confirmation evidence; new current reads never compose source fields.
 Tracking resolves the work's own source ID. Bangumi works show unsupported Tracking;
