@@ -36,7 +36,7 @@ implementation choice as a new requirement. Future features specify outcomes and
 acceptance boundaries without selecting their technical solution in advance.
 Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-The repository is at version 1.4.0; 1.4.1 is the planned next release. Later and Optional items remain future work.
+The repository is at version 1.4.1; 1.4.2 is the planned next release. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
@@ -84,7 +84,7 @@ Preserve each rule's source confirmations and applicable context, explain its ef
 
 #### Delivery Notes (M)
 
-- **M06:** **Delivered:** Independently selectable AniList/Bangumi search, a persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. **Release record:** 1.0.6 (partial).
+- **M06:** **Delivered:** Independently selectable AniList/Bangumi search, a persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. **Release record:** 1.0.6 (partial); 1.4.2 (source-isolated identities; complete).
 
 #### External Metadata and Local Catalog (M01–M07)
 

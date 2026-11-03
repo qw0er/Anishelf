@@ -143,11 +143,11 @@ qBittorrent is a separate capability (D01–D07).
 
 #### Delivery Notes (M)
 
-- **M01:** AniList and Bangumi search behind permanent project work IDs; each project identity belongs to exactly one source. **Release record:** 0.3.0 (AniList); 1.0.6 (multi-source).
+- **M01:** AniList and Bangumi search behind permanent project work IDs; each project identity belongs to exactly one source. **Release record:** 0.3.0 (AniList); 1.0.6 (multi-source); 1.4.2 (source-isolated identities).
 - **M02 / WI11:** Broadcast-plan improvements are complete: provider-announced future airtimes appear first, the next broadcast is highlighted, aired history is collapsed, and dates include the local weekday and time zone. Detail metadata supplies the next broadcast when schedule pages are incomplete. Cached plans remain visible; elapsed plans await refreshed confirmation. Unannounced dates are not estimated. **Release record:** 1.4.1 (broadcast-plan improvements).
 - **M03:** Default poster library, work details, episode/version playback and file-list location from available-version actions. **Release record:** 0.3.0; 1.0.6 (file location).
 - **M05:** Durable metadata/artwork caching, refresh/retry and retained snapshots during outages.
-- **M06:** **Delivered:** Independently selectable AniList/Bangumi search, persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. **Release record:** 1.0.6 (partial).
+- **M06:** **Delivered:** Independently selectable AniList/Bangumi search, persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. **Release record:** 1.0.6 (partial); 1.4.2 (source-isolated identities; complete).
 
 #### External Metadata and Local Catalog (M01–M07)
 
@@ -337,8 +337,8 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S11 | Find a suitable release source without entering an RSS URL for each anime | Complete | — | [Configured-site discovery with pinned sources](#delivery-notes-s) | 1.0.0 |
 | S12 | Keep manual and automatic subscription management independent | Complete | — | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
 | WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | [H.264/VP9 preferred with fallback](#delivery-notes-s) | 1.4.1 |
-| WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | — |
-| WI14 | Improve Chinese resource searches using available Chinese titles | Complete | Completed | [Chinese search titles and merged names](#chinese-search-titles-and-merged-names-wi14) | — |
+| WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | 1.4.2 |
+| WI14 | Improve Chinese resource searches using available Chinese titles | Complete | Completed | [Chinese search titles and merged names](#chinese-search-titles-and-merged-names-wi14) | 1.4.2 |
 
 #### Delivery Notes (S)
 
@@ -366,6 +366,7 @@ by ID and merges results before assessment. Eligible results do not stop collect
 If any keyword request fails, that provider's collection fails without exposing its
 partial results for selection. Provider-level errors and coverage information are
 sufficient; keyword-level result attribution and feedback are outside the scope.
+**Release record:** 1.4.2.
 
 #### Chinese Search Titles and Merged Names (WI14)
 
@@ -391,6 +392,7 @@ reads never initiate verification.
 
 Existing subscriptions retain their captured search keywords. Creating a subscription
 or rediscovering and confirming a source applies the current title-selection rules.
+**Release record:** 1.4.2.
 
 #### AniList Watching to Automatic Acquisition (S05, S10–S12)
 
@@ -554,15 +556,15 @@ AniList is the viewing-state authority. The delivered scope includes account con
 | O17 | Unified configuration | Complete | — | Consistent defaults and validated user overrides; built-in cache budget | 0.2.0 |
 | O18 | User-editable prepared-media cache budget | Complete | — | Settings control, validation and persisted disk-space limit | 0.2.6 |
 | O21 | Remote deployment without a repository checkout | Complete | — | [Flag-driven Docker/Podman deployment without checkout](#delivery-notes-o) | 1.0.0 |
-| O22 | View the changelog within the application | Complete | Completed | [Offline bundled release notes](#in-app-changelog-o22) | — |
-| WI06 | Show qBittorrent and Jackett connection status below section titles | Complete | Completed | [Connection status placement](#connection-status-placement-wi06) | — |
+| O22 | View the changelog within the application | Complete | Completed | [Offline bundled release notes](#in-app-changelog-o22) | 1.4.2 |
+| WI06 | Show qBittorrent and Jackett connection status below section titles | Complete | Completed | [Connection status placement](#connection-status-placement-wi06) | 1.4.2 |
 
 #### Connection Status Placement (WI06)
 
 The qBittorrent and Jackett sources settings cards show their saved connection status
 as a badge below the section title. The connection disclosure retains the endpoint and
 edit actions without repeating the status line. The badge reflects saved configuration,
-not live service availability.
+not live service availability. **Release record:** 1.4.2.
 
 #### In-app Changelog (O22)
 
@@ -570,6 +572,7 @@ Users can open release notes grouped by version in Settings, including the insta
 web version and earlier bundled releases. The display identifies the web version and
 indicates when its notes are unavailable. The project's changelog is bundled with
 the web build and available offline. The existing update check discovers newer releases.
+**Release record:** 1.4.2.
 
 #### Delivery Notes (O)
 
