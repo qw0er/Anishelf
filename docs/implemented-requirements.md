@@ -518,6 +518,14 @@ AniList is the viewing-state authority. The delivered scope includes account con
 | O17 | Unified configuration | Complete | — | Consistent defaults and validated user overrides; built-in cache budget | 0.2.0 |
 | O18 | User-editable prepared-media cache budget | Complete | — | Settings control, validation and persisted disk-space limit | 0.2.6 |
 | O21 | Remote deployment without a repository checkout | Complete | — | [Flag-driven Docker/Podman deployment without checkout](#delivery-notes-o) | 1.0.0 |
+| O22 | View the changelog within the application | Complete | Completed | [Offline bundled release notes](#in-app-changelog-o22) | — |
+
+#### In-app Changelog (O22)
+
+Users can open release notes grouped by version in Settings, including the installed
+web version and earlier bundled releases. The display identifies the web version and
+indicates when its notes are unavailable. The project's changelog is bundled with
+the web build and available offline. The existing update check discovers newer releases.
 
 #### Delivery Notes (O)
 

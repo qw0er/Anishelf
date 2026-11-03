@@ -19,6 +19,28 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
+test("shows bundled release notes without fetching them", async () => {
+	const request = vi.spyOn(api, "request").mockResolvedValue({
+		version: "1.4.1",
+		channel: "stable",
+		commit: null,
+		builtAt: null,
+	});
+	render(<AboutSettings />);
+	await screen.findByText(/Web and Backend builds differ/);
+	fireEvent.click(screen.getByRole("button", { name: "Changelog" }));
+	expect(await screen.findByRole("dialog", { name: "Changelog" })).toBeTruthy();
+	expect(
+		screen.getByText("Release notes for this version are not available."),
+	).toBeTruthy();
+	expect(screen.getByText("1.4.1")).toBeTruthy();
+	expect(screen.getByText("1.4.0")).toBeTruthy();
+	expect(
+		screen.getByText(/Re-identify an individual pending resource/),
+	).toBeTruthy();
+	expect(request).toHaveBeenCalledTimes(1);
+});
+
 test("checks only on demand, shows mismatched builds and retains successful results after failure", async () => {
 	vi.spyOn(toast, "add").mockReturnValue("toast");
 	let fail = false;
