@@ -337,8 +337,8 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S11 | Find a suitable release source without entering an RSS URL for each anime | Complete | — | [Configured-site discovery with pinned sources](#delivery-notes-s) | 1.0.0 |
 | S12 | Keep manual and automatic subscription management independent | Complete | — | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
 | WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | [H.264/VP9 preferred with fallback](#delivery-notes-s) | 1.4.1 |
-
 | WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | — |
+| WI14 | Improve Chinese resource searches using available Chinese titles | Complete | Completed | [Chinese search titles and merged names](#chinese-search-titles-and-merged-names-wi14) | — |
 
 #### Delivery Notes (S)
 
@@ -366,6 +366,31 @@ by ID and merges results before assessment. Eligible results do not stop collect
 If any keyword request fails, that provider's collection fails without exposing its
 partial results for selection. Provider-level errors and coverage information are
 sufficient; keyword-level result attribution and feedback are outside the scope.
+
+#### Chinese Search Titles and Merged Names (WI14)
+
+Release assessment prepares up to four ordered search queries from typed metadata
+names: romaji, English, native and Chinese. Each category contributes one available
+name; missing categories are skipped, Simplified Chinese is preferred over Traditional,
+and values are NFKC-normalized, trimmed, length/control-character checked and
+deduplicated case-insensitively. Subscription discovery and one-off downloads use these
+queries instead of the first four arbitrary aliases. All known titles and aliases remain
+available for release-identity assessment. When no Chinese title is available, query
+selection retains the existing non-Chinese behavior.
+
+Names are also merged across the supported metadata providers. Optional verification
+searches both providers for the same normalized native title, full premiere date, format
+and positive episode count, and accepts only a unique match from each provider. Verified
+supplemental names are retained as aliases with an optional explicit `searchKind`; they
+can contribute romaji, English or Chinese queries but never change project IDs, primary
+display titles, other metadata fields, episode mappings or Tracking. The merge is
+names-only evidence, not cross-source identity association. It uses bounded
+search/detail limits, a five-second deadline and a short-lived in-process cache; stale,
+incomplete, ambiguous or failed evidence leaves the source names unchanged. Cached-only
+reads never initiate verification.
+
+Existing subscriptions retain their captured search keywords. Creating a subscription
+or rediscovering and confirming a source applies the current title-selection rules.
 
 #### AniList Watching to Automatic Acquisition (S05, S10–S12)
 

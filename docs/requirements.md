@@ -372,19 +372,14 @@ The display must remain usable on desktop and narrow screens.
 | WI06 | Move the Bundled label below the Settings title | — | Unassigned | Confirm the affected settings view and placement. | — |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
 | WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
-| WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12wi14) | — |
-| WI14 | Improve Chinese resource searches using available Chinese titles | Not started | Unassigned | [Chinese search optimization](#resource-search-improvements-wi12wi14); depends on Chinese title availability (M09) | — |
+| WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
 
-#### Resource Search Improvements (WI12–WI14)
+#### Resource Search Improvements (WI12)
 
 - **WI12:** Improve matching between a work's titles and resource-search results.
   Explain whether results matched or were rejected and provide useful reasons for
   uncertain or unsuccessful searches. Preserve the distinction between a candidate
   and a confirmed match; do not accept uncertain results solely to increase matches.
-- **WI14:** Improve searches for Chinese resources using available Chinese titles
-  and aliases from the selected metadata source. Retain existing search behavior
-  when Chinese titles are unavailable; do not infer cross-source identity or query
-  another metadata source automatically.
 
 ## 5. Bugs
 
