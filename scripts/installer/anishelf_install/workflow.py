@@ -9,11 +9,13 @@ from pathlib import Path
 
 from .assets import AssetSource
 from .config import Settings, deployment_profile, parse_profile
+from .deployment import MANIFEST, inherit, load, serialize
 from .errors import InstallerError
 from .log import LOG, log
+from .management import manage
 from .render import (
     render_compose,
-    render_compose_helper,
+    render_management_helper,
     render_quadlet,
     unit_filename,
 )
@@ -80,7 +82,7 @@ class Installer:
         self.settings: Settings | None = None
         self.existing: dict | None = None
         self.assets: AssetSource | None = None
-        self.bundle: dict[str, str] = {}
+        self.bundle: dict[str, str | bytes] = {}
         self.bundle_modes: dict[str, int] = {}
         self.backups = BackupManager(args.force)
 
@@ -90,11 +92,20 @@ class Installer:
             self.assets = None
 
     def run(self) -> int:
+        if self.command in {"up", "down", "update"}:
+            self.existing = self._load_existing()
+            settings = self.existing["settings"]
+            manage(settings, self.command, update_all=getattr(self.args, "all", False))
+            return 0
         if self.command in {"remove", "reconfigure"}:
             self.existing = self._load_existing()
             if self.command == "remove":
                 self.remove_configuration()
                 return 0
+            if self.existing["settings"] is None:
+                raise InstallerError("Missing deployment.json; reconfiguration requires saved settings. Manage older bundles manually.")
+            inherit(self.args, self.existing["settings"])
+            log("Reconfiguration inherits saved settings; explicit flags take precedence.")
 
         self.settings = self._collect_settings()
         self.settings.report_plan()
@@ -193,10 +204,6 @@ class Installer:
         )
         qbit = bool(args.qbit)
         jackett = bool(args.jackett)
-        if not qbit and (args.qbit_port is not None or args.peer_port is not None):
-            raise InstallerError("qBittorrent ports require --qbit.")
-        if not jackett and args.jackett_port is not None:
-            raise InstallerError("--jackett-port requires --jackett.")
 
         qbit_port = self._port(
             "qBittorrent WebUI host port",
@@ -285,6 +292,7 @@ class Installer:
             qbit_port=qbit_port,
             peer_port=peer_port,
             jackett_port=jackett_port,
+            selinux_relabel=args.selinux_relabel,
             selinux_mode=selinux_mode,
             selinux_suffix=selinux_suffix,
         )
@@ -408,7 +416,7 @@ class Installer:
         self.bundle = {
             ".deployment-profile": deployment_profile(self.settings.test_mode)
         }
-        self.bundle_modes = {}
+        self.bundle_modes = {"manage.sh": 0o755}
         self.assets = AssetSource()
         self.settings.template_source = self.assets.resolve()
 
@@ -416,6 +424,9 @@ class Installer:
             self._prepare_compose()
         else:
             self._prepare_quadlet()
+        self.bundle["manage.sh"] = render_management_helper()
+        self.bundle["manage.pyz"] = self.assets.management_archive()
+        self.bundle[MANIFEST] = serialize(self.settings, self.bundle)
 
     def _prepare_compose(self) -> None:
         assert self.settings is not None and self.assets is not None
@@ -427,8 +438,6 @@ class Installer:
             raise InstallerError(str(error)) from error
         self.bundle["compose.yaml"] = rendered
         self.bundle[".env"] = self._render_env(self.settings)
-        self.bundle["manage.sh"] = render_compose_helper(self.settings)
-        self.bundle_modes["manage.sh"] = 0o755
 
     def _prepare_quadlet(self) -> None:
         assert self.settings is not None and self.assets is not None
@@ -487,10 +496,9 @@ class Installer:
                     os.O_WRONLY | os.O_CREAT | os.O_EXCL,
                     mode,
                 )
-                with os.fdopen(
-                    descriptor, "w", encoding="utf-8", newline="\n"
-                ) as stream:
-                    stream.write(self.bundle[relative])
+                payload = self.bundle[relative]
+                with os.fdopen(descriptor, "wb") as stream:
+                    stream.write(payload.encode("utf-8") if isinstance(payload, str) else payload)
                 os.chmod(destination, mode)
             os.chmod(deploy_dir, 0o700)
         except BaseException:
@@ -638,6 +646,11 @@ class Installer:
         except ValueError as error:
             raise InstallerError("Choose a real saved deployment directory.") from error
 
+        saved_settings = None
+        if exists(deploy_dir / MANIFEST):
+            saved_settings = load(deploy_dir)
+            log(f"Loaded saved deployment configuration: {deploy_dir / MANIFEST}")
+
         profile_path = deploy_dir / ".deployment-profile"
         test_mode = False
         stack = "anishelf"
@@ -700,12 +713,18 @@ class Installer:
                 "cannot be removed."
             )
 
+        if saved_settings is not None and (saved_settings.engine, saved_settings.method, saved_settings.stack) != (engine, method, stack):
+            raise InstallerError("Deployment metadata disagrees with generated configuration.")
+        if self.command in {"up", "down", "update"} and saved_settings is None:
+            raise InstallerError("Missing deployment.json; manage this older deployment manually.")
+
         info = {
             "deploy_dir": deploy_dir,
             "engine": engine,
             "method": method,
             "stack": stack,
             "test_mode": test_mode,
+            "settings": saved_settings,
         }
         log(
             f"Selected saved deployment: {deploy_dir} ({engine}/{method}). "

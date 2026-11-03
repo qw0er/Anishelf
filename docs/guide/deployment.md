@@ -32,8 +32,7 @@ Docker and Podman are available, pass `--engine docker` or `--engine podman`.
 Podman uses rootless Quadlet. Defaults are `~/anishelf` (or `~/anishelf-test` with
 `--test`), loopback binding, port `3000`, the `latest` image tag and a managed media
 volume. Backend logging defaults to `info`, or `debug` with `--test`; use
-`--log-level` to override it. Reconfiguration applies these defaults again unless
-`--log-level` is supplied.
+`--log-level` to override it. Reconfiguration inherits saved settings; explicitly supplied flags override them.
 
 ```sh
 python3 scripts/install.pyz install \
@@ -57,19 +56,64 @@ SELinux shared labels are automatic when SELinux is enforcing or permissive and
 host media is selected. Use `--selinux-relabel` or `--no-selinux-relabel` to
 override that decision.
 
-Compose deployments include an executable `manage.sh` in the deployment folder.
-The project name and profiles are fixed when the bundle is generated; the script
-does not read `.env` at runtime. It supports only `up` and `down`:
+Both deployment methods include an executable `manage.sh` and a self-contained
+`manage.pyz` in the deployment folder. Python 3.9+ remains required. Keep both files
+with `deployment.json` and the generated configuration; the helper works from any
+working directory:
 
 ```sh
 ./manage.sh up
 ./manage.sh down
+./manage.sh update
+./manage.sh update --all
 ```
 
-`up` runs `docker compose up -d`, and `down` runs
-`docker compose down --remove-orphans`. Both include the profiles selected during
-installation. Testing deployments use the same script with the `anishelf-test`
-project and testing profiles.
+`up` starts the selected services; `down` stops the whole deployment and preserves
+volumes/media. Compose uses `down --remove-orphans`; Quadlet stops its systemd user
+target without disabling boot startup. `update` pulls and replaces only Backend/Web;
+`--all` also updates the enabled qBittorrent/Jackett services. All selected images
+are pulled before replacement begins, so a pull failure leaves running containers
+in place. Application-only updates leave optional services running. Successful
+start/update commands check local application HTTP health; failures return a
+nonzero status. Engine/systemd output remains visible, and commands and results
+are recorded in `manage.log`.
+
+Updates retain the configured image tag. Moving tags such as `latest` and `testing`
+can resolve to new images; a pinned release stays pinned. To select another tag,
+use the current installer, for example `python3 install.pyz reconfigure
+"$HOME/anishelf" --image-tag v1.4.2`. Back up application data before updating.
+Image updates do not upgrade deployment templates; use a newer installer and
+`reconfigure` when a release requires template changes. Updates are not atomic
+across services and do not automatically roll back images or database migrations.
+
+### Saved deployment configuration
+
+`deployment.json` is the installer-managed source of configuration. It records a
+schema version, installer version, engine/method, namespace, testing mode, image
+tag, optional services, networking, storage and logging choices. Rootless Quadlet
+also records the owning UID and systemd configuration location. It contains no
+application passwords. The file and generated configuration are private to the
+installation user.
+
+`reconfigure DIRECTORY` inherits saved settings, then applies explicit flags and
+validates the replacement before stopping the old stack. Use `--no-qbit` or
+`--no-jackett` to disable an optional service, `--managed-media` to replace a host
+media mount with the managed volume, `--clear-extra-media` to remove additional
+mounts, and `--public-origin ''` to clear a fixed origin. Repeated `--extra-media`
+flags replace the saved list. Changing media mounts does not move existing files.
+
+Generated files have recorded checksums. Management and reconfiguration refuse
+changed or missing generated files; Quadlet also checks the installed units.
+Restore the generated files and express changes through reconfiguration, or manage
+a customized deployment with native commands. `--force` can archive conflicting
+installed Quadlet units during reconfiguration/removal, but does not bypass bundle
+checksum checks. Do not edit `deployment.json` or its checksums manually.
+
+Older bundles without `deployment.json` remain manually manageable/removable;
+configuration inheritance and the new lifecycle commands require a newly generated
+bundle. Rootless commands must run as the original service user with the same
+`XDG_CONFIG_HOME`. Generation-only Quadlet bundles must be installed before using
+`manage.sh`; Compose bundles can be started directly.
 
 Commands:
 
@@ -78,6 +122,8 @@ Commands:
 | `install` | Configure and start a new deployment |
 | `reconfigure DIRECTORY` | Archive a saved deployment and start replacement settings in place |
 | `remove DIRECTORY` | Stop a saved deployment and archive/remove its active configuration |
+| `up DIRECTORY` / `down DIRECTORY` | Start/stop a saved deployment |
+| `update DIRECTORY [--all]` | Update application images, optionally including enabled services |
 
 `install` and `reconfigure` accept the settings options below. `install` always
 refuses to overwrite existing Quadlet units. `reconfigure` and `remove`
@@ -89,13 +135,13 @@ additionally accept `--force`.
 | `--engine docker` / `--engine podman` | Select an engine; required when both are installed |
 | `--image-tag TAG` | Matching Web/Backend image tag; default `latest` |
 | `--log-level LEVEL` | Backend log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` or `silent`; default `info` (`debug` with `--test`) |
-| `--media DIRECTORY` | Existing primary host media directory; omit for a managed volume |
-| `--extra-media DIRECTORY` | Additional host media directory; repeat for multiple |
+| `--media DIRECTORY` / `--managed-media` | Select an existing primary host directory or managed volume |
+| `--extra-media DIRECTORY` / `--clear-extra-media` | Replace the additional mount list or clear it |
 | `--selinux-relabel` / `--no-selinux-relabel` | Override automatic `:z` labeling |
 | `--bind IPV4` | Application bind address; default `127.0.0.1` |
 | `--port PORT` | Application host port; default `3000` |
 | `--public-origin ORIGIN` | Optional fixed HTTPS browser origin |
-| `--qbit` / `--jackett` | Include bundled qBittorrent or Jackett |
+| `--qbit` / `--jackett` | Include bundled qBittorrent or Jackett; `--no-qbit` / `--no-jackett` disables them |
 | `--qbit-port PORT` | qBittorrent WebUI port; default `8080` |
 | `--peer-port PORT` | qBittorrent peer TCP/UDP port; default `6881` |
 | `--jackett-port PORT` | Jackett WebUI port; default `9117` |
@@ -134,6 +180,9 @@ Open `http://localhost:3000` (or your server IP and selected port). The initial
 password appears once in Backend logs. See [first use](README.md#first-use).
 
 ### Manual updates
+
+Installer-managed deployments can use `./manage.sh update` as described above.
+The commands below are for manually maintained deployments.
 
 [Back up](#backup-and-recovery) first. Set `ANISHELF_TAG` in `.env`:
 
@@ -196,6 +245,9 @@ Enable the target only. Open the selected address and use the initial password
 from Backend logs.
 
 ### Manual updates
+
+Installer-managed deployments can use `./manage.sh update` as described above.
+The commands below are for manually maintained deployments.
 
 [Back up](#backup-and-recovery) first. Run as the service account:
 

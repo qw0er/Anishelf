@@ -31,6 +31,7 @@ class Settings:
     peer_port: int = 6881
     jackett_port: int = 9117
     web_trusted_proxies: str = "127.0.0.1/32 ::1/128"
+    selinux_relabel: bool | None = None
     selinux_mode: str = "unavailable"
     selinux_suffix: str = ""
     template_source: str = "bundled"

@@ -86,6 +86,8 @@ FAKE_COMMAND = textwrap.dedent(
             raise SystemExit(1)
         raise SystemExit(0)
     if name == "docker":
+        if "pull" in args and os.environ.get("INSTALL_TEST_PULL_FAIL") == "yes":
+            raise SystemExit(1)
         if args[:2] == ["compose", "version"]:
             print("Docker Compose version fixture")
         raise SystemExit(0)
@@ -155,9 +157,10 @@ class Fixture:
         env: dict[str, str] | None = None,
         cwd: Path | None = None,
         artifact: bool = False,
+        manager: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         command = [sys.executable]
-        command.append(str(ARTIFACT if artifact else SOURCE))
+        command.append(str(self.target / "manage.pyz" if manager else ARTIFACT if artifact else SOURCE))
         command.extend(args)
         environment = {
             **os.environ,
@@ -354,6 +357,160 @@ class InstallerTests(unittest.TestCase):
             artifact=artifact,
         )
 
+    def test_saved_settings_survive_reconfiguration_and_explicit_resets(self) -> None:
+        fixture = Fixture(self)
+        media = fixture.directory / "media"
+        extra = fixture.directory / "extra"
+        media.mkdir()
+        extra.mkdir()
+        port = self.health_server()
+        generated = self.generate(
+            fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
+            "--image-tag", "v1.4.1", "--port", str(port), "--bind", "0.0.0.0",
+            "--public-origin", "https://anime.example.com", "--log-level", "warn",
+            "--media", str(media), "--extra-media", str(extra), "--no-selinux-relabel",
+            "--qbit", "--jackett", "--qbit-port", "8181", "--peer-port", "6991",
+        )
+        self.assertEqual(generated.returncode, 0, generated.stderr)
+        before = json.loads((fixture.target / "deployment.json").read_text())["settings"]
+        result = fixture.run(["reconfigure", str(fixture.target)])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        after = json.loads((fixture.target / "deployment.json").read_text())["settings"]
+        self.assertEqual(after, before)
+        reset = fixture.run([
+            "reconfigure", str(fixture.target), "--managed-media", "--clear-extra-media",
+            "--no-qbit", "--no-jackett", "--public-origin", "", "--image-tag", "latest",
+        ])
+        self.assertEqual(reset.returncode, 0, reset.stderr)
+        settings = json.loads((fixture.target / "deployment.json").read_text())["settings"]
+        self.assertEqual(settings["media_path"], "")
+        self.assertEqual(settings["extra_paths"], [])
+        self.assertFalse(settings["qbit"])
+        self.assertFalse(settings["jackett"])
+        self.assertEqual(settings["public_origin"], "")
+        self.assertEqual(settings["image_tag"], "latest")
+        self.assertEqual(settings["qbit_port"], 8181)
+
+    def test_packaged_deployment_manager_is_self_contained(self) -> None:
+        fixture = Fixture(self)
+        generated = self.generate(
+            fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
+            "--test", "--port", str(self.health_server()), artifact=True,
+        )
+        self.assertEqual(generated.returncode, 0, generated.stderr)
+        fixture.cleanup_calls()
+        result = fixture.run(["update", str(fixture.target)], manager=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = [call for call in fixture.calls() if "compose" in call["args"]]
+        self.assertTrue(calls)
+        self.assertTrue(all("anishelf-test" in call["args"] for call in calls))
+        self.assertIn("tag=testing", (fixture.target / "manage.log").read_text())
+
+    def test_management_update_scopes_and_pull_failure(self) -> None:
+        fixture = Fixture(self)
+        port = self.health_server()
+        generated = self.generate(
+            fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
+            "--qbit", "--jackett", "--port", str(port), "--image-tag", "v1.4.1",
+        )
+        self.assertEqual(generated.returncode, 0, generated.stderr)
+        fixture.cleanup_calls()
+        result = fixture.run(["update", str(fixture.target)], env={"ANISHELF_TAG": "unwanted"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = fixture.calls()
+        pull = next(call for call in calls if "pull" in call["args"])
+        up = next(call for call in calls if "up" in call["args"])
+        self.assertEqual(pull["args"][-3:], ["pull", "backend", "web"])
+        self.assertEqual(up["args"][-5:], ["up", "-d", "--no-deps", "backend", "web"])
+        self.assertIsNone(pull["tag"])
+        self.assertIn("tag=v1.4.1", (fixture.target / "manage.log").read_text())
+        fixture.cleanup_calls()
+        result = fixture.run(["update", str(fixture.target), "--all"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(any(call["args"][-1:] == ["pull"] for call in fixture.calls()))
+        self.assertTrue(any(call["args"][-2:] == ["up", "-d"] for call in fixture.calls()))
+        fixture.cleanup_calls()
+        failed = fixture.run(["update", str(fixture.target)], env={"INSTALL_TEST_PULL_FAIL": "yes"})
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertFalse(any("up" in call["args"] or "down" in call["args"] for call in fixture.calls()))
+
+    def test_management_rejects_drift_and_unknown_schema_before_engine_calls(self) -> None:
+        for command in ("update", "reconfigure", "down"):
+            with self.subTest(command=command):
+                fixture = Fixture(self)
+                generated = self.generate(fixture, "--engine", "docker", "--deploy-dir", str(fixture.target))
+                self.assertEqual(generated.returncode, 0, generated.stderr)
+                env_file = fixture.target / ".env"
+                original = env_file.read_bytes()
+                env_file.write_bytes(original + b"# local edit\n")
+                fixture.cleanup_calls()
+                result = fixture.run([command, str(fixture.target)])
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("generated file changed: .env", result.stderr)
+                self.assertEqual(fixture.calls(), [])
+                self.assertTrue(fixture.target.exists())
+                env_file.write_bytes(original)
+                manifest = fixture.target / "deployment.json"
+                data = json.loads(manifest.read_text())
+                data["schema_version"] = 999
+                manifest.write_text(json.dumps(data))
+                result = fixture.run([command, str(fixture.target)])
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("unsupported schema", result.stderr)
+                self.assertEqual(fixture.calls(), [])
+
+    @unittest.skipUnless(sys.platform == "linux", "Quadlet requires Linux")
+    @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet requires a non-root user")
+    def test_quadlet_management_updates_selected_images_and_preserves_settings(self) -> None:
+        fixture = Fixture(self)
+        port = self.health_server()
+        installed = self.install(
+            fixture, "--engine", "podman", "--deploy-dir", str(fixture.target),
+            "--qbit", "--jackett", "--port", str(port), "--image-tag", "v1.4.1",
+        )
+        self.assertEqual(installed.returncode, 0, installed.stderr)
+        original = json.loads((fixture.target / "deployment.json").read_text())["settings"]
+        result = fixture.run(["reconfigure", str(fixture.target)])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads((fixture.target / "deployment.json").read_text())["settings"], original)
+        fixture.cleanup_calls()
+        updated = fixture.run(["update", str(fixture.target)])
+        self.assertEqual(updated.returncode, 0, updated.stderr)
+        pulls = [call["args"] for call in fixture.calls() if call["name"] == "podman"]
+        self.assertEqual(pulls, [
+            ["pull", "ghcr.io/qw0er/anishelf-backend:v1.4.1"],
+            ["pull", "ghcr.io/qw0er/anishelf-web:v1.4.1"],
+        ])
+        self.assertIn(["--user", "restart", "anishelf-backend.service", "anishelf-web.service"],
+                      [call["args"] for call in fixture.calls() if call["name"] == "systemctl"])
+        fixture.cleanup_calls()
+        failed = fixture.run(["update", str(fixture.target), "--all"], env={"INSTALL_TEST_PULL_FAIL": "yes"})
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertFalse(any("restart" in call["args"] for call in fixture.calls()))
+        fixture.cleanup_calls()
+        updated = fixture.run(["update", str(fixture.target), "--all"])
+        self.assertEqual(updated.returncode, 0, updated.stderr)
+        images = [call["args"][1] for call in fixture.calls() if call["name"] == "podman"]
+        self.assertEqual(len(images), 4)
+        self.assertIn("docker.io/linuxserver/qbittorrent:latest", images)
+        self.assertIn("ghcr.io/linuxserver/jackett:latest", images)
+        fixture.cleanup_calls()
+        result = fixture.run(["down", str(fixture.target)])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(fixture.calls()[-1]["args"], ["--user", "stop", "anishelf.target"])
+        result = fixture.run(["up", str(fixture.target)])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(any(call["args"] == ["--user", "start", "anishelf.target"] for call in fixture.calls()))
+        fixture.cleanup_calls()
+        changed = fixture.config / "containers" / "systemd" / "anishelf-web.container"
+        changed.write_text("local edit")
+        rejected = fixture.run(["update", str(fixture.target)])
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertEqual(fixture.calls(), [])
+        rejected = fixture.run(["update", str(fixture.target)], env={"XDG_CONFIG_HOME": str(fixture.home)})
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("original XDG_CONFIG_HOME", rejected.stderr)
+
     def test_compose_generation_defaults(self) -> None:
         fixture = Fixture(self)
         result = self.generate(
@@ -384,8 +541,8 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue(helper.is_file())
         self.assertEqual(stat.S_IMODE(helper.stat().st_mode), 0o755)
         helper_text = helper.read_text(encoding="utf-8")
-        self.assertIn("up -d", helper_text)
-        self.assertIn("down --remove-orphans", helper_text)
+        self.assertIn("manage.pyz", helper_text)
+        self.assertIn("up|down|update", helper_text)
         self.assertNotIn("COMPOSE_PROFILES", helper_text)
         self.assertNotIn("--profile", helper_text)
 
@@ -421,12 +578,15 @@ class InstallerTests(unittest.TestCase):
 
     def test_compose_manage_script_applies_saved_profiles(self) -> None:
         fixture = Fixture(self)
+        port = self.health_server()
         generated = self.generate(
             fixture,
             "--engine",
             "docker",
             "--deploy-dir",
             str(fixture.target),
+            "--port",
+            str(port),
             "--qbit",
             "--jackett",
         )
@@ -452,8 +612,8 @@ class InstallerTests(unittest.TestCase):
             for call in fixture.calls()
             if call["name"] == "docker" and call["args"][:1] == ["compose"]
         ]
-        self.assertEqual(len(calls), 1)
-        arguments = calls[0]["args"]
+        self.assertEqual(len(calls), 2)
+        arguments = calls[-1]["args"]
         self.assertIn("--profile", arguments)
         self.assertIn("qbittorrent", arguments)
         self.assertIn("jackett", arguments)
@@ -493,9 +653,9 @@ class InstallerTests(unittest.TestCase):
             for call in fixture.calls()
             if call["name"] == "docker" and call["args"][:1] == ["compose"]
         ]
-        self.assertEqual(len(calls), 1)
-        self.assertNotIn("--profile", calls[0]["args"])
-        self.assertEqual(calls[0]["args"][-2:], ["down", "--remove-orphans"])
+        self.assertEqual(len(calls), 2)
+        self.assertNotIn("--profile", calls[-1]["args"])
+        self.assertEqual(calls[-1]["args"][-2:], ["down", "--remove-orphans"])
 
     def test_compose_extra_media_and_selinux(self) -> None:
         fixture = Fixture(self)
@@ -581,7 +741,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("PublishPort=127.0.0.1:3300:8080", web)
         self.assertIn("PublishPort=127.0.0.1:9217:9117", jackett)
         self.assertFalse((fixture.config / "containers").exists())
-        self.assertFalse((fixture.target / "manage.sh").exists())
+        self.assertTrue((fixture.target / "manage.sh").exists())
 
     @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet requires a non-root user")
     def test_testing_profile_isolates_quadlet_and_compose(self) -> None:

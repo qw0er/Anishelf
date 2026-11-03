@@ -84,10 +84,12 @@ def _add_settings_options(parser: argparse.ArgumentParser) -> None:
     storage.add_argument(
         "--extra-media",
         action="append",
-        default=[],
+        default=None,
         metavar="DIRECTORY",
         help="additional existing host media directory; repeat for multiple directories",
     )
+    storage.add_argument("--managed-media", action="store_true", help="replace host media with a managed volume")
+    storage.add_argument("--clear-extra-media", action="store_true", help="remove all additional media mounts")
     storage.add_argument(
         "--selinux-relabel",
         action=argparse.BooleanOptionalAction,
@@ -101,12 +103,14 @@ def _add_settings_options(parser: argparse.ArgumentParser) -> None:
     services = parser.add_argument_group("optional services")
     services.add_argument(
         "--qbit",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=None,
         help="include bundled qBittorrent",
     )
     services.add_argument(
         "--jackett",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=None,
         help="include bundled Jackett",
     )
     services.add_argument(
@@ -210,6 +214,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_runtime_options(remove, include_test=False)
 
+    for name in ("up", "down", "update"):
+        action = commands.add_parser(name, help=f"{name} a saved deployment")
+        action.add_argument("directory", metavar="DIRECTORY")
+        action.set_defaults(force=False, engine=None)
+        if name == "update":
+            action.add_argument("--all", action="store_true", help="also update enabled optional services")
+
     parser.add_argument(
         "--version",
         action="version",
@@ -224,9 +235,13 @@ def _validate_arguments(args) -> None:
             raise InstallerError("Host media mounts are disabled in --test mode.")
         if args.test and args.selinux_relabel:
             raise InstallerError("SELinux relabeling is unavailable in --test mode.")
-        if not args.qbit and (args.qbit_port is not None or args.peer_port is not None):
+        if args.managed_media and args.media:
+            raise InstallerError("Choose --media or --managed-media, not both.")
+        if args.clear_extra_media and args.extra_media:
+            raise InstallerError("Choose --extra-media or --clear-extra-media, not both.")
+        if args.command == "install" and not args.qbit and (args.qbit_port is not None or args.peer_port is not None):
             raise InstallerError("qBittorrent ports require --qbit.")
-        if not args.jackett and args.jackett_port is not None:
+        if args.command == "install" and not args.jackett and args.jackett_port is not None:
             raise InstallerError("--jackett-port requires --jackett.")
 
 
