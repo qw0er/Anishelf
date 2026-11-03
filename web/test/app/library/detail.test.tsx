@@ -246,7 +246,7 @@ test("airing pagination shows future plans while omitting future download rows",
 		name: "Broadcast plans",
 	});
 	expect(within(table).getByText("Episode 3")).toBeTruthy();
-	expect(within(table).getByText("Next broadcast")).toBeTruthy();
+	expect(within(table).getByText("Next")).toBeTruthy();
 	expect(within(table).queryByText("Episode 2")).toBeNull();
 	fireEvent.click(
 		screen.getByRole("button", { name: "Aired history (1 episode)" }),
