@@ -17,7 +17,6 @@ import {
 export function ConnectionSettings({
 	configured,
 	label,
-	status,
 	endpoint,
 	children,
 	actions,
@@ -26,7 +25,6 @@ export function ConnectionSettings({
 }: {
 	configured: boolean;
 	label: string;
-	status: ReactNode;
 	endpoint?: string | null;
 	children: ReactNode;
 	actions?: ReactNode;
@@ -46,13 +44,12 @@ export function ConnectionSettings({
 						className="block truncate font-medium"
 						title={endpoint ?? undefined}
 					>
-						{endpoint || status}
+						{endpoint || label}
 					</span>
-					{endpoint && (
-						<span className="text-xs text-muted-foreground">{status}</span>
-					)}
 				</span>
-				<span className="shrink-0 text-muted-foreground">{label}</span>
+				{endpoint && (
+					<span className="shrink-0 text-muted-foreground">{label}</span>
+				)}
 				<ChevronDown
 					size={16}
 					className="mt-0.5 shrink-0 transition-transform group-data-open:rotate-180"

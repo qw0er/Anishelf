@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, test, vi } from "vitest";
 import { QbittorrentApiSettings } from "../../../src/features/acquisition/api-settings.js";
+import { QbittorrentSettings } from "../../../src/features/acquisition/webui-settings.js";
 import * as api from "../../../src/shared/api/client.js";
 import type { QbittorrentConnectionSettings } from "../../../src/shared/api/contracts.js";
 import { queryClient } from "../../../src/shared/api/query-client.js";
@@ -32,6 +33,10 @@ function mockConnection(initial?: Partial<QbittorrentConnectionSettings>) {
 	const request = vi
 		.spyOn(api, "request")
 		.mockImplementation(async (path, method, _options, payload) => {
+			if (path === "/api/settings")
+				return { resourceRoots: [], qbittorrentWebUiUrl: null };
+			if (path === "/api/acquisition/downloads/settings")
+				return { destination: null, roots: [] };
 			if (path.endsWith("/credentials"))
 				return { username: "admin", password: "bundled-secret" };
 			if (path.endsWith("/bundled")) {
@@ -181,7 +186,7 @@ test("bundled credentials can be reselected from More", async () => {
 		passwordConfigured: true,
 		bundledAvailable: true,
 	});
-	render(<QbittorrentApiSettings />);
+	render(<QbittorrentSettings />);
 	fireEvent.click(await screen.findByLabelText("Edit connection"));
 	fireEvent.click(screen.getByRole("button", { name: "More service actions" }));
 	fireEvent.click(

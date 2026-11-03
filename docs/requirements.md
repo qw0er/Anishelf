@@ -369,7 +369,6 @@ The display must remain usable on desktop and narrow screens.
 | WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
 | WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
 | WI05 | Redesign automatic subscription management interaction | — | Unassigned | Review the existing interaction and define the desired workflow. | — |
-| WI06 | Move the Bundled label below the Settings title | — | Unassigned | Confirm the affected settings view and placement. | — |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
 | WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |

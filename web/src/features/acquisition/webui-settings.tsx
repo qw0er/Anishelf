@@ -20,19 +20,24 @@ import {
 } from "../../shared/components/ui/collapsible.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
+import { StatusBadge } from "../../shared/components/ui/status-badge.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import {
 	saveSettings,
 	settingsKeys,
 	settingsQuery,
 } from "../settings/public.js";
-import { QbittorrentApiSettings } from "./api-settings.js";
+import {
+	QbittorrentApiSettings,
+	useQbittorrentConnection,
+} from "./api-settings.js";
 import { DownloadDestinationSettings } from "./destination-settings.js";
 
 export function QbittorrentSettings() {
 	const { t } = useTranslation();
 	const client = useQueryClient();
 	const configuration = useQuery(settingsQuery());
+	const connection = useQbittorrentConnection();
 	const [draft, setDraft] = useState<string | null>(null);
 	const save = useMutation({
 		mutationFn: (qbittorrentWebUiUrl: string) =>
@@ -44,10 +49,24 @@ export function QbittorrentSettings() {
 		},
 	});
 	const settings = configuration.data;
+	const connectionStatus = connection.data
+		? t(
+				connection.data.state === "configured"
+					? connection.data.bundled
+						? "acquisition.connection.bundled"
+						: "acquisition.connection.external"
+					: "acquisition.connection.unconfigured",
+			)
+		: null;
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("acquisition.webui.title")}</CardTitle>
+				{connectionStatus && (
+					<div role="status">
+						<StatusBadge>{connectionStatus}</StatusBadge>
+					</div>
+				)}
 			</CardHeader>
 			<CardContent className="flex min-w-0 flex-col gap-5 lg:max-w-2xl">
 				<QbittorrentApiSettings />
