@@ -116,9 +116,9 @@ log lines, credentials, session cookies or CSRF tokens in reports.
 ## Database migrations and backups
 
 Startup migrates `<dataDir>/anishelf.sqlite`. A failure preserves data and blocks
-startup. Stop the stack and back up the **complete** app data plus optional service
-state before upgrading. Active SQLite WAL files may contain committed data; copying
-only the database is insufficient. Protect credential backups and preserve ownership.
+startup. Stop Backend and back up the complete app data before upgrading; include
+optional service state for a full-stack backup. Copy SQLite WAL files too; protect
+credentials and ownership.
 
 [Deployment storage/recovery](deployment.md#backup-and-recovery) lists volumes
 and password reset commands. Restore matching app/database versions for rollback;
