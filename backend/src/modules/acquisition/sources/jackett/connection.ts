@@ -258,17 +258,12 @@ export class JackettConnection {
 			};
 		});
 	}
-	async search(
-		input: SourceQuery,
-		accept?: (
-			entries: readonly import("../domain/model.js").SourceEntry[],
-		) => boolean,
-	) {
+	async search(input: SourceQuery) {
 		const plan = this.plan(input),
 			started = Date.now();
 		try {
 			const result = await this.run(plan.generation, (client, signal) =>
-				client.search(plan, signal, accept),
+				client.search(plan, signal),
 			);
 			this.logger.info(
 				{
@@ -276,6 +271,7 @@ export class JackettConnection {
 					indexerId: plan.indexerId,
 					generation: plan.generation,
 					count: result.entries.length,
+					keywordCount: plan.titles.length,
 					coverage: result.coverage,
 					durationMs: Date.now() - started,
 				},

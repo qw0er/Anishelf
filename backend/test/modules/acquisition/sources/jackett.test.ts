@@ -203,7 +203,7 @@ test("concurrent equivalent searches share capabilities and pages without renewi
 	f.agent.assertNoPendingInterceptors();
 });
 
-test("business acceptance stops progressive search and later full collection completes coverage", async () => {
+test("search merges all keyword pages and deduplicates overlapping releases", async () => {
 	const f = wire();
 	f.api({ t: "caps" }, caps);
 	f.api(
@@ -214,16 +214,6 @@ test("business acceptance stops progressive search and later full collection com
 		),
 	);
 	const input = { ...plan, titles: [...plan.titles, "Example II"] };
-	const accepted = await f.client.search(input, signal(), (entries) =>
-		entries.some((entry) => entry.title === "Example Episode 1"),
-	);
-	expect(accepted.coverage).toEqual({
-		limited: true,
-		reason: "accepted",
-		pages: 1,
-		queries: 1,
-	});
-	// A full collection reuses the accepted page, then reads the remaining page and alias.
 	f.api(
 		{ t: "search", q: "Example Season 2", limit: "2", offset: "1" },
 		page(
@@ -233,10 +223,17 @@ test("business acceptance stops progressive search and later full collection com
 	);
 	f.api(
 		{ t: "search", q: "Example II", limit: "2", offset: "0" },
-		page("", '<torznab:response offset="0" total="0"/>'),
+		page(
+			"<item><title>Example Episode 1</title><guid>one</guid></item><item><title>Example Episode 3</title><guid>three</guid></item>",
+			'<torznab:response offset="0" total="2"/>',
+		),
 	);
 	const full = await f.client.search(input, signal());
-	expect(full.entries).toHaveLength(2);
+	expect(full.entries.map((entry) => entry.title)).toEqual([
+		"Example Episode 1",
+		"Example Episode 2",
+		"Example Episode 3",
+	]);
 	expect(full.coverage).toEqual({
 		limited: false,
 		reason: null,
@@ -260,7 +257,6 @@ test("nonempty unrelated pages do not stop progressive search", async () => {
 	const result = await f.client.search(
 		{ ...plan, titles: [...plan.titles, "Example II"] },
 		signal(),
-		(entries) => entries.some((entry) => entry.title === "Expected"),
 	);
 	expect(result.entries).toHaveLength(2);
 	expect(result.coverage.queries).toBe(2);

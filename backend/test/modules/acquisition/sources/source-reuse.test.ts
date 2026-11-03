@@ -241,26 +241,19 @@ test.each(["feed", "search"] as const)(
 	},
 );
 
-test("accepted partial evidence is reused only when the new consumer also accepts it", async () => {
+test("old business-accepted evidence is recollected before reuse", async () => {
 	const f = await fixture();
-	f.search.mockImplementationOnce(async (_plan, accept) => {
-		const result = searchResult();
-		expect(accept?.(result.entries)).toBe(true);
-		return {
-			...result,
-			coverage: { ...result.coverage, limited: true, reason: "accepted" },
-		};
+	f.search.mockResolvedValueOnce({
+		...searchResult(),
+		coverage: { ...searchResult().coverage, limited: true, reason: "accepted" },
 	});
-	const partial = await f.application.fetch(f.input("search"), {
-		accept: (snapshot) => snapshot.entries.length > 0,
-	});
-	const reused = await f.application.fetch(f.input("search"), {
-		accept: (snapshot) => snapshot.entries.length > 0,
-	});
-	expect(reused.snapshot.revision).toBe(partial.snapshot.revision);
-	expect(f.search).toHaveBeenCalledTimes(1);
+	const partial = await f.application.fetch(f.input("search"));
+	partial.commit(() => {});
 	const full = await f.application.fetch(f.input("search"));
 	expect(full.snapshot.coverage?.limited).toBe(false);
+	expect(f.search).toHaveBeenCalledTimes(2);
+	const reused = await f.application.fetch(f.input("search"));
+	expect(reused.snapshot.revision).toBe(full.snapshot.revision);
 	expect(f.search).toHaveBeenCalledTimes(2);
 });
 
@@ -356,67 +349,21 @@ test("unpublished prepared evidence is bounded across distinct source definition
 	expect(f.fetch).toHaveBeenCalledTimes(66);
 });
 
-test.each(["network", "cache"] as const)(
-	"a local decision failure during %s acceptance does not mark the source unavailable",
-	async (stage) => {
-		const f = await fixture();
-		if (stage === "cache") {
-			f.search.mockResolvedValueOnce({
-				...searchResult(),
-				coverage: {
-					limited: true,
-					reason: "accepted",
-					pages: 1,
-					queries: 1,
-				},
-			});
-			await f.application.fetch(f.input("search"), { accept: () => true });
-		} else {
-			f.search.mockImplementationOnce(async (_plan, accept) => {
-				accept?.(searchResult().entries);
-				return searchResult();
-			});
-		}
-		const failure = new Error(
-			"The local subscription changed during assessment.",
-		);
-		await expect(
-			f.application.fetch(f.input("search"), {
-				accept: () => {
-					throw failure;
-				},
-			}),
-		).rejects.toBe(failure);
-		const saved = f.application.snapshot(f.input("search"));
-		expect(saved).toMatchObject({ error: null, nextAttemptAt: 0 });
-		expect(f.database.acquisition.source(saved?.id ?? "")?.failures).toBe(0);
-		await f.application.fetch(f.input("search"), { accept: () => true });
-		expect(f.search).toHaveBeenCalledTimes(stage === "cache" ? 1 : 2);
-	},
-);
-
-test("one consumer's decision failure does not fail another concurrent full collection", async () => {
+test("concurrent consumers share the same merged collection", async () => {
 	const f = await fixture();
 	let finish!: () => void;
 	const waiting = new Promise<void>((resolve) => {
 		finish = resolve;
 	});
-	f.search.mockImplementationOnce(async (_plan, accept) => {
+	f.search.mockImplementationOnce(async () => {
 		await waiting;
-		accept?.(searchResult().entries);
 		return searchResult();
 	});
-	const failure = new Error("The discovery decision changed.");
-	const discovery = f.application.fetch(f.input("search"), {
-		accept: () => {
-			throw failure;
-		},
-	});
-	const rejected = expect(discovery).rejects.toBe(failure);
+	const discovery = f.application.fetch(f.input("search"));
 	const full = f.application.fetch(f.input("search"));
 	finish();
-	await rejected;
-	expect((await full).snapshot.entries).toHaveLength(1);
-	expect(f.search).toHaveBeenCalledTimes(2);
-	expect(f.application.snapshot(f.input("search"))?.error).toBeNull();
+	const [first, second] = await Promise.all([discovery, full]);
+	expect(second.snapshot).toBe(first.snapshot);
+	expect(first.snapshot.entries).toHaveLength(1);
+	expect(f.search).toHaveBeenCalledTimes(1);
 });
