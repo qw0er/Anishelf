@@ -36,7 +36,7 @@ implementation choice as a new requirement. Future features specify outcomes and
 acceptance boundaries without selecting their technical solution in advance.
 Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-The repository is at version 1.3.1; 1.4.0 is the planned next release. Later and Optional items remain future work.
+The repository is at version 1.4.0; 1.4.1 is the planned next release. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
@@ -120,7 +120,7 @@ associations or corrections.
 | P14 | Begin playback during conversion, with seeking and synchronized subtitles/progress | Not started | Later | — | — |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Not started | Later | — | — |
 | P12 | Hardware-accelerated transcoding | Partial | Optional | [Hardware encoding profiles supported; broader acceleration optional](#delivery-notes-p) | 0.2.0 |
-| P18 | HDR playback and conversion handling | Partial | Optional | [Accepted HDR streams preserved; conversion and broader handling optional](#delivery-notes-p) | Unreleased |
+| P18 | HDR playback and conversion handling | Partial | Optional | [Accepted HDR streams preserved; conversion and broader handling optional](#delivery-notes-p) | 1.4.0 |
 | P20 | Configure media preparation task concurrency | Partial | Optional | [Fixed single-worker queue; configurable concurrency optional](#delivery-notes-p) | 0.2.0 |
 | P21 | Limit CPU processing capacity per preparation task | Not started | Optional | — | — |
 | P22 | Schedule automatic preparation within permitted time windows | Not started | Optional | — | — |
@@ -130,7 +130,7 @@ associations or corrections.
 - **P08:** **Delivered:** Text-track discovery, selection, extraction and delivery; font attachments. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts).
 - **P09:** **Delivered:** Styled ASS/SSA, fallback fonts and embedded TTF/OTF support. **Remaining:** Bitmap subtitle compatibility; extraction is Later under P16, while rendering, OCR and burn-in remain unassigned. **Release record:** 0.2.0 (styles and fallback fonts); 0.2.6 (embedded fonts).
 - **P12:** **Delivered:** Custom preparation profiles support NVENC and QSV for H.264/HEVC/AV1, and VideoToolbox for H.264/HEVC. **Remaining:** Broader hardware acceleration. **Release record:** 0.2.0 (hardware encoding; partial).
-- **P18:** **Delivered:** Automatic preparation can preserve explicitly accepted HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** Next release (HDR stream preservation; partial).
+- **P18:** **Delivered:** Automatic preparation can preserve explicitly accepted HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
 #### Media Processing Resource Controls (P20–P22)
@@ -385,10 +385,8 @@ The display must remain usable on desktop and narrow screens.
 | WI03 | Improve download searches with multiple matching results | — | Unassigned | Determine how multiple eligible results should be handled and presented. | — |
 | WI05 | Redesign automatic subscription management interaction | — | Unassigned | Review the existing interaction and define the desired workflow. | — |
 | WI06 | Move the Bundled label below the Settings title | — | Unassigned | Confirm the affected settings view and placement. | — |
-| WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | H.264/VP9 at 1080p/2160p after 60 minutes; other codecs at those resolutions and 720p after 120 minutes. | — |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
 | WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
-| WI11 | Prioritize upcoming broadcast plans on work details | Complete | Completed | [Announced future airtimes, next-broadcast highlight, collapsed aired history and local-time display](implemented-requirements.md#delivery-notes-m); retain cached plans and mark elapsed plans awaiting confirmation. | — |
 
 ## 5. Bugs
 
