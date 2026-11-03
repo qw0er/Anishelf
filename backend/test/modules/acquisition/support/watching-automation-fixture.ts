@@ -61,6 +61,7 @@ export async function fixture() {
 			coverage: { limited: false, reason: null, pages: 1, queries: 1 },
 		}));
 	const target: AcquisitionTarget = {
+		searchTitles: ["Frieren"],
 		work: {
 			reference: { id: "1" },
 			snapshotId: "metadata",

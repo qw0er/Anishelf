@@ -371,3 +371,20 @@ test("repeated recovery cannot replace an uncertain publication after source set
 		oneOff: { uncertainSubmission: true },
 	});
 });
+
+test("one-off downloads use all four prepared multilingual queries", async () => {
+	const { f, search, input } = await setup();
+	const selected = ["Romaji", "English", "原名", "中文名"];
+	f.anime.target.mockResolvedValue({
+		...target,
+		searchTitles: selected,
+		work: {
+			...target.work,
+			titles: ["Unrelated alias", ...target.work.titles],
+		},
+	});
+	await f.worker.requestEpisode(input);
+	await f.worker.tick();
+	expect(search.mock.calls.length).toBeGreaterThan(0);
+	for (const [plan] of search.mock.calls) expect(plan.titles).toEqual(selected);
+});

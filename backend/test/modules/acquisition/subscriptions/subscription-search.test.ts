@@ -26,6 +26,7 @@ const attributes = {
 	revision: 1,
 };
 const target: AcquisitionTarget = {
+	searchTitles: ["Frieren Season 2", "Sousou no Frieren Season 2"],
 	work: {
 		reference: { id: "1" },
 		snapshotId: "snapshot",
@@ -270,4 +271,22 @@ test("a late search response cannot replace an edited subscription and duplicate
 	expect(f.db.acquisition.subscription(workKey)?.sourceInput?.kind).toBe(
 		"feed",
 	);
+});
+
+test("subscription discovery sends prepared multilingual queries instead of arbitrary aliases", async () => {
+	const f = await fixture();
+	const selected = ["Romaji", "English", "原名", "中文名"];
+	f.anime.target.mockResolvedValue({
+		...target,
+		searchTitles: selected,
+		work: {
+			...target.work,
+			titles: ["Unrelated alias", ...target.work.titles],
+		},
+	});
+	const result = await f.subscriptions.search(input);
+	expect(result.source).toMatchObject({ kind: "search", titles: selected });
+	expect(f.search.mock.calls.length).toBeGreaterThan(0);
+	for (const [plan] of f.search.mock.calls)
+		expect(plan.titles).toEqual(selected);
 });

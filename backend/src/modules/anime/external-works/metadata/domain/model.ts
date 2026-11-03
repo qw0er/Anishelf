@@ -2,6 +2,8 @@ export interface WorkReference {
 	id: string;
 }
 export interface MetadataTitle {
+	/** Explicit source-provided role retained when a verified supplemental name is an alias. */
+	searchKind?: "romaji" | "english";
 	value: string;
 	language: string | null;
 	kind: "romaji" | "english" | "native" | "alias";

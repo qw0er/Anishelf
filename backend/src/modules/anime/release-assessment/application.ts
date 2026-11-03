@@ -1,3 +1,4 @@
+import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
 import { workReference } from "../../../shared/external-reference.js";
 import type {
@@ -17,6 +18,7 @@ import type {
 	ReleaseAssessmentApi,
 	ReleaseParser,
 } from "./public.js";
+import { acquisitionSearchTitles } from "./search-titles.js";
 
 /** Remote publication evidence never impersonates a confined local source. */
 export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
@@ -27,6 +29,7 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 			| Pick<AnimeCatalogApi, "availableEpisodes">
 			| undefined,
 		private readonly identities: MetadataIdentitiesApi,
+		private readonly logger?: Logger,
 	) {}
 	async target(key: string, signal?: AbortSignal): Promise<AcquisitionTarget> {
 		let reference: ReturnType<typeof workReference>;
@@ -51,7 +54,16 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 			episodes: [],
 			revision: "no-catalog",
 		};
+		const searchTitles = acquisitionSearchTitles(data.titles);
+		this.logger?.debug(
+			{
+				event: "acquisition.search_titles_selected",
+				count: searchTitles.length,
+			},
+			"Romaji, English, native and Chinese search titles selected.",
+		);
 		return {
+			searchTitles,
 			work: {
 				reference: snapshot.data.reference,
 				snapshotId: snapshot.snapshotId,

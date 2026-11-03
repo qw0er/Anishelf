@@ -187,6 +187,7 @@ test("verification expires and never promotes supplemental names to primary titl
 	const result = await f.names.enrich(envelope(f.one));
 	expect(result.data.titles).toContainEqual({
 		value: "Peer English",
+		searchKind: "english",
 		kind: "alias",
 		language: "en",
 	});
@@ -210,4 +211,16 @@ test("cancelling the main request cancels optional verification", async () => {
 	await expect(
 		f.names.enrich(envelope(f.one), { signal: controller.signal }),
 	).rejects.toThrow();
+});
+
+test("explicit peer roles are retained even when the same name already exists as an unlabelled alias", async () => {
+	const f = fixture();
+	f.one.titles.push({ value: "English name", kind: "alias", language: null });
+	f.two.titles.push({ value: "English name", kind: "english", language: "en" });
+	expect((await f.names.enrich(envelope(f.one))).data.titles).toContainEqual({
+		value: "English name",
+		kind: "alias",
+		language: null,
+		searchKind: "english",
+	});
 });

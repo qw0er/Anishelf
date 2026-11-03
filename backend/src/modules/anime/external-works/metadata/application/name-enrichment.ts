@@ -73,13 +73,26 @@ export class MetadataNameEnrichment {
 			value.data.episodeCount !== own.data.episodeCount
 		)
 			return value;
-		const seen = new Set(value.data.titles.map((title) => title.value));
 		const titles = [...value.data.titles];
-		for (const title of peer.data.titles)
-			if (!seen.has(title.value)) {
-				seen.add(title.value);
-				titles.push({ ...title, kind: "alias" });
-			}
+		for (const title of peer.data.titles) {
+			const index = titles.findIndex(
+				(existing) => existing.value === title.value,
+			);
+			const searchKind =
+				title.kind === "romaji" || title.kind === "english"
+					? title.kind
+					: undefined;
+			const existing = titles[index];
+			if (!existing)
+				titles.push({
+					...title,
+					kind: "alias",
+					...(searchKind ? { searchKind } : {}),
+				});
+			else if (existing.kind === "alias" && !existing.searchKind && searchKind)
+				titles[index] = { ...existing, searchKind };
+		}
+
 		return { ...value, data: { ...value.data, titles } };
 	}
 	async enrich<T extends WorkSummary>(

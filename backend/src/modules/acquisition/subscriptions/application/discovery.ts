@@ -82,18 +82,7 @@ export class SubscriptionDiscovery {
 			this.context.signal,
 		);
 		guard();
-		const titles = [
-			...new Set(
-				target.work.titles
-					.map((title) => title.normalize("NFKC").trim())
-					.filter(
-						(title) =>
-							title.length > 0 &&
-							title.length <= 256 &&
-							!/[\r\n\0]/.test(title),
-					),
-			),
-		].slice(0, 4);
+		const titles = target.searchTitles;
 		if (!titles.length)
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
