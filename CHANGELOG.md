@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.4.2
+
+### Added
+
+- Open the changelog in Settings, including the installed Web version and earlier
+  releases. The changelog is bundled with the Web build for offline use.
+- Search torrents with prepared romaji, English, original and Chinese titles instead of
+  the first four arbitrary aliases. Chinese titles now participate when available.
+- Collect additional English, romaji and Bangumi infobox aliases, and use conservatively
+  verified names from the other metadata source as matching evidence without changing
+  work identity, primary titles or episode mappings.
+
+### Changed
+
+- Isolate AniList and Bangumi metadata sources. Each work belongs to one source,
+  automatic identification uses the selected default source, and existing cross-source
+  groups are split while retaining the primary identity and local confirmations.
+- Choose the default metadata source in Settings.
+- Show qBittorrent and Jackett connection status below their settings section titles.
+- Show only the primary title and source in work headers; alternative titles remain
+  internal search evidence.
+
+### Fixed
+
+- Merge results from all selected search keywords before assessment, so a matching
+  keyword no longer stops collection.
+- Refresh cached pages after a deployment and check for an updated service worker on
+  load and when returning to the page.
+
 ## 1.4.1
 
 ### Added
@@ -8,17 +37,12 @@
   Directory-wide identification refreshes suggestions while preserving confirmed and
   rejected decisions; the bulk action runs in the background and reports outcomes.
 - Add a compatibility-first acquisition profile that prefers H.264 and VP9 releases.
-- Search torrents with prepared romaji, English, original and Chinese titles instead of
-  the first four arbitrary aliases. Chinese titles now participate when available.
-- Use conservatively verified names from the other metadata source as matching aliases
-  without changing work identity, primary titles or episode mappings.
 
 ### Changed
 
 - Prioritize announced upcoming broadcasts on work details, highlight the next
   broadcast and collapse aired history.
 - Accept 10-bit SDR H.264 and VP9 video in the automatic preparation Web preset.
-- Show qBittorrent and Jackett connection status below their settings section titles.
 
 ### Fixed
 
