@@ -91,11 +91,14 @@ test("artwork downloads keep bounded concurrency and deduplicate identical reque
 	const { dir, database } = await setup();
 	let active = 0;
 	let peak = 0;
-	const releases: (() => void)[] = [];
+	let release!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
 	const fetcher = vi.fn<typeof fetch>(async () => {
 		active++;
 		peak = Math.max(peak, active);
-		await new Promise<void>((resolve) => releases.push(resolve));
+		await gate;
 		active--;
 		return new Response(png);
 	});
@@ -114,15 +117,19 @@ test("artwork downloads keep bounded concurrency and deduplicate identical reque
 	// A second request for an in-flight image joins that download instead of fetching.
 	const duplicate = artwork.get("key-0", url("art-0"), {});
 	const settled = Promise.all([...requests, duplicate]);
-	for (let round = 0; round < 10; round++) {
-		while (releases.length > 0) releases.shift()?.();
-		await new Promise((resolve) => setTimeout(resolve, 5));
+	try {
+		await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(4), {
+			timeout: 8000,
+		});
+		expect(peak).toBe(4);
+	} finally {
+		release();
 	}
 	const statuses = await settled;
 	expect(fetcher).toHaveBeenCalledTimes(6);
 	expect(peak).toBe(4);
 	expect(statuses.every((status) => status.status === "ready")).toBe(true);
-});
+}, 10000);
 
 test("a requested artwork refresh serves cached bytes and refreshes in the background", async () => {
 	const { dir, database } = await setup();
