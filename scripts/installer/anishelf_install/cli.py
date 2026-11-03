@@ -214,13 +214,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_runtime_options(remove, include_test=False)
 
-    for name in ("up", "down", "update"):
-        action = commands.add_parser(name, help=f"{name} a saved deployment")
-        action.add_argument("directory", metavar="DIRECTORY")
-        action.set_defaults(force=False, engine=None)
-        if name == "update":
-            action.add_argument("--all", action="store_true", help="also update enabled optional services")
-
     parser.add_argument(
         "--version",
         action="version",

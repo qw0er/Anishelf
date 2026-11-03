@@ -41,12 +41,11 @@ a private bundle and delegates startup to Docker Compose or rootless Podman Quad
 It uses only the Python standard library and never prompts. The distributable is
 [`scripts/install.pyz`](../scripts/install.pyz), a zipapp built from
 [`scripts/installer/`](../scripts/installer/). It does not collect credentials.
-Both engines receive the same executable `manage.sh`, a bundled `manage.pyz` CLI,
-and a versioned `deployment.json` containing settings and generated-file hashes.
-The helper supports `up`, `down`, `update` and `update --all`. Reconfiguration
-inherits saved choices and applies explicit overrides; generated-file drift blocks
-management/reconfiguration before runtime changes. Rootless operations also check
-the owning UID, configuration directory and installed units.
+Both engines receive a small native-command `manage.sh` supporting `up`, `down`,
+`update` and `update --all`. Daily management needs no Python runtime or installer
+copy. `deployment.json` saves installation choices for reconfiguration defaults;
+explicit flags override them. Runtime configuration can be edited directly, and
+those edits must be supplied separately when regenerating configuration.
 Ordinary installation never overwrites deployments;
 explicit `remove DIRECTORY` and `reconfigure DIRECTORY` actions archive saved
 configuration by renaming the entire old deployment directory to a sibling backup

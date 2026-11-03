@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import sys
 import zipfile
 from pathlib import Path
@@ -79,18 +78,3 @@ class AssetSource:
         if self._archive is not None:
             self._archive.close()
             self._archive = None
-
-    def management_archive(self) -> bytes:
-        """Keep the same self-contained CLI with every generated deployment."""
-        if self._archive is not None:
-            return Path(self._archive.filename).read_bytes()
-        source = Path(__file__).resolve().parents[1]
-        output = io.BytesIO()
-        with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
-            for path in sorted(source.rglob("*.py")):
-                archive.write(path, str(path.relative_to(source)))
-            assert self._root is not None
-            for path in sorted(self._root.rglob("*")):
-                if path.is_file():
-                    archive.write(path, f"templates/{path.relative_to(self._root)}")
-        return output.getvalue()

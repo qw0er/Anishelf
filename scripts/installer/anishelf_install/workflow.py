@@ -8,11 +8,15 @@ import tempfile
 from pathlib import Path
 
 from .assets import AssetSource
-from .config import Settings, deployment_profile, parse_profile
-from .deployment import MANIFEST, inherit, load, serialize
+from .config import (
+    Settings,
+    deployment_profile,
+    inherit_configuration,
+    parse_profile,
+    saved_configuration,
+)
 from .errors import InstallerError
 from .log import LOG, log
-from .management import manage
 from .render import (
     render_compose,
     render_management_helper,
@@ -82,7 +86,7 @@ class Installer:
         self.settings: Settings | None = None
         self.existing: dict | None = None
         self.assets: AssetSource | None = None
-        self.bundle: dict[str, str | bytes] = {}
+        self.bundle: dict[str, str] = {}
         self.bundle_modes: dict[str, int] = {}
         self.backups = BackupManager(args.force)
 
@@ -92,20 +96,24 @@ class Installer:
             self.assets = None
 
     def run(self) -> int:
-        if self.command in {"up", "down", "update"}:
-            self.existing = self._load_existing()
-            settings = self.existing["settings"]
-            manage(settings, self.command, update_all=getattr(self.args, "all", False))
-            return 0
+        relabel_override = getattr(self.args, "selinux_relabel", None)
         if self.command in {"remove", "reconfigure"}:
             self.existing = self._load_existing()
             if self.command == "remove":
                 self.remove_configuration()
                 return 0
-            if self.existing["settings"] is None:
-                raise InstallerError("Missing deployment.json; reconfiguration requires saved settings. Manage older bundles manually.")
-            inherit(self.args, self.existing["settings"])
-            log("Reconfiguration inherits saved settings; explicit flags take precedence.")
+            inherit_configuration(self.args, self.existing["deploy_dir"])
+
+        if self.args.managed_media:
+            self.args.media = None
+        if self.args.clear_extra_media:
+            self.args.extra_media = []
+        if (
+            relabel_override is None
+            and (self.args.managed_media or self.args.clear_extra_media)
+            and not (self.args.media or self.args.extra_media)
+        ):
+            self.args.selinux_relabel = None
 
         self.settings = self._collect_settings()
         self.settings.report_plan()
@@ -169,6 +177,9 @@ class Installer:
             test_mode = bool(args.test)
             engine, method = detect_engine(args.engine)
             deploy_dir = self._deployment_directory(args.deploy_dir, stack)
+
+        if args.log_level is not None and args.log_level not in {"trace", "debug", "info", "warn", "error", "fatal", "silent"}:
+            raise InstallerError("Invalid Backend log level.")
 
         rootless = method == "quadlet"
         image_tag = (
@@ -424,9 +435,8 @@ class Installer:
             self._prepare_compose()
         else:
             self._prepare_quadlet()
-        self.bundle["manage.sh"] = render_management_helper()
-        self.bundle["manage.pyz"] = self.assets.management_archive()
-        self.bundle[MANIFEST] = serialize(self.settings, self.bundle)
+        self.bundle["manage.sh"] = render_management_helper(self.settings)
+        self.bundle["deployment.json"] = saved_configuration(self.settings)
 
     def _prepare_compose(self) -> None:
         assert self.settings is not None and self.assets is not None
@@ -496,9 +506,8 @@ class Installer:
                     os.O_WRONLY | os.O_CREAT | os.O_EXCL,
                     mode,
                 )
-                payload = self.bundle[relative]
-                with os.fdopen(descriptor, "wb") as stream:
-                    stream.write(payload.encode("utf-8") if isinstance(payload, str) else payload)
+                with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+                    stream.write(self.bundle[relative])
                 os.chmod(destination, mode)
             os.chmod(deploy_dir, 0o700)
         except BaseException:
@@ -646,11 +655,6 @@ class Installer:
         except ValueError as error:
             raise InstallerError("Choose a real saved deployment directory.") from error
 
-        saved_settings = None
-        if exists(deploy_dir / MANIFEST):
-            saved_settings = load(deploy_dir)
-            log(f"Loaded saved deployment configuration: {deploy_dir / MANIFEST}")
-
         profile_path = deploy_dir / ".deployment-profile"
         test_mode = False
         stack = "anishelf"
@@ -713,18 +717,12 @@ class Installer:
                 "cannot be removed."
             )
 
-        if saved_settings is not None and (saved_settings.engine, saved_settings.method, saved_settings.stack) != (engine, method, stack):
-            raise InstallerError("Deployment metadata disagrees with generated configuration.")
-        if self.command in {"up", "down", "update"} and saved_settings is None:
-            raise InstallerError("Missing deployment.json; manage this older deployment manually.")
-
         info = {
             "deploy_dir": deploy_dir,
             "engine": engine,
             "method": method,
             "stack": stack,
             "test_mode": test_mode,
-            "settings": saved_settings,
         }
         log(
             f"Selected saved deployment: {deploy_dir} ({engine}/{method}). "

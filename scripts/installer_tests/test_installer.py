@@ -157,14 +157,16 @@ class Fixture:
         env: dict[str, str] | None = None,
         cwd: Path | None = None,
         artifact: bool = False,
-        manager: bool = False,
+        helper: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         command = [sys.executable]
-        command.append(str(self.target / "manage.pyz" if manager else ARTIFACT if artifact else SOURCE))
+        command.append(str(ARTIFACT if artifact else SOURCE))
+        if helper:
+            command = [str(self.target / "manage.sh")]
         command.extend(args)
         environment = {
             **os.environ,
-            "PATH": str(self.bin),
+            "PATH": f"{self.bin}:{os.defpath}" if helper else str(self.bin),
             "HOME": str(self.home),
             "XDG_CONFIG_HOME": str(self.config),
             "INSTALL_TEST_TRACE": str(self.trace),
@@ -391,125 +393,97 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(settings["image_tag"], "latest")
         self.assertEqual(settings["qbit_port"], 8181)
 
-    def test_packaged_deployment_manager_is_self_contained(self) -> None:
+    def test_packaged_helper_uses_native_commands_without_python_bundle(self) -> None:
         fixture = Fixture(self)
         generated = self.generate(
             fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
-            "--test", "--port", str(self.health_server()), artifact=True,
+            "--test", artifact=True,
         )
         self.assertEqual(generated.returncode, 0, generated.stderr)
+        self.assertFalse((fixture.target / "manage.pyz").exists())
+        self.assertNotIn("python", (fixture.target / "manage.sh").read_text())
+        # Management works independently of saved parameters and accepts local edits.
+        (fixture.target / "deployment.json").unlink()
+        with (fixture.target / ".env").open("a") as stream:
+            stream.write("# manual configuration edit\n")
         fixture.cleanup_calls()
-        result = fixture.run(["update", str(fixture.target)], manager=True)
+        result = fixture.run(["update"], helper=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = [call for call in fixture.calls() if "compose" in call["args"]]
-        self.assertTrue(calls)
+        self.assertEqual(len(calls), 2)
         self.assertTrue(all("anishelf-test" in call["args"] for call in calls))
-        self.assertIn("tag=testing", (fixture.target / "manage.log").read_text())
+        self.assertFalse((fixture.target / "manage.log").exists())
+        self.assertNotEqual(fixture.run(["up", "--all"], helper=True).returncode, 0)
 
-    def test_management_update_scopes_and_pull_failure(self) -> None:
+    def test_compose_helper_update_scopes_and_pull_failure(self) -> None:
         fixture = Fixture(self)
-        port = self.health_server()
         generated = self.generate(
             fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
-            "--qbit", "--jackett", "--port", str(port), "--image-tag", "v1.4.1",
+            "--qbit", "--jackett", "--image-tag", "v1.4.1",
         )
         self.assertEqual(generated.returncode, 0, generated.stderr)
         fixture.cleanup_calls()
-        result = fixture.run(["update", str(fixture.target)], env={"ANISHELF_TAG": "unwanted"})
+        result = fixture.run(["update"], helper=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = fixture.calls()
         pull = next(call for call in calls if "pull" in call["args"])
         up = next(call for call in calls if "up" in call["args"])
         self.assertEqual(pull["args"][-3:], ["pull", "backend", "web"])
         self.assertEqual(up["args"][-5:], ["up", "-d", "--no-deps", "backend", "web"])
-        self.assertIsNone(pull["tag"])
-        self.assertIn("tag=v1.4.1", (fixture.target / "manage.log").read_text())
+        self.assertIn("qbittorrent", pull["args"])
+        self.assertIn("jackett", pull["args"])
         fixture.cleanup_calls()
-        result = fixture.run(["update", str(fixture.target), "--all"])
+        result = fixture.run(["update", "--all"], helper=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(any(call["args"][-1:] == ["pull"] for call in fixture.calls()))
         self.assertTrue(any(call["args"][-2:] == ["up", "-d"] for call in fixture.calls()))
         fixture.cleanup_calls()
-        failed = fixture.run(["update", str(fixture.target)], env={"INSTALL_TEST_PULL_FAIL": "yes"})
+        failed = fixture.run(["update"], helper=True, env={"INSTALL_TEST_PULL_FAIL": "yes"})
         self.assertNotEqual(failed.returncode, 0)
         self.assertFalse(any("up" in call["args"] or "down" in call["args"] for call in fixture.calls()))
 
-    def test_management_rejects_drift_and_unknown_schema_before_engine_calls(self) -> None:
-        for command in ("update", "reconfigure", "down"):
-            with self.subTest(command=command):
-                fixture = Fixture(self)
-                generated = self.generate(fixture, "--engine", "docker", "--deploy-dir", str(fixture.target))
-                self.assertEqual(generated.returncode, 0, generated.stderr)
-                env_file = fixture.target / ".env"
-                original = env_file.read_bytes()
-                env_file.write_bytes(original + b"# local edit\n")
-                fixture.cleanup_calls()
-                result = fixture.run([command, str(fixture.target)])
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("generated file changed: .env", result.stderr)
-                self.assertEqual(fixture.calls(), [])
-                self.assertTrue(fixture.target.exists())
-                env_file.write_bytes(original)
-                manifest = fixture.target / "deployment.json"
-                data = json.loads(manifest.read_text())
-                data["schema_version"] = 999
-                manifest.write_text(json.dumps(data))
-                result = fixture.run([command, str(fixture.target)])
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("unsupported schema", result.stderr)
-                self.assertEqual(fixture.calls(), [])
-
-    @unittest.skipUnless(sys.platform == "linux", "Quadlet requires Linux")
-    @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet requires a non-root user")
-    def test_quadlet_management_updates_selected_images_and_preserves_settings(self) -> None:
+    @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet generation requires a non-root user")
+    def test_quadlet_helper_reads_current_images_and_updates_selected_services(self) -> None:
         fixture = Fixture(self)
-        port = self.health_server()
-        installed = self.install(
+        generated = self.generate(
             fixture, "--engine", "podman", "--deploy-dir", str(fixture.target),
-            "--qbit", "--jackett", "--port", str(port), "--image-tag", "v1.4.1",
+            "--qbit", "--jackett", "--image-tag", "v1.4.1",
         )
-        self.assertEqual(installed.returncode, 0, installed.stderr)
-        original = json.loads((fixture.target / "deployment.json").read_text())["settings"]
-        result = fixture.run(["reconfigure", str(fixture.target)])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads((fixture.target / "deployment.json").read_text())["settings"], original)
+        self.assertEqual(generated.returncode, 0, generated.stderr)
+        installed = fixture.config / "containers" / "systemd"
+        installed.mkdir(parents=True)
+        for unit in (fixture.target / "quadlet").glob("*.container"):
+            (installed / unit.name).write_bytes(unit.read_bytes())
+        backend = installed / "anishelf-backend.container"
+        backend.write_text(backend.read_text().replace(":v1.4.1", ":v1.4.2"))
         fixture.cleanup_calls()
-        updated = fixture.run(["update", str(fixture.target)])
+        updated = fixture.run(["update"], helper=True)
         self.assertEqual(updated.returncode, 0, updated.stderr)
         pulls = [call["args"] for call in fixture.calls() if call["name"] == "podman"]
         self.assertEqual(pulls, [
-            ["pull", "ghcr.io/qw0er/anishelf-backend:v1.4.1"],
+            ["pull", "ghcr.io/qw0er/anishelf-backend:v1.4.2"],
             ["pull", "ghcr.io/qw0er/anishelf-web:v1.4.1"],
         ])
-        self.assertIn(["--user", "restart", "anishelf-backend.service", "anishelf-web.service"],
-                      [call["args"] for call in fixture.calls() if call["name"] == "systemctl"])
+        self.assertEqual(fixture.calls()[-1]["args"],
+                         ["--user", "restart", "anishelf-backend.service", "anishelf-web.service"])
         fixture.cleanup_calls()
-        failed = fixture.run(["update", str(fixture.target), "--all"], env={"INSTALL_TEST_PULL_FAIL": "yes"})
+        failed = fixture.run(["update", "--all"], helper=True, env={"INSTALL_TEST_PULL_FAIL": "yes"})
         self.assertNotEqual(failed.returncode, 0)
         self.assertFalse(any("restart" in call["args"] for call in fixture.calls()))
         fixture.cleanup_calls()
-        updated = fixture.run(["update", str(fixture.target), "--all"])
+        updated = fixture.run(["update", "--all"], helper=True)
         self.assertEqual(updated.returncode, 0, updated.stderr)
         images = [call["args"][1] for call in fixture.calls() if call["name"] == "podman"]
         self.assertEqual(len(images), 4)
         self.assertIn("docker.io/linuxserver/qbittorrent:latest", images)
         self.assertIn("ghcr.io/linuxserver/jackett:latest", images)
+        self.assertEqual(fixture.calls()[-1]["args"][-2:],
+                         ["anishelf-qbittorrent.service", "anishelf-jackett.service"])
         fixture.cleanup_calls()
-        result = fixture.run(["down", str(fixture.target)])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(fixture.calls()[-1]["args"], ["--user", "stop", "anishelf.target"])
-        result = fixture.run(["up", str(fixture.target)])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(any(call["args"] == ["--user", "start", "anishelf.target"] for call in fixture.calls()))
-        fixture.cleanup_calls()
-        changed = fixture.config / "containers" / "systemd" / "anishelf-web.container"
-        changed.write_text("local edit")
-        rejected = fixture.run(["update", str(fixture.target)])
-        self.assertNotEqual(rejected.returncode, 0)
-        self.assertEqual(fixture.calls(), [])
-        rejected = fixture.run(["update", str(fixture.target)], env={"XDG_CONFIG_HOME": str(fixture.home)})
-        self.assertNotEqual(rejected.returncode, 0)
-        self.assertIn("original XDG_CONFIG_HOME", rejected.stderr)
+        for action, native in (("down", "stop"), ("up", "start")):
+            result = fixture.run([action], helper=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(fixture.calls()[-1]["args"], ["--user", native, "anishelf.target"])
 
     def test_compose_generation_defaults(self) -> None:
         fixture = Fixture(self)
@@ -541,7 +515,7 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue(helper.is_file())
         self.assertEqual(stat.S_IMODE(helper.stat().st_mode), 0o755)
         helper_text = helper.read_text(encoding="utf-8")
-        self.assertIn("manage.pyz", helper_text)
+        self.assertNotIn("manage.pyz", helper_text)
         self.assertIn("up|down|update", helper_text)
         self.assertNotIn("COMPOSE_PROFILES", helper_text)
         self.assertNotIn("--profile", helper_text)
@@ -578,15 +552,12 @@ class InstallerTests(unittest.TestCase):
 
     def test_compose_manage_script_applies_saved_profiles(self) -> None:
         fixture = Fixture(self)
-        port = self.health_server()
         generated = self.generate(
             fixture,
             "--engine",
             "docker",
             "--deploy-dir",
             str(fixture.target),
-            "--port",
-            str(port),
             "--qbit",
             "--jackett",
         )
@@ -612,7 +583,7 @@ class InstallerTests(unittest.TestCase):
             for call in fixture.calls()
             if call["name"] == "docker" and call["args"][:1] == ["compose"]
         ]
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 1)
         arguments = calls[-1]["args"]
         self.assertIn("--profile", arguments)
         self.assertIn("qbittorrent", arguments)
@@ -653,7 +624,7 @@ class InstallerTests(unittest.TestCase):
             for call in fixture.calls()
             if call["name"] == "docker" and call["args"][:1] == ["compose"]
         ]
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 1)
         self.assertNotIn("--profile", calls[-1]["args"])
         self.assertEqual(calls[-1]["args"][-2:], ["down", "--remove-orphans"])
 
@@ -924,6 +895,9 @@ class InstallerTests(unittest.TestCase):
         )
         self.assertEqual(generated.returncode, 0, generated.stderr)
         (fixture.target / "custom.txt").write_text("old notes", encoding="utf-8")
+        (fixture.target / "deployment.json").unlink()
+        with (fixture.target / ".env").open("a") as stream:
+            stream.write("# local edit in a legacy deployment\n")
         port = self.health_server()
 
         result = fixture.run(
@@ -937,6 +911,7 @@ class InstallerTests(unittest.TestCase):
             ]
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("No saved installation parameters", result.stderr)
         env = (fixture.target / ".env").read_text(encoding="utf-8")
         self.assertIn("COMPOSE_PROFILES='qbittorrent,jackett'", env)
         self.assertFalse((fixture.target / "custom.txt").exists())
