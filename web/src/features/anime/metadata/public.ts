@@ -3,6 +3,7 @@ export {
 	airingQuery,
 	identificationQuery,
 	metadataDetailQuery,
+	metadataProvidersQuery,
 	metadataSearchQuery,
 	relationsQuery,
 } from "./queries.js";

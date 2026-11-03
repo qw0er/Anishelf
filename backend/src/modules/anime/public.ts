@@ -1,10 +1,10 @@
-export { MetadataError } from "./metadata/public.js";
-export { isActiveViewing } from "./tracking/public.js";
+export { MetadataError } from "./external-works/metadata/public.js";
+export { isActiveViewing } from "./external-works/tracking/public.js";
 
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
 import type { AnimeLibraryApi } from "./anime-library/public.js";
-import type { MetadataApi } from "./metadata/public.js";
-import type { TrackingApi } from "./tracking/public.js";
+import type { MetadataApi } from "./external-works/metadata/public.js";
+import type { TrackingApi } from "./external-works/tracking/public.js";
 
 export type {
 	AcquisitionTarget,
@@ -86,14 +86,20 @@ export interface AnimeDetail {
 	reference: import("../../shared/external-reference.js").ExternalWorkReference;
 	displayTitle: string;
 	metadata:
-		| import("./metadata/public.js").CachedMetadata<
-				import("./metadata/public.js").WorkDetails
+		| import("./external-works/metadata/public.js").CachedMetadata<
+				import("./external-works/metadata/public.js").WorkDetails
 		  >
 		| null;
-	metadataError: import("./metadata/public.js").MetadataFailure | null;
+	metadataError:
+		| import("./external-works/metadata/public.js").MetadataFailure
+		| null;
 	local: import("./anime-catalog/public.js").LocalWorkDetail | null;
 	viewing: Omit<
-		import("./tracking/public.js").TrackingListSnapshot,
+		import("./external-works/tracking/public.js").TrackingListSnapshot,
 		"entries"
-	> & { entry: import("./tracking/public.js").TrackingListEntry | null };
+	> & {
+		entry:
+			| import("./external-works/tracking/public.js").TrackingListEntry
+			| null;
+	};
 }

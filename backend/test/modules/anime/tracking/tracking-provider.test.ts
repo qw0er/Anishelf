@@ -8,20 +8,20 @@ import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { createHttpApp } from "../../../../src/app/bootstrap/http.js";
 import type { ReviewItem } from "../../../../src/modules/anime/anime-catalog/public.js";
 import { AnimeLibraryQueries } from "../../../../src/modules/anime/anime-library/application/library.js";
-import { TrackingViewingCommands } from "../../../../src/modules/anime/tracking/application/viewing.js";
-import { createTrackingModule } from "../../../../src/modules/anime/tracking/create.js";
-import type { TrackingProviderDescriptor } from "../../../../src/modules/anime/tracking/domain/model.js";
-import type { TrackingDesiredState } from "../../../../src/modules/anime/tracking/domain/operation.js";
-import { registerTrackingListRoutes } from "../../../../src/modules/anime/tracking/http/lists.js";
-import { registerTrackingUpdateRoutes } from "../../../../src/modules/anime/tracking/http/updates.js";
-import type { TrackingUpdateProvider } from "../../../../src/modules/anime/tracking/ports.js";
+import { TrackingViewingCommands } from "../../../../src/modules/anime/external-works/tracking/application/viewing.js";
+import { createTrackingModule } from "../../../../src/modules/anime/external-works/tracking/create.js";
+import type { TrackingProviderDescriptor } from "../../../../src/modules/anime/external-works/tracking/domain/model.js";
+import type { TrackingDesiredState } from "../../../../src/modules/anime/external-works/tracking/domain/operation.js";
+import { registerTrackingListRoutes } from "../../../../src/modules/anime/external-works/tracking/http/lists.js";
+import { registerTrackingUpdateRoutes } from "../../../../src/modules/anime/external-works/tracking/http/updates.js";
+import type { TrackingUpdateProvider } from "../../../../src/modules/anime/external-works/tracking/ports.js";
 import {
 	externalId,
 	externalIdParts,
 	workKey,
 	workReference,
 } from "../../../../src/shared/external-reference.js";
-import { fixtureAssociations } from "../../../support/metadata-associations.js";
+import { fixtureIdentities } from "../../../support/metadata-identities.js";
 
 const cleanup: (() => unknown)[] = [];
 afterEach(async () => {
@@ -297,7 +297,7 @@ test("episode resolution reports unmapped, ambiguous and unsupported independent
 		undefined,
 		undefined,
 		{
-			...fixtureAssociations("fixture"),
+			...fixtureIdentities("fixture"),
 			externalReference: (ref) =>
 				ref.id === "unmapped" ? null : { ...reference, id: ref.id },
 		},

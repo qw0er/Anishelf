@@ -148,6 +148,9 @@ export function createSettingsSchemas() {
 				maxItems: 64,
 				uniqueItems: true,
 			}),
+			defaultMetadataProvider: Type.Optional(
+				Type.Union([Type.Literal("anilist"), Type.Literal("bangumi")]),
+			),
 			autoPreparationEnabled: Type.Optional(Type.Boolean()),
 			autoPreparationPresetId: Type.Optional(TranscodeProfileIdSchema),
 			rssRefreshIntervalMinutes: Type.Optional(
@@ -180,6 +183,9 @@ export function createSettingsSchemas() {
 					maxItems: 64,
 					uniqueItems: true,
 				}),
+			),
+			defaultMetadataProvider: Type.Optional(
+				Type.Union([Type.Literal("anilist"), Type.Literal("bangumi")]),
 			),
 			autoPreparationEnabled: Type.Optional(Type.Boolean()),
 			autoPreparationPresetId: Type.Optional(TranscodeProfileIdSchema),

@@ -52,7 +52,7 @@ export const AnimeLibrarySchema = Type.Object({
 			coverUrl: text,
 			viewingAvailability: Type.Union([
 				Type.Literal("unknown"),
-				Type.Literal("unmapped"),
+				Type.Literal("unsupported"),
 				Type.Literal("tracked"),
 				Type.Literal("untracked"),
 			]),

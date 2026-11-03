@@ -13,6 +13,7 @@ export function createIdentificationModule(options: {
 	library: LibraryApi;
 	sources: ResourceAccessApi;
 	logger: Logger;
+	metadataContext?: () => string;
 	metadata?: IdentificationMetadata;
 	catalog?: Pick<AnimeCatalogApi, "reviews" | "review">;
 	onPublication?: (
@@ -28,6 +29,9 @@ export function createIdentificationModule(options: {
 		sources: options.sources,
 		identification,
 		logger: options.logger,
+		...(options.metadataContext
+			? { metadataContext: options.metadataContext }
+			: {}),
 		...(options.catalog ? { catalog: options.catalog } : {}),
 		...(options.onPublication ? { onPublication: options.onPublication } : {}),
 	});

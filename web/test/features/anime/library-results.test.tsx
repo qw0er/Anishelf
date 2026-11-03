@@ -107,10 +107,10 @@ test("remote-only cards keep their remote route and show local availability once
 });
 
 test("a missing cross-provider mapping is visible and is never presented as untracked", () => {
-	show([{ ...work, viewing: null, viewingAvailability: "unmapped" }]);
+	show([{ ...work, viewing: null, viewingAvailability: "unsupported" }]);
 	const card = screen.getByRole("link", { name: "Example" });
 	expect(
-		within(card).getByText("No confirmed mapping to the tracking provider."),
+		within(card).getByText("This source does not support Tracking yet."),
 	).toBeTruthy();
 	expect(within(card).queryByText("Not on the tracking service")).toBeNull();
 });

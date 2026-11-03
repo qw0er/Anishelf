@@ -23,9 +23,10 @@ export const searchMetadata = (
 	query: string,
 	page: number,
 	options?: RequestOptions,
+	provider?: string,
 ): Promise<MetadataSearchResponse> =>
 	request(
-		`/api/metadata/search?${new URLSearchParams({ query, page: String(page), perPage: "10" })}`,
+		`/api/metadata/search?${new URLSearchParams({ query, page: String(page), perPage: "10", ...(provider ? { provider } : {}) })}`,
 		"GET",
 		options,
 	);
@@ -58,6 +59,13 @@ export const resolveMetadataReference = (
 		import("../../../shared/api/contracts.js").MetadataDetailsResponse["data"]["reference"]
 	>(
 		`/api/metadata/reference?${new URLSearchParams({ value })}`,
+		"GET",
+		options,
+	);
+
+export const getMetadataProviders = (options?: RequestOptions) =>
+	request<{ key: string; name: string; metadata: true; tracking: boolean }[]>(
+		"/api/metadata/providers",
 		"GET",
 		options,
 	);

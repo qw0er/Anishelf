@@ -3,6 +3,7 @@ import { boundedSignal } from "../../../shared/api/queries.js";
 import {
 	getAiring,
 	getIdentificationStatus,
+	getMetadataProviders,
 	getRelations,
 	metadataDetail,
 	searchMetadata,
@@ -16,11 +17,15 @@ export const relationsQuery = (id: string, page: number) =>
 			getRelations(id, page, { signal: boundedSignal(signal) }),
 	});
 
-export const metadataSearchQuery = (query: string, page: number) =>
+export const metadataSearchQuery = (
+	query: string,
+	page: number,
+	provider?: string,
+) =>
 	queryOptions({
-		queryKey: ["metadata-search", query, page],
+		queryKey: ["metadata-search", query, page, provider ?? "default"],
 		queryFn: ({ signal }) =>
-			searchMetadata(query, page, { signal: boundedSignal(signal) }),
+			searchMetadata(query, page, { signal: boundedSignal(signal) }, provider),
 	});
 export const metadataDetailQuery = (reference: { id: string }) =>
 	queryOptions({
@@ -59,4 +64,11 @@ export const airingQuery = (id: string) =>
 			query.state.data?.pages.some((page) => page.refreshing)
 				? 2000
 				: 15 * 60_000,
+	});
+
+export const metadataProvidersQuery = () =>
+	queryOptions({
+		queryKey: ["metadata-providers"],
+		queryFn: ({ signal }) =>
+			getMetadataProviders({ signal: boundedSignal(signal) }),
 	});

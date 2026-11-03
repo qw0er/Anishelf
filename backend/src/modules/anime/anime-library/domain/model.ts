@@ -6,7 +6,7 @@ import type {
 import type {
 	TrackingListSnapshot,
 	ViewingStatus,
-} from "../../tracking/public.js";
+} from "../../external-works/tracking/public.js";
 export interface AnimeLibraryQuery extends Omit<CatalogQuery, "sort"> {
 	sort?: "title" | "recent" | "updated" | "unwatched";
 	scope?: "local" | "all";
@@ -20,7 +20,7 @@ interface LibraryPlaybackTarget {
 	sourceVersion: string | null;
 }
 export interface LibraryCard {
-	viewingAvailability: "unknown" | "unmapped" | "tracked" | "untracked";
+	viewingAvailability: "unknown" | "unsupported" | "tracked" | "untracked";
 	availableUnwatchedEpisodes?: number | null;
 	nextPlayback: LibraryPlaybackTarget | null;
 	id: string;

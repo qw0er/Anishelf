@@ -599,3 +599,60 @@ test("a failed Review rejection uses a Toast, retains the reason and can be retr
 		selector: "[data-slot=toast-title]",
 	});
 });
+
+test("Review searches the selected source and resets pagination when it changes", async () => {
+	mockReview();
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input).startsWith("/api/metadata/search?")) {
+			const params = new URL(String(input), "http://localhost").searchParams;
+			return json({
+				...animeFixture().metadata,
+				data: {
+					items: [animeFixture().metadata.data],
+					page: Number(params.get("page")),
+					perPage: 10,
+					hasNextPage: true,
+				},
+			});
+		}
+		return fallback(input, init);
+	});
+	renderApp(`/review?item=${reviewFixture().id}`);
+	const input = await screen.findByLabelText("Search candidate titles");
+	fireEvent.change(input, { target: { value: "Ocean" } });
+	fireEvent.submit(input.closest("form") as HTMLFormElement);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([path]) =>
+					String(path).startsWith("/api/metadata/search?") &&
+					String(path).includes("query=Ocean"),
+			),
+		).toBe(true),
+	);
+	const pagination = await screen.findByRole("navigation", {
+		name: "Search candidate titles",
+	});
+	const next = within(pagination).getByRole("button", { name: "Next" });
+	await waitFor(() => expect(next.hasAttribute("disabled")).toBe(false));
+	fireEvent.click(next);
+	await waitFor(() =>
+		expect(
+			screen.getByRole("navigation", { name: "Search candidate titles" })
+				.textContent,
+		).toContain("Page 2"),
+	);
+	const source = await screen.findByLabelText("Source");
+	await waitFor(() => expect(source.hasAttribute("disabled")).toBe(false));
+	fireEvent.change(source, { target: { value: "bangumi" } });
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(
+				([path]) =>
+					String(path).includes("provider=bangumi") &&
+					String(path).includes("page=1"),
+			),
+		).toBe(true),
+	);
+});

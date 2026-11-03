@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint as commandFingerprint } from "../../../../shared/fingerprint.js";
-import { MetadataError } from "../../metadata/public.js";
+import { MetadataError } from "../../external-works/metadata/public.js";
 import { catalogDefaults as policy } from "../defaults.js";
 import { conflict, invalid, targets, text } from "../domain/mapping.js";
 import type {

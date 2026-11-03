@@ -1,11 +1,11 @@
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import { AniListAccountClient } from "../../../../src/modules/anime/anilist/infrastructure/account-client.js";
-import { AniListUpdatesClient } from "../../../../src/modules/anime/anilist/infrastructure/updates-client.js";
+import { AniListAccountClient } from "../../../../src/modules/anime/external-works/anilist/infrastructure/account-client.js";
+import { AniListUpdatesClient } from "../../../../src/modules/anime/external-works/anilist/infrastructure/updates-client.js";
 import {
 	type AniListOptions,
 	AniListWrapper,
-} from "../../../../src/modules/anime/anilist/public.js";
+} from "../../../../src/modules/anime/external-works/anilist/public.js";
 
 const clients: AniListWrapper[] = [];
 afterEach(async () => {

@@ -90,6 +90,12 @@ export function WorkMetadataHeader({
 					<h1 className="text-2xl leading-tight font-semibold tracking-tight wrap-anywhere sm:text-3xl xl:text-4xl">
 						{work.displayTitle}
 					</h1>
+					<p className="text-xs text-muted-foreground">
+						{t("metadataSource.source")}:{" "}
+						{t(`metadataSource.names.${info.provider}`, {
+							defaultValue: info.provider,
+						})}
+					</p>
 					{aliases.length > 0 && (
 						<div className="space-y-1">
 							<p

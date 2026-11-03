@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import type { ReviewItem } from "../../../../src/modules/anime/anime-catalog/public.js";
-import { TrackingUpdates } from "../../../../src/modules/anime/tracking/application/updates.js";
-import { TrackingViewingCommands } from "../../../../src/modules/anime/tracking/application/viewing.js";
-import type { TrackingStatus } from "../../../../src/modules/anime/tracking/domain/model.js";
-import type { TrackingRemoteState } from "../../../../src/modules/anime/tracking/domain/operation.js";
-import { aniListTracking } from "../../../../src/modules/anime/tracking/infrastructure/provider-mapping.js";
-import type { TrackingEpisodeCommand } from "../../../../src/modules/anime/tracking/public.js";
-import { fixtureAssociations } from "../../../support/metadata-associations.js";
+import { TrackingUpdates } from "../../../../src/modules/anime/external-works/tracking/application/updates.js";
+import { TrackingViewingCommands } from "../../../../src/modules/anime/external-works/tracking/application/viewing.js";
+import type { TrackingStatus } from "../../../../src/modules/anime/external-works/tracking/domain/model.js";
+import type { TrackingRemoteState } from "../../../../src/modules/anime/external-works/tracking/domain/operation.js";
+import { aniListTracking } from "../../../../src/modules/anime/external-works/tracking/infrastructure/provider-mapping.js";
+import type { TrackingEpisodeCommand } from "../../../../src/modules/anime/external-works/tracking/public.js";
+import { fixtureIdentities } from "../../../support/metadata-identities.js";
 
 const dispose: (() => unknown)[] = [];
 afterEach(async () => {
@@ -122,7 +122,7 @@ async function fixture(number = "4") {
 		},
 		undefined,
 		undefined,
-		fixtureAssociations("anilist"),
+		fixtureIdentities("anilist"),
 	);
 	const current = () => updates.operations(status.generation)[0];
 	const required = () => {
@@ -344,7 +344,7 @@ test("HTTP player commands serialize the real admission and final operation with
 	);
 
 	const { registerTrackingUpdateRoutes } = await import(
-		"../../../../src/modules/anime/tracking/http/updates.js"
+		"../../../../src/modules/anime/external-works/tracking/http/updates.js"
 	);
 	const { default: pino } = await import("pino");
 	const f = await fixture("7");

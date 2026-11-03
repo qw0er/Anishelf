@@ -49,6 +49,9 @@ export class SettingsApplication {
 			{
 				event: "settings.updated",
 				fields: Object.keys(patch),
+				...(patch.defaultMetadataProvider === undefined
+					? {}
+					: { defaultMetadataProvider: patch.defaultMetadataProvider }),
 				...(patch.rssRefreshIntervalMinutes === undefined
 					? {}
 					: { rssRefreshIntervalMinutes: patch.rssRefreshIntervalMinutes }),

@@ -1,4 +1,4 @@
-const modulePath = "backend/src/modules/[^/]+/[^/]+/";
+const modulePath = "backend/src/modules/[^/]+/(?:external-works/)?[^/]+/";
 const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|\\.ts$)|files\\.ts$)`;
 module.exports = {
 	forbidden: [
@@ -82,17 +82,21 @@ module.exports = {
 			name: "anime-applications-use-ports",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/anime/(?:tracking|metadata|anime-library|anime-catalog|identification)/(?:application/|domain/|ports\\.ts$|public\\.ts$)",
+				path: "^backend/src/modules/anime/(?:external-works/(?:tracking|metadata)|anime-library|anime-catalog|identification)/(?:application/|domain/|ports\\.ts$|public\\.ts$)",
 			},
 			to: {
-				path: "^backend/src/modules/anime/(?:[^/]+/infrastructure/|(?:anilist|bangumi)/)",
+				path: "^backend/src/modules/anime/(?:external-works/)?(?:[^/]+/infrastructure/|(?:anilist|bangumi)/)",
 			},
 		},
 		{
 			name: "provider-protocol-does-not-import-business",
 			severity: "error",
-			from: { path: "^backend/src/modules/anime/(anilist|bangumi)/" },
-			to: { path: "^backend/src/modules/anime/(?!$1/)[^/]+/" },
+			from: {
+				path: "^backend/src/modules/anime/external-works/(anilist|bangumi)/",
+			},
+			to: {
+				path: "^backend/src/modules/anime/(?:external-works/(?!$1/)[^/]+/|(?!(?:external-works)/)[^/]+/)",
+			},
 		},
 		{
 			name: "configuration-application-does-not-project-http",
@@ -179,7 +183,7 @@ module.exports = {
 			severity: "error",
 			from: { path: "^backend/src/modules/[^/]+/public\\.ts$" },
 			to: {
-				path: "^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|create\\.ts$|http\\.ts$|persistence\\.ts$)|^backend/src/modules/[^/]+/[^/]+/(?:create\\.ts$|application(?:/|\\.ts$)|infrastructure/|http/)",
+				path: "^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|create\\.ts$|http\\.ts$|persistence\\.ts$)|^backend/src/modules/[^/]+/(?:external-works/)?[^/]+/(?:create\\.ts$|application(?:/|\\.ts$)|infrastructure/|http/)",
 			},
 		},
 
@@ -217,10 +221,10 @@ module.exports = {
 			from: {
 				path: "^backend/src/modules/",
 				pathNot:
-					"^backend/src/modules/[^/]+/(?:create|http|persistence)\\.ts$|^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|[^/]+/create\\.ts$)",
+					"^backend/src/modules/[^/]+/(?:create|http|persistence)\\.ts$|^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|(?:external-works/)?[^/]+/create\\.ts$)",
 			},
 			to: {
-				path: "^backend/src/modules/[^/]+/(?:(?:create|http)\\.ts$|[^/]+/create\\.ts$|integration/|workflows/create-[^/]+\\.ts$)",
+				path: "^backend/src/modules/[^/]+/(?:(?:create|http)\\.ts$|(?:external-works/)?[^/]+/create\\.ts$|integration/|workflows/create-[^/]+\\.ts$)",
 			},
 		},
 
@@ -246,7 +250,7 @@ module.exports = {
 			from: {
 				path: "^backend/src/",
 				pathNot:
-					"^backend/src/app/|^backend/src/modules/[^/]+/(?:create|persistence)\\.ts$|^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|[^/]+/create\\.ts$)|^backend/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository|records)\\.ts$",
+					"^backend/src/app/|^backend/src/modules/[^/]+/(?:create|persistence)\\.ts$|^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|(?:external-works/)?[^/]+/create\\.ts$)|^backend/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository|records)\\.ts$",
 			},
 			to: {
 				path: "^backend/src/modules/[^/]+/persistence\\.ts$|^backend/src/modules/[^/]+/[^/]+/persistence\\.ts$",

@@ -10,6 +10,7 @@ import { useQueryScope } from "../../../shared/api/queries.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import {
 	metadataDetailQuery,
+	metadataProvidersQuery,
 	metadataSearchQuery,
 	resolveMetadataReference,
 } from "../metadata/public.js";
@@ -40,6 +41,8 @@ export function useReviewController(item: CatalogReviewItem) {
 	);
 	const [search, setSearch] = useState("");
 	const [searchPage, setSearchPage] = useState(1);
+	const [searchProvider, setSearchProvider] = useState("");
+	const providersQuery = useQuery(metadataProvidersQuery());
 	const [preview, setPreview] = useState<CatalogPreviewResponse | null>(null);
 	const [operationKey, setOperationKey] = useState("");
 	const [replace, setReplace] = useState(false);
@@ -48,7 +51,7 @@ export function useReviewController(item: CatalogReviewItem) {
 	);
 	const [validation, setValidation] = useState<string | null>(null);
 	const searchQuery = useQuery({
-		...metadataSearchQuery(search, searchPage),
+		...metadataSearchQuery(search, searchPage, searchProvider || undefined),
 		enabled: search.length > 0,
 	});
 	const details = useQuery({
@@ -194,6 +197,12 @@ export function useReviewController(item: CatalogReviewItem) {
 		});
 	}
 	return {
+		searchProvider,
+		providersQuery,
+		changeSearchProvider: (provider: string) => {
+			setSearchProvider(provider);
+			setSearchPage(1);
+		},
 		reference,
 		search,
 		searchPage,

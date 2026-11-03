@@ -2,7 +2,7 @@ import {
 	airedEpisodeCount,
 	type WorkDetails,
 	workTitle,
-} from "../../metadata/public.js";
+} from "../../external-works/metadata/public.js";
 import type { LocalWork } from "../domain/model.js";
 
 export function projection(work: LocalWork, metadata: WorkDetails): LocalWork {

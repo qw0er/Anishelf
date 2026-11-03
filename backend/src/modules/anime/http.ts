@@ -4,13 +4,15 @@ import { registerCatalogRoutes } from "./anime-catalog/http/catalog.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
 import { registerAnimeLibraryRoutes } from "./anime-library/http/library.js";
 import type { AnimeLibraryApi } from "./anime-library/public.js";
-import { registerMetadataAssociationRoutes } from "./metadata/http/associations.js";
-import { registerMetadataRoutes } from "./metadata/http/metadata.js";
-import type { MetadataModule } from "./metadata/public.js";
-import { registerTrackingListRoutes } from "./tracking/http/lists.js";
-import { registerTrackingRoutes } from "./tracking/http/tracking.js";
-import { registerTrackingUpdateRoutes } from "./tracking/http/updates.js";
-import type { TrackingApi, TrackingViewingApi } from "./tracking/public.js";
+import { registerMetadataRoutes } from "./external-works/metadata/http/metadata.js";
+import type { MetadataModule } from "./external-works/metadata/public.js";
+import { registerTrackingListRoutes } from "./external-works/tracking/http/lists.js";
+import { registerTrackingRoutes } from "./external-works/tracking/http/tracking.js";
+import { registerTrackingUpdateRoutes } from "./external-works/tracking/http/updates.js";
+import type {
+	TrackingApi,
+	TrackingViewingApi,
+} from "./external-works/tracking/public.js";
 export function registerAnimeHttp(
 	app: HttpInstance,
 	owners: {
@@ -42,7 +44,6 @@ export function registerAnimeHttp(
 	registerAnimeLibraryRoutes(app, owners.library, metadata);
 	if (owners.metadata) {
 		registerMetadataRoutes(app, owners.metadata);
-		registerMetadataAssociationRoutes(app, owners.metadata.management);
 	}
 	if (owners.catalog)
 		registerCatalogRoutes(app, owners.catalog, owners.identification);

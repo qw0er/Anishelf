@@ -6,6 +6,7 @@ export const MetadataReferenceSchema = Type.Object({
 	id: Type.String(),
 });
 const summary = {
+	provider: Type.String(),
 	unavailableFields: Type.Array(Type.String()),
 	reference: MetadataReferenceSchema,
 	titles: Type.Array(
@@ -128,6 +129,9 @@ export const MetadataPageQuerySchema = Type.Object(
 export const MetadataSearchQuerySchema = Type.Object(
 	{
 		...MetadataPageQuerySchema.properties,
+		provider: Type.Optional(
+			Type.Union([Type.Literal("anilist"), Type.Literal("bangumi")]),
+		),
 		query: Type.String({ minLength: 1, maxLength: 200 }),
 	},
 	{ additionalProperties: false },

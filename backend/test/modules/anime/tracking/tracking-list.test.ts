@@ -5,29 +5,29 @@ import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { createHttpApp } from "../../../../src/app/bootstrap/http.js";
-import { AniListError } from "../../../../src/modules/anime/anilist/public.js";
 import type { AnimeCatalogApi } from "../../../../src/modules/anime/anime-catalog/public.js";
 import { AnimeLibraryQueries } from "../../../../src/modules/anime/anime-library/application/library.js";
 import type { LocalIndex } from "../../../../src/modules/anime/anime-library/domain/model.js";
 import { registerAnimeLibraryRoutes } from "../../../../src/modules/anime/anime-library/http/library.js";
-import { TrackingListReader } from "../../../../src/modules/anime/tracking/application/list-cache.js";
-import { createTrackingModule } from "../../../../src/modules/anime/tracking/create.js";
+import { AniListError } from "../../../../src/modules/anime/external-works/anilist/public.js";
+import { TrackingListReader } from "../../../../src/modules/anime/external-works/tracking/application/list-cache.js";
+import { createTrackingModule } from "../../../../src/modules/anime/external-works/tracking/create.js";
 import type {
 	TrackingLease,
 	TrackingListCache,
 	TrackingListEntry,
 	TrackingListSnapshot,
-} from "../../../../src/modules/anime/tracking/domain/list.js";
-import { TrackingProviderError } from "../../../../src/modules/anime/tracking/domain/list.js";
-import type { TrackingStatus } from "../../../../src/modules/anime/tracking/domain/model.js";
-import { AniListListProvider } from "../../../../src/modules/anime/tracking/infrastructure/list-provider.js";
-import { aniListTracking } from "../../../../src/modules/anime/tracking/infrastructure/provider-mapping.js";
-import type { TrackingListStore } from "../../../../src/modules/anime/tracking/ports.js";
+} from "../../../../src/modules/anime/external-works/tracking/domain/list.js";
+import { TrackingProviderError } from "../../../../src/modules/anime/external-works/tracking/domain/list.js";
+import type { TrackingStatus } from "../../../../src/modules/anime/external-works/tracking/domain/model.js";
+import { AniListListProvider } from "../../../../src/modules/anime/external-works/tracking/infrastructure/list-provider.js";
+import { aniListTracking } from "../../../../src/modules/anime/external-works/tracking/infrastructure/provider-mapping.js";
+import type { TrackingListStore } from "../../../../src/modules/anime/external-works/tracking/ports.js";
 import {
 	AniListListsClient,
 	createAniListTracking,
 } from "../../../support/anilist-fixture.js";
-import { fixtureAssociations } from "../../../support/metadata-associations.js";
+import { fixtureIdentities } from "../../../support/metadata-identities.js";
 
 const lease: TrackingLease = {
 	accountId: "anilist:7",
@@ -268,7 +268,7 @@ function projection() {
 	};
 	const cards = vi.fn<AnimeCatalogApi["cards"]>(async () => []);
 	const app = new AnimeLibraryQueries({
-		associations: fixtureAssociations("anilist"),
+		identities: fixtureIdentities("anilist"),
 		catalog: { index: async () => index, cards },
 		lists: { list: () => snapshot, refreshList: async () => snapshot },
 		logger: pino({ enabled: false }),
@@ -304,7 +304,7 @@ test("library merges only exact IDs, preserves local identity, and paginates aft
 test("remote lists can be browsed without a local catalog", async () => {
 	const { snapshot } = projection();
 	const app = new AnimeLibraryQueries({
-		associations: fixtureAssociations("anilist"),
+		identities: fixtureIdentities("anilist"),
 		catalog: undefined,
 		lists: { list: () => snapshot, refreshList: async () => snapshot },
 		logger: pino({ enabled: false }),

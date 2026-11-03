@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
-import type { WorkDetails } from "../../metadata/public.js";
+import type { WorkDetails } from "../../external-works/metadata/public.js";
 import { catalogDefaults as policy } from "../defaults.js";
 import type { EpisodeTarget, MappingSelection } from "./model.js";
 

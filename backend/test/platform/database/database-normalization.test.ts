@@ -24,12 +24,12 @@ import {
 	writeCatalogReviews,
 	writeCatalogWorks,
 } from "../../../src/modules/anime/anime-catalog/infrastructure/records.js";
-import type { IdentificationResult } from "../../../src/modules/anime/identification/public.js";
-import { MetadataRepository } from "../../../src/modules/anime/metadata/infrastructure/repository.js";
+import { MetadataRepository } from "../../../src/modules/anime/external-works/metadata/infrastructure/repository.js";
 import {
 	writeTrackingListCache,
 	writeTrackingOperations,
-} from "../../../src/modules/anime/tracking/infrastructure/records.js";
+} from "../../../src/modules/anime/external-works/tracking/infrastructure/records.js";
+import type { IdentificationResult } from "../../../src/modules/anime/identification/public.js";
 import { writePreparationTasks } from "../../../src/modules/media/preparation/infrastructure/records.js";
 import { writeSubtitleFontSets } from "../../../src/modules/media/subtitles/infrastructure/records.js";
 import { writePlaybackCompletions } from "../../../src/modules/playback/progress/infrastructure/records.js";

@@ -123,6 +123,7 @@ function LocalWorkDetail({
 	const checkingProgress =
 		viewing.visible &&
 		!viewing.unmapped &&
+		!viewing.disconnected &&
 		progress === null &&
 		viewing.snapshot?.fetchedAt === null;
 	const hasUnwatchedEpisode =

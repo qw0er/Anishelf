@@ -1,12 +1,12 @@
 import { Anilist } from "@api-wrappers/anilist-wrapper";
-import { AniListAccountClient as AccountClient } from "../../src/modules/anime/anilist/infrastructure/account-client.js";
-import { AniListListsClient as ListsClient } from "../../src/modules/anime/anilist/infrastructure/lists-client.js";
-import { AniListUpdatesClient as UpdatesClient } from "../../src/modules/anime/anilist/infrastructure/updates-client.js";
+import { createAniListTracking as createTracking } from "../../src/modules/anime/external-works/adapters/anilist.js";
+import { AniListAccountClient as AccountClient } from "../../src/modules/anime/external-works/anilist/infrastructure/account-client.js";
+import { AniListListsClient as ListsClient } from "../../src/modules/anime/external-works/anilist/infrastructure/lists-client.js";
+import { AniListUpdatesClient as UpdatesClient } from "../../src/modules/anime/external-works/anilist/infrastructure/updates-client.js";
 import type {
 	AniListRequestOptions,
 	AniListClient as SdkClient,
-} from "../../src/modules/anime/anilist/public.js";
-import { createAniListTracking as createTracking } from "../../src/modules/anime/integration/anilist.js";
+} from "../../src/modules/anime/external-works/anilist/public.js";
 
 /** In-memory GraphQL fixture adapter. Production always uses the SDK transport. */
 export interface AniListClient {

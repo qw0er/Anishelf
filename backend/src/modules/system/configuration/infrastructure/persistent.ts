@@ -56,6 +56,7 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		);
 	for (const key of Object.keys(settings)) {
 		if (
+			key !== "defaultMetadataProvider" &&
 			key !== "autoPreparationEnabled" &&
 			key !== "autoPreparationPresetId" &&
 			key !== "resourceRoots" &&
@@ -73,6 +74,13 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 				`Unknown persistent setting: ${key}.`,
 			);
 	}
+	const defaultMetadataProvider = settings.defaultMetadataProvider;
+	if (
+		defaultMetadataProvider !== undefined &&
+		defaultMetadataProvider !== "anilist" &&
+		defaultMetadataProvider !== "bangumi"
+	)
+		throw new DomainError("CONFIG_INVALID", "Invalid defaultMetadataProvider.");
 	const autoPreparationEnabled = settings.autoPreparationEnabled;
 	const autoPreparationPresetId = settings.autoPreparationPresetId;
 	if (
@@ -173,6 +181,9 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		throw new DomainError("CONFIG_INVALID", "Resource paths must be distinct.");
 	return {
 		resourceRoots: [...roots],
+		...(defaultMetadataProvider === undefined
+			? {}
+			: { defaultMetadataProvider }),
 		...(autoPreparationEnabled === undefined
 			? {}
 			: { autoPreparationEnabled: autoPreparationEnabled as boolean }),

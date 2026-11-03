@@ -150,18 +150,18 @@ for (const [name, files] of [
 	[
 		"anime-applications-use-ports",
 		{
-			"backend/src/modules/anime/tracking/application/account.ts":
+			"backend/src/modules/anime/external-works/tracking/application/account.ts":
 				"import type { Provider } from '../infrastructure/provider.js'; export type Account = Provider;",
-			"backend/src/modules/anime/tracking/infrastructure/provider.ts":
+			"backend/src/modules/anime/external-works/tracking/infrastructure/provider.ts":
 				"export interface Provider { id: string }",
 		},
 	],
 	[
 		"provider-protocol-does-not-import-business",
 		{
-			"backend/src/modules/anime/anilist/domain/model.ts":
+			"backend/src/modules/anime/external-works/anilist/domain/model.ts":
 				"import type { Entry } from '../../tracking/public.js'; export type Response = Entry;",
-			"backend/src/modules/anime/tracking/public.ts":
+			"backend/src/modules/anime/external-works/tracking/public.ts":
 				"export interface Entry { id: string }",
 		},
 	],
@@ -623,9 +623,9 @@ test("Web data public entries cannot load a UI barrel through an intermediate en
 
 test("Tracking business cannot depend on its factory even through types", async () => {
 	const violations = await scan({
-		"backend/src/modules/anime/tracking/application/account.ts":
+		"backend/src/modules/anime/external-works/tracking/application/account.ts":
 			"import type { Assembly } from '../create.js'; export type Account = Assembly;",
-		"backend/src/modules/anime/tracking/create.ts":
+		"backend/src/modules/anime/external-works/tracking/create.ts":
 			"export interface Assembly { id: string }",
 	});
 	assert.ok(violations.includes("business-does-not-use-assembly-entries"));
@@ -650,8 +650,8 @@ test("submodule factories can connect through sibling factories and public contr
 test("public entries cannot expose submodule factories", async () => {
 	const violations = await scan({
 		"backend/src/modules/anime/public.ts":
-			"export { create } from './metadata/create.js';",
-		"backend/src/modules/anime/metadata/create.ts":
+			"export { create } from './external-works/metadata/create.js';",
+		"backend/src/modules/anime/external-works/metadata/create.ts":
 			"export const create = () => ({});",
 	});
 	assert.ok(violations.includes("large-public-does-not-load-implementation"));
@@ -660,13 +660,13 @@ test("public entries cannot expose submodule factories", async () => {
 test("Tracking module owns its facade and provider dependencies arrive through ports", async () => {
 	assert.deepEqual(
 		await scan({
-			"backend/src/modules/anime/tracking/ports.ts":
+			"backend/src/modules/anime/external-works/tracking/ports.ts":
 				"export interface Provider { viewer(): string }",
-			"backend/src/modules/anime/tracking/application/account.ts":
+			"backend/src/modules/anime/external-works/tracking/application/account.ts":
 				"import type { Provider } from '../ports.js'; export class Account { constructor(readonly provider: Provider) {} }",
-			"backend/src/modules/anime/tracking/application/tracking.ts":
+			"backend/src/modules/anime/external-works/tracking/application/tracking.ts":
 				"import { Account } from './account.js'; export class TrackingModule { constructor(readonly account: Account) {} }",
-			"backend/src/modules/anime/tracking/create.ts":
+			"backend/src/modules/anime/external-works/tracking/create.ts":
 				"import { Account } from './application/account.js'; import { TrackingModule } from './application/tracking.js'; export const create = () => new TrackingModule(new Account({viewer: () => 'fixture'}));",
 		}),
 		[],
@@ -676,7 +676,7 @@ test("Tracking module owns its facade and provider dependencies arrive through p
 test("business code cannot hide provider-specific branches behind neutral imports", async () => {
 	await assert.rejects(
 		scan({
-			"backend/src/modules/anime/tracking/application/targets.ts":
+			"backend/src/modules/anime/external-works/tracking/application/targets.ts":
 				"export const target = (provider: string) => provider === 'anilist';",
 		}),
 		/provider-independent-business/,
@@ -707,9 +707,9 @@ test("download transfer stage excludes business collaborators", async () => {
 
 test("Bangumi protocol cannot import Metadata business contracts", async () => {
 	const violations = await scan({
-		"backend/src/modules/anime/bangumi/domain/model.ts":
+		"backend/src/modules/anime/external-works/bangumi/domain/model.ts":
 			"import type { Entry } from '../../metadata/public.js'; export type Response = Entry;",
-		"backend/src/modules/anime/metadata/public.ts":
+		"backend/src/modules/anime/external-works/metadata/public.ts":
 			"export interface Entry { id: string }",
 	});
 	assert.ok(violations.includes("provider-protocol-does-not-import-business"));

@@ -57,8 +57,8 @@ export function LibraryResults({
 				const descriptionId = `${descriptionPrefix}-${work.id}`;
 				const viewingDescription = work.viewing
 					? `${t("trackingList.provider")} · ${t(`trackingList.statuses.${work.viewing.status}`)} · ${sentenceViewingProgress({ progress: work.viewing.progress, aired, total: work.episodeCount }, t)}.`
-					: work.viewingAvailability === "unmapped"
-						? t("trackingList.unmapped")
+					: work.viewingAvailability === "unsupported"
+						? t("metadataSource.unsupported")
 						: viewingKnown && work.viewingAvailability === "untracked"
 							? t("trackingList.untracked")
 							: "";
@@ -154,9 +154,9 @@ export function LibraryResults({
 											airedEpisodeCount={aired}
 										/>
 									)}
-									{work.viewingAvailability === "unmapped" && (
+									{work.viewingAvailability === "unsupported" && (
 										<p className="text-xs text-muted-foreground">
-											{t("trackingList.unmapped")}
+											{t("metadataSource.unsupported")}
 										</p>
 									)}
 									{viewingKnown && work.viewingAvailability === "untracked" && (

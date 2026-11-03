@@ -1,8 +1,8 @@
 import { asc, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
+import type { metadataWorks } from "../../external-works/metadata/persistence.js";
+import { airedEpisodeCount } from "../../external-works/metadata/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
-import type { metadataWorks } from "../../metadata/persistence.js";
-import { airedEpisodeCount } from "../../metadata/public.js";
 import type {
 	Association,
 	ConfirmationResult,

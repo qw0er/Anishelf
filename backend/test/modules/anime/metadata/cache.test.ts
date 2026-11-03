@@ -1,11 +1,11 @@
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
-import { AniListWrapper } from "../../../../src/modules/anime/anilist/public.js";
-import { createAniListMetadata } from "../../../../src/modules/anime/integration/anilist.js";
-import { SourceMetadataApplication as MetadataApplication } from "../../../../src/modules/anime/metadata/application/source-metadata.js";
-import { createMetadataModule } from "../../../../src/modules/anime/metadata/create.js";
-import { metadataDefaults } from "../../../../src/modules/anime/metadata/defaults.js";
-import type { CacheEntry } from "../../../../src/modules/anime/metadata/ports.js";
+import { createAniListMetadata } from "../../../../src/modules/anime/external-works/adapters/anilist.js";
+import { AniListWrapper } from "../../../../src/modules/anime/external-works/anilist/public.js";
+import { SourceMetadataApplication as MetadataApplication } from "../../../../src/modules/anime/external-works/metadata/application/source-metadata.js";
+import { createMetadataModule } from "../../../../src/modules/anime/external-works/metadata/create.js";
+import { metadataDefaults } from "../../../../src/modules/anime/external-works/metadata/defaults.js";
+import type { CacheEntry } from "../../../../src/modules/anime/external-works/metadata/ports.js";
 
 import {
 	failure,

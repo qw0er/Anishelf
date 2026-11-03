@@ -4,7 +4,7 @@ import {
 	MetadataError,
 	type MetadataFailure,
 	type WorkDetails,
-} from "../../metadata/public.js";
+} from "../../external-works/metadata/public.js";
 import { conflict, target, text } from "../domain/mapping.js";
 import type { LocalEpisode, LocalWorkDetail } from "../domain/model.js";
 import type { CatalogContext } from "./context.js";

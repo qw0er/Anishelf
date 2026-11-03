@@ -1,8 +1,8 @@
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
-import { metadataDefaults } from "../../../../src/modules/anime/metadata/defaults.js";
-import { MetadataArtworkCache } from "../../../../src/modules/anime/metadata/infrastructure/artwork.js";
+import { metadataDefaults } from "../../../../src/modules/anime/external-works/metadata/defaults.js";
+import { MetadataArtworkCache } from "../../../../src/modules/anime/external-works/metadata/infrastructure/artwork.js";
 
 import {
 	cleanups,

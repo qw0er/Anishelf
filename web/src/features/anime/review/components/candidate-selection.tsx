@@ -8,6 +8,7 @@ import {
 	CollapsibleTrigger,
 } from "../../../../shared/components/ui/collapsible.js";
 import { Input } from "../../../../shared/components/ui/input.js";
+import { NativeSelect } from "../../../../shared/components/ui/native-select.js";
 import { PaginationControls } from "../../../../shared/components/ui/pagination-controls.js";
 import { ErrorMessage } from "../../shared/components/error-message.js";
 import type { ReviewController } from "../use-review-controller.js";
@@ -19,6 +20,9 @@ export function CandidateSelection({
 	item: CatalogReviewItem;
 	controller: Pick<
 		ReviewController,
+		| "searchProvider"
+		| "providersQuery"
+		| "changeSearchProvider"
 		| "reference"
 		| "busy"
 		| "search"
@@ -32,6 +36,9 @@ export function CandidateSelection({
 }) {
 	const { t } = useTranslation();
 	const {
+		searchProvider,
+		providersQuery,
+		changeSearchProvider,
 		reference,
 		busy,
 		search,
@@ -139,6 +146,31 @@ export function CandidateSelection({
 					<Search className="size-4 text-muted-foreground" aria-hidden="true" />
 					{t("review.findAnother")}
 				</div>
+				<label
+					htmlFor="review-search-provider"
+					className="block space-y-1.5 text-sm"
+				>
+					{t("metadataSource.source")}
+					<NativeSelect
+						id="review-search-provider"
+						value={searchProvider}
+						disabled={busy || !providersQuery.data}
+						onChange={(event) => changeSearchProvider(event.target.value)}
+					>
+						<option value="">{t("metadataSource.default")}</option>
+						{providersQuery.data?.map((provider) => (
+							<option key={provider.key} value={provider.key}>
+								{provider.name}
+							</option>
+						))}
+					</NativeSelect>
+				</label>
+				{providersQuery.isError && (
+					<ErrorMessage
+						error={providersQuery.error}
+						retry={() => void providersQuery.refetch()}
+					/>
+				)}
 				<div className="grid min-w-0 gap-4 xl:grid-cols-2">
 					<form
 						className="flex min-w-0 items-end gap-2"
@@ -221,7 +253,10 @@ export function CandidateSelection({
 										<p className="min-w-0 flex-1 wrap-anywhere">
 											{candidate.titles[0]?.value ?? t("anime.unknown")} ·{" "}
 											{candidate.format ?? t("anime.unknown")} ·{" "}
-											{candidate.year ?? t("anime.unknown")}
+											{candidate.year ?? t("anime.unknown")} ·{" "}
+											{providersQuery.data?.find(
+												(source) => source.key === candidate.provider,
+											)?.name ?? candidate.provider}
 										</p>
 										<Button
 											disabled={busy}

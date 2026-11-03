@@ -16,6 +16,7 @@ import {
 	AboutSettings,
 	AutomaticPreparationSettings,
 	ExternalPlayerSettings,
+	MetadataSourceSettings,
 	PlaybackPreferencesSettings,
 	PreparationProfileSettings,
 	ResourceSettings,
@@ -111,6 +112,7 @@ export function SettingsPage() {
 						className={activeSection === "library" ? "stack-page" : "hidden"}
 						data-settings-section="library"
 					>
+						<MetadataSourceSettings />
 						<ResourceSettings
 							key={JSON.stringify(settings.resourceRoots)}
 							settings={settings}

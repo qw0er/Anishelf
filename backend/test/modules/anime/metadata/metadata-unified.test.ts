@@ -6,13 +6,10 @@ import Database from "better-sqlite3";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
-import { createMetadataModule } from "../../../../src/modules/anime/metadata/create.js";
-import { composeDetails } from "../../../../src/modules/anime/metadata/domain/composition.js";
-import { projectDetails } from "../../../../src/modules/anime/metadata/domain/projection.js";
-import type { WorkDetails } from "../../../../src/modules/anime/metadata/domain/source-model.js";
-import { registerMetadataAssociationRoutes } from "../../../../src/modules/anime/metadata/http/associations.js";
-import type { MetadataProvider } from "../../../../src/modules/anime/metadata/ports.js";
-import { MetadataError } from "../../../../src/modules/anime/metadata/public.js";
+import { createMetadataModule } from "../../../../src/modules/anime/external-works/metadata/create.js";
+import type { WorkDetails } from "../../../../src/modules/anime/external-works/metadata/domain/source-model.js";
+import type { MetadataProvider } from "../../../../src/modules/anime/external-works/metadata/ports.js";
+import { MetadataError } from "../../../../src/modules/anime/external-works/metadata/public.js";
 import {
 	workKey,
 	workReference,
@@ -85,7 +82,7 @@ function provider(
 	};
 	return { api, data, get, search };
 }
-async function fixture(canAssociate?: () => boolean) {
+async function fixture(defaultProvider = "anilist") {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-unified-"));
 	cleanup.push(() => rm(directory, { recursive: true, force: true }));
 	let database = ApplicationDatabase.open(directory);
@@ -112,10 +109,9 @@ async function fixture(canAssociate?: () => boolean) {
 			dataDir: directory,
 			store: database.metadata,
 			providers: [first.api, second.api],
-			defaultProvider: "anilist",
+			defaultProvider,
 			artworkHosts: ["images.example"],
 			fetch: fetcher,
-			...(canAssociate ? { canAssociate } : {}),
 			logger,
 		});
 	let metadata = await build();
@@ -142,85 +138,6 @@ async function fixture(canAssociate?: () => boolean) {
 	};
 }
 
-test("search is federated, explicit associations combine content, and all old IDs survive restart", async () => {
-	const f = await fixture();
-	const first = f.metadata.resolveReference("anilist:anime:10");
-	const second = f.metadata.resolveReference("bangumi:anime:20");
-	f.second.data.titles = f.first.data.titles;
-	const search = await f.metadata.search({ query: "Same title" });
-	expect(search.data.items.map((item) => item.reference)).toEqual([
-		first,
-		second,
-	]);
-	expect(first.id).not.toBe(second.id);
-	const old = await f.metadata.get(second);
-	f.metadata.retain(old.snapshotId, "old-decision");
-	f.metadata.management.associate(first, second, {
-		sameEpisodeNumbering: true,
-	});
-	const combined = await f.metadata.get(second);
-	expect(combined.data).toMatchObject({
-		reference: first,
-		description: "中文简介",
-		status: "FINISHED",
-		averageScore: 90,
-	});
-	expect(
-		(await f.metadata.search({ query: "Same title" })).data.items,
-	).toHaveLength(1);
-	expect(f.metadata.snapshot(old.snapshotId).data).toEqual(old.data);
-	const retained = f.metadata.snapshot(old.snapshotId);
-	if (retained.kind !== "detail")
-		throw new Error("Expected retained detail evidence.");
-	expect(retained.data.reference).toEqual(second);
-	expect(JSON.stringify(combined)).not.toMatch(
-		/"provider"|"siteUrl"|"providerUpdatedAt"/,
-	);
-	f.database.metadata.prune(0, 0);
-	await f.restart();
-	expect(f.metadata.resolveReference(first.id)).toEqual(first);
-	expect(f.metadata.resolveReference(second.id)).toEqual(first);
-	expect(f.metadata.resolveReference("bangumi:anime:20")).toEqual(first);
-	expect(
-		(await f.metadata.get(second, { cachedOnly: true })).data.description,
-	).toBe("中文简介");
-	const restored = f.metadata.snapshot(old.snapshotId);
-	if (restored.kind !== "detail")
-		throw new Error("Expected restored detail evidence.");
-	expect(restored.data.reference).toEqual(second);
-});
-
-test("a failed source leaves useful content and a source-independent partial failure", async () => {
-	const f = await fixture();
-	f.first.search.mockRejectedValue(
-		new MetadataError({
-			code: "unavailable",
-			message: "private AniList error",
-			retryAt: 123,
-		}),
-	);
-	const search = await f.metadata.search({ query: "Only available source" });
-	expect(search.data.items).toHaveLength(1);
-	expect(search.refreshError).toMatchObject({ code: "unavailable" });
-	expect(JSON.stringify(search)).not.toContain("private AniList error");
-	const first = f.metadata.resolveReference("anilist:anime:10"),
-		second = f.metadata.resolveReference("bangumi:anime:20");
-	f.metadata.management.associate(first, second, {
-		sameEpisodeNumbering: true,
-	});
-	f.first.get.mockRejectedValue(
-		new MetadataError({
-			code: "unavailable",
-			message: "private failure",
-			retryAt: null,
-		}),
-	);
-	const details = await f.metadata.get(first);
-	expect(details.data.description).toBe("中文简介");
-	expect(details.stale).toBe(true);
-	expect(details.refreshError?.message).not.toContain("private");
-});
-
 test("missing schedules and relations are unavailable content, not source-specific request errors", async () => {
 	const f = await fixture();
 	const reference = f.metadata.resolveReference("bangumi:anime:20");
@@ -235,85 +152,6 @@ test("missing schedules and relations are unavailable content, not source-specif
 		});
 		expect(f.metadata.snapshot(result.snapshotId).data).toEqual(result.data);
 	}
-});
-
-test("federated pagination has no overlap and reuses source pages", async () => {
-	const f = await fixture();
-	for (const source of [f.first, f.second])
-		source.search.mockImplementation(async (_query, page, perPage) => ({
-			data: {
-				items: Array.from({ length: 120 }, (_, i) => ({
-					...source.data,
-					reference: { ...source.data.reference, id: String(i + 1) },
-				})).slice((page - 1) * perPage, page * perPage),
-				page,
-				perPage,
-				hasNextPage: page * perPage < 120,
-			},
-		}));
-	const first = await f.metadata.search({ query: "Many", perPage: 10 }),
-		second = await f.metadata.search({ query: "Many", page: 2, perPage: 10 });
-	expect(first.data.items).toHaveLength(10);
-	expect(second.data.items).toHaveLength(10);
-	expect(
-		new Set(
-			[...first.data.items, ...second.data.items].map(
-				(item) => item.reference.id,
-			),
-		).size,
-	).toBe(20);
-	expect(first.data.hasNextPage).toBe(true);
-	expect(f.first.search).toHaveBeenCalledTimes(1);
-	expect(f.second.search).toHaveBeenCalledTimes(1);
-	await expect(
-		f.metadata.search({ query: "Many", page: 51, perPage: 10 }),
-	).rejects.toMatchObject({ failure: { code: "invalid-request" } });
-});
-
-test("management requires explicit numbering confirmation and ordinary search rejects source selection", async () => {
-	const f = await fixture();
-	const app = createHttpApp({
-		config: { host: "127.0.0.1", port: 80 },
-		logger,
-		metadata: f.metadata,
-		closeDependencies: async () => {},
-	});
-	registerMetadataAssociationRoutes(app, f.metadata.management);
-	cleanup.push(() => app.close());
-	const target = f.metadata.resolveReference("anilist:anime:10"),
-		other = f.metadata.resolveReference("bangumi:anime:20");
-	expect(
-		(
-			await app.inject({
-				url: "/api/metadata/search?query=Title&provider=bangumi",
-			})
-		).statusCode,
-	).toBe(400);
-	expect(
-		(
-			await app.inject({
-				method: "POST",
-				url: "/api/metadata/associations",
-				payload: { target, other },
-			})
-		).statusCode,
-	).toBe(400);
-	expect(
-		(
-			await app.inject({
-				method: "POST",
-				url: "/api/metadata/associations",
-				payload: { target, other, sameEpisodeNumbering: true },
-			})
-		).json(),
-	).toEqual(target);
-	const conflicting = f.metadata.resolveReference("anilist:anime:11");
-	expect(() =>
-		f.metadata.management.associate(target, conflicting, {
-			sameEpisodeNumbering: true,
-		}),
-	).toThrow(/conflicting source/);
-	expect(f.metadata.resolveReference(conflicting.id)).toEqual(conflicting);
 });
 
 test("upgrading the old identity registry preserves UUIDs exactly", async () => {
@@ -373,41 +211,6 @@ test("upgrading the old identity registry preserves UUIDs exactly", async () => 
 	}
 });
 
-test("retained artwork uses its original URL after source eviction and association", async () => {
-	const f = await fixture();
-	f.second.data.coverUrl = "https://images.example/old.png";
-	const first = f.metadata.resolveReference("anilist:anime:10"),
-		second = f.metadata.resolveReference("bangumi:anime:20");
-	const old = await f.metadata.get(second);
-	f.metadata.retain(old.snapshotId, "retained-artwork");
-	f.second.data.coverUrl = "https://images.example/new.png";
-	await f.metadata.get(second, { refresh: true });
-	f.metadata.management.associate(first, second, {
-		sameEpisodeNumbering: true,
-	});
-	await f.metadata.get(first);
-	f.database.metadata.prune(0, 0);
-	const artwork = await f.metadata.snapshotArtwork(old.snapshotId, "cover");
-	expect(artwork.status).toBe("ready");
-	expect(String(f.fetcher.mock.calls[0]?.[0])).toBe(
-		"https://images.example/old.png",
-	);
-	expect(f.metadata.snapshot(old.snapshotId).data).toEqual(old.data);
-});
-
-test("the application can fence conflicting local identities without changing either UUID", async () => {
-	const f = await fixture(() => false);
-	const first = f.metadata.resolveReference("anilist:anime:10"),
-		second = f.metadata.resolveReference("bangumi:anime:20");
-	expect(() =>
-		f.metadata.management.associate(first, second, {
-			sameEpisodeNumbering: true,
-		}),
-	).toThrow(/duplicate local Catalog/);
-	expect(f.metadata.resolveReference(second.id)).toEqual(second);
-	expect(f.metadata.resolveReference(first.id)).toEqual(first);
-});
-
 test("retained project evidence stops reporting an in-flight refresh when it finishes", async () => {
 	const f = await fixture();
 	const reference = f.metadata.resolveReference("anilist:anime:10");
@@ -433,59 +236,6 @@ test("retained project evidence stops reporting an in-flight refresh when it fin
 	expect(f.metadata.snapshot(stale.snapshotId).refreshing).toBe(false);
 });
 
-test("pure composition fills missing content without mutating inputs or exposing source identities", () => {
-	const primary = provider("anilist", "10", {
-		description: "Primary description",
-		averageScore: 90,
-		genres: ["Adventure"],
-		studios: [{ id: "private-studio-id", name: "Studio" }],
-		unavailableFields: ["country", "coverUrl"],
-	}).data;
-	const secondary = provider("bangumi", "20", {
-		description: "Secondary description",
-		averageScore: 87,
-		country: "JP",
-		genres: ["Fantasy"],
-		coverUrl: "https://images.example/cover.png",
-		titles: [
-			...primary.titles,
-			{ value: "中文名", language: "zh-Hans", kind: "alias" },
-		],
-	}).data;
-	const reference = { id: "project-work" };
-	const inputs = [primary, secondary].map((evidence) => ({
-		content: Object.freeze(projectDetails(evidence, reference)),
-		evidence,
-	}));
-	const before = structuredClone(inputs);
-	const { data, artwork } = composeDetails(inputs);
-	expect(inputs).toEqual(before);
-	expect(data).toMatchObject({
-		reference,
-		description: "Primary description",
-		averageScore: 90,
-		country: "JP",
-		genres: ["Adventure"],
-		studios: [{ name: "Studio" }],
-		coverUrl: "/api/metadata/project-work/artwork/cover/image",
-	});
-	expect(data.titles).toEqual(secondary.titles);
-	expect(data.unavailableFields).not.toContain("country");
-	expect(data.unavailableFields).not.toContain("coverUrl");
-	expect(artwork.cover).toBe(secondary);
-	expect(JSON.stringify(data)).not.toMatch(
-		/private-studio-id|"provider"|"siteUrl"|"providerUpdatedAt"/,
-	);
-});
-
-test("pure composition requires at least one available work", () => {
-	expect(() => composeDetails([])).toThrow(
-		expect.objectContaining({
-			failure: expect.objectContaining({ code: "unavailable" }),
-		}),
-	);
-});
-
 test("assembled content methods keep their service receivers when passed directly to consumers", async () => {
 	const f = await fixture();
 	const {
@@ -505,7 +255,7 @@ test("assembled content methods keep their service receivers when passed directl
 	const reference = resolveReference("anilist:anime:10");
 	const details = await get(reference);
 	expect(current(reference)?.data).toEqual(details.data);
-	expect((await search({ query: "Title" })).data.items).toHaveLength(2);
+	expect((await search({ query: "Title" })).data.items).toHaveLength(1);
 	retain(details.snapshotId, "detached-consumer");
 	expect(snapshot(details.snapshotId).data).toEqual(details.data);
 	expect((await artwork(reference, "cover")).status).toBe("missing");
@@ -516,4 +266,244 @@ test("assembled content methods keep their service receivers when passed directl
 	expect((await relations(reference)).data.unavailable).toBe(true);
 	expect((await airing(reference)).data.unavailable).toBe(true);
 	release(details.snapshotId, "detached-consumer");
+});
+
+test("search queries exactly one source and never merges equal titles or missing fields", async () => {
+	const f = await fixture();
+	f.second.data.titles = f.first.data.titles;
+	const first = await f.metadata.search({ query: "Same title" });
+	expect(first.data.items).toHaveLength(1);
+	expect(first.data.items[0]?.provider).toBe("anilist");
+	expect(f.second.search).not.toHaveBeenCalled();
+	const second = await f.metadata.search({
+		query: "Same title",
+		provider: "bangumi",
+	});
+	expect(second.data.items).toHaveLength(1);
+	expect(second.data.items[0]?.provider).toBe("bangumi");
+	expect(first.data.items[0]?.reference).not.toEqual(
+		second.data.items[0]?.reference,
+	);
+	const ref = first.data.items[0]?.reference;
+	if (!ref) throw new Error("Missing result");
+	expect((await f.metadata.get(ref)).data.description).toBeNull();
+	expect(f.second.get).not.toHaveBeenCalled();
+	await f.restart();
+	expect(f.metadata.resolveReference("anilist:anime:10")).toEqual(ref);
+});
+test("a source failure never falls back to another provider", async () => {
+	const f = await fixture();
+	f.first.search.mockRejectedValueOnce(
+		new MetadataError({
+			code: "unavailable",
+			message: "Offline",
+			retryAt: null,
+		}),
+	);
+	await expect(f.metadata.search({ query: "Failure" })).rejects.toMatchObject({
+		failure: { code: "unavailable" },
+	});
+	expect(f.second.search).not.toHaveBeenCalled();
+});
+test("HTTP exposes capabilities and source selection but has no association command", async () => {
+	const f = await fixture();
+	const app = createHttpApp({
+		config: {
+			host: "localhost",
+			port: 0,
+
+			trustedProxies: [],
+			allowedHosts: ["localhost"],
+		},
+		logger,
+	});
+	const { registerMetadataRoutes } = await import(
+		"../../../../src/modules/anime/external-works/metadata/http/metadata.js"
+	);
+	registerMetadataRoutes(app, f.metadata);
+	try {
+		const sources = await app.inject({
+			method: "GET",
+			url: "/api/metadata/providers",
+		});
+		expect(sources.statusCode).toBe(200);
+		expect(sources.json()).toEqual([
+			{ key: "anilist", name: "AniList", metadata: true, tracking: true },
+			{ key: "bangumi", name: "Bangumi", metadata: true, tracking: false },
+		]);
+		const result = await app.inject({
+			method: "GET",
+			url: "/api/metadata/search?query=Same&provider=bangumi",
+		});
+		expect(result.statusCode).toBe(200);
+		expect(result.json().data.items[0].provider).toBe("bangumi");
+		expect(
+			(
+				await app.inject({
+					method: "POST",
+					url: "/api/metadata/associations",
+					payload: {},
+				})
+			).statusCode,
+		).toBe(404);
+	} finally {
+		await app.close();
+	}
+});
+
+test.each([false, true])(
+	"migration splits historical associations and preserves canonical local identity (secondary canonical: %s)",
+	async (secondaryCanonical) => {
+		const directory = await mkdtemp(join(tmpdir(), "anishelf-split-"));
+		cleanup.push(() => rm(directory, { recursive: true, force: true }));
+		const initial = ApplicationDatabase.open(directory);
+		const connection = {
+			generation: "generation",
+			account: { id: "anilist:7", name: "Fixture" },
+			credentialId: "existing-credential",
+			state: "connected" as const,
+			checkedAt: 1,
+		};
+		initial.tracking.save(connection);
+		const operation: import("../../../../src/modules/anime/external-works/tracking/domain/operation.js").TrackingOperation =
+			{
+				id: "pending-update",
+				accountId: "anilist:7",
+				mediaId: "anilist:anime:10",
+				origin: "manual-detail",
+				commandId: "existing-command",
+				intentAt: 1,
+				target: null,
+				decisionReason: null,
+				revision: 1,
+				baseline: null,
+				desired: { progress: 3 },
+				state: "pending",
+				remote: null,
+				attempt: null,
+				attempts: 0,
+				retryAt: null,
+				error: null,
+				updatedAt: 1,
+			};
+		initial.trackingOperations.admit(operation);
+		initial.close();
+		const raw = new Database(join(directory, "anishelf.sqlite"));
+		raw.exec(
+			"DROP INDEX metadata_reference_work_unique; DELETE FROM __drizzle_migrations WHERE created_at = 1793664000000",
+		);
+		const canonical = secondaryCanonical ? "bangumi-old" : "anilist-old";
+		raw
+			.prepare(
+				"INSERT INTO metadata_references (id,work_id,provider,provider_id) VALUES (?,?,?,?)",
+			)
+			.run("anilist-old", canonical, "anilist", "10");
+		raw
+			.prepare(
+				"INSERT INTO metadata_references (id,work_id,provider,provider_id) VALUES (?,?,?,?)",
+			)
+			.run("bangumi-old", canonical, "bangumi", "20");
+		const data = { historical: "immutable" };
+		raw
+			.prepare(
+				"INSERT INTO metadata_snapshots(id,key,kind,fetched_at,expires_at,accessed_at,failure_present,data) VALUES ('history','project:history','detail',1,2,1,0,?)",
+			)
+			.run(JSON.stringify(data));
+		raw.exec(
+			"INSERT INTO catalog_works(id,revision,created_at,updated_at) VALUES ('local',7,1,2)",
+		);
+		raw
+			.prepare(
+				"INSERT INTO catalog_provider_links(work_id,metadata_work_id,snapshot_id) VALUES ('local',?,'history')",
+			)
+			.run(canonical);
+		raw.exec(
+			"INSERT INTO metadata_pins(snapshot_id,owner_id) VALUES ('history','local')",
+		);
+		raw.close();
+		let secondary: string | undefined;
+		for (let pass = 0; pass < 2; pass++) {
+			const db = ApplicationDatabase.open(directory);
+			try {
+				expect(
+					db.metadata.identify({
+						provider: "anilist",
+						mediaType: "anime",
+						id: "10",
+					}),
+				).toBe(canonical);
+				const second = db.metadata.identify({
+					provider: "bangumi",
+					mediaType: "anime",
+					id: "20",
+				});
+				expect(second).not.toBe(canonical);
+				if (!secondaryCanonical) expect(second).toBe("bangumi-old");
+				if (secondary) expect(second).toBe(secondary);
+				secondary = second;
+				expect(db.catalog.link("local")?.reference.id).toBe(canonical);
+				expect(db.tracking.get()).toEqual(connection);
+				expect(db.trackingOperations.list("anilist:7")).toEqual([operation]);
+				expect(
+					db.trackingOperations.command("anilist:7", "existing-command"),
+				).toMatchObject({ operationId: operation.id, revision: 1 });
+				const metadata = await createMetadataModule({
+					dataDir: directory,
+					store: db.metadata,
+					providers: [
+						provider("anilist", "10").api,
+						provider("bangumi", "20").api,
+					],
+					defaultProvider: "anilist",
+					artworkHosts: [],
+					logger,
+				});
+				try {
+					expect(metadata.current({ id: canonical })?.data).toMatchObject({
+						provider: "anilist",
+						description: null,
+					});
+				} finally {
+					await metadata.close();
+				}
+				expect(db.metadata.get("history")?.data).toEqual(data);
+				expect(db.metadata.references(canonical)).toEqual([
+					{ provider: "anilist", mediaType: "anime", id: "10" },
+				]);
+			} finally {
+				db.close();
+			}
+		}
+	},
+);
+
+test("invalid historical identity groups reject migration atomically", async () => {
+	const directory = await mkdtemp(join(tmpdir(), "anishelf-invalid-split-"));
+	cleanup.push(() => rm(directory, { recursive: true, force: true }));
+	const initial = ApplicationDatabase.open(directory);
+	initial.close();
+	const raw = new Database(join(directory, "anishelf.sqlite"));
+	raw.exec(
+		"DROP INDEX metadata_reference_work_unique; DELETE FROM __drizzle_migrations WHERE created_at = 1793664000000; INSERT INTO metadata_references VALUES ('dangling','bangumi','20','missing')",
+	);
+	raw.close();
+	expect(() => ApplicationDatabase.open(directory)).toThrow();
+	const verify = new Database(join(directory, "anishelf.sqlite"));
+	try {
+		expect(
+			verify
+				.prepare("SELECT work_id FROM metadata_references WHERE id='dangling'")
+				.get(),
+		).toEqual({ work_id: "missing" });
+	} finally {
+		verify.close();
+	}
+});
+
+test("the configured default source is independent of provider registration order", async () => {
+	const f = await fixture("bangumi");
+	expect(
+		(await f.metadata.search({ query: "Same title" })).data.items[0]?.provider,
+	).toBe("bangumi");
+	expect(f.first.search).not.toHaveBeenCalled();
 });

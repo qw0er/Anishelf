@@ -1,4 +1,7 @@
-import { MetadataError, type MetadataFailure } from "../../metadata/public.js";
+import {
+	MetadataError,
+	type MetadataFailure,
+} from "../../external-works/metadata/public.js";
 import { catalogDefaults as policy } from "../defaults.js";
 import type { CatalogContext } from "./context.js";
 import type { WorkApplication } from "./work.js";

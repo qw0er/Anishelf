@@ -1340,5 +1340,18 @@
 		"paused": "自动准备已暂停，请选择可用的预设。",
 		"configIssue": "无法从 {{file}} 加载自定义预设，内置预设仍然可用。",
 		"taskSource": "自动 · {{preset}}"
+	},
+	"metadataSource": {
+		"title": "元数据来源",
+		"description": "选择后续搜索与自动识别使用的来源。已有作品保留原来源。",
+		"source": "来源",
+		"default": "使用默认来源",
+		"saved": "元数据来源已保存。",
+		"unsupported": "此来源暂不支持观看进度同步。",
+		"connect": "连接观看记录账号",
+		"names": {
+			"anilist": "AniList",
+			"bangumi": "Bangumi"
+		}
 	}
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { MetadataError } from "../../../../src/modules/anime/metadata/public.js";
+import { MetadataError } from "../../../../src/modules/anime/external-works/metadata/public.js";
 import { createHttpApp } from "../../../support/http.js";
 
 import {

@@ -143,17 +143,20 @@ qBittorrent is a separate capability (D01–D07).
 
 #### Delivery Notes (M)
 
-- **M01:** AniList and Bangumi search behind permanent project work IDs; external source identifiers retained through associations. **Release record:** 0.3.0 (AniList); 1.0.6 (multi-source).
+- **M01:** AniList and Bangumi search behind permanent project work IDs; each project identity belongs to exactly one source. **Release record:** 0.3.0 (AniList); 1.0.6 (multi-source).
 - **M02 / WI11:** Broadcast-plan improvements are complete: provider-announced future airtimes appear first, the next broadcast is highlighted, aired history is collapsed, and dates include the local weekday and time zone. Detail metadata supplies the next broadcast when schedule pages are incomplete. Cached plans remain visible; elapsed plans await refreshed confirmation. Unannounced dates are not estimated. **Release record:** 1.4.1 (broadcast-plan improvements).
 - **M03:** Default poster library, work details, episode/version playback and file-list location from available-version actions. **Release record:** 0.3.0; 1.0.6 (file location).
 - **M05:** Durable metadata/artwork caching, refresh/retry and retained snapshots during outages.
-- **M06:** **Delivered:** AniList/Bangumi search, explicit verified work associations, combined descriptions and permanent ID aliases. **Remaining:** Automatic cross-source matching, association management UI and cross-source episode mappings. **Release record:** 1.0.6 (partial).
+- **M06:** **Delivered:** Independently selectable AniList/Bangumi search, persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. **Release record:** 1.0.6 (partial).
 
 #### External Metadata and Local Catalog (M01–M07)
 
-External anime metadata is a dependency of the delivered identification workflow, not a later tracker integration. Users can search AniList and Bangumi metadata and continue accessing works after verified cross-source association. Retain available aliases, language information, episode data and work relations according to source capabilities. Provider changes must not silently replace confirmed local work or episode associations. Cache fetched metadata with refresh status and preserve user corrections. Outages must not block already-cached browsing or existing file playback; unavailable candidate or episode information remains explicitly unresolved.
+External anime metadata is a dependency of the delivered identification workflow, not a later tracker integration. Users select AniList or Bangumi for each search. Automatic recognition searches the persisted default source only. Retain available aliases, language information, episode data and work relations according to source capabilities. Provider changes must not silently replace confirmed local work or episode associations. Cache fetched metadata with refresh status and preserve user corrections. Outages must not block already-cached browsing or existing file playback; unavailable candidate or episode information remains explicitly unresolved.
 
-Explicit cross-source work association requires confirmation of both work identity and equivalent regular-episode numbering. Existing work references remain usable after association. Associated sources contribute descriptions in stable source order; equal titles alone never establish identity. Associations do not merge local Catalog works, episodes or files, and conflicting existing local works must be reconciled first. Automatic cross-source matching, an association management UI and independent cross-source episode mappings remain unassigned. Bangumi schedules, relations and a canonical episode catalog are not currently supplied.
+Each project identity belongs to one source entry. Cross-source association, ID
+aliases and metadata composition are unsupported. Historical groups are split during
+migration while preserving the primary project ID and local confirmations. Bangumi
+schedules, relations, Tracking and a canonical episode catalog are not currently supplied.
 
 Provider and parser uncertainty is handled through Review. Provider-required service access is distinct from T01–T05 personal account authorization, personal list access and viewing-state updates; basic identification must not require the user to authorize a personal tracker account.
 
