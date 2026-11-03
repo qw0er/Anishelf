@@ -8,6 +8,10 @@
   Directory-wide identification refreshes suggestions while preserving confirmed and
   rejected decisions; the bulk action runs in the background and reports outcomes.
 - Add a compatibility-first acquisition profile that prefers H.264 and VP9 releases.
+- Search torrents with prepared romaji, English, original and Chinese titles instead of
+  the first four arbitrary aliases. Chinese titles now participate when available.
+- Use conservatively verified names from the other metadata source as matching aliases
+  without changing work identity, primary titles or episode mappings.
 
 ### Changed
 

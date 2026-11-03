@@ -832,6 +832,8 @@ Release assessment prepares `AcquisitionTarget.searchTitles` from typed metadata
 Subscription discovery and one-off downloads use this list rather than the first four
 arbitrary aliases. Selection orders romaji, English, native and Chinese names, skips
 missing categories, prefers Simplified Chinese, rejects invalid queries and deduplicates
-normalized case-insensitive values. The full title list continues to drive release
-identity assessment. Confirmed subscription source definitions retain their captured
-keywords until the user rediscovers and confirms a source.
+normalized case-insensitive values. Verified supplemental names from the optional
+cross-provider name merge can supply these categories; that merge remains names-only
+evidence and never establishes cross-source identity. The full title list continues to
+drive release identity assessment. Confirmed subscription source definitions retain
+their captured keywords until the user rediscovers and confirms a source.
