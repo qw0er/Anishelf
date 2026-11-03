@@ -7,6 +7,8 @@ export const subjectSchema = Type.Object({
 	type: Type.Literal(2),
 	name: Type.String(),
 	name_cn: Type.String(),
+	// Wiki values are heterogeneous; the adapter validates only name entries it consumes.
+	infobox: Type.Optional(Type.Unknown()),
 	summary: Type.String(),
 	date: Type.Optional(Type.Union([Type.String(), Type.Null()])),
 	platform: Type.String(),

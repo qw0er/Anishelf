@@ -338,6 +338,8 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S12 | Keep manual and automatic subscription management independent | Complete | — | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
 | WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | [H.264/VP9 preferred with fallback](#delivery-notes-s) | 1.4.1 |
 
+| WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | — |
+
 #### Delivery Notes (S)
 
 - **S02:** Fixed starting episode and protection against conflicting edits; global Watching activation previews impact.
@@ -356,6 +358,15 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 The completed subscription scope is [archived](history.md#automatic-acquisition-requirements).
 RSS selects candidates automatically without per-release approval; accepted scopes
 enable the download worker.
+#### Merged Keyword Search Results (WI13)
+
+Subscription discovery and single-episode downloads share collection that searches
+all selected title keywords within pagination and item limits, deduplicates releases
+by ID and merges results before assessment. Eligible results do not stop collection.
+If any keyword request fails, that provider's collection fails without exposing its
+partial results for selection. Provider-level errors and coverage information are
+sufficient; keyword-level result attribution and feedback are outside the scope.
+
 #### AniList Watching to Automatic Acquisition (S05, S10–S12)
 
 The delivered workflow is: add an anime to AniList Watching, let Anishelf find a suitable resource source and maintain its subscription, then automatically download new episodes through qBittorrent and verify their ingestion into the local library. Users configure resource sites, release preferences, destination and automation scope once; routine additions to Watching should not require finding and entering a per-anime RSS URL or approving every episode.

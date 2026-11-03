@@ -756,7 +756,12 @@ An administrator password still requires site setup in Jackett management.
 ### Bangumi protocol and project metadata
 
 Bangumi implements the internal metadata provider port through a separate protocol
-client. `GET /api/metadata/search?query=...&provider=bangumi` searches Bangumi only;
+client. Its search and detail adapters retain Wiki `infobox` aliases as matching
+names, including English and romanized names when available. Explicit `english` /
+英文名 and `romaji` / 罗马字 labels establish the corresponding title kind; unlabelled
+names remain aliases with unknown language. Empty, duplicate and malformed name
+entries are ignored without interpreting other Wiki fields as titles. The adapter
+cache version changes when this title projection changes. `GET /api/metadata/search?query=...&provider=bangumi` searches Bangumi only;
 omitting `provider` uses the persisted default. `GET /api/metadata/providers` lists
 source names and metadata/Tracking availability.
 `GET /api/metadata/reference?value=https://bgm.tv/subject/400602` (also `bangumi.tv`,

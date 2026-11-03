@@ -537,3 +537,116 @@ test("a failed stale refresh preserves the snapshot and communicates the shared 
 	});
 	expect(fetcher).toHaveBeenCalledTimes(2);
 });
+
+test.each(["search", "detail"])(
+	"%s includes explicitly labelled English/romaji and unlabelled aliases",
+	async (operation) => {
+		const raw = {
+			...subject(),
+			infobox: [
+				{
+					key: "别名",
+					value: [
+						{ v: "Frieren: Beyond Journey's End" },
+						{ k: "英文名", v: " Frieren: Beyond Journey's End " },
+						{ k: "罗马字", v: "Sousou no Frieren" },
+						{ v: "葬送的芙莉蓮" },
+						{ v: "Unlabelled Latin alias" },
+						{ v: "葬送のフリーレン" },
+						{ v: " " },
+						{ v: 42 },
+						null,
+					],
+				},
+				{ key: "english", value: "Frieren: Beyond Journey's End" },
+				{ key: "romaji", value: "Sōsō no Frieren" },
+				{ key: "导演", value: "Not a work name" },
+				{ key: "别名", value: "Another alias" },
+			],
+		};
+		const provider = new BangumiProvider(
+			client(async () =>
+				Response.json(
+					operation === "detail"
+						? raw
+						: { total: 1, limit: 10, offset: 0, data: [raw] },
+				),
+			),
+		);
+		const titles =
+			operation === "detail"
+				? (
+						await provider.get(
+							{ provider: "bangumi", mediaType: "anime", id: "400602" },
+							signal(),
+						)
+					).data.titles
+				: (await provider.search("Frieren", 1, 10, signal())).data.items[0]
+						?.titles;
+		expect(titles).toEqual([
+			{ value: "葬送のフリーレン", language: null, kind: "native" },
+			{ value: "葬送的芙莉莲", language: "zh-Hans", kind: "alias" },
+			{
+				value: "Frieren: Beyond Journey's End",
+				language: "en",
+				kind: "english",
+			},
+			{ value: "Sousou no Frieren", language: null, kind: "romaji" },
+			{ value: "葬送的芙莉蓮", language: null, kind: "alias" },
+			{ value: "Unlabelled Latin alias", language: null, kind: "alias" },
+			{ value: "Sōsō no Frieren", language: null, kind: "romaji" },
+			{ value: "Another alias", language: null, kind: "alias" },
+		]);
+	},
+);
+
+test.each([
+	undefined,
+	null,
+	{},
+	[null, {}, { key: "别名", value: { v: "Ignored" } }],
+])(
+	"missing or unrecognized infobox preserves the primary names (%j)",
+	async (infobox) => {
+		const provider = new BangumiProvider(
+			client(async () => Response.json({ ...subject(), infobox })),
+		);
+		expect(
+			(
+				await provider.get(
+					{ provider: "bangumi", mediaType: "anime", id: "400602" },
+					signal(),
+				)
+			).data.titles,
+		).toHaveLength(2);
+	},
+);
+
+test("unlabelled English and romanized Wiki names are retained without guessing their language", async () => {
+	const provider = new BangumiProvider(
+		client(async () =>
+			Response.json({
+				...subject(),
+				infobox: [
+					{
+						key: "别名",
+						value: [
+							{ v: "Frieren: Beyond Journey's End" },
+							{ v: "Sousou no Frieren" },
+							{ v: "葬送的芙莉蓮" },
+						],
+					},
+				],
+			}),
+		),
+	);
+	const result = await provider.get(
+		{ provider: "bangumi", mediaType: "anime", id: "400602" },
+		signal(),
+	);
+	expect(result.data.titles.slice(2)).toEqual(
+		["Frieren: Beyond Journey's End", "Sousou no Frieren", "葬送的芙莉蓮"].map(
+			(value) => ({ value, kind: "alias", language: null }),
+		),
+	);
+});

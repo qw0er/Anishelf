@@ -191,6 +191,16 @@ export class BangumiClient implements BangumiMetadataApi {
 					});
 				if (data.data.some((item) => !item.name.trim() && !item.name_cn.trim()))
 					throw this.invalid("search", "missing_title");
+				this.options.logger.debug(
+					{
+						event: "bangumi.names_received",
+						operation: "search",
+						subjects: data.data.length,
+						withInfobox: data.data.filter((item) => Array.isArray(item.infobox))
+							.length,
+					},
+					"Bangumi search name evidence received.",
+				);
 				return data;
 			});
 			items.push(...result.data);
@@ -211,6 +221,15 @@ export class BangumiClient implements BangumiMetadataApi {
 			if (data.id !== id) throw this.invalid("detail", "subject_id");
 			if (!data.name.trim() && !data.name_cn.trim())
 				throw this.invalid("detail", "missing_title");
+			this.options.logger.debug(
+				{
+					event: "bangumi.names_received",
+					operation: "detail",
+					subjectId: data.id,
+					withInfobox: Array.isArray(data.infobox),
+				},
+				"Bangumi detail name evidence received.",
+			);
 			return data;
 		});
 	}

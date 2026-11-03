@@ -11,6 +11,57 @@ import {
 } from "../domain/source-model.js";
 import type { MetadataProvider } from "../ports.js";
 
+/** Only explicit Wiki labels establish language; Latin text alone is not evidence. */
+function nameKind(label: string): "english" | "romaji" | null {
+	switch (label.normalize("NFKC").trim().toLowerCase()) {
+		case "英文名":
+		case "英语名":
+		case "英語名":
+		case "english":
+			return "english";
+		case "罗马字":
+		case "羅馬字":
+		case "罗马音":
+		case "羅馬音":
+		case "romaji":
+			return "romaji";
+		default:
+			return null;
+	}
+}
+function infoboxTitles(raw: BangumiSubject): WorkSummary["titles"] {
+	const titles: WorkSummary["titles"] = [];
+	if (!Array.isArray(raw.infobox)) return titles;
+	const add = (value: unknown, kind: "english" | "romaji" | "alias") => {
+		if (typeof value !== "string" || !value.trim()) return;
+		titles.push({
+			value: value.trim(),
+			kind,
+			language: kind === "english" ? "en" : null,
+		});
+	};
+	for (const entry of raw.infobox) {
+		if (!entry || typeof entry !== "object" || typeof entry.key !== "string")
+			continue;
+		const label = entry.key.normalize("NFKC").trim();
+		const kind = nameKind(label);
+		if (label !== "别名" && label !== "別名" && !kind) continue;
+		if (typeof entry.value === "string") add(entry.value, kind ?? "alias");
+		else if (Array.isArray(entry.value)) {
+			for (const alias of entry.value) {
+				if (!alias || typeof alias !== "object") continue;
+				add(
+					alias.v,
+					(typeof alias.k === "string" ? nameKind(alias.k) : null) ??
+						kind ??
+						"alias",
+				);
+			}
+		}
+	}
+	return titles;
+}
+
 function summary(raw: BangumiSubject): WorkSummary {
 	const titles: WorkSummary["titles"] = [];
 	if (raw.name.trim())
@@ -21,6 +72,20 @@ function summary(raw: BangumiSubject): WorkSummary {
 			language: "zh-Hans",
 			kind: "alias",
 		});
+	for (const title of infoboxTitles(raw)) {
+		// Keep more specific primary fields and avoid repeated labels for the same value.
+		const index = titles.findIndex(
+			(existing) => existing.value === title.value,
+		);
+		const existing = titles[index];
+		if (!existing) titles.push(title);
+		else if (
+			existing.kind === "alias" &&
+			existing.language === null &&
+			title.kind !== "alias"
+		)
+			titles[index] = title;
+	}
 	const year = /^(\d{4})-\d{2}-\d{2}$/.exec(raw.date ?? "");
 	return {
 		reference: { provider: "bangumi", mediaType: "anime", id: String(raw.id) },
@@ -49,7 +114,7 @@ function summary(raw: BangumiSubject): WorkSummary {
 export class BangumiProvider implements MetadataProvider {
 	readonly capabilities = {
 		key: "bangumi",
-		version: "bangumi-v0-v1",
+		version: "bangumi-v0-v2",
 		search: true,
 		details: true,
 		relations: false,

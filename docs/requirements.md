@@ -367,13 +367,12 @@ The display must remain usable on desktop and narrow screens.
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
-| WI03 | Improve download searches with multiple matching results | — | Unassigned | Determine how multiple eligible results should be handled and presented. | — |
+| WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
 | WI05 | Redesign automatic subscription management interaction | — | Unassigned | Review the existing interaction and define the desired workflow. | — |
 | WI06 | Move the Bundled label below the Settings title | — | Unassigned | Confirm the affected settings view and placement. | — |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
 | WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12wi14) | — |
-| WI13 | Combine results from multiple search keywords for unified matching | Partial | Unassigned | Keyword results are merged before assessment across acquisition flows; partial-failure feedback remains. [Combined keyword results](#resource-search-improvements-wi12wi14) | — |
 | WI14 | Improve Chinese resource searches using available Chinese titles | Not started | Unassigned | [Chinese search optimization](#resource-search-improvements-wi12wi14); depends on Chinese title availability (M09) | — |
 
 #### Resource Search Improvements (WI12–WI14)
@@ -382,15 +381,6 @@ The display must remain usable on desktop and narrow screens.
   Explain whether results matched or were rejected and provide useful reasons for
   uncertain or unsuccessful searches. Preserve the distinction between a candidate
   and a confirmed match; do not accept uncertain results solely to increase matches.
-- **WI13:** Combine results returned for multiple keywords before assessing matches,
-  deduplicate equivalent results and evaluate them consistently. Preserve enough
-  source and keyword context to explain the outcome. Define how partial search
-  failures affect the combined results and feedback.
-  Subscription discovery and single-episode downloads now share collection that
-  searches each selected title keyword within pagination and item limits, merging
-  releases by ID before assessment. A matching release does not stop collection.
-  A failed keyword still fails that provider's collection; presenting partial
-  keyword results and their failure context remains outstanding.
 - **WI14:** Improve searches for Chinese resources using available Chinese titles
   and aliases from the selected metadata source. Retain existing search behavior
   when Chinese titles are unavailable; do not infer cross-source identity or query
