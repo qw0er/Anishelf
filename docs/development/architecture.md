@@ -22,6 +22,12 @@ Container deployments use Caddy Web to serve the SPA and proxy `/api` to the pri
 Backend on one browser origin. A host proxy provides HTTPS. Source installations
 can enable Node frontend hosting with `ANISHELF_FRONTEND_DIR`.
 
+The Web service worker fetches SPA navigations from the network first and uses
+cached pages or the precached entry only when offline. It checks for a new worker
+when the page loads or returns to the foreground; an updated worker takes control
+and reloads open pages. Both frontend hosts revalidate the SPA entry and worker
+script, while fingerprinted assets can remain cached.
+
 ## Internal ownership
 
 | Module | Owns | Main collaborators |

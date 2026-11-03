@@ -71,8 +71,21 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-				navigateFallback: "/index.html",
-				navigateFallbackDenylist: [/^\/api(?:\/|$)/],
+				skipWaiting: true,
+				clientsClaim: true,
+				navigateFallback: null,
+				runtimeCaching: [
+					{
+						urlPattern: ({ request, url }) =>
+							request.mode === "navigate" &&
+							!/^\/api(?:\/|$)/.test(url.pathname),
+						handler: "NetworkFirst",
+						options: {
+							cacheName: "anishelf-pages",
+							precacheFallback: { fallbackURL: "/index.html" },
+						},
+					},
+				],
 			},
 		}),
 		react(),
