@@ -25,35 +25,32 @@ profiles and prerequisites.
 
 ## Updates
 
-Stop the stack and [back up data and configuration](docs/guide/deployment.md#backup-and-recovery)
-before updating. Keep Web and Backend on matching image tags and apply any
-release-specific template changes.
+[Back up data and configuration](docs/guide/deployment.md#backup-and-recovery)
+first. Keep Web and Backend on matching tags.
 
 ### Docker Compose
 
-From the deployment folder, set `ANISHELF_TAG` in `.env`, then:
+From the deployment folder, with `ANISHELF_TAG` set in `.env`:
 
 ```sh
-docker compose stop
-# Back up data and configuration before continuing.
-docker compose pull
-docker compose up -d
+docker compose pull backend web
+docker compose up -d backend web
 ```
+
+A bare `docker compose pull` also upgrades enabled optional services.
 
 ### Rootless Podman Quadlet
 
-Run as the service account, using the default `latest` image tags:
+Run as the service account:
 
 ```sh
-systemctl --user stop anishelf.target
-# Back up data and configuration before continuing.
-podman pull ghcr.io/qw0er/anishelf-backend:latest
-podman pull ghcr.io/qw0er/anishelf-web:latest
-systemctl --user start anishelf.target
+podman pull ghcr.io/qw0er/anishelf-backend:latest ghcr.io/qw0er/anishelf-web:latest
+systemctl --user restart anishelf-backend.service anishelf-web.service
 ```
 
-Pull optional service images when updating them. See [Deployment](docs/guide/deployment.md#updates)
-for details and recovery instructions.
+`anishelf.target` now uses `Wants=`; refresh older `Requires=` units before relying
+on app-only restarts. Use the target only for a full-stack stop. See
+[Deployment](docs/guide/deployment.md#updates) for details.
 
 ## Documentation
 

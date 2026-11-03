@@ -1,6 +1,8 @@
 [Unit]
 Description=Anishelf stack
-Requires=anishelf-backend.service anishelf-web.service
+# Wants, not Requires: stopping Backend directly must not stop this target and
+# therefore must not stop optional services through their PartOf= dependency.
+Wants=anishelf-backend.service anishelf-web.service
 After=anishelf-backend.service anishelf-web.service
 
 [Install]

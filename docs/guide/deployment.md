@@ -135,16 +135,15 @@ password appears once in Backend logs. See [first use](README.md#first-use).
 
 ### Manual updates
 
-Stop services and [back up](#backup-and-recovery) first. Set `ANISHELF_TAG` in `.env`, then:
+[Back up](#backup-and-recovery) first. Set `ANISHELF_TAG` in `.env`:
 
 ```sh
-docker compose stop
-# Back up data and configuration before continuing.
-docker compose pull
-docker compose up -d
+docker compose pull backend web
+docker compose up -d backend web
 ```
 
-Merge template changes when required by the release. Do not delete volumes to update.
+A bare `docker compose pull` also upgrades enabled optional services. Merge
+required template changes; do not delete volumes.
 
 ## Rootless Podman Quadlet
 
@@ -198,18 +197,16 @@ from Backend logs.
 
 ### Manual updates
 
-Run as the service account, using the default `latest` image tags:
+[Back up](#backup-and-recovery) first. Run as the service account:
 
 ```sh
-systemctl --user stop anishelf.target
-# Back up data and configuration before continuing.
-podman pull ghcr.io/qw0er/anishelf-backend:latest
-podman pull ghcr.io/qw0er/anishelf-web:latest
-systemctl --user start anishelf.target
+podman pull ghcr.io/qw0er/anishelf-backend:latest ghcr.io/qw0er/anishelf-web:latest
+systemctl --user restart anishelf-backend.service anishelf-web.service
 ```
 
-Pull optional service images too when updating them. Apply unit changes only when required by the release. Keep installer-managed copies in the saved deployment
-folder synchronized with installed units before using script maintenance.
+`anishelf.target` uses `Wants=`, so optional services keep running; refresh older
+`Requires=` units before relying on this. Use the target only for a full-stack stop.
+Apply required unit changes; do not delete volumes.
 
 ## Storage and optional services
 
@@ -266,8 +263,7 @@ ssh -N -L 3000:127.0.0.1:3000 user@server
 ## Updates
 
 Follow [Docker Compose updates](#manual-updates) or
-[rootless Quadlet updates](#manual-updates-1). Keep matching Web/Backend tags and
-apply release-specific template changes.
+[rootless Quadlet updates](#manual-updates-1); keep Web and Backend tags matched.
 
 ## Maintenance
 
@@ -277,25 +273,28 @@ Run Docker commands from the deployment folder; run Quadlet commands as its owne
 | --- | --- | --- |
 | Status | `docker compose ps` | `systemctl --user status anishelf-backend.service anishelf-web.service` |
 | Logs | `docker compose logs -f --tail=100 backend web` | `journalctl --user -u anishelf-backend.service -u anishelf-web.service -f` |
-| Stop | `docker compose stop` | `systemctl --user stop anishelf.target` |
-| Start | `docker compose up -d` | `systemctl --user start anishelf.target` |
+| Stop application | `docker compose stop web backend` | `systemctl --user stop anishelf-web.service anishelf-backend.service` |
+| Start application | `docker compose up -d backend web` | `systemctl --user start anishelf-backend.service anishelf-web.service` |
+| Stop all | `docker compose stop` | `systemctl --user stop anishelf.target` |
+| Start all | `docker compose up -d` | `systemctl --user start anishelf.target` |
 
-To reset the password, run the matching command, then restart Backend:
+To reset the password, run the matching command, then restart the application
+services:
 
 ```sh
 # Docker Compose
 docker compose exec backend node backend/dist/cli.js auth reset-password
-docker compose restart backend
+docker compose restart backend web
 
 # Rootless Quadlet
 podman exec anishelf-backend node backend/dist/cli.js auth reset-password
-systemctl --user restart anishelf-backend.service
+systemctl --user restart anishelf-backend.service anishelf-web.service
 ```
 
 ### Backup and recovery
 
-Stop the stack before copying complete volumes, host media and deployment files.
-Preserve ownership; do not copy a live SQLite file alone.
+Stop the services that own the volumes you copy. Preserve ownership; do not copy a
+live SQLite file alone.
 
 | Volume | Contents |
 | --- | --- |
