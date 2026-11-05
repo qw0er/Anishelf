@@ -1,0 +1,307 @@
+{
+	"schemaVersion": 1,
+	"id": "magia-record",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/104051",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:05.304Z",
+		"responseSha256": "38458df38ac9c815ae7d9abeed739a5889995d51627236a5d3aca94d9d29cf43",
+		"data": {
+			"id": 104051,
+			"type": "ANIME",
+			"title": {
+				"native": "マギアレコード 魔法少女まどか☆マギカ外伝",
+				"romaji": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden",
+				"english": "Magia Record: Puella Magi Madoka Magica Side Story"
+			},
+			"synonyms": [
+				"MagiReco",
+				"Magia Record",
+				"สาวน้อยเวทมนตร์ มาโดกะ",
+				"สาวน้อยเวทมนตร์ มาโดกะ [บันทึกมากิอา]",
+				"Записи о магии: Другая история девочки-волшебницы Мадоки"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 13,
+			"duration": 24,
+			"seasonYear": 2020,
+			"startDate": {
+				"year": 2020,
+				"month": 1,
+				"day": 5
+			},
+			"endDate": {
+				"year": 2020,
+				"month": 3,
+				"day": 29
+			},
+			"siteUrl": "https://anilist.co/anime/104051",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 117002,
+							"type": "ANIME",
+							"title": {
+								"native": "マギアレコード 魔法少女まどか☆マギカ外伝 2nd SEASON -覚醒前夜-",
+								"romaji": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden 2nd SEASON - Kakusei Zenya",
+								"english": "Magia Record: Puella Magi Madoka Magica Side Story Season 2 -The Eve of Awakening-"
+							},
+							"format": "TV",
+							"episodes": 8,
+							"startDate": {
+								"year": 2021,
+								"month": 8,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "PARENT",
+						"node": {
+							"id": 9756,
+							"type": "ANIME",
+							"title": {
+								"native": "魔法少女まどか☆マギカ",
+								"romaji": "Mahou Shoujo Madoka☆Magica",
+								"english": "Puella Magi Madoka Magica"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2011,
+								"month": 1,
+								"day": 7
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 104273,
+							"type": "MANGA",
+							"title": {
+								"native": "マギアレコード魔法少女まどか☆マギカ外伝",
+								"romaji": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden",
+								"english": "Magia Record: Puella Magi Madoka Magica Side Story"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2018,
+								"month": 8,
+								"day": 24
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "マギアレコード 魔法少女まどか☆マギカ外伝",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:40:05.974Z",
+		"responseSha256": "b2f29e6a86e74fd59ce695e5ec5f5c859ebce413363dff6829b1d527e6356e81",
+		"total": 4,
+		"limit": 20,
+		"offset": 0,
+		"ids": [159690, 302875, 339998, 500356]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/159690",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/159690",
+			"fetchedAt": "2026-11-05T15:40:07.099Z",
+			"responseSha256": "74baed852fcb9c5f83e775fde26ccb959b2a9f11498e7a8adb514144386141c2",
+			"data": {
+				"id": 159690,
+				"type": 2,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝",
+				"name_cn": "魔法纪录 魔法少女小圆外传",
+				"date": "2020-01-04",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 27,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "魔法纪录 魔法少女小圆外传"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "마기아 레코드 마법소녀 마도카☆마기카 외전"
+							},
+							{
+								"v": "Magia Record: Mahou Shoujo Madoka Magica Gaiden"
+							},
+							{
+								"v": "Magia Record: Puella Magi Madoka Magica Side Story"
+							},
+							{
+								"v": "Magia Record 魔法少女小圆外传"
+							},
+							{
+								"v": "マギレコ"
+							},
+							{
+								"v": "MagiReco"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2020年1月4日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX / とちぎテレビ / 群馬テレビ / BS11"
+					},
+					{
+						"key": "播放结束",
+						"value": "2020年3月28日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/302875",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/302875",
+			"fetchedAt": "2026-11-05T15:40:08.235Z",
+			"responseSha256": "c549dd18be8ade1862fcca1bd738edfc39f86703112789c6df6c608bd20dafa2",
+			"data": {
+				"id": 302875,
+				"type": 2,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝 2nd SEASON -覚醒前夜-",
+				"name_cn": "魔法纪录 魔法少女小圆外传 2nd SEASON -觉醒前夜-",
+				"date": "2021-07-31",
+				"platform": "TV",
+				"eps": 8,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "魔法纪录 魔法少女小圆外传 2nd SEASON -觉醒前夜-"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Magia Record: Mahou Shoujo Madoka Magica Gaiden 2nd Season - Kakusei Zen`ya"
+							},
+							{
+								"v": "Magia Record: Puella Magi Madoka Magica Side Story 2nd Season - The Eve of Awakening"
+							},
+							{
+								"v": "Magia Record: Mahou Shoujo Madoka Magica Gaiden 2nd Season - Kakusei Zenya"
+							},
+							{
+								"v": "魔法纪录 魔法少女小圆外传 第二季 -觉醒前夜-"
+							},
+							{
+								"v": "Magia Record 魔法少女小圆外传 第二季 -觉醒前夜-"
+							},
+							{
+								"v": "Magia Record 魔法少女小圆外传 2nd SEASON -觉醒前夜-"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "8"
+					},
+					{
+						"key": "放送开始",
+						"value": "2021年7月31日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX / とちぎテレビ / 群馬テレビ / BS11"
+					},
+					{
+						"key": "播放结束",
+						"value": "2021年9月25日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/339998",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/339998",
+			"fetchedAt": "2026-11-05T15:40:09.276Z",
+			"responseSha256": "ff7ba1bcef6a5e7873f13a50ead49b13cbf77f1479fdb955eae1d7b25003ed0a",
+			"data": {
+				"id": 339998,
+				"type": 2,
+				"name": "マギアレコード 魔法少女まどか☆マギカ外伝 Final SEASON ‐浅き夢の暁‐",
+				"name_cn": "魔法纪录 魔法少女小圆外传 Final SEASON -浅梦的黎明-",
+				"date": "2022-04-03",
+				"platform": "TV",
+				"eps": 4,
+				"total_episodes": 4,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "魔法纪录 魔法少女小圆外传 Final SEASON -浅梦的黎明-"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "魔法纪录 魔法少女小圆外传 Final SEASON -浅梦之晓-"
+							},
+							{
+								"v": "魔法纪录 魔法少女小圆外传 最终季 -浅梦的黎明-"
+							},
+							{
+								"v": "Magia Record 魔法少女小圆外传 最终季 -浅梦的黎明-"
+							},
+							{
+								"v": "Magia Record 魔法少女小圆外传 Final SEASON -浅梦的黎明-"
+							},
+							{
+								"v": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden Final Season - Asaki Yume no Akatsuki"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "4"
+					},
+					{
+						"key": "放送开始",
+						"value": "2022年4月3日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX / とちぎテレビ / 群馬テレビ / BS11"
+					},
+					{
+						"key": "播放结束",
+						"value": "2022年4月3日"
+					}
+				]
+			}
+		}
+	]
+}

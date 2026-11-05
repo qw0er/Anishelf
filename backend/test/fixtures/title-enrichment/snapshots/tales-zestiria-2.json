@@ -1,0 +1,260 @@
+{
+	"schemaVersion": 1,
+	"id": "tales-zestiria-2",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/97645",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:43:27.822Z",
+		"responseSha256": "93188e824643551923789e5c07b4d3e6dc3be91dec49e95e7332551bf0d1141d",
+		"data": {
+			"id": 97645,
+			"type": "ANIME",
+			"title": {
+				"native": "テイルズ オブ ゼスティリア ザ クロス 2",
+				"romaji": "Tales of Zestiria the Cross 2",
+				"english": "Tales of Zestiria the X Season 2"
+			},
+			"synonyms": [],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 13,
+			"duration": 23,
+			"seasonYear": 2017,
+			"startDate": {
+				"year": 2017,
+				"month": 1,
+				"day": 8
+			},
+			"endDate": {
+				"year": 2017,
+				"month": 4,
+				"day": 29
+			},
+			"siteUrl": "https://anilist.co/anime/97645",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 21221,
+							"type": "ANIME",
+							"title": {
+								"native": "テイルズ オブ ゼスティリア ザ クロス",
+								"romaji": "Tales of Zestiria the Cross",
+								"english": "Tales of Zestiria the X"
+							},
+							"format": "TV",
+							"episodes": 13,
+							"startDate": {
+								"year": 2016,
+								"month": 7,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 93663,
+							"type": "MANGA",
+							"title": {
+								"native": "テイルズ オブ ゼスティリア 導きの刻",
+								"romaji": "Tales of Zestiria: Michibiki no Toki",
+								"english": "Tales of Zestiria"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2015,
+								"month": 1,
+								"day": 28
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "テイルズ オブ ゼスティリア ザ クロス 2",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:43:29.561Z",
+		"responseSha256": "b048e189d936d5def76746bd290159abb797bae588f458c265cb8931ecc114cc",
+		"total": 15,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			186184, 136371, 105155, 974, 2695, 2859, 362610, 3055, 300654, 4480,
+			12697, 317337, 3014, 572743, 73374
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/186184",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/186184",
+			"fetchedAt": "2026-11-05T15:43:30.110Z",
+			"responseSha256": "45e9e14a801c382c4275d64ef8450f049419aa50428368d161d30069f6806b86",
+			"data": {
+				"id": 186184,
+				"type": 2,
+				"name": "Tales of Zestiria the X 2期",
+				"name_cn": "情热传说 the X 第二季",
+				"date": "2017-01-08",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "情热传说 the X 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Tales of Zestiria the  (2017)"
+							},
+							{
+								"v": "테일즈 오브 제스티리아 더 크로스 (2017)"
+							},
+							{
+								"v": "テイルズ オブ ゼスティリア ザ クロス 2期"
+							},
+							{
+								"v": "热诚传说 the X 第二季"
+							},
+							{
+								"v": "Tales of Zestiria the X 2nd season"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2017年1月8日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2017年4月29日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/136371",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/136371",
+			"fetchedAt": "2026-11-05T15:43:31.177Z",
+			"responseSha256": "721e656b777b58961afe51cc7dbe5aab1b077fda76557cc396a07148a25b7b8e",
+			"data": {
+				"id": 136371,
+				"type": 2,
+				"name": "Tales of Zestiria the X",
+				"name_cn": "情热传说 the X",
+				"date": "2016-07-03",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "情热传说 the X"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Tales of Zestiria the Cross"
+							},
+							{
+								"v": "テイルズ オブ ゼスティリア ザ クロス"
+							},
+							{
+								"v": "热诚传说 the X"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2016年7月3日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2016年9月25日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/105155",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/105155",
+			"fetchedAt": "2026-11-05T15:43:32.283Z",
+			"responseSha256": "490ed3c3cfddc5e30c67a84c1c4c942ba49fb67f0dd87569352993b7d78a2331",
+			"data": {
+				"id": 105155,
+				"type": 2,
+				"name": "Tales of Zestiria ～導師の夜明け～",
+				"name_cn": "情热传说～导师的黎明～",
+				"date": "2014-12-30",
+				"platform": "TV",
+				"eps": 2,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "情热传说～导师的黎明～"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "テイルズ オブ ゼスティリア ～導師の夜明け～"
+							},
+							{
+								"v": "Tales of Zestiria TV Special"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "2"
+					},
+					{
+						"key": "放送开始",
+						"value": "2014年12月30日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期二"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX, KBS京都"
+					}
+				]
+			}
+		}
+	]
+}

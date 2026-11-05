@@ -1,0 +1,297 @@
+{
+	"schemaVersion": 1,
+	"id": "bocchi",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/130003",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:39:43.275Z",
+		"responseSha256": "3aac2e750ba6cdac5fb5234a5d5b277061550347d88e122d6e77ea4d97af1126",
+		"data": {
+			"id": 130003,
+			"type": "ANIME",
+			"title": {
+				"native": "ぼっち・ざ・ろっく！",
+				"romaji": "Bocchi the Rock!",
+				"english": "BOCCHI THE ROCK!"
+			},
+			"synonyms": [
+				"РОК-ТИХОНЯ!",
+				"บจจิเดอะร็อก!",
+				"孤獨搖滾！",
+				"孤独摇滚！",
+				"외톨이 THE ROCK!",
+				"봇치 더 록!",
+				"BTR"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 12,
+			"duration": 24,
+			"seasonYear": 2022,
+			"startDate": {
+				"year": 2022,
+				"month": 10,
+				"day": 9
+			},
+			"endDate": {
+				"year": 2022,
+				"month": 12,
+				"day": 25
+			},
+			"siteUrl": "https://anilist.co/anime/130003",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 111258,
+							"type": "MANGA",
+							"title": {
+								"native": "ぼっち・ざ・ろっく！",
+								"romaji": "Bocchi the Rock!",
+								"english": "Bocchi the Rock!"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2018,
+								"month": 3,
+								"day": 19
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 127549,
+							"type": "ANIME",
+							"title": {
+								"native": "スローループ",
+								"romaji": "Slow Loop",
+								"english": "Slow Loop"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2022,
+								"month": 1,
+								"day": 7
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 165253,
+							"type": "ANIME",
+							"title": {
+								"native": "ぼっち・ざ・ろっく！Re:",
+								"romaji": "Bocchi the Rock! Re:",
+								"english": "BOCCHI THE ROCK! Recap Part 1"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2024,
+								"month": 6,
+								"day": 7
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 171099,
+							"type": "ANIME",
+							"title": {
+								"native": "ぼっち・ざ・ろっく！ Re:Re:",
+								"romaji": "Bocchi the Rock! Re:Re:",
+								"english": "BOCCHI THE ROCK! Recap Part 2"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2024,
+								"month": 8,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 186712,
+							"type": "ANIME",
+							"title": {
+								"native": "ぼっち・ざ・ろっく！ 2期",
+								"romaji": "Bocchi the Rock! 2nd Season",
+								"english": null
+							},
+							"format": "TV",
+							"episodes": null,
+							"startDate": {
+								"year": null,
+								"month": null,
+								"day": null
+							}
+						}
+					},
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 219282,
+							"type": "ANIME",
+							"title": {
+								"native": "ぼっち・ざ・ろっく！星のあしあと",
+								"romaji": "Bocchi the Rock!: Hoshi no Ashiato",
+								"english": null
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2027,
+								"month": null,
+								"day": null
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ぼっち・ざ・ろっく！",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:39:44.090Z",
+		"responseSha256": "5c10094c9fd56755d5d94e1b0c867edaf93c2efface2890471adca5a53c6d2a6",
+		"total": 6,
+		"limit": 20,
+		"offset": 0,
+		"ids": [328609, 537409, 718086, 436738, 459642, 483776]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/328609",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/328609",
+			"fetchedAt": "2026-11-05T15:39:44.711Z",
+			"responseSha256": "9072d8f1ca00def326e5e2c6af491b5420af510b1a0a3c5015c7062a7780766f",
+			"data": {
+				"id": 328609,
+				"type": 2,
+				"name": "ぼっち・ざ・ろっく！",
+				"name_cn": "孤独摇滚！",
+				"date": "2022-10-08",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 16,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "孤独摇滚！"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "BTR"
+							},
+							{
+								"v": "Bocchi the Rock!"
+							},
+							{
+								"v": "Bocchi the \"Guitar Hero\" Rock Story"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2022年10月8日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX / BS11 / 群馬テレビ / とちぎテレビ"
+					},
+					{
+						"key": "播放结束",
+						"value": "2022年12月24日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/537409",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/537409",
+			"fetchedAt": "2026-11-05T15:39:46.070Z",
+			"responseSha256": "ef7d265985e4339766791f93ba5b16762d5dfe2aeddb559b766db03ae8a22c79",
+			"data": {
+				"id": 537409,
+				"type": 2,
+				"name": "ぼっち・ざ・ろっく！ 第2期",
+				"name_cn": "孤独摇滚！第二季",
+				"date": null,
+				"platform": "TV",
+				"eps": 0,
+				"total_episodes": 0,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "孤独摇滚！第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "BTR 2"
+							},
+							{
+								"v": "Bocchi the Rock! Season 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "*"
+					},
+					{
+						"key": "放送开始",
+						"value": "*"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/718086",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/718086",
+			"fetchedAt": "2026-11-05T15:39:46.923Z",
+			"responseSha256": "25c421529e3943268b21dde3adc8059ad7adeee2730a1cf8427d888053374d39",
+			"data": {
+				"id": 718086,
+				"type": 2,
+				"name": "映画ぼっち・ざ・ろっく！星のあしあと",
+				"name_cn": "电影 孤独摇滚！星之足迹",
+				"date": null,
+				"platform": "剧场版",
+				"eps": 0,
+				"total_episodes": 0,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "电影 孤独摇滚！星之足迹"
+					},
+					{
+						"key": "上映年度",
+						"value": "2027年"
+					}
+				]
+			}
+		}
+	]
+}

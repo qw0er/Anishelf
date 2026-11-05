@@ -4,6 +4,16 @@
 
 ### Added
 
+- Add an opt-in offline title-corpus test using the production metadata adapters
+  and name verifier via `anime:titles -- test`, with per-case diagnostics and
+  matching metrics. Keep it out
+  of default tests and CI.
+
+- Add a frozen AniList/Bangumi title-enrichment corpus with 49 real-source anchors,
+  49 positive pairs, 38 negative pairs and two unresolved release-scope cases.
+  Include explicit collection and offline summary commands, independent labels,
+  source fingerprints and franchise-grouped evaluation splits.
+
 - Save a global title display preference in Settings: Chinese, original, English or
   romaji. Pages use the preferred available title and fall back to the original
   or another available title without changing matching evidence.

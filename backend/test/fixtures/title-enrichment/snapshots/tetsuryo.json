@@ -1,0 +1,196 @@
+{
+	"schemaVersion": 1,
+	"id": "tetsuryo",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/199594",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:36.909Z",
+		"responseSha256": "a87e42c53b15b24205b207cdb800e44cab3a198fbd4a20df8a211599165bc4e3",
+		"data": {
+			"id": 199594,
+			"type": "ANIME",
+			"title": {
+				"native": "てつりょー！meet with 鉄道むすめ",
+				"romaji": "Tetsuryou! meet with Tetsudou Musume",
+				"english": "TETSURYO! Meet With Tetsudou Musume"
+			},
+			"synonyms": ["TETSURYO! meet with Tetsudou Musume"],
+			"format": "TV",
+			"status": "RELEASING",
+			"episodes": 12,
+			"duration": null,
+			"seasonYear": 2026,
+			"startDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 9
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/199594",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 44196,
+							"type": "MANGA",
+							"title": {
+								"native": "鉄道むすめ～Terminal Memory～",
+								"romaji": "Tetsudou Musume: Terminal Memory",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2008,
+								"month": 6,
+								"day": 27
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "てつりょー！meet with 鉄道むすめ",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:38.537Z",
+		"responseSha256": "2c16a604b045f13dae12403745aa4acd9e6319e120bf4d220d6e459dbe0cd23c",
+		"total": 352,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			590553, 8281, 30472, 46832, 69943, 80442, 82079, 91322, 91987, 112838,
+			130452, 143751, 159365, 189639, 212675, 232793, 253922, 636357, 10182,
+			13823
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/590553",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/590553",
+			"fetchedAt": "2026-11-05T15:41:38.916Z",
+			"responseSha256": "d9ed57b3799d57c31c7e86dac93a4ea5fad001707be8115af59dff311a177efc",
+			"data": {
+				"id": 590553,
+				"type": 2,
+				"name": "てつりょー！meet with 鉄道むすめ",
+				"name_cn": "铁旅！meet with 铁道少女",
+				"date": "2026-10-08",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "铁旅！meet with 铁道少女"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Tetsuryou! meet with Tetsudou Musume"
+							},
+							{
+								"v": "TETSURYO! Meet With Tetsudou Musume"
+							},
+							{
+								"v": "铁旅！邂逅铁道少女"
+							},
+							{
+								"v": "铁旅！meet with 铁路女孩"
+							},
+							{
+								"v": "铁旅！meet with 铁道娘"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年10月8日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期四"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX・BS"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/8281",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/8281",
+			"fetchedAt": "2026-11-05T15:41:40.269Z",
+			"responseSha256": "7514947f055633f44e2214a26d64c72c9a4ab4336152099a94706a3cc9c9c777",
+			"data": {
+				"id": 8281,
+				"type": 2,
+				"name": "てなもんやボイジャーズ",
+				"name_cn": "星际迷航俏女郎",
+				"date": "1999-06-25",
+				"platform": "OVA",
+				"eps": 4,
+				"total_episodes": 4,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "星际迷航俏女郎"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Tenamonya Voyagers"
+							},
+							{
+								"v": "Tenamon`ya Voyagers"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "4"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/30472",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/30472",
+			"fetchedAt": "2026-11-05T15:41:41.438Z",
+			"responseSha256": "47e7d0c37f56f1224883aed7b3dbda7e3d83b5580fed3e3a5117b739dfe6c38a",
+			"data": {
+				"id": 30472,
+				"type": 2,
+				"name": "ているず おぶ 劇場",
+				"name_cn": "剧场传说",
+				"date": "2012-02-23",
+				"platform": "OVA",
+				"eps": 5,
+				"total_episodes": 5,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "剧场传说"
+					},
+					{
+						"key": "话数",
+						"value": "5"
+					}
+				]
+			}
+		}
+	]
+}

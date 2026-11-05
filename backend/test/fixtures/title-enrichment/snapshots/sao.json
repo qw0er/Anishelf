@@ -1,0 +1,421 @@
+{
+	"schemaVersion": 1,
+	"id": "sao",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/11757",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:42:54.733Z",
+		"responseSha256": "16a0d3be153ddd890a820b526c457df57aa1c3d3bc86502db2ba0db884fc2a5c",
+		"data": {
+			"id": 11757,
+			"type": "ANIME",
+			"title": {
+				"native": "ソードアート・オンライン",
+				"romaji": "Sword Art Online",
+				"english": "Sword Art Online"
+			},
+			"synonyms": [
+				"S.A.O",
+				"SAO",
+				"אומנות החרב אונליין",
+				"刀剑神域",
+				"ซอร์ดอาร์ตออนไลน์",
+				"Мастера меча онлайн"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 25,
+			"duration": 23,
+			"seasonYear": 2012,
+			"startDate": {
+				"year": 2012,
+				"month": 7,
+				"day": 8
+			},
+			"endDate": {
+				"year": 2012,
+				"month": 12,
+				"day": 23
+			},
+			"siteUrl": "https://anilist.co/anime/11757",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 51479,
+							"type": "MANGA",
+							"title": {
+								"native": "ソードアート・オンライン",
+								"romaji": "Sword Art Online",
+								"english": "Sword Art Online"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2009,
+								"month": 4,
+								"day": 10
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 20021,
+							"type": "ANIME",
+							"title": {
+								"native": "ソードアート・オンライン Extra Edition",
+								"romaji": "Sword Art Online: Extra Edition",
+								"english": "Sword Art Online EXTRA EDITION"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2013,
+								"month": 12,
+								"day": 31
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 20594,
+							"type": "ANIME",
+							"title": {
+								"native": "ソードアート・オンライン II",
+								"romaji": "Sword Art Online II",
+								"english": "Sword Art Online II"
+							},
+							"format": "TV",
+							"episodes": 24,
+							"startDate": {
+								"year": 2014,
+								"month": 7,
+								"day": 5
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 124140,
+							"type": "ANIME",
+							"title": {
+								"native": "劇場版 ソードアート・オンライン プログレッシブ 星なき夜のアリア",
+								"romaji": "Sword Art Online: Progressive - Hoshinaki Yoru no Aria",
+								"english": "Sword Art Online the Movie -Progressive- Aria of a Starless Night"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2021,
+								"month": 10,
+								"day": 30
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 16099,
+							"type": "ANIME",
+							"title": {
+								"native": "そーどあーと・おふらいん",
+								"romaji": "Sword Art Offline",
+								"english": "Sword Art OFFline"
+							},
+							"format": "SPECIAL",
+							"episodes": 9,
+							"startDate": {
+								"year": 2012,
+								"month": 10,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 53718,
+							"type": "MANGA",
+							"title": {
+								"native": "ソードアート・オンライン アインクラッド",
+								"romaji": "Sword Art Online: Aincrad",
+								"english": "Sword Art Online: Aincrad"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2010,
+								"month": 8,
+								"day": 10
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 74733,
+							"type": "MANGA",
+							"title": {
+								"native": "ソードアート・オンライン フェアリィ・ダンス",
+								"romaji": "Sword Art Online: Fairy Dance",
+								"english": "Sword Art Online: Fairy Dance"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2012,
+								"month": 4,
+								"day": 10
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 141165,
+							"type": "MANGA",
+							"title": {
+								"native": "ソードアート・オンライン Re:Aincrad",
+								"romaji": "Sword Art Online: Re:Aincrad",
+								"english": "Sword Art Online Re:Aincrad"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2021,
+								"month": 10,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 21685,
+							"type": "ANIME",
+							"title": {
+								"native": "エロマンガ先生",
+								"romaji": "Eromanga Sensei",
+								"english": "Eromanga Sensei"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2017,
+								"month": 4,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 157058,
+							"type": "ANIME",
+							"title": {
+								"native": "ソードアート・オンライン -フルダイブ- オープニング映像",
+								"romaji": "Sword Art Online: FULLDIVE - Opening Eizou",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2022,
+								"month": 11,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 208754,
+							"type": "ANIME",
+							"title": {
+								"native": "Unanswered//butterfly: Sword Art Online",
+								"romaji": "Unanswered//butterfly: Sword Art Online",
+								"english": null
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2026,
+								"month": 7,
+								"day": 10
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ソードアート・オンライン",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:42:55.773Z",
+		"responseSha256": "9c9a8ae5ffabed035a0b45c3e40d5770e9f3861e00360b3a2b81d801cd472500",
+		"total": 19,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			23686, 84866, 92382, 225604, 226750, 279457, 292238, 407340, 445821,
+			148099, 315375, 355004, 114706, 241865, 8539, 45337, 458014, 172155,
+			201699
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/23686",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/23686",
+			"fetchedAt": "2026-11-05T15:42:56.567Z",
+			"responseSha256": "19ed56dae19315c2a450ff645061bbb391d9d1159e7c2c771ac6c8c8d29b5029",
+			"data": {
+				"id": 23686,
+				"type": 2,
+				"name": "ソードアート・オンライン",
+				"name_cn": "刀剑神域",
+				"date": "2012-07-07",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 25,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "刀剑神域"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "SAO"
+							},
+							{
+								"v": "Sword Art Online"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2012年7月7日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX/MBS"
+					},
+					{
+						"key": "播放结束",
+						"value": "2012年12月22日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/84866",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/84866",
+			"fetchedAt": "2026-11-05T15:42:59.385Z",
+			"responseSha256": "2d524fc419b8018f870a9db9d00037e31b44824a4ab70f1218a4f4d86dbcce5d",
+			"data": {
+				"id": 84866,
+				"type": 2,
+				"name": "ソードアート・オンライン Extra Edition",
+				"name_cn": "刀剑神域 Extra Edition",
+				"date": "2013-12-31",
+				"platform": "TV",
+				"eps": 1,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "刀剑神域 Extra Edition"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Sword Art Online: Extra Edition"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					},
+					{
+						"key": "放送开始",
+						"value": "2013年12月31日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期二"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX·BS11"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/92382",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/92382",
+			"fetchedAt": "2026-11-05T15:42:59.791Z",
+			"responseSha256": "b87393f08b0ed8c4b80c6f6c453a958f90be9e877ebc1901fa4bd3c04dbfcb50",
+			"data": {
+				"id": 92382,
+				"type": 2,
+				"name": "ソードアート・オンラインII",
+				"name_cn": "刀剑神域 第二季",
+				"date": "2014-07-05",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 25,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "刀剑神域 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Sword Art Online II"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2014年7月5日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2014年12月20日"
+					}
+				]
+			}
+		}
+	]
+}

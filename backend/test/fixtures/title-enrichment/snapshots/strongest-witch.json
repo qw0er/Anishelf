@@ -1,0 +1,243 @@
+{
+	"schemaVersion": 1,
+	"id": "strongest-witch",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/211778",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:54.174Z",
+		"responseSha256": "a6d11499334120cec003fed7dbda44db3ffb4e3e493834c92f72bd494d327422",
+		"data": {
+			"id": 211778,
+			"type": "ANIME",
+			"title": {
+				"native": "世界最強の魔女、始めました",
+				"romaji": "Sekai Saikyou no Majo, Hajimemashita",
+				"english": "The World's Strongest Witch"
+			},
+			"synonyms": [
+				"Sekai Saikyou no Majo, Hajimemashita: Watashi dake \"Kouryaku Site\" wo Mireru Sekai de Jiyuu ni Ikimasu",
+				"世界最強の魔女、始めました　～私だけ『攻略サイト』を見れる世界で自由に生きます～",
+				"Sekamajo",
+				"せかまじょ"
+			],
+			"format": "TV",
+			"status": "RELEASING",
+			"episodes": null,
+			"duration": 24,
+			"seasonYear": 2026,
+			"startDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 7
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/211778",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 187703,
+							"type": "MANGA",
+							"title": {
+								"native": "世界最強の魔女、始めました　～私だけ『攻略サイト』を見れる世界で自由に生きます～",
+								"romaji": "Sekai Saikyou no Majo, Hajimemashita: Watashi dake \"Kouryaku Site\" wo Mireru Sekai de Jiyuu ni Ikimasu",
+								"english": "The World’s Strongest Witch"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2022,
+								"month": 12,
+								"day": 7
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 176270,
+							"type": "MANGA",
+							"title": {
+								"native": "世界最強の魔女、始めました　～私だけ『攻略サイト』を見れる世界で自由に生きます～",
+								"romaji": "Sekai Saikyou no Majo, Hajimemashita: Watashi dake \"Kouryaku Site\" wo Mireru Sekai de Jiyuu ni Ikimasu",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2023,
+								"month": 5,
+								"day": 26
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "世界最強の魔女、始めました",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:55.250Z",
+		"responseSha256": "0c89c3aff8387929f410b1cee6886345d8861638bfb2bf1196fa9b858797f916",
+		"total": 544,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			646154, 583862, 356746, 360345, 376349, 463389, 571912, 326869, 491151,
+			373710, 366507, 523074, 409441, 231414, 292316, 400576, 10243, 13973,
+			18253, 18257
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/646154",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/646154",
+			"fetchedAt": "2026-11-05T15:41:55.678Z",
+			"responseSha256": "a3f2d55699017ac9cf7fb9eefdfa7b36cc90df04101b670b007f55e6ff03a4c7",
+			"data": {
+				"id": 646154,
+				"type": 2,
+				"name": "世界最強の魔女、始めました",
+				"name_cn": "世界最强的魔女，就此开始",
+				"date": "2026-10-07",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "世界最强的魔女，就此开始"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Sekai Saikyou no Majo, Hajimemashita"
+							},
+							{
+								"v": "The World's Strongest Witch"
+							},
+							{
+								"v": "世界最强魔女，始动"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年10月7日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/583862",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/583862",
+			"fetchedAt": "2026-11-05T15:41:56.796Z",
+			"responseSha256": "d17a530b52701ecbe6b71dae79405be4adab7f1b6723a4ced31f80418e5f2e36",
+			"data": {
+				"id": 583862,
+				"type": 2,
+				"name": "世界最強の後衛 ～迷宮国の新人探索者～",
+				"name_cn": "世界最强的后卫 ～迷宫国的新人探索者～",
+				"date": "2026-07-05",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "世界最强的后卫 ～迷宫国的新人探索者～"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年7月5日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/356746",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/356746",
+			"fetchedAt": "2026-11-05T15:41:59.259Z",
+			"responseSha256": "cac51c03a23aef65969bf2d45fa2205e1008a6c01d05640053c52ec01b647335",
+			"data": {
+				"id": 356746,
+				"type": 2,
+				"name": "英雄王、武を極めるため転生す～そして、世界最強の見習い騎士♀～",
+				"name_cn": "英雄王，为了穷尽武道而转生～然后，成为世界最强的见习骑士♀～",
+				"date": "2020-11-07",
+				"platform": "WEB",
+				"eps": 2,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "英雄王，为了穷尽武道而转生～然后，成为世界最强的见习骑士♀～"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "英雄王，為了窮盡武道而轉生～然後，成為世界最強的見習騎士♀～"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "2"
+					},
+					{
+						"key": "放送开始",
+						"value": "2020年11月7日"
+					},
+					{
+						"key": "在线播放",
+						"value": "https://www.youtube.com/watch?v=DKIxX6MicJA"
+					},
+					{
+						"key": "播放结束",
+						"value": "2020年11月14日"
+					}
+				]
+			}
+		}
+	]
+}

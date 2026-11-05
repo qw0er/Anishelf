@@ -1,0 +1,174 @@
+{
+	"schemaVersion": 1,
+	"id": "dark-summoner",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/208025",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:32.935Z",
+		"responseSha256": "83e577ea33e1cb765c37cef4229c0b3cea9a43364f30c80e893e6fb6cd563ad7",
+		"data": {
+			"id": 208025,
+			"type": "ANIME",
+			"title": {
+				"native": "ダークサモナーとデキている",
+				"romaji": "Dark Summoner to Dekiteiru",
+				"english": "I'm Dating a Dark Summoner"
+			},
+			"synonyms": [],
+			"format": "TV_SHORT",
+			"status": "RELEASING",
+			"episodes": 12,
+			"duration": 12,
+			"seasonYear": 2026,
+			"startDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 5
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/208025",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 157391,
+							"type": "MANGA",
+							"title": {
+								"native": "ダークサモナーとデキている",
+								"romaji": "Dark Summoner to Dekiteiru",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2021,
+								"month": 12,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 218217,
+							"type": "ANIME",
+							"title": {
+								"native": "JKダークサモナーとデキ。。。。。。でいない!?",
+								"romaji": "JK Dark Summoner to Deki......Dei Nai!?",
+								"english": null
+							},
+							"format": "TV_SHORT",
+							"episodes": 12,
+							"startDate": {
+								"year": 2026,
+								"month": 10,
+								"day": 5
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ダークサモナーとデキている",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:33.684Z",
+		"responseSha256": "96e3bc4025d1357f1adb6d1c2df32c9586a169a7f3100ead795c8e92a94b5cb9",
+		"total": 2,
+		"limit": 20,
+		"offset": 0,
+		"ids": [630160, 708612]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/630160",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/630160",
+			"fetchedAt": "2026-11-05T15:41:34.517Z",
+			"responseSha256": "079152dcb3a61b9cddd8a62f70e4c7f197a57b587957b789dd717a2b4f1d30af",
+			"data": {
+				"id": 630160,
+				"type": 2,
+				"name": "ダークサモナーとデキている",
+				"name_cn": "黑暗召唤师在地下恋爱中",
+				"date": "2026-10-04",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "黑暗召唤师在地下恋爱中"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Dark Summoner to Dekiteiru"
+							},
+							{
+								"k": "英文名",
+								"v": "I'm Dating a Dark Summoner!"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年10月4日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/708612",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/708612",
+			"fetchedAt": "2026-11-05T15:41:35.682Z",
+			"responseSha256": "ccb23bbadbe5a97c9e028246de18fba10c343476237d1e3f6873491eeb7ba894",
+			"data": {
+				"id": 708612,
+				"type": 2,
+				"name": "ダークサモナーとデキている  ミニアニメ劇場",
+				"name_cn": "黑暗召唤师在地下恋爱中 迷你动画剧场",
+				"date": "2026-10-04",
+				"platform": "WEB",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "黑暗召唤师在地下恋爱中 迷你动画剧场"
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年10月4日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					}
+				]
+			}
+		}
+	]
+}

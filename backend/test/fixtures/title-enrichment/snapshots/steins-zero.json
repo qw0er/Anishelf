@@ -1,0 +1,240 @@
+{
+	"schemaVersion": 1,
+	"id": "steins-zero",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/21127",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:54.898Z",
+		"responseSha256": "0142cb56825373309f5f058d1bd874f46c7952cc4e7b381d56de33f4a9e1f9d4",
+		"data": {
+			"id": 21127,
+			"type": "ANIME",
+			"title": {
+				"native": "シュタインズ・ゲート ゼロ",
+				"romaji": "Steins;Gate 0",
+				"english": "Steins;Gate 0"
+			},
+			"synonyms": ["s;g0", "命运石之门0"],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 23,
+			"duration": 24,
+			"seasonYear": 2018,
+			"startDate": {
+				"year": 2018,
+				"month": 4,
+				"day": 12
+			},
+			"endDate": {
+				"year": 2018,
+				"month": 9,
+				"day": 27
+			},
+			"siteUrl": "https://anilist.co/anime/21127",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 21624,
+							"type": "ANIME",
+							"title": {
+								"native": "シュタインズ・ゲート 境界面上のミッシングリンク -Divide By Zero-",
+								"romaji": "Steins;Gate: Kyoukaimenjou no Missing Link - Divide By Zero",
+								"english": "Steins;Gate 0: 23β -Divide by Zero-"
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2015,
+								"month": 12,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 104174,
+							"type": "ANIME",
+							"title": {
+								"native": "シュタインズ・ゲート ゼロ 結晶多形のバレンタイン",
+								"romaji": "Steins;Gate 0: Kesshou Takei no Valentine - Bittersweet Day",
+								"english": "Steins;Gate 0: Valentine's of Crystal Polymorphism -Bittersweet Intermedio-"
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2018,
+								"month": 12,
+								"day": 21
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 102247,
+							"type": "MANGA",
+							"title": {
+								"native": "シュタインズ・ゲート・ゼロ",
+								"romaji": "Steins;Gate 0",
+								"english": "Steins;Gate 0"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2017,
+								"month": 8,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 91997,
+							"type": "MANGA",
+							"title": {
+								"native": "STEINS;GATE 星屑のデュプレット",
+								"romaji": "Steins;Gate: Hoshikuzu no Duplet",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2011,
+								"month": 8,
+								"day": 26
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "シュタインズ・ゲート ゼロ",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:40:56.107Z",
+		"responseSha256": "26e44a5a430aeb6f908e78f5e49cabf63f4c3f3e0fb1750ea1ae7140b1f9a4af",
+		"total": 2,
+		"limit": 20,
+		"offset": 0,
+		"ids": [129807, 10380]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/129807",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/129807",
+			"fetchedAt": "2026-11-05T15:40:56.719Z",
+			"responseSha256": "1ee904589b0a7a8f49259d418eadc9e3d603a1986c436bd372a846e100ec58d4",
+			"data": {
+				"id": 129807,
+				"type": 2,
+				"name": "シュタインズ・ゲート ゼロ",
+				"name_cn": "命运石之门 0",
+				"date": "2018-04-11",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 24,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "命运石之门 0"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "STEINS;GATE 0"
+							},
+							{
+								"v": "石头门 0"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2018年4月11日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2018年9月26日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/10380",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/10380",
+			"fetchedAt": "2026-11-05T15:40:57.797Z",
+			"responseSha256": "09bf1634043b91bd5406d8c888fc425ed3d670a3c1ba5b26b84c1c62edb60da6",
+			"data": {
+				"id": 10380,
+				"type": 2,
+				"name": "STEINS;GATE",
+				"name_cn": "命运石之门",
+				"date": "2011-04-06",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 26,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "命运石之门"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "シュタゲ"
+							},
+							{
+								"v": "石头门"
+							},
+							{
+								"v": "斯坦因之门"
+							},
+							{
+								"v": "シュタインズ・ゲート"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2011年4月6日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "サンテレビ"
+					},
+					{
+						"key": "播放结束",
+						"value": "2011年9月14日"
+					}
+				]
+			}
+		}
+	]
+}

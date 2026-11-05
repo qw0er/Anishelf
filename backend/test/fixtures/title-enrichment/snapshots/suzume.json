@@ -1,0 +1,206 @@
+{
+	"schemaVersion": 1,
+	"id": "suzume",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/142770",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:59.042Z",
+		"responseSha256": "aec34d900e748a8b24bc43dc9ff635a4e52cd04bc0405aec09d02fddde47a791",
+		"data": {
+			"id": 142770,
+			"type": "ANIME",
+			"title": {
+				"native": "すずめの戸締まり",
+				"romaji": "Suzume no Tojimari",
+				"english": "Suzume"
+			},
+			"synonyms": [
+				"铃芽之旅",
+				"Khóa Chặt Cửa Nào Suzume",
+				"การผนึกประตูของซุซุเมะ",
+				"Судзуме зачиняє двері",
+				"Судзумэ"
+			],
+			"format": "MOVIE",
+			"status": "FINISHED",
+			"episodes": 1,
+			"duration": 121,
+			"seasonYear": 2022,
+			"startDate": {
+				"year": 2022,
+				"month": 11,
+				"day": 11
+			},
+			"endDate": {
+				"year": 2022,
+				"month": 11,
+				"day": 11
+			},
+			"siteUrl": "https://anilist.co/anime/142770",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 156544,
+							"type": "MANGA",
+							"title": {
+								"native": "すずめの戸締まり",
+								"romaji": "Suzume no Tojimari",
+								"english": "Suzume"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2022,
+								"month": 10,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 166058,
+							"type": "ANIME",
+							"title": {
+								"native": "ビッグマック®と、すすめ！",
+								"romaji": "Big Mac® to, Susume!",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2022,
+								"month": 11,
+								"day": 11
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "すずめの戸締まり",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:00.579Z",
+		"responseSha256": "dd009cc1e1524b0314b9e2898ae159413ad795aaa07b57d3706f7ca4bb9e7c6c",
+		"total": 3,
+		"limit": 20,
+		"offset": 0,
+		"ids": [362577, 532742, 594400]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/362577",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/362577",
+			"fetchedAt": "2026-11-05T15:41:00.874Z",
+			"responseSha256": "8be760b6cdfea048c62739e34da8893038df4ccc833c31fd68211f187c8b2252",
+			"data": {
+				"id": 362577,
+				"type": 2,
+				"name": "すずめの戸締まり",
+				"name_cn": "铃芽之旅",
+				"date": "2022-11-11",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "铃芽之旅"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "铃芽户缔"
+							},
+							{
+								"v": "铃芽的门锁"
+							},
+							{
+								"v": "Suzume no Tojimari"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2022年11月11日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/532742",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/532742",
+			"fetchedAt": "2026-11-05T15:41:02.422Z",
+			"responseSha256": "50ab39df87591c3e1fa4000b734eafbfa6cdcf0f564db1f46e93e2f99e68d05b",
+			"data": {
+				"id": 532742,
+				"type": 2,
+				"name": "ひょうたんすずめ",
+				"name_cn": "葫芦雀",
+				"date": "1959-02-10",
+				"platform": "剧场版",
+				"eps": 0,
+				"total_episodes": 0,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "葫芦雀"
+					},
+					{
+						"key": "上映年度",
+						"value": "1959年2月10日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/594400",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/594400",
+			"fetchedAt": "2026-11-05T15:41:03.347Z",
+			"responseSha256": "64a04e93d4ebb913d07614f914055fba080fe546ceba66866ab1caa9811a7347",
+			"data": {
+				"id": 594400,
+				"type": 2,
+				"name": "したきりすずめ",
+				"name_cn": "舌切雀",
+				"date": null,
+				"platform": "剧场版",
+				"eps": 0,
+				"total_episodes": 0,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "舌切雀"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "日本むかし話 したきりすずめ"
+							},
+							{
+								"v": "The Sparrow with the Slit Tongue"
+							},
+							{
+								"v": "Shita-kiri Suzume"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "1974年"
+					}
+				]
+			}
+		}
+	]
+}

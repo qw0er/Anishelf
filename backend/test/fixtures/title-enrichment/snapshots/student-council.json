@@ -1,0 +1,283 @@
+{
+	"schemaVersion": 1,
+	"id": "student-council",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/191656",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:21.941Z",
+		"responseSha256": "d492ac206d2846e40f385701c7cacf0be127d7e112e807813a9295a9e4564641",
+		"data": {
+			"id": 191656,
+			"type": "ANIME",
+			"title": {
+				"native": "生徒会にも穴はある！",
+				"romaji": "Seitokai ni mo Ana wa Aru!",
+				"english": "Even the Student Council Has Its Holes!"
+			},
+			"synonyms": ["生穴る", "NamaAnaru", "สภานักเรียนฉบับรั่ว!"],
+			"format": "TV",
+			"status": "RELEASING",
+			"episodes": 12,
+			"duration": 24,
+			"seasonYear": 2026,
+			"startDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 4
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/191656",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 147863,
+							"type": "MANGA",
+							"title": {
+								"native": "生徒会にも穴はある!",
+								"romaji": "Seitokai ni mo Ana wa Aru!",
+								"english": "Even the Student Council Has Its Holes!"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2022,
+								"month": 4,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 179207,
+							"type": "ANIME",
+							"title": {
+								"native": "生徒会にも穴はある！ PV",
+								"romaji": "Seitokai ni mo Ana wa Aru! PV",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2024,
+								"month": 7,
+								"day": 9
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "生徒会にも穴はある！",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:22.943Z",
+		"responseSha256": "dcf4326cc00514b9dcd91bcf056430ff376b4c3a1a16aed2f39f9289b573522c",
+		"total": 19,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			554779, 502809, 2567, 48289, 77756, 5649, 17160, 39118, 85204, 103892,
+			104591, 116225, 2877, 119889, 151906, 167348, 200887, 295918, 95526
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/554779",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/554779",
+			"fetchedAt": "2026-11-05T15:41:23.530Z",
+			"responseSha256": "7fc99314089c8266d2791bc3cae7772a35e9f65ea7b2d7321fbd66c08dab87d6",
+			"data": {
+				"id": 554779,
+				"type": 2,
+				"name": "生徒会にも穴はある！",
+				"name_cn": "学生会也有洞！",
+				"date": "2026-10-03",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 15,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "学生会也有洞！"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "NamaAnaru"
+							},
+							{
+								"v": "There is also a hole in the student organization!"
+							},
+							{
+								"v": "Even the Student Council Has Its Holes!"
+							},
+							{
+								"v": "Seitokai ni mo Ana wa Aru!"
+							},
+							{
+								"v": "脑洞学生会！"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年10月3日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/502809",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/502809",
+			"fetchedAt": "2026-11-05T15:41:24.848Z",
+			"responseSha256": "25ba101a6c9bdd8247d6c84843459f54b22f78b5177b0bc1b3845edf1ac508cf",
+			"data": {
+				"id": 502809,
+				"type": 2,
+				"name": "生徒会にも穴はある！アニメCM",
+				"name_cn": "学生会也有洞！动画CM",
+				"date": "2024-07-10",
+				"platform": "其他",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "学生会也有洞！动画CM"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "脑洞学生会 动画CM"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2024年7月10日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/2567",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/2567",
+			"fetchedAt": "2026-11-05T15:41:25.944Z",
+			"responseSha256": "38901fc1b04ca1a6bef4ebfdfd5c3b6e892d9b19d8d5a808f80d8e624c13d764",
+			"data": {
+				"id": 2567,
+				"type": 2,
+				"name": "生徒会の一存",
+				"name_cn": "学生会的一己之见",
+				"date": "2009-10-02",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "学生会的一己之见"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Seitokai no Ichizon"
+							},
+							{
+								"v": "生徒会の一存 碧陽学園生徒会議事録"
+							},
+							{
+								"v": "碧阳学园学生会议事录"
+							},
+							{
+								"v": "学生会的一存"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2009年10月2日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "アニメワン、アニメNewtypeチャンネル"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ愛知、BS日テレ"
+					},
+					{
+						"key": "播放结束",
+						"value": "2009年12月18日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/379566",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/379566",
+			"fetchedAt": "2026-11-05T15:46:44.143696+00:00",
+			"responseSha256": "5dcef95b01c083d58990e4d0dad59e0dc51b1d63f7df7f1fc53fb1f735874cbf",
+			"data": {
+				"id": 379566,
+				"type": 1,
+				"name": "生徒会にも穴はある！",
+				"name_cn": "学生会也有洞！",
+				"date": "2022-09-16",
+				"platform": "漫画",
+				"eps": 0,
+				"total_episodes": 0,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "学生会也有洞！"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"k": "非官方",
+								"v": "脑洞学生会！"
+							}
+						]
+					}
+				]
+			}
+		}
+	]
+}

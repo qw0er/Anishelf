@@ -1,0 +1,92 @@
+{
+	"schemaVersion": 1,
+	"id": "shelter",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/97731",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:44:41.378Z",
+		"responseSha256": "bb0be0f38e40f376dbd665b676317fb5848f81740c2147031478104483a8d04a",
+		"data": {
+			"id": 97731,
+			"type": "ANIME",
+			"title": {
+				"native": "シェルター",
+				"romaji": "Shelter",
+				"english": "Shelter"
+			},
+			"synonyms": ["Shelter The Animation"],
+			"format": "MUSIC",
+			"status": "FINISHED",
+			"episodes": 1,
+			"duration": 6,
+			"seasonYear": null,
+			"startDate": {
+				"year": 2016,
+				"month": 10,
+				"day": 18
+			},
+			"endDate": {
+				"year": 2016,
+				"month": 10,
+				"day": 18
+			},
+			"siteUrl": "https://anilist.co/anime/97731",
+			"relations": {
+				"edges": []
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "シェルター",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:44:42.063Z",
+		"responseSha256": "8771f074355cc06317733dc1f2d501ec3099f231721ee63fa0fd21e577941a8c",
+		"total": 1,
+		"limit": 20,
+		"offset": 0,
+		"ids": [195249]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/195249",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/195249",
+			"fetchedAt": "2026-11-05T15:44:43.279Z",
+			"responseSha256": "ae1e62ea7e0427aa6f0c22ca774537140ab173bd131379b172890fb4f94e105d",
+			"data": {
+				"id": 195249,
+				"type": 2,
+				"name": "SHELTER",
+				"name_cn": "避难所",
+				"date": "2016-10-18",
+				"platform": "其他",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "避难所"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "庇护所"
+							},
+							{
+								"v": "シェルター"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					},
+					{
+						"key": "放送开始",
+						"value": "2016年10月18日"
+					}
+				]
+			}
+		}
+	]
+}

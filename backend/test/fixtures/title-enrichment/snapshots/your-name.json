@@ -1,0 +1,270 @@
+{
+	"schemaVersion": 1,
+	"id": "your-name",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/21519",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:16.397Z",
+		"responseSha256": "e55303ed052513b074e4b676995830021dda7f6b57c096349e8d428ef49e187d",
+		"data": {
+			"id": 21519,
+			"type": "ANIME",
+			"title": {
+				"native": "君の名は。",
+				"romaji": "Kimi no Na wa.",
+				"english": "Your Name."
+			},
+			"synonyms": [
+				"Your Name. - Gestern, heute und für immer",
+				"Mi a Neved?",
+				"你的名字。",
+				"너의 이름은.",
+				"Tu nombre",
+				"Твоё имя",
+				"หลับตาฝันถึงชื่อเธอ",
+				"Il tuo nome",
+				"השם שלך.",
+				"Twoje imię",
+				"Tên cậu là gì",
+				"Tvoje meno.",
+				"Tvoje jméno."
+			],
+			"format": "MOVIE",
+			"status": "FINISHED",
+			"episodes": 1,
+			"duration": 107,
+			"seasonYear": 2016,
+			"startDate": {
+				"year": 2016,
+				"month": 8,
+				"day": 26
+			},
+			"endDate": {
+				"year": 2016,
+				"month": 8,
+				"day": 26
+			},
+			"siteUrl": "https://anilist.co/anime/21519",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 97962,
+							"type": "ANIME",
+							"title": {
+								"native": "サントリー 南アルプスの天然水",
+								"romaji": "Suntory Minami Alps no Tennen Mizu",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 3,
+							"startDate": {
+								"year": 2016,
+								"month": 8,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 97337,
+							"type": "MANGA",
+							"title": {
+								"native": "君の名は。",
+								"romaji": "Kimi no Na wa.",
+								"english": "your name."
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2016,
+								"month": 5,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 97789,
+							"type": "MANGA",
+							"title": {
+								"native": "君の名は。 Another Side：Earthbound",
+								"romaji": "Kimi no Na wa. Another Side: Earthbound",
+								"english": "your name. Another Side: Earthbound"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2016,
+								"month": 7,
+								"day": 30
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 106286,
+							"type": "ANIME",
+							"title": {
+								"native": "天気の子",
+								"romaji": "Tenki no Ko",
+								"english": "Weathering With You"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2019,
+								"month": 7,
+								"day": 19
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 16782,
+							"type": "ANIME",
+							"title": {
+								"native": "言の葉の庭",
+								"romaji": "Kotonoha no Niwa",
+								"english": "The Garden of Words"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2013,
+								"month": 5,
+								"day": 31
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "君の名は。",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:17.440Z",
+		"responseSha256": "c245239ad210bb473bcac510468ca8ba957771f601a9ccefd7c43575454523ca",
+		"total": 181,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			160209, 2875, 26806, 66655, 84506, 221736, 424379, 471793, 598058, 307436,
+			587981, 100444, 115980, 593000, 331946, 334495, 121819, 55020, 494564,
+			637124
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/160209",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/160209",
+			"fetchedAt": "2026-11-05T15:41:17.998Z",
+			"responseSha256": "c1d8572aa9d9fd0069753f1a0b4918fca11258ac7305df8b879b5a13843d4b92",
+			"data": {
+				"id": 160209,
+				"type": 2,
+				"name": "君の名は。",
+				"name_cn": "你的名字。",
+				"date": "2016-08-26",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "你的名字。"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Kimi no Na wa."
+							},
+							{
+								"v": "Your Name."
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2016年8月26日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/2875",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/2875",
+			"fetchedAt": "2026-11-05T15:41:19.321Z",
+			"responseSha256": "1405a5f6d124ab62c8db5123e68de63025348f0266aaa6ac602035931774e623",
+			"data": {
+				"id": 2875,
+				"type": 2,
+				"name": "劇場版BLEACH Fade to Black 君の名を呼ぶ",
+				"name_cn": "死神剧场版 消逝于黑暗中 呼唤着你的名字",
+				"date": "2008-12-13",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "死神剧场版 消逝于黑暗中 呼唤着你的名字"
+					},
+					{
+						"key": "上映年度",
+						"value": "2008年12月13日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/26806",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/26806",
+			"fetchedAt": "2026-11-05T15:41:20.445Z",
+			"responseSha256": "8b83ce85fbceaaf6b2723dd6181f17bbf829c4be245bee7578add369661ec2a5",
+			"data": {
+				"id": 26806,
+				"type": 2,
+				"name": "君のいる町～黄昏交差点～",
+				"name_cn": "小镇有你 OAD 黄昏交叉点",
+				"date": "2012-03-16",
+				"platform": "OVA",
+				"eps": 2,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "小镇有你 OAD 黄昏交叉点"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "有你的小镇 OAD"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "2"
+					}
+				]
+			}
+		}
+	]
+}

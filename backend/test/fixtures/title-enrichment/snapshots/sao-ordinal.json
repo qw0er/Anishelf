@@ -1,0 +1,324 @@
+{
+	"schemaVersion": 1,
+	"id": "sao-ordinal",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/21403",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:43:01.355Z",
+		"responseSha256": "d6f566390ecc4754a9b5784e1c126d5e8ef4ebdbe095ccda8c4cad9184badd0f",
+		"data": {
+			"id": 21403,
+			"type": "ANIME",
+			"title": {
+				"native": "ソードアート・オンライン -オーディナル・スケール-",
+				"romaji": "Sword Art Online: Ordinal Scale",
+				"english": "Sword Art Online the Movie: Ordinal Scale"
+			},
+			"synonyms": ["SAO THE MOVIE"],
+			"format": "MOVIE",
+			"status": "FINISHED",
+			"episodes": 1,
+			"duration": 119,
+			"seasonYear": 2017,
+			"startDate": {
+				"year": 2017,
+				"month": 2,
+				"day": 18
+			},
+			"endDate": {
+				"year": 2017,
+				"month": 2,
+				"day": 18
+			},
+			"siteUrl": "https://anilist.co/anime/21403",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 20594,
+							"type": "ANIME",
+							"title": {
+								"native": "ソードアート・オンライン II",
+								"romaji": "Sword Art Online II",
+								"english": "Sword Art Online II"
+							},
+							"format": "TV",
+							"episodes": 24,
+							"startDate": {
+								"year": 2014,
+								"month": 7,
+								"day": 5
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 100182,
+							"type": "ANIME",
+							"title": {
+								"native": "ソードアート・オンライン アリシゼーション",
+								"romaji": "Sword Art Online: Alicization",
+								"english": "Sword Art Online: Alicization"
+							},
+							"format": "TV",
+							"episodes": 24,
+							"startDate": {
+								"year": 2018,
+								"month": 10,
+								"day": 7
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 106537,
+							"type": "MANGA",
+							"title": {
+								"native": "劇場版 ソードアート・オンライン -オーディナル・スケール-",
+								"romaji": "Gekijouban Sword Art Online: Ordinal Scale",
+								"english": "Sword Art Online: Ordinal Scale"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2017,
+								"month": 4,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 101965,
+							"type": "ANIME",
+							"title": {
+								"native": "劇場版 ソードアート・オンライン -オーディナル・スケール- おふらいん",
+								"romaji": "Sword Art Online: Ordinal Scale - Sword Art Offline",
+								"english": "Sword Art Online Movie: Ordinal Scale - Sword Art Offline"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2017,
+								"month": 9,
+								"day": 27
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ソードアート・オンライン -オーディナル・スケール-",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:43:02.254Z",
+		"responseSha256": "73aee2d8d1924738cc3624cf9a5fbe425fe3bbcd745e07a3210ae7f9d8be7250",
+		"total": 18,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			23686, 84866, 92382, 225604, 226750, 279457, 292238, 407340, 445821,
+			315375, 355004, 114706, 241865, 8539, 45337, 458014, 172155, 201699
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/23686",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/23686",
+			"fetchedAt": "2026-11-05T15:43:02.875Z",
+			"responseSha256": "19ed56dae19315c2a450ff645061bbb391d9d1159e7c2c771ac6c8c8d29b5029",
+			"data": {
+				"id": 23686,
+				"type": 2,
+				"name": "ソードアート・オンライン",
+				"name_cn": "刀剑神域",
+				"date": "2012-07-07",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 25,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "刀剑神域"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "SAO"
+							},
+							{
+								"v": "Sword Art Online"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2012年7月7日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX/MBS"
+					},
+					{
+						"key": "播放结束",
+						"value": "2012年12月22日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/84866",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/84866",
+			"fetchedAt": "2026-11-05T15:43:04.013Z",
+			"responseSha256": "2d524fc419b8018f870a9db9d00037e31b44824a4ab70f1218a4f4d86dbcce5d",
+			"data": {
+				"id": 84866,
+				"type": 2,
+				"name": "ソードアート・オンライン Extra Edition",
+				"name_cn": "刀剑神域 Extra Edition",
+				"date": "2013-12-31",
+				"platform": "TV",
+				"eps": 1,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "刀剑神域 Extra Edition"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Sword Art Online: Extra Edition"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					},
+					{
+						"key": "放送开始",
+						"value": "2013年12月31日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期二"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX·BS11"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/92382",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/92382",
+			"fetchedAt": "2026-11-05T15:43:05.093Z",
+			"responseSha256": "b87393f08b0ed8c4b80c6f6c453a958f90be9e877ebc1901fa4bd3c04dbfcb50",
+			"data": {
+				"id": 92382,
+				"type": 2,
+				"name": "ソードアート・オンラインII",
+				"name_cn": "刀剑神域 第二季",
+				"date": "2014-07-05",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 25,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "刀剑神域 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Sword Art Online II"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2014年7月5日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2014年12月20日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/148099",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/148099",
+			"fetchedAt": "2026-11-05T15:44:34.899Z",
+			"responseSha256": "ba04f4fb4ef63f984d80b786923d25e2bc06df760e12ec18e6909e550ce71e38",
+			"data": {
+				"id": 148099,
+				"type": 2,
+				"name": "劇場版 ソードアート・オンライン -オーディナル・スケール-",
+				"name_cn": "刀剑神域 序列之争",
+				"date": "2017-02-18",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "刀剑神域 序列之争"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Gekijouban Sword Art Online: Ordinal Scale"
+							},
+							{
+								"v": "Sword Art Online The Movie: Ordinal Scale"
+							},
+							{
+								"v": "剧场版 刀剑神域 -Ordinal・Scale-"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2017年2月18日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		}
+	]
+}

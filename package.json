@@ -43,7 +43,8 @@
 		"architecture:check": "node scripts/check-architecture.mjs",
 		"architecture:test": "node --test scripts/architecture.test.mjs scripts/release-notes.test.mjs",
 		"unused:check": "knip --no-progress",
-		"anime:corpus": "node --import tsx scripts/anime-corpus.mts"
+		"anime:corpus": "node --import tsx scripts/anime-corpus.mts",
+		"anime:titles": "node --import tsx scripts/title-enrichment-corpus.mjs"
 	},
 	"overrides": {
 		"@esbuild-kit/core-utils": {

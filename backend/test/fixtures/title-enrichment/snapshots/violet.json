@@ -1,0 +1,264 @@
+{
+	"schemaVersion": 1,
+	"id": "violet",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/21827",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:10.883Z",
+		"responseSha256": "ba47dba17a6554d9ef1849b0054646d8b611bf56978c6a4090f99f0f289ece24",
+		"data": {
+			"id": 21827,
+			"type": "ANIME",
+			"title": {
+				"native": "ヴァイオレット・エヴァーガーデン",
+				"romaji": "Violet Evergarden",
+				"english": "Violet Evergarden"
+			},
+			"synonyms": ["ויולט אברגרדן", "فيوليت", "紫罗兰永恒花园"],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 13,
+			"duration": 24,
+			"seasonYear": 2018,
+			"startDate": {
+				"year": 2018,
+				"month": 1,
+				"day": 11
+			},
+			"endDate": {
+				"year": 2018,
+				"month": 4,
+				"day": 5
+			},
+			"siteUrl": "https://anilist.co/anime/21827",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 101432,
+							"type": "ANIME",
+							"title": {
+								"native": "ヴァイオレット・エヴァーガーデン きっと\"愛\"を知る日が来るのだろう",
+								"romaji": "Violet Evergarden: Kitto \"Ai\" wo Shiru Hi ga Kuru no Darou",
+								"english": "Violet Evergarden: Special"
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2018,
+								"month": 7,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 97298,
+							"type": "MANGA",
+							"title": {
+								"native": "ヴァイオレット・エヴァーガーデン",
+								"romaji": "Violet Evergarden",
+								"english": null
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2015,
+								"month": 12,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 109190,
+							"type": "ANIME",
+							"title": {
+								"native": "ヴァイオレット・エヴァーガーデン 外伝~永遠と自動手記人形~",
+								"romaji": "Violet Evergarden Gaiden: Eien to Jidou Shuki Ningyou",
+								"english": "Violet Evergarden: Eternity and the Auto Memory Doll"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2019,
+								"month": 9,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 154164,
+							"type": "ANIME",
+							"title": {
+								"native": "ヴァイオレット・エヴァーガーデン CM",
+								"romaji": "Violet Evergarden CM",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 2,
+							"startDate": {
+								"year": 2016,
+								"month": 5,
+								"day": 27
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ヴァイオレット・エヴァーガーデン",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:11.745Z",
+		"responseSha256": "cf5db4e02f0ab1aa94301a607885778d68716a9adcdd3312e9f27ccef27ec0a5",
+		"total": 5,
+		"limit": 20,
+		"offset": 0,
+		"ids": [183878, 280837, 355109, 242216, 15184]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/183878",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/183878",
+			"fetchedAt": "2026-11-05T15:41:12.721Z",
+			"responseSha256": "043ec124e252cfd4ba8de7c90e949bf8c5973f6ab9e36283456499716b2a10fa",
+			"data": {
+				"id": 183878,
+				"type": 2,
+				"name": "ヴァイオレット・エヴァーガーデン",
+				"name_cn": "紫罗兰永恒花园",
+				"date": "2018-01-10",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 14,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "紫罗兰永恒花园"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "薇尔莉特·伊芙加登"
+							},
+							{
+								"v": "Violet Evergarden"
+							},
+							{
+								"v": "京紫"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2018年1月10日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2018年4月4日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/280837",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/280837",
+			"fetchedAt": "2026-11-05T15:41:13.810Z",
+			"responseSha256": "86e46a6ff97ce2f02ce4bca73e192a6a0e7c4e8d64bcaecb160e327fe53ee4f1",
+			"data": {
+				"id": 280837,
+				"type": 2,
+				"name": "ヴァイオレット・エヴァーガーデン 外伝 - 永遠と自動手記人形 -",
+				"name_cn": "紫罗兰永恒花园 外传 - 永远与自动手记人偶 -",
+				"date": "2019-09-06",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "紫罗兰永恒花园 外传 - 永远与自动手记人偶 -"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Violet Evergarden: Eternity and the Auto Memories Doll"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2019年9月6日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/355109",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/355109",
+			"fetchedAt": "2026-11-05T15:41:14.954Z",
+			"responseSha256": "f19fda04cb3d277ba849d1c8294261b4db73e9fb0ef16424b75730217432097c",
+			"data": {
+				"id": 355109,
+				"type": 2,
+				"name": "ヴァイオレット・エヴァーガーデン特別編集版",
+				"name_cn": "紫罗兰永恒花园 特别编集版",
+				"date": "2021-10-29",
+				"platform": "TV",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "紫罗兰永恒花园 特别编集版"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "ヴァイオレット・エヴァーガーデン 金曜ロードショー特別編集版"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					},
+					{
+						"key": "放送开始",
+						"value": "2021年10月29日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "日本テレビ"
+					}
+				]
+			}
+		}
+	]
+}

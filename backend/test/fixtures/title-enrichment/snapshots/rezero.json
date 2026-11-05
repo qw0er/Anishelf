@@ -1,0 +1,441 @@
+{
+	"schemaVersion": 1,
+	"id": "rezero",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/21355",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:38.353Z",
+		"responseSha256": "b8af941bad09eee0c9bd3c0c309397f6133f65319452a67c36c3f80fba3ce9d3",
+		"data": {
+			"id": 21355,
+			"type": "ANIME",
+			"title": {
+				"native": "Re:ゼロから始める異世界生活",
+				"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu",
+				"english": "Re:ZERO -Starting Life in Another World-"
+			},
+			"synonyms": [
+				"Re: Life in a different world from zero",
+				"ReZero",
+				"Re Zero",
+				"Re：从零开始的异世界生活",
+				"Re:Zero รีเซทชีวิต ฝ่าวิกฤตต่างโลก",
+				"Re:Zero — жизнь с нуля в другом мире",
+				"Re:Zero Empezar de cero en un mundo diferente",
+				"Re:Zero – Bắt đầu lại ở thế giới khác"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 25,
+			"duration": 25,
+			"seasonYear": 2016,
+			"startDate": {
+				"year": 2016,
+				"month": 4,
+				"day": 4
+			},
+			"endDate": {
+				"year": 2016,
+				"month": 9,
+				"day": 19
+			},
+			"siteUrl": "https://anilist.co/anime/21355",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 85737,
+							"type": "MANGA",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu",
+								"english": "Re:ZERO -Starting Life in Another World-"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 1,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 21780,
+							"type": "ANIME",
+							"title": {
+								"native": "Re:ゼロから始める休憩時間(ブレイクタイム)",
+								"romaji": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time)",
+								"english": "Re:ZERO ~Starting Break Time From Zero~"
+							},
+							"format": "TV_SHORT",
+							"episodes": 11,
+							"startDate": {
+								"year": 2016,
+								"month": 4,
+								"day": 8
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 21891,
+							"type": "ANIME",
+							"title": {
+								"native": "Re:プチから始める異世界生活",
+								"romaji": "Re:Petit kara Hajimeru Isekai Seikatsu",
+								"english": "Re:PETIT ~Re: Starting Life in Another World From PETIT~"
+							},
+							"format": "TV_SHORT",
+							"episodes": 14,
+							"startDate": {
+								"year": 2016,
+								"month": 6,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 100049,
+							"type": "ANIME",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活 OVAs",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu OVAs",
+								"english": "Re:ZERO -Starting Life in Another World- OVAs"
+							},
+							"format": "OVA",
+							"episodes": 2,
+							"startDate": {
+								"year": 2018,
+								"month": 10,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 104454,
+							"type": "ANIME",
+							"title": {
+								"native": "異世界かるてっと",
+								"romaji": "Isekai Quartet",
+								"english": "Isekai Quartet"
+							},
+							"format": "TV_SHORT",
+							"episodes": 12,
+							"startDate": {
+								"year": 2019,
+								"month": 4,
+								"day": 10
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 108632,
+							"type": "ANIME",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活 2nd Season",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+								"english": "Re:ZERO -Starting Life in Another World- Season 2"
+							},
+							"format": "TV",
+							"episodes": 13,
+							"startDate": {
+								"year": 2020,
+								"month": 7,
+								"day": 8
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 110178,
+							"type": "ANIME",
+							"title": {
+								"native": "異世界かるてっと 2",
+								"romaji": "Isekai Quartet 2",
+								"english": "Isekai Quartet 2"
+							},
+							"format": "TV_SHORT",
+							"episodes": 12,
+							"startDate": {
+								"year": 2020,
+								"month": 1,
+								"day": 15
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 87259,
+							"type": "MANGA",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活 第三章 Truth of Zero",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu: Dai-3 Shou - Truth of Zero",
+								"english": "Re:ZERO -Starting Life in Another World- Chapter 3: Truth of Zero"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2015,
+								"month": 5,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 85736,
+							"type": "MANGA",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活 第一章 王都の一日編",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu: Dai-1 Shou - Outo no Ichinichi-hen",
+								"english": "Re:ZERO -Starting Life in Another World- Chapter 1: A Day in the Capital"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 6,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 85814,
+							"type": "MANGA",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活 第二章 屋敷の一週間編",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu: Dai-2 Shou - Yashiki no Isshuukan-hen",
+								"english": "Re:ZERO -Starting Life in Another World- Chapter 2: A Week at the Mansion"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 10,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 117074,
+							"type": "ANIME",
+							"title": {
+								"native": "異世界かるてっと ～あなざーわーるど～",
+								"romaji": "Isekai Quartet: Another World",
+								"english": "Isekai Quartet The Movie: Another World"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2022,
+								"month": 6,
+								"day": 10
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 166093,
+							"type": "ANIME",
+							"title": {
+								"native": "スナックバス江",
+								"romaji": "Snack Basue",
+								"english": "Snack Basue"
+							},
+							"format": "TV",
+							"episodes": 13,
+							"startDate": {
+								"year": 2024,
+								"month": 1,
+								"day": 13
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 194447,
+							"type": "ANIME",
+							"title": {
+								"native": "異世界かるてっと 3",
+								"romaji": "Isekai Quartet 3",
+								"english": "Isekai Quartet 3"
+							},
+							"format": "TV_SHORT",
+							"episodes": 11,
+							"startDate": {
+								"year": 2025,
+								"month": 10,
+								"day": 13
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "Re:ゼロから始める異世界生活",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:40:39.433Z",
+		"responseSha256": "8d0f214bc53b0a0674c6e3a0be82369b497637803c75f103a9526c9a60bdd777",
+		"total": 69,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			140001, 225462, 261805, 278826, 296195, 316247, 425998, 510728, 547888,
+			633836, 177998, 310194, 516311, 638494, 533327, 9303, 24053, 101322,
+			185837, 202419
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/140001",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/140001",
+			"fetchedAt": "2026-11-05T15:40:39.943Z",
+			"responseSha256": "dc8ac397f76513563b7f1526fdc0d4a91cccd394dc64eb69269b836073507aa8",
+			"data": {
+				"id": 140001,
+				"type": 2,
+				"name": "Re:ゼロから始める異世界生活",
+				"name_cn": "Re：从零开始的异世界生活",
+				"date": "2016-04-03",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 26,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "Re：从零开始的异世界生活"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Re:Zero kara Hajimeru Isekai Seikatsu"
+							},
+							{
+								"v": "rezero"
+							},
+							{
+								"v": "Re0"
+							},
+							{
+								"v": "Re: Life a Different World from Zero"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2016年4月3日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京"
+					},
+					{
+						"key": "播放结束",
+						"value": "2016年9月18日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/225462",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/225462",
+			"fetchedAt": "2026-11-05T15:40:41.273Z",
+			"responseSha256": "8566c1609a7eb71a912aa2282e9c609d8fb0bf01fdd6bc354e9cce061fd0b2c6",
+			"data": {
+				"id": 225462,
+				"type": 2,
+				"name": "Re:ゼロから始める異世界生活 Memory Snow",
+				"name_cn": "Re：从零开始的异世界生活 雪之回忆",
+				"date": "2019-06-07",
+				"platform": "OVA",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "Re：从零开始的异世界生活 雪之回忆"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Re：从零开始的异世界生活 Memory Snow"
+							},
+							{
+								"v": "Re:Zero kara Hajimeru Isekai Seikatsu (2018)"
+							},
+							{
+								"v": "Re:Zero - Starting Life in Another World (2018)"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					},
+					{
+						"key": "上映年度",
+						"value": "2018年10月6日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/261805",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/261805",
+			"fetchedAt": "2026-11-05T15:40:42.141Z",
+			"responseSha256": "681a95ea1c054bda9edcecde46f1ae7e306493b789b0d584e68d0f303d9d152a",
+			"data": {
+				"id": 261805,
+				"type": 2,
+				"name": "Re:ゼロから始める異世界生活 氷結の絆",
+				"name_cn": "Re：从零开始的异世界生活 冰结之绊",
+				"date": "2019-11-08",
+				"platform": "OVA",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "Re：从零开始的异世界生活 冰结之绊"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		}
+	]
+}

@@ -1,0 +1,392 @@
+{
+	"schemaVersion": 1,
+	"id": "steins-gate",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/9253",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:43:23.940Z",
+		"responseSha256": "b923d275ac92c1430e27b79b003a707b6d07dbdbdd094d37c15833a600cc5af2",
+		"data": {
+			"id": 9253,
+			"type": "ANIME",
+			"title": {
+				"native": "シュタインズ・ゲート",
+				"romaji": "Steins;Gate",
+				"english": "Steins;Gate"
+			},
+			"synonyms": ["S;G", "סטיינס;גייט", "命运石之门", "Врата;Штейна"],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 24,
+			"duration": 24,
+			"seasonYear": 2011,
+			"startDate": {
+				"year": 2011,
+				"month": 4,
+				"day": 6
+			},
+			"endDate": {
+				"year": 2011,
+				"month": 9,
+				"day": 14
+			},
+			"siteUrl": "https://anilist.co/anime/9253",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 10863,
+							"type": "ANIME",
+							"title": {
+								"native": "シュタインズ・ゲート 横行跋扈のポリオマニア",
+								"romaji": "Steins;Gate: Oukoubakko no Poriomania",
+								"english": "Steins;Gate: Egoistic Poriomania"
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2012,
+								"month": 2,
+								"day": 22
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 20907,
+							"type": "ANIME",
+							"title": {
+								"native": "Steins;Gate 聡明叡智のコグニティブ・コンピューティング",
+								"romaji": "Steins;Gate: Soumei Eichi no Cognitive Computing",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 4,
+							"startDate": {
+								"year": 2014,
+								"month": 10,
+								"day": 14
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 21624,
+							"type": "ANIME",
+							"title": {
+								"native": "シュタインズ・ゲート 境界面上のミッシングリンク -Divide By Zero-",
+								"romaji": "Steins;Gate: Kyoukaimenjou no Missing Link - Divide By Zero",
+								"english": "Steins;Gate 0: 23β -Divide by Zero-"
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2015,
+								"month": 12,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 47517,
+							"type": "MANGA",
+							"title": {
+								"native": "シュタインズ・ゲート",
+								"romaji": "Steins;Gate",
+								"english": "Steins;Gate"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2009,
+								"month": 9,
+								"day": 26
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 11577,
+							"type": "ANIME",
+							"title": {
+								"native": "劇場版 シュタインズゲート 負荷領域のデジャヴ",
+								"romaji": "Steins;Gate: Fuka Ryouiki no Déjà vu",
+								"english": "Steins;Gate The Movie – Load Region of Déjà Vu"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2013,
+								"month": 4,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 58897,
+							"type": "MANGA",
+							"title": {
+								"native": "STEINS;GATE 史上最強のスライトフィーバー",
+								"romaji": "Steins;Gate: Shijou Saikyou no Slight Fever",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2011,
+								"month": 1,
+								"day": 8
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 127015,
+							"type": "MANGA",
+							"title": {
+								"native": "STEINS;GATE─シュタインズゲート- 円環連鎖のウロボロス",
+								"romaji": "STEINS;GATE: Enkan Rensa no Uroborosu",
+								"english": null
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2010,
+								"month": 8,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 10519,
+							"type": "ANIME",
+							"title": {
+								"native": "魔法少女そに子☆マギカ",
+								"romaji": "Mahou Shoujo Sonico☆Magica",
+								"english": "Puella Magi Sonico Magica"
+							},
+							"format": "ONA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2011,
+								"month": 4,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 91997,
+							"type": "MANGA",
+							"title": {
+								"native": "STEINS;GATE 星屑のデュプレット",
+								"romaji": "Steins;Gate: Hoshikuzu no Duplet",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2011,
+								"month": 8,
+								"day": 26
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 4975,
+							"type": "ANIME",
+							"title": {
+								"native": "カオスヘッド",
+								"romaji": "ChäoS;HEAd",
+								"english": "ChäoS;HEAd"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2008,
+								"month": 10,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 13599,
+							"type": "ANIME",
+							"title": {
+								"native": "Robotics;Notes",
+								"romaji": "Robotics;Notes",
+								"english": "Robotics;Notes"
+							},
+							"format": "TV",
+							"episodes": 22,
+							"startDate": {
+								"year": 2012,
+								"month": 10,
+								"day": 12
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 21708,
+							"type": "ANIME",
+							"title": {
+								"native": "Occultic;Nine -オカルティック・ナイン-",
+								"romaji": "Occultic;Nine",
+								"english": "Occultic;Nine"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2016,
+								"month": 10,
+								"day": 9
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "シュタインズ・ゲート",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:43:24.662Z",
+		"responseSha256": "26e44a5a430aeb6f908e78f5e49cabf63f4c3f3e0fb1750ea1ae7140b1f9a4af",
+		"total": 2,
+		"limit": 20,
+		"offset": 0,
+		"ids": [129807, 10380]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/129807",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/129807",
+			"fetchedAt": "2026-11-05T15:43:25.423Z",
+			"responseSha256": "1ee904589b0a7a8f49259d418eadc9e3d603a1986c436bd372a846e100ec58d4",
+			"data": {
+				"id": 129807,
+				"type": 2,
+				"name": "シュタインズ・ゲート ゼロ",
+				"name_cn": "命运石之门 0",
+				"date": "2018-04-11",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 24,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "命运石之门 0"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "STEINS;GATE 0"
+							},
+							{
+								"v": "石头门 0"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2018年4月11日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2018年9月26日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/10380",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/10380",
+			"fetchedAt": "2026-11-05T15:43:26.560Z",
+			"responseSha256": "09bf1634043b91bd5406d8c888fc425ed3d670a3c1ba5b26b84c1c62edb60da6",
+			"data": {
+				"id": 10380,
+				"type": 2,
+				"name": "STEINS;GATE",
+				"name_cn": "命运石之门",
+				"date": "2011-04-06",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 26,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "命运石之门"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "シュタゲ"
+							},
+							{
+								"v": "石头门"
+							},
+							{
+								"v": "斯坦因之门"
+							},
+							{
+								"v": "シュタインズ・ゲート"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2011年4月6日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "サンテレビ"
+					},
+					{
+						"key": "播放结束",
+						"value": "2011年9月14日"
+					}
+				]
+			}
+		}
+	]
+}

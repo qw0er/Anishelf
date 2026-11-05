@@ -1,0 +1,247 @@
+{
+	"schemaVersion": 1,
+	"id": "jujutsu-zero",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/131573",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:42:27.614Z",
+		"responseSha256": "12d4745c89a4f51b3dd6e2f9d8bba28c2d65633b2b48675722869152eacf5650",
+		"data": {
+			"id": 131573,
+			"type": "ANIME",
+			"title": {
+				"native": "呪術廻戦 0",
+				"romaji": "Jujutsu Kaisen 0",
+				"english": "JUJUTSU KAISEN 0"
+			},
+			"synonyms": [
+				"JJK 0",
+				"咒术回战0",
+				"มหาเวทย์ผนึกมาร : ซีโร่",
+				"‎جوجوتسو كايسن 0",
+				"Jujutsu Kaisen Movie",
+				"Магическая битва 0"
+			],
+			"format": "MOVIE",
+			"status": "FINISHED",
+			"episodes": 1,
+			"duration": 105,
+			"seasonYear": 2021,
+			"startDate": {
+				"year": 2021,
+				"month": 12,
+				"day": 24
+			},
+			"endDate": {
+				"year": 2021,
+				"month": 12,
+				"day": 24
+			},
+			"siteUrl": "https://anilist.co/anime/131573",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 113415,
+							"type": "ANIME",
+							"title": {
+								"native": "呪術廻戦",
+								"romaji": "Jujutsu Kaisen",
+								"english": "JUJUTSU KAISEN"
+							},
+							"format": "TV",
+							"episodes": 24,
+							"startDate": {
+								"year": 2020,
+								"month": 10,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 105469,
+							"type": "MANGA",
+							"title": {
+								"native": "呪術廻戦 0 東京都立呪術高等専門学校",
+								"romaji": "Jujutsu Kaisen 0: Tokyo Toritsu Jujutsu Koutou Senmon Gakkou",
+								"english": "Jujutsu Kaisen 0"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2017,
+								"month": 4,
+								"day": 28
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "呪術廻戦 0",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:42:28.593Z",
+		"responseSha256": "381a98d9f6637ae976181a31246bc01faad4a234265ecd055cb28b91785b191a",
+		"total": 12,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			331559, 294993, 472741, 616668, 582014, 369304, 640995, 509599, 536594,
+			646067, 96600, 58957
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/331559",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/331559",
+			"fetchedAt": "2026-11-05T15:42:29.189Z",
+			"responseSha256": "2da8bfaa2317f0b6e75c5e29c780a2f388afc90b03390adade52c1753b9d9993",
+			"data": {
+				"id": 331559,
+				"type": 2,
+				"name": "劇場版 呪術廻戦 0",
+				"name_cn": "剧场版 咒术回战 0",
+				"date": "2021-12-24",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "剧场版 咒术回战 0"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Gekijouban Jujutsu Kaisen 0"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2021年12月24日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/294993",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/294993",
+			"fetchedAt": "2026-11-05T15:42:30.503Z",
+			"responseSha256": "5e2a213d1c65fa5ff4bd049d790660754c3cdb4899ab7fca65976ffa542e6ccf",
+			"data": {
+				"id": 294993,
+				"type": 2,
+				"name": "呪術廻戦",
+				"name_cn": "咒术回战",
+				"date": "2020-10-02",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 25,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "咒术回战"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Jujutsu Kaisen"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2020年10月2日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "播放电视台",
+						"value": "MBS・TBS"
+					},
+					{
+						"key": "播放结束",
+						"value": "2021年3月26日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/472741",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/472741",
+			"fetchedAt": "2026-11-05T15:42:31.370Z",
+			"responseSha256": "d6bc5e2a21cfecdcdad13f2adeae3512c004d61186eadb5161ae29a028b8f7ee",
+			"data": {
+				"id": 472741,
+				"type": 2,
+				"name": "呪術廻戦 死滅回游 前編",
+				"name_cn": "咒术回战 死灭回游 前篇",
+				"date": "2026-01-08",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "咒术回战 死灭回游 前篇"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "咒术回战 第三季"
+							},
+							{
+								"v": "Jujutsu Kaisen 3rd Season: Culling Game Part 1"
+							},
+							{
+								"v": "Jujutsu Kaisen: Shimetsu Kaiyuu"
+							},
+							{
+								"v": "Jujutsu Kaisen The Culling Game"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年1月8日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期四"
+					},
+					{
+						"key": "播放电视台",
+						"value": "MBS/TBS系28局 スーパーアニメイズム TURBO枠"
+					},
+					{
+						"key": "播放结束",
+						"value": "2026年3月26日"
+					}
+				]
+			}
+		}
+	]
+}

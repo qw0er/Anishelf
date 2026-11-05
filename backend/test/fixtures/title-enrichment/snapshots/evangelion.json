@@ -1,0 +1,496 @@
+{
+	"schemaVersion": 1,
+	"id": "evangelion",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/30",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:42:11.237Z",
+		"responseSha256": "04a20bf2c82c8c0b8d1d8e32c635577ae145b7b734f8c59b2c792a5bbe0a2f92",
+		"data": {
+			"id": 30,
+			"type": "ANIME",
+			"title": {
+				"native": "新世紀エヴァンゲリオン",
+				"romaji": "Shin Seiki Evangelion",
+				"english": "Neon Genesis Evangelion"
+			},
+			"synonyms": [
+				"NGE",
+				"Eva",
+				"ניאון ג'נסיס אוונגליון",
+				"อีวานเกเลียน มหาสงครามวันพิพากษา",
+				"Евангелион"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 26,
+			"duration": 24,
+			"seasonYear": 1995,
+			"startDate": {
+				"year": 1995,
+				"month": 10,
+				"day": 3
+			},
+			"endDate": {
+				"year": 1996,
+				"month": 3,
+				"day": 27
+			},
+			"siteUrl": "https://anilist.co/anime/30",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 32,
+							"type": "ANIME",
+							"title": {
+								"native": "新世紀エヴァンゲリオン劇場版 Air/まごころを、君に",
+								"romaji": "Shin Seiki Evangelion Movie: Air / Magokoro wo, Kimi ni",
+								"english": "Neon Genesis Evangelion: The End of Evangelion"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 1997,
+								"month": 7,
+								"day": 19
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 30698,
+							"type": "MANGA",
+							"title": {
+								"native": "新世紀エヴァンゲリオン",
+								"romaji": "Shin Seiki Evangelion",
+								"english": "Neon Genesis Evangelion"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 1994,
+								"month": 12,
+								"day": 26
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 31,
+							"type": "ANIME",
+							"title": {
+								"native": "新世紀エヴァンゲリオン劇場版 シト新生",
+								"romaji": "Shin Seiki Evangelion Movie: Shi to Shinsei",
+								"english": "Neon Genesis Evangelion: Death & Rebirth"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 1997,
+								"month": 3,
+								"day": 15
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 4130,
+							"type": "ANIME",
+							"title": {
+								"native": "ぷちえゔぁ",
+								"romaji": "Petit Eva: Evangelion@School",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 24,
+							"startDate": {
+								"year": 2007,
+								"month": 3,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 102096,
+							"type": "ANIME",
+							"title": {
+								"native": "Peaceful Times (F02) petit film",
+								"romaji": "Peaceful Times (F02) petit film",
+								"english": null
+							},
+							"format": "MUSIC",
+							"episodes": 1,
+							"startDate": {
+								"year": 2013,
+								"month": 11,
+								"day": 23
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 55594,
+							"type": "MANGA",
+							"title": {
+								"native": "エヴァンゲリオン ANIMA",
+								"romaji": "Evangelion: ANIMA",
+								"english": "Neon Genesis Evangelion: ANIMA"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2007,
+								"month": 11,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 101195,
+							"type": "MANGA",
+							"title": {
+								"native": "新世紀エヴァンゲリオン ピコピコ中学生伝説",
+								"romaji": "Shin Seiki Evangelion: Pikopiko Chuugakusei Densetsu",
+								"english": "Neon Genesis Evangelion: Legend of the Piko Piko Middle School Students"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 4,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 125785,
+							"type": "ANIME",
+							"title": {
+								"native": "エヴァンゲリオン x KATE CM",
+								"romaji": "Evangelion x KATE CM",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2020,
+								"month": 11,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 125796,
+							"type": "ANIME",
+							"title": {
+								"native": "エヴァンゲリオン × アタックZERO",
+								"romaji": "Evangelion × Attack ZERO",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2020,
+								"month": 11,
+								"day": 2
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 100620,
+							"type": "ANIME",
+							"title": {
+								"native": "新幹線変形ロボ シンカリオン THE ANIMATION",
+								"romaji": "Shinkansen Henkei Robo Shinkalion THE ANIMATION",
+								"english": null
+							},
+							"format": "TV",
+							"episodes": 76,
+							"startDate": {
+								"year": 2018,
+								"month": 1,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 110131,
+							"type": "ANIME",
+							"title": {
+								"native": "新幹線変形ロボ シンカリオン THE ANIMATION 未来からきた神速のＡＬＦＡ-Ｘ",
+								"romaji": "Shinkansen Henkei Robo Shinkalion THE ANIMATION: Mirai kara Kita Shinsoku no ALFA-X",
+								"english": null
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2019,
+								"month": 12,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 128737,
+							"type": "ANIME",
+							"title": {
+								"native": "新幹線変形ロボ シンカリオンZ THE ANIMATION",
+								"romaji": "Shinkansen Henkei Robo Shinkalion Z THE ANIMATION",
+								"english": null
+							},
+							"format": "TV",
+							"episodes": 41,
+							"startDate": {
+								"year": 2021,
+								"month": 4,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 171643,
+							"type": "MANGA",
+							"title": {
+								"native": "最上さくらの出玉補完計画 奇跡の勝ちは",
+								"romaji": "Mogami Sakura no Detama Hokan Keikaku - Kiseki no Kachi wa",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2006,
+								"month": 10,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 204270,
+							"type": "ANIME",
+							"title": {
+								"native": "エヴァンゲリオン放送30周年記念特別興行",
+								"romaji": "Evangelion: Housou 30 Shuunen Kinen Tokubetsu Kougyou",
+								"english": "Evangelion 30th Anniversary Special Screening"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2026,
+								"month": 2,
+								"day": 21
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 208192,
+							"type": "ANIME",
+							"title": {
+								"native": "エヴァンゲリオン (新作シリーズ)",
+								"romaji": "Evangelion (Shinsaku Series)",
+								"english": null
+							},
+							"format": null,
+							"episodes": null,
+							"startDate": {
+								"year": null,
+								"month": null,
+								"day": null
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "新世紀エヴァンゲリオン",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:42:12.419Z",
+		"responseSha256": "e638b14feea59a70aef05ce153fc9520259ade464743ff41fdbff4aedf62fabc",
+		"total": 413,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			265, 6048, 6049, 39923, 235701, 538984, 616383, 318795, 495016, 29883,
+			421836, 3633, 26017, 83542, 214609, 53936, 169665, 92949, 1954, 1955
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/265",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/265",
+			"fetchedAt": "2026-11-05T15:42:13.380Z",
+			"responseSha256": "484a669e66748256c44f4a0a88d2293957ff5c226a5fd1a3f816dae955dddbfc",
+			"data": {
+				"id": 265,
+				"type": 2,
+				"name": "新世紀エヴァンゲリオン",
+				"name_cn": "新世纪福音战士",
+				"date": "1995-10-04",
+				"platform": "TV",
+				"eps": 26,
+				"total_episodes": 30,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "新世纪福音战士"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "New Century Evangelion"
+							},
+							{
+								"v": "新世纪天鹰战士"
+							},
+							{
+								"v": "2000天鹰战士"
+							},
+							{
+								"v": "EVA"
+							},
+							{
+								"v": "天鹰战士"
+							},
+							{
+								"v": "Neon Genesis Evangelion"
+							},
+							{
+								"v": "Shin Seiki Evangerion"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "26"
+					},
+					{
+						"key": "放送开始",
+						"value": "1995年10月4日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放结束",
+						"value": "1996年3月27日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/6048",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/6048",
+			"fetchedAt": "2026-11-05T15:42:14.030Z",
+			"responseSha256": "abceb92957f95046d9858254d69536150fe4f731df041723422a5ec59d4613e1",
+			"data": {
+				"id": 6048,
+				"type": 2,
+				"name": "新世紀エヴァンゲリオン劇場版 シト新生",
+				"name_cn": "新世纪福音战士剧场版 死与新生",
+				"date": "1997-03-15",
+				"platform": "剧场版",
+				"eps": 2,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "新世纪福音战士剧场版 死与新生"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "新世紀エヴァンゲリオン劇場版 DEATH & REBIRTH"
+							},
+							{
+								"k": "en",
+								"v": "NEON GENESSI EVANGELION: DEATH AND REBIRTH"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "1997年3月15日"
+					},
+					{
+						"key": "话数",
+						"value": "2"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/6049",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/6049",
+			"fetchedAt": "2026-11-05T15:42:15.003Z",
+			"responseSha256": "13871faae80dd41ff20fc5936c59cc140a5dc37530cce83f7d3bba0c1ff888ee",
+			"data": {
+				"id": 6049,
+				"type": 2,
+				"name": "新世紀エヴァンゲリオン劇場版 Air/まごころを、君に",
+				"name_cn": "新世纪福音战士剧场版 Air/真心为你",
+				"date": "1997-07-19",
+				"platform": "剧场版",
+				"eps": 2,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "新世纪福音战士剧场版 Air/真心为你"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "新世紀エヴァンゲリオン劇場版 THE END OF EVANGELION"
+							},
+							{
+								"v": "NEON GENESSI EVANGELION Air/まごころを、君に"
+							},
+							{
+								"v": "Neon Genesis Evangelion: The End of Evangelion"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "1997年7月19日"
+					},
+					{
+						"key": "话数",
+						"value": "2"
+					}
+				]
+			}
+		}
+	]
+}

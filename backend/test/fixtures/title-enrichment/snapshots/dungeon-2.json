@@ -1,0 +1,222 @@
+{
+	"schemaVersion": 1,
+	"id": "dungeon-2",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/178031",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:48:29.972Z",
+		"responseSha256": "083bea7ed510dabcddc0dc426b2579006def44b0573df9150b2103ff650c83e7",
+		"data": {
+			"id": 178031,
+			"type": "ANIME",
+			"title": {
+				"native": "ダンジョン飯 第２期",
+				"romaji": "Dungeon Meshi 2nd Season",
+				"english": "Delicious in Dungeon Season 2"
+			},
+			"synonyms": ["Dungeon Meshi Season 2", "Delicious in Dungeon Season 2"],
+			"format": "ONA",
+			"status": "NOT_YET_RELEASED",
+			"episodes": null,
+			"duration": null,
+			"seasonYear": 2027,
+			"startDate": {
+				"year": 2027,
+				"month": 10,
+				"day": null
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/178031",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 86082,
+							"type": "MANGA",
+							"title": {
+								"native": "ダンジョン飯",
+								"romaji": "Dungeon Meshi",
+								"english": "Delicious in Dungeon"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 2,
+								"day": 15
+							}
+						}
+					},
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 153518,
+							"type": "ANIME",
+							"title": {
+								"native": "ダンジョン飯",
+								"romaji": "Dungeon Meshi",
+								"english": "Delicious in Dungeon"
+							},
+							"format": "TV",
+							"episodes": 24,
+							"startDate": {
+								"year": 2024,
+								"month": 1,
+								"day": 4
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ダンジョン飯 第２期",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:48:30.806Z",
+		"responseSha256": "d94039795f1222c9522275e86fcbaee682ab5b1597e778cad76a4bb0d0280def",
+		"total": 32,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			499073, 395378, 697022, 116287, 169942, 172155, 238004, 291412, 291413,
+			322898, 326874, 402223, 450586, 463778, 566169, 626121, 35626, 113018,
+			638765, 99255
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/499073",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/499073",
+			"fetchedAt": "2026-11-05T15:48:31.515Z",
+			"responseSha256": "cf6b50b441bc9724be51cff7fbe34d4bbd88707b935295e5485be491539a6e1b",
+			"data": {
+				"id": 499073,
+				"type": 2,
+				"name": "ダンジョン飯 第2期",
+				"name_cn": "迷宫饭 第二季",
+				"date": null,
+				"platform": "TV",
+				"eps": 0,
+				"total_episodes": 0,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "迷宫饭 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Dungeon Meshi 2nd Season"
+							},
+							{
+								"v": "Delicious in Dungeon 2nd Season"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "*"
+					},
+					{
+						"key": "放送开始",
+						"value": "2027年10月"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "NETFLIX"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/395378",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/395378",
+			"fetchedAt": "2026-11-05T15:48:32.609Z",
+			"responseSha256": "d657016b11798bbc44e101d986cda294ad74ece1f32b45c5391e7b85b57697a8",
+			"data": {
+				"id": 395378,
+				"type": 2,
+				"name": "ダンジョン飯",
+				"name_cn": "迷宫饭",
+				"date": "2024-01-04",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 24,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "迷宫饭"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Dungeon Meshi"
+							},
+							{
+								"v": "Delicious in Dungeon"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2024年1月4日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期四"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2024年6月13日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/697022",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/697022",
+			"fetchedAt": "2026-11-05T15:48:33.673Z",
+			"responseSha256": "5d006f0667f3499451cec5dae3167ba08a2b858490cd4695b95a94433e186d98",
+			"data": {
+				"id": 697022,
+				"type": 2,
+				"name": "漫画『ダンジョン飯』アニメーションCM",
+				"name_cn": "漫画《迷宫饭》动画CM",
+				"date": "2019-09-05",
+				"platform": "其他",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "漫画《迷宫饭》动画CM"
+					},
+					{
+						"key": "上映年度",
+						"value": "2019年9月5日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		}
+	]
+}

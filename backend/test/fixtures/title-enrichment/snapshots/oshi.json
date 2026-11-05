@@ -1,0 +1,288 @@
+{
+	"schemaVersion": 1,
+	"id": "oshi",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/150672",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:27.408Z",
+		"responseSha256": "579c63d4849c1e786881241922e8208960c04cfc4319b893cbd8455faf8926b2",
+		"data": {
+			"id": 150672,
+			"type": "ANIME",
+			"title": {
+				"native": "【推しの子】",
+				"romaji": "[Oshi no Ko]",
+				"english": "OSHI NO KO"
+			},
+			"synonyms": [
+				"Favorite Girl",
+				"My Idol's Child",
+				"[Mein*Star]",
+				"เกิดใหม่เป็นลูกโอชิ",
+				"Anak Idola",
+				"【OSHI NO KO】",
+				"【推しの子】Mother and Children",
+				"[Oshi no Ko] Mother and Children",
+				"我推的孩子",
+				"【최애의 아이】",
+				"Đứa Con Của Thần Tượng",
+				"[OSHI NO KO]"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 11,
+			"duration": 24,
+			"seasonYear": 2023,
+			"startDate": {
+				"year": 2023,
+				"month": 4,
+				"day": 12
+			},
+			"endDate": {
+				"year": 2023,
+				"month": 6,
+				"day": 28
+			},
+			"siteUrl": "https://anilist.co/anime/150672",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 117195,
+							"type": "MANGA",
+							"title": {
+								"native": "【推しの子】",
+								"romaji": "[Oshi no Ko]",
+								"english": "[Oshi no Ko]"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2020,
+								"month": 4,
+								"day": 23
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 164117,
+							"type": "ANIME",
+							"title": {
+								"native": "アイドル",
+								"romaji": "Idol",
+								"english": "Idol"
+							},
+							"format": "MUSIC",
+							"episodes": 1,
+							"startDate": {
+								"year": 2023,
+								"month": 4,
+								"day": 12
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 166531,
+							"type": "ANIME",
+							"title": {
+								"native": "【推しの子】第2期",
+								"romaji": "[Oshi no Ko] 2nd Season",
+								"english": "OSHI NO KO Season 2"
+							},
+							"format": "TV",
+							"episodes": 13,
+							"startDate": {
+								"year": 2024,
+								"month": 7,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 101921,
+							"type": "ANIME",
+							"title": {
+								"native": "かぐや様は告らせたい～天才たちの恋愛頭脳戦～",
+								"romaji": "Kaguya-sama wa Kokurasetai: Tensaitachi no Renai Zunousen",
+								"english": "Kaguya-sama: Love is War"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2019,
+								"month": 1,
+								"day": 12
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "【推しの子】",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:40:28.353Z",
+		"responseSha256": "ecebe6601ff65d11301d22d6371db9c828a9ef312c6ae55800a160a68bd76aaf",
+		"total": 11,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			386809, 424227, 443428, 517057, 637659, 567362, 410928, 455073, 246915,
+			589808, 718509
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/386809",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/386809",
+			"fetchedAt": "2026-11-05T15:40:28.943Z",
+			"responseSha256": "2c34cc52f32a2cb0b456aee136ee0f8fff1baac61809280f90a8620bdd1ab9b1",
+			"data": {
+				"id": 386809,
+				"type": 2,
+				"name": "【推しの子】",
+				"name_cn": "【我推的孩子】",
+				"date": "2023-04-12",
+				"platform": "TV",
+				"eps": 11,
+				"total_episodes": 15,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "【我推的孩子】"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Oshi no Ko"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "11"
+					},
+					{
+						"key": "放送开始",
+						"value": "2023年4月12日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2023年6月28日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/424227",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/424227",
+			"fetchedAt": "2026-11-05T15:40:30.281Z",
+			"responseSha256": "7d5f068082004f9fd891b11fcdb060c420c341b77e83f4074586750cd0adb41b",
+			"data": {
+				"id": 424227,
+				"type": 2,
+				"name": "【推しの子】Mother and Children",
+				"name_cn": "【我推的孩子】Mother and Children",
+				"date": "2023-03-17",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "【我推的孩子】Mother and Children"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "\"Oshi no Ko\" Mother and Children"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2023年3月17日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/443428",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/443428",
+			"fetchedAt": "2026-11-05T15:40:31.436Z",
+			"responseSha256": "e4df3e15bfd90d8f0802902a7976796373e2b72bf67e1841941f240ff017f9a1",
+			"data": {
+				"id": 443428,
+				"type": 2,
+				"name": "【推しの子】 第2期",
+				"name_cn": "【我推的孩子】 第二季",
+				"date": "2024-07-03",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 14,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "【我推的孩子】 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "【推しの子】 シーズン2"
+							},
+							{
+								"v": "Oshi no Ko 2nd Season"
+							},
+							{
+								"v": "\"Oshi no Ko\" 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2024年7月3日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2024年10月6日"
+					}
+				]
+			}
+		}
+	]
+}

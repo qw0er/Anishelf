@@ -1,0 +1,243 @@
+{
+	"schemaVersion": 1,
+	"id": "end-of-evangelion",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/32",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:42:16.601Z",
+		"responseSha256": "00643b57ed8e89c48567dd6cc3f686fc72a57328f10f48b5c1e796f589eecc5c",
+		"data": {
+			"id": 32,
+			"type": "ANIME",
+			"title": {
+				"native": "新世紀エヴァンゲリオン劇場版 Air/まごころを、君に",
+				"romaji": "Shin Seiki Evangelion Movie: Air / Magokoro wo, Kimi ni",
+				"english": "Neon Genesis Evangelion: The End of Evangelion"
+			},
+			"synonyms": [
+				"הסוף של אוונגליון",
+				"אוונגליון של הסוף",
+				"Конец Евангелиона"
+			],
+			"format": "MOVIE",
+			"status": "FINISHED",
+			"episodes": 1,
+			"duration": 87,
+			"seasonYear": 1997,
+			"startDate": {
+				"year": 1997,
+				"month": 7,
+				"day": 19
+			},
+			"endDate": {
+				"year": 1997,
+				"month": 7,
+				"day": 19
+			},
+			"siteUrl": "https://anilist.co/anime/32",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 30,
+							"type": "ANIME",
+							"title": {
+								"native": "新世紀エヴァンゲリオン",
+								"romaji": "Shin Seiki Evangelion",
+								"english": "Neon Genesis Evangelion"
+							},
+							"format": "TV",
+							"episodes": 26,
+							"startDate": {
+								"year": 1995,
+								"month": 10,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 2759,
+							"type": "ANIME",
+							"title": {
+								"native": "ヱヴァンゲリヲン新劇場版:序",
+								"romaji": "Evangelion Shin Movie: Jo",
+								"english": "Evangelion: 1.0 You Are (Not) Alone"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2007,
+								"month": 9,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 31,
+							"type": "ANIME",
+							"title": {
+								"native": "新世紀エヴァンゲリオン劇場版 シト新生",
+								"romaji": "Shin Seiki Evangelion Movie: Shi to Shinsei",
+								"english": "Neon Genesis Evangelion: Death & Rebirth"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 1997,
+								"month": 3,
+								"day": 15
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "新世紀エヴァンゲリオン劇場版 Air/まごころを、君に",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:42:17.910Z",
+		"responseSha256": "d39c4e4ab1ad70cc47457b4e16eaa84c55be0c121b6f5656fce2d2bcf986df0d",
+		"total": 413,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			6049, 39923, 6048, 29883, 265, 235701, 538984, 616383, 318795, 495016,
+			421836, 3633, 26017, 83542, 214609, 53936, 169665, 92949, 1954, 1955
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/6049",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/6049",
+			"fetchedAt": "2026-11-05T15:42:18.166Z",
+			"responseSha256": "13871faae80dd41ff20fc5936c59cc140a5dc37530cce83f7d3bba0c1ff888ee",
+			"data": {
+				"id": 6049,
+				"type": 2,
+				"name": "新世紀エヴァンゲリオン劇場版 Air/まごころを、君に",
+				"name_cn": "新世纪福音战士剧场版 Air/真心为你",
+				"date": "1997-07-19",
+				"platform": "剧场版",
+				"eps": 2,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "新世纪福音战士剧场版 Air/真心为你"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "新世紀エヴァンゲリオン劇場版 THE END OF EVANGELION"
+							},
+							{
+								"v": "NEON GENESSI EVANGELION Air/まごころを、君に"
+							},
+							{
+								"v": "Neon Genesis Evangelion: The End of Evangelion"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "1997年7月19日"
+					},
+					{
+						"key": "话数",
+						"value": "2"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/39923",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/39923",
+			"fetchedAt": "2026-11-05T15:42:19.497Z",
+			"responseSha256": "235dcc728bae0aaed9218e7a1975b85754360e78b0fc50cfec6b3a52cb1aa9a0",
+			"data": {
+				"id": 39923,
+				"type": 2,
+				"name": "REVIVAL OF EVANGELION 新世紀エヴァンゲリオン劇場版 DEATH (TRUE)² / Air / まごころを、君に",
+				"name_cn": "新世纪福音战士剧场版 DEATH (TRUE)²/Air/真心为你",
+				"date": "1998-03-07",
+				"platform": "剧场版",
+				"eps": 3,
+				"total_episodes": 3,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "新世纪福音战士剧场版 DEATH (TRUE)²/Air/真心为你"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "新世紀エヴァンゲリオン劇場版 REVIVAL OF EVANGELION"
+							},
+							{
+								"v": "NEON GENESIS EVANGELION：REVIVAL OF EVANGELION"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "1998年3月7日"
+					},
+					{
+						"key": "话数",
+						"value": "3"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/6048",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/6048",
+			"fetchedAt": "2026-11-05T15:42:20.384Z",
+			"responseSha256": "abceb92957f95046d9858254d69536150fe4f731df041723422a5ec59d4613e1",
+			"data": {
+				"id": 6048,
+				"type": 2,
+				"name": "新世紀エヴァンゲリオン劇場版 シト新生",
+				"name_cn": "新世纪福音战士剧场版 死与新生",
+				"date": "1997-03-15",
+				"platform": "剧场版",
+				"eps": 2,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "新世纪福音战士剧场版 死与新生"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "新世紀エヴァンゲリオン劇場版 DEATH & REBIRTH"
+							},
+							{
+								"k": "en",
+								"v": "NEON GENESSI EVANGELION: DEATH AND REBIRTH"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "1997年3月15日"
+					},
+					{
+						"key": "话数",
+						"value": "2"
+					}
+				]
+			}
+		}
+	]
+}
