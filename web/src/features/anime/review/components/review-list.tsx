@@ -91,7 +91,8 @@ export function ReviewList({
 											</p>
 										) : (
 											<p className="text-sm wrap-anywhere text-muted-foreground">
-												{row.proposals[0]?.candidate.work.titles[0] ??
+												{row.proposals[0]?.candidate.work.displayTitle ??
+													row.proposals[0]?.candidate.work.titles[0] ??
 													t("review.noMatch")}
 												{row.proposals.length > 0 &&
 													` · ${t("review.suggestionCount", { count: row.proposals.length })}`}

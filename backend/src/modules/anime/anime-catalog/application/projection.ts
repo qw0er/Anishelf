@@ -12,6 +12,7 @@ export function projection(work: LocalWork, metadata: WorkDetails): LocalWork {
 			metadata.titles,
 			`Untitled ${metadata.reference.id}`,
 		),
+		titleVariants: metadata.titles,
 		searchTitles: metadata.titles.map((title) => title.value),
 		format: metadata.format,
 		year: metadata.year,

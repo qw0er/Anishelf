@@ -9,6 +9,7 @@ export interface TrackingListEntry {
 	status: ViewingStatus;
 	updatedAt: number | null;
 	titles: string[];
+	titleVariants?: import("../../metadata/public.js").MetadataTitle[];
 	format: string | null;
 	year: number | null;
 	episodeCount: number | null;

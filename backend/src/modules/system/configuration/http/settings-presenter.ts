@@ -6,6 +6,7 @@ export function settingsResponse(
 ): SettingsResponse {
 	return {
 		resourceRoots: settings.resourceRoots,
+		titleDisplayPreference: settings.titleDisplayPreference ?? "native",
 		defaultMetadataProvider: settings.defaultMetadataProvider ?? "anilist",
 		autoPreparationEnabled: settings.autoPreparationEnabled ?? false,
 		autoPreparationPresetId: settings.autoPreparationPresetId ?? "builtin:web",

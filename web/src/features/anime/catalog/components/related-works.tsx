@@ -39,7 +39,9 @@ export function RelatedWorks({
 								className="wrap-anywhere"
 							>
 								{relation.type.replaceAll("_", " ")} ·{" "}
-								{relation.work.titles[0]?.value ?? t("anime.unknown")}
+								{relation.work.displayTitle ??
+									relation.work.titles[0]?.value ??
+									t("anime.unknown")}
 							</li>
 						))}
 					</ul>

@@ -6,6 +6,7 @@ export const MetadataReferenceSchema = Type.Object({
 	id: Type.String(),
 });
 const summary = {
+	displayTitle: Type.Optional(Type.String()),
 	provider: Type.String(),
 	unavailableFields: Type.Array(Type.String()),
 	reference: MetadataReferenceSchema,

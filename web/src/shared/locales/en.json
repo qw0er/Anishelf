@@ -1437,6 +1437,14 @@
 		"names": {
 			"anilist": "AniList",
 			"bangumi": "Bangumi"
-		}
+		},
+		"titlePreference": "Title display preference",
+		"titlePreferences": {
+			"chinese": "Chinese",
+			"native": "Original",
+			"english": "English",
+			"romaji": "Romaji"
+		},
+		"titleFallback": "Uses the original title, then an available title when the preferred title is missing."
 	}
 }

@@ -82,7 +82,11 @@ function provider(
 	};
 	return { api, data, get, search };
 }
-async function fixture(defaultProvider = "anilist") {
+async function fixture(
+	defaultProvider = "anilist",
+	titleDisplayPreference: () => import("../../../../src/modules/anime/external-works/metadata/public.js").TitleDisplayPreference = () =>
+		"native",
+) {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-unified-"));
 	cleanup.push(() => rm(directory, { recursive: true, force: true }));
 	let database = ApplicationDatabase.open(directory);
@@ -110,6 +114,7 @@ async function fixture(defaultProvider = "anilist") {
 			store: database.metadata,
 			providers: [first.api, second.api],
 			defaultProvider,
+			titleDisplayPreference,
 			artworkHosts: ["images.example"],
 			fetch: fetcher,
 			logger,
@@ -543,4 +548,44 @@ test("verified cross-source names enrich search and details without sharing iden
 	});
 	expect(f.metadata.current(first)?.data.titles).toEqual(detail.data.titles);
 	expect(f.metadata.snapshot(detail.snapshotId).data).toEqual(detail.data);
+});
+
+test("cached search and retained detail apply title preference without refetching or changing evidence", async () => {
+	let preference: import("../../../../src/modules/anime/external-works/metadata/public.js").TitleDisplayPreference =
+		"native";
+	const f = await fixture("bangumi", () => preference);
+	f.second.data.titles.unshift({
+		value: "Original",
+		language: null,
+		kind: "native",
+	});
+	const reference = f.metadata.resolveReference("bangumi:anime:20");
+	const original = await f.metadata.get(reference);
+	const search = await f.metadata.search({
+		query: "title",
+		page: 1,
+		perPage: 10,
+	});
+	expect(original.data.displayTitle).toBe("Original");
+	const stored = structuredClone(f.database.metadata.get(original.snapshotId));
+	preference = "chinese";
+	const cached = await f.metadata.get(reference, { cachedOnly: true });
+	expect(cached.data.displayTitle).toBe("中文名");
+	expect(cached.snapshotId).toBe(original.snapshotId);
+	expect(cached.data.titles).toEqual(original.data.titles);
+	const retained = f.metadata.snapshot(original.snapshotId);
+	expect(retained.kind === "detail" && retained.data.displayTitle).toBe(
+		"中文名",
+	);
+	const cachedSearch = await f.metadata.search(
+		{ query: "title", page: 1, perPage: 10 },
+		{ cachedOnly: true },
+	);
+	expect(cachedSearch.data.items[0]?.displayTitle).toBe("中文名");
+	expect(cachedSearch.snapshotId).toBe(search.snapshotId);
+	expect(f.second.get).toHaveBeenCalledTimes(1);
+	expect(f.second.search).toHaveBeenCalledTimes(1);
+	expect(f.database.metadata.get(original.snapshotId)?.data).toEqual(
+		stored?.data,
+	);
 });

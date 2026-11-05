@@ -14,7 +14,11 @@ import type {
 } from "./domain/model.js";
 import type { MetadataIdentitiesApi } from "./identities.js";
 
-export type { WorkReference } from "./domain/model.js";
+export type {
+	MetadataTitle,
+	TitleDisplayPreference,
+	WorkReference,
+} from "./domain/model.js";
 export {
 	airedEpisodeCount,
 	MetadataError,

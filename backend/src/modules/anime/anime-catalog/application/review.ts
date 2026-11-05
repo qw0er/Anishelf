@@ -1,4 +1,8 @@
 import { DomainError } from "../../../../shared/errors.js";
+import {
+	MetadataError,
+	workTitle,
+} from "../../external-works/metadata/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
 import { catalogDefaults as policy } from "../defaults.js";
 import { conflict, invalid, text } from "../domain/mapping.js";
@@ -8,6 +12,76 @@ import { type CatalogContext, page, safeReview } from "./context.js";
 
 export class ReviewApplication {
 	constructor(private readonly context: CatalogContext) {}
+	private present(...args: Parameters<typeof safeReview>): ReviewItem {
+		const item = safeReview(...args);
+		const proposals = item.proposals.map((proposal) => {
+			const candidate = proposal.candidate;
+			const work = candidate.work;
+			let snapshot:
+				| ReturnType<typeof this.context.options.metadata.snapshot>
+				| undefined;
+			try {
+				snapshot = this.context.options.metadata.snapshot(work.snapshotId);
+			} catch (error) {
+				if (!(error instanceof MetadataError)) throw error;
+				this.context.options.logger.debug(
+					{
+						event: "catalog.title_snapshot_unavailable",
+						snapshotId: work.snapshotId,
+						code: error.failure.code,
+					},
+					"Candidate title uses retained proposal evidence.",
+				);
+			}
+			const summary =
+				snapshot?.kind === "detail"
+					? snapshot.data
+					: snapshot?.kind === "search"
+						? snapshot.data.items.find(
+								(entry) => entry.reference.id === work.reference.id,
+							)
+						: undefined;
+			return {
+				...proposal,
+				candidate: {
+					...candidate,
+					work: {
+						...work,
+						displayTitle:
+							summary?.displayTitle ??
+							workTitle(
+								summary?.titles ??
+									(work.titleVariants ?? []).map((title) => ({
+										...title,
+										kind: "alias" as const,
+									})),
+								work.titles[0] ?? work.reference.id,
+								this.context.options.titleDisplayPreference?.(),
+							),
+					},
+				},
+			};
+		});
+		const recognized = item.recognizedWork;
+		return {
+			...item,
+			proposals,
+			...(recognized
+				? {
+						recognizedWork: {
+							...recognized,
+							title:
+								proposals.find(
+									(proposal) =>
+										proposal.candidate.work.reference.id ===
+										recognized.reference.id,
+								)?.candidate.work.displayTitle ?? recognized.title,
+						},
+					}
+				: {}),
+		};
+	}
+
 	publish(
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],
@@ -46,7 +120,7 @@ export class ReviewApplication {
 			)?.reference;
 			return {
 				workId: episode.workId,
-				workTitle: work?.providerTitle ?? episode.workId,
+				workTitle: work ? this.context.title(work) : episode.workId,
 				...(reference ? { reference } : {}),
 				episodeId: episode.id,
 				kind: episode.kind,
@@ -86,7 +160,7 @@ export class ReviewApplication {
 				const record = this.context.options.store.review(source.id);
 				if (record)
 					items.push(
-						safeReview(
+						this.present(
 							record,
 							await this.context.available(record, scope.revision),
 							this.associations(record.id),
@@ -112,7 +186,7 @@ export class ReviewApplication {
 	async get(id: string): Promise<ReviewItem> {
 		const scope = await this.context.scope();
 		const record = this.context.requireReview(id, scope.ids);
-		return safeReview(
+		return this.present(
 			record,
 			await this.context.available(record, scope.revision),
 			this.associations(id),
@@ -162,7 +236,7 @@ export class ReviewApplication {
 						hasNextPage = true;
 						break batches;
 					}
-					items.push(safeReview(item, true, this.associations(item.id)));
+					items.push(this.present(item, true, this.associations(item.id)));
 				}
 				if (!result.hasNextPage) break;
 			}
@@ -189,7 +263,7 @@ export class ReviewApplication {
 		const items: ReviewItem[] = [];
 		for (const item of result.items)
 			items.push(
-				safeReview(
+				this.present(
 					item,
 					await this.context.available(item, scope.revision),
 					this.associations(item.id),
@@ -242,7 +316,7 @@ export class ReviewApplication {
 				? "Catalog associations removed and source rejected."
 				: "Catalog source rejected.",
 		);
-		return safeReview(
+		return this.present(
 			this.context.requireReview(id, scope.ids),
 			await this.context.available(record, scope.revision),
 		);

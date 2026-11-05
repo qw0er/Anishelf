@@ -80,7 +80,11 @@ export function MappingForm({
 						{details.data.data.coverUrl ? (
 							<Artwork
 								url={details.data.data.coverUrl}
-								title={details.data.data.titles[0]?.value ?? t("anime.unknown")}
+								title={
+									details.data.data.displayTitle ??
+									details.data.data.titles[0]?.value ??
+									t("anime.unknown")
+								}
 							/>
 						) : (
 							<div className="flex aspect-[2/3] items-center justify-center bg-muted text-muted-foreground">
@@ -93,7 +97,8 @@ export function MappingForm({
 							{t("review.selected")}
 						</p>
 						<p className="font-medium wrap-anywhere">
-							{details.data.data.titles[0]?.value}
+							{details.data.data.displayTitle ??
+								details.data.data.titles[0]?.value}
 						</p>
 						<p className="text-xs text-muted-foreground">
 							{details.data.data.format ?? t("anime.unknown")} ·{" "}

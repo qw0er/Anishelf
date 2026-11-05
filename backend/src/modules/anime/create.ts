@@ -22,9 +22,12 @@ export async function createAnimeModule(options: {
 	const { system, resources: library, database, logger } = options;
 	const externalWorks = await createExternalWorks({ system, database, logger });
 	const { metadata, tracking } = externalWorks;
+	const titleDisplayPreference = () =>
+		system.snapshot.settings.titleDisplayPreference ?? "native";
 	const catalog = metadata
 		? new AnimeCatalogApplication({
 				store: database.catalog,
+				titleDisplayPreference,
 				metadata,
 				sources: library.sources,
 				logger,
@@ -33,6 +36,7 @@ export async function createAnimeModule(options: {
 	const libraryQueries = new AnimeLibraryQueries({
 		catalog,
 		lists: tracking,
+		titleDisplayPreference,
 		logger,
 		...(metadata ? { identities: metadata.identities } : {}),
 	});
@@ -73,6 +77,7 @@ export async function createAnimeModule(options: {
 			tracking,
 			logger,
 			metadata?.identities,
+			titleDisplayPreference,
 		),
 		...(assessment && catalog
 			? {

@@ -5,7 +5,9 @@ import { MetadataNameEnrichment } from "./application/name-enrichment.js";
 import { MetadataSearch } from "./application/search.js";
 import { MetadataSnapshots } from "./application/snapshots.js";
 import { SourceMetadataApplication } from "./application/source-metadata.js";
+import { MetadataTitles } from "./application/titles.js";
 import { MetadataWorkReader } from "./application/work-reader.js";
+import type { TitleDisplayPreference } from "./domain/model.js";
 import { MetadataArtworkCache } from "./infrastructure/artwork.js";
 import type {
 	MetadataProvider,
@@ -23,6 +25,7 @@ export async function createMetadataModule(options: {
 	defaultProvider: string;
 	artworkHosts: readonly string[];
 	defaultSearchProvider?: () => string;
+	titleDisplayPreference?: () => TitleDisplayPreference;
 }): Promise<MetadataModule> {
 	const artwork = new MetadataArtworkCache({
 		hosts: options.artworkHosts,
@@ -44,6 +47,7 @@ export async function createMetadataModule(options: {
 		options.store,
 		options.logger,
 		options.defaultSearchProvider ?? (() => options.defaultProvider),
+		options.titleDisplayPreference,
 	);
 }
 
@@ -54,7 +58,9 @@ export function createMetadataApplication(
 	logger?: Logger,
 	defaultSearchProvider: () => string = () =>
 		source.providers()[0]?.key ?? "anilist",
+	titleDisplayPreference: () => TitleDisplayPreference = () => "native",
 ): MetadataModule {
+	const titles = new MetadataTitles(titleDisplayPreference);
 	const identities = new MetadataIdentities(source, store, logger);
 	const snapshots = new MetadataSnapshots(source, store, identities, logger);
 	const names = new MetadataNameEnrichment(source, logger);
@@ -79,12 +85,27 @@ export function createMetadataApplication(
 	);
 	return {
 		resolveReference: identities.resolveReference.bind(identities),
-		search: search.search.bind(search),
-		get: works.get.bind(works),
-		current: works.current.bind(works),
-		relations: works.relations.bind(works),
+		search: async (...args) => titles.page(await search.search(...args)),
+		get: async (...args) => titles.envelope(await works.get(...args)),
+		current: (reference) => {
+			const value = works.current(reference);
+			return value ? titles.envelope(value) : null;
+		},
+		relations: async (...args) => {
+			const value = await works.relations(...args);
+			return {
+				...value,
+				data: {
+					...value.data,
+					items: value.data.items.map((item) => ({
+						...item,
+						work: titles.work(item.work),
+					})),
+				},
+			};
+		},
 		airing: works.airing.bind(works),
-		snapshot: snapshots.snapshot.bind(snapshots),
+		snapshot: (id) => titles.snapshot(snapshots.snapshot(id)),
 		retain: source.retain.bind(source),
 		release: source.release.bind(source),
 		artwork: artwork.artwork.bind(artwork),

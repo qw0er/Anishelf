@@ -7,6 +7,7 @@ interface WorkReference {
 export interface WorkCandidate {
 	reference: WorkReference;
 	snapshotId: string;
+	displayTitle?: string;
 	titles: string[];
 	titleVariants?: {
 		value: string;

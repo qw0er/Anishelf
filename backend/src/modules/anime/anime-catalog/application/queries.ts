@@ -100,7 +100,7 @@ export class CatalogQueries {
 		);
 		return {
 			...work,
-			displayTitle: work.providerTitle,
+			displayTitle: this.context.title(work),
 			hasCover: Boolean(snapshot.data.coverUrl),
 			coverVersion: artworkVersion(snapshot.data.coverUrl),
 			metadataStale: snapshot.stale,
@@ -280,7 +280,7 @@ export class CatalogQueries {
 		return {
 			work: {
 				...work,
-				displayTitle: work.providerTitle,
+				displayTitle: this.context.title(work),
 				hasCover: Boolean(snapshot.data.coverUrl),
 				coverVersion: artworkVersion(snapshot.data.coverUrl),
 				metadataStale: snapshot.stale,

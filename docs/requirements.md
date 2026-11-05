@@ -84,7 +84,7 @@ Preserve each rule's source confirmations and applicable context, explain its ef
 
 #### Delivery Notes (M)
 
-- **M06:** **Delivered:** Independently selectable AniList/Bangumi search, a persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. **Release record:** 1.0.6 (partial); 1.4.2 (source-isolated identities; complete).
+- **M06:** **Delivered:** Independently selectable AniList/Bangumi search, a persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. Title presentation supports a persisted Chinese/original/English/romaji preference; see [M09](implemented-requirements.md#title-display-preference-m09). **Release record:** 1.0.6 (partial); 1.4.2 (source-isolated identities; complete).
 
 #### External Metadata and Local Catalog (M01–M07)
 
@@ -338,7 +338,6 @@ Details and acceptance criteria may be refined as decisions are made.
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | L16 | Improve matching using representative real-world failure cases | Not started | Later | — | — |
-| M09 | Improve Chinese title availability using Bangumi | Not started | Unassigned | [Chinese title fallback](#chinese-title-fallback-m09) | — |
 | P26 | Improve transcoding progress display | Not started | Unassigned | [Transcoding progress](#transcoding-progress-p26) | — |
 | P27 | Improve prepared-media file management | Not started | Unassigned | [Prepared-media file management](#prepared-media-file-management-p27) | — |
 | WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
@@ -351,14 +350,6 @@ Details and acceptance criteria may be refined as decisions are made.
 #### Matching Improvements from Real Failures (L16)
 
 Collect representative local failure cases with user-confirmed expected works and episode mappings, preserving filename, directory and release provenance. Diagnose extraction, candidate retrieval, ranking, numbering and admission separately. Prioritize recurring failures such as shortened titles, season/part ambiguity, continuous numbering and end-of-series markers; do not lower admission thresholds solely to improve corpus coverage.
-
-#### Chinese Title Fallback (M09)
-
-Improve Chinese title presentation using titles supplied by the explicitly selected
-metadata source. Prefer that source's Chinese title when available and otherwise
-retain its existing fallback. Users can select Bangumi through Review when its title
-coverage is preferred. Cross-source title lookup, identity association and automatic
-fallback to another provider are outside this requirement.
 
 #### Transcoding Progress (P26)
 

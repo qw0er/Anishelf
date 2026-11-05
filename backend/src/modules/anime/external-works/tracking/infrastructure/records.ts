@@ -1,7 +1,12 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import type { Store } from "../../../../../platform/database/store.js";
 import { workReference } from "../../../../../shared/external-reference.js";
-import { metadataWorks, saveWorkSummary } from "../../metadata/persistence.js";
+import {
+	metadataReferences,
+	metadataWorks,
+	saveWorkSummary,
+} from "../../metadata/persistence.js";
 import type { TrackingListCache } from "../domain/list.js";
 import type { TrackingOperation } from "../domain/operation.js";
 import * as s from "./schema.js";
@@ -161,12 +166,31 @@ export function readTrackingListCache(
 	store: Store,
 	row: typeof s.trackingListCache.$inferSelect,
 ): TrackingListCache {
+	const projectWorks = alias(metadataWorks, "tracking_project_titles");
 	const entries = store
-		.select({ entry: s.trackingListCacheEntries, info: metadataWorks })
+		.select({
+			entry: s.trackingListCacheEntries,
+			info: metadataWorks,
+			project: projectWorks,
+		})
 		.from(s.trackingListCacheEntries)
 		.innerJoin(
 			metadataWorks,
 			eq(metadataWorks.key, s.trackingListCacheEntries.mediaId),
+		)
+		.leftJoin(
+			metadataReferences,
+			and(
+				eq(metadataReferences.provider, metadataWorks.provider),
+				eq(metadataReferences.providerId, metadataWorks.providerId),
+			),
+		)
+		.leftJoin(
+			projectWorks,
+			and(
+				eq(projectWorks.provider, "metadata"),
+				eq(projectWorks.providerId, metadataReferences.workId),
+			),
 		)
 		.where(eq(s.trackingListCacheEntries.parentId, row.accountId))
 		.orderBy(asc(s.trackingListCacheEntries.ordinalIndex))
@@ -174,12 +198,15 @@ export function readTrackingListCache(
 	return {
 		...row,
 		invalidated: row.invalidated ?? false,
-		entries: entries.map(({ entry, info }) => ({
+		entries: entries.map(({ entry, info, project }) => ({
 			id: entry.id,
 			mediaId: entry.mediaId,
 			progress: entry.progress,
 			status: entry.status,
 			updatedAt: entry.updatedAt,
+			// The project's cached title evidence can include verified supplemental names.
+			// Keep Tracking's own title list unchanged for search and acquisition.
+			titleVariants: project?.titles.length ? project.titles : info.titles,
 			titles: info.titles
 				.toSorted(
 					(a, b) => Number(b.kind === "native") - Number(a.kind === "native"),
@@ -216,11 +243,13 @@ export function writeTrackingListCache(
 				store,
 				{
 					reference: workReference(entry.mediaId),
-					titles: entry.titles.map((value) => ({
-						value,
-						language: null,
-						kind: "native" as const,
-					})),
+					titles:
+						entry.titleVariants ??
+						entry.titles.map((value) => ({
+							value,
+							language: null,
+							kind: "native" as const,
+						})),
 					format: entry.format,
 					year: entry.year,
 					episodeCount: entry.episodeCount,

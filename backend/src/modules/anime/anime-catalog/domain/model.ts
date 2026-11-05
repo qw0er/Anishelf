@@ -16,6 +16,7 @@ export interface EpisodeTarget {
 export interface LocalWork {
 	id: string;
 	providerTitle: string;
+	titleVariants?: import("../../external-works/metadata/public.js").MetadataTitle[];
 	searchTitles: string[];
 	format: string | null;
 	year: number | null;

@@ -101,6 +101,7 @@ export class AniListListsClient implements AniListListsApi {
 						progress: value.progress,
 						status: value.status,
 						updatedAt: value.updatedAt,
+						title: value.media.title,
 						titles,
 						format: value.media.format,
 						year: value.media.startDate.year ?? value.media.seasonYear,

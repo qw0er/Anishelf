@@ -504,3 +504,28 @@ test("metadata source selection persists through reload and rejects unsupported 
 		code: "CONFIG_INVALID",
 	});
 });
+
+test.each(["chinese", "native", "english", "romaji"] as const)(
+	"title preference %s persists across reload",
+	async (titleDisplayPreference) => {
+		const service = await ConfigurationService.load(environment());
+		await service.patchSettings({ titleDisplayPreference });
+		expect(
+			(await ConfigurationService.load(environment())).settings
+				.titleDisplayPreference,
+		).toBe(titleDisplayPreference);
+	},
+);
+test.each(["unknown", null, 1, ["native"]])(
+	"startup rejects invalid title preference %j",
+	async (titleDisplayPreference) => {
+		await mkdir(dataDir, { recursive: true });
+		await writeFile(
+			join(dataDir, "settings.json"),
+			JSON.stringify({ resourceRoots: [], titleDisplayPreference }),
+		);
+		await expect(
+			ConfigurationService.load(environment()),
+		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+	},
+);

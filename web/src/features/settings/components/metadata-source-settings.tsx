@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import type { UpdateSettingsRequest } from "../../../shared/api/contracts.js";
 import {
 	Card,
 	CardContent,
@@ -16,11 +17,20 @@ export function MetadataSourceSettings() {
 	const client = useQueryClient();
 	const settings = useQuery(settingsQuery());
 	const save = useMutation({
-		mutationFn: (provider: "anilist" | "bangumi") =>
-			saveSettings({ defaultMetadataProvider: provider }),
+		mutationFn: (patch: UpdateSettingsRequest) => saveSettings(patch),
 		onSuccess: async (data) => {
 			client.setQueryData(settingsKeys.settings, data);
-			await client.invalidateQueries({ queryKey: ["metadata-search"] });
+			await client.invalidateQueries({
+				predicate: (query) =>
+					[
+						"anime-library",
+						"anime-detail",
+						"catalog",
+						"metadata-search",
+						"metadata-detail",
+						"metadata-relations",
+					].includes(String(query.queryKey[0])),
+			});
 			toast.add({ type: "success", title: t("metadataSource.saved") });
 		},
 		onError: () =>
@@ -45,13 +55,48 @@ export function MetadataSourceSettings() {
 						onChange={(event) => {
 							const value = event.target.value;
 							if (value === "anilist" || value === "bangumi")
-								save.mutate(value);
+								save.mutate({ defaultMetadataProvider: value });
 						}}
 					>
 						<option value="anilist">AniList</option>
 						<option value="bangumi">Bangumi</option>
 					</NativeSelect>
 				</label>
+				<div className="mt-4 space-y-2">
+					<label htmlFor="title-display-preference">
+						{t("metadataSource.titlePreference")}
+					</label>
+					<NativeSelect
+						aria-describedby="title-display-fallback"
+						id="title-display-preference"
+						value={settings.data?.titleDisplayPreference ?? "native"}
+						disabled={!settings.data || save.isPending}
+						onChange={(event) => {
+							const value = event.target.value;
+							if (
+								value === "chinese" ||
+								value === "native" ||
+								value === "english" ||
+								value === "romaji"
+							)
+								save.mutate({ titleDisplayPreference: value });
+						}}
+					>
+						{(["chinese", "native", "english", "romaji"] as const).map(
+							(value) => (
+								<option key={value} value={value}>
+									{t(`metadataSource.titlePreferences.${value}`)}
+								</option>
+							),
+						)}
+					</NativeSelect>
+					<p
+						id="title-display-fallback"
+						className="text-muted-foreground text-sm"
+					>
+						{t("metadataSource.titleFallback")}
+					</p>
+				</div>
 			</CardContent>
 		</Card>
 	);

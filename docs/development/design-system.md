@@ -197,3 +197,8 @@ verification separately. Keep this English document focused on durable design in
 
 Make the selected primary title and its source clear. Keep alternative titles as
 internal matching and search evidence so they do not compete with the work's identity.
+
+Title presentation follows the global Settings preference (Chinese, original,
+English or romaji), independently of interface language. Default to original and
+use the original or another available title when the preferred one is missing.
+Apply the same choice to cards, details, search, related works and Review.
