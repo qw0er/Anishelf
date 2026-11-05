@@ -114,11 +114,7 @@ export function LibraryResults({
 								aria-describedby={descriptionId}
 							>
 								<div className="poster-artwork">
-									<Artwork
-										key={work.updatedAt}
-										url={work.coverUrl}
-										title={work.displayTitle}
-									/>
+									<Artwork url={work.coverUrl} title={work.displayTitle} />
 								</div>
 								<div className="poster-caption">
 									<h2

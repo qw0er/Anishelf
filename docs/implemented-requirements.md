@@ -41,6 +41,7 @@ Original V1 delivered read-only originals, resource-root confinement, persistent
 | L13 | Move files or folders with preservation rules | Complete | — | [Confirmed same-filesystem moves; history retained](#delivery-notes-l) | 1.3.0 |
 | L19 | Delete files or folders with preservation rules | Complete | — | [Confirmed recursive deletion; history retained](#delivery-notes-l) | 1.3.0 |
 | L14 | Download an existing original media file from the Web interface to the user's device | Complete | — | — | 0.2.5 |
+| WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](#library-and-detail-refresh-continuity-wi10) | — |
 
 #### Delivery Notes (L)
 
@@ -58,6 +59,27 @@ uses title order. Unknown progress and remote-only works receive no unwatched pr
 Recently updated uses the local Catalog work update timestamp; remote-only works use
 the provider list-entry update timestamp, falling back to the list fetch time.
 Recently added retains local Catalog creation-time ordering. Files search matches names in the current directory and its subdirectories, showing each result’s relative parent path. Directories remain ahead of files; size and modification-time sorting applies to files, with natural name order breaking ties.
+
+#### Library and Detail Refresh Continuity (WI10)
+
+Implemented on 2026-11-05. Resource-index revision changes keep existing Library
+cards and local/provider-key detail content visible while the new publication loads.
+Successful responses replace the displayed data; revision-specific query keys still
+isolate old and new requests. Placeholder content does not populate the new cache.
+Reuse is limited to the same resource-root configuration and work identity; Library
+reuse also checks tracking account/generation and filters, retaining its existing
+pagination behavior.
+
+Local detail components retain their identity across revision changes, preserving
+selection and spoiler controls. Artwork no longer remounts solely because a work
+update or metadata fetch timestamp changes; changed artwork URLs still update images.
+Index-publication refreshes emit a debug log containing the previous and new revisions.
+
+**Validation:** Biome, frontend type checks and architecture checks passed. All 502
+frontend tests passed across 83 files, including regression coverage for content and
+artwork continuity, retained spoiler state, updated responses and query-owner
+isolation. Real-browser visual acceptance remains pending; status is Completed,
+not Verified. No first release is assigned.
 
 #### Multi-root resource management (L12)
 

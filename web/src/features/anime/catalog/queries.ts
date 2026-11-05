@@ -1,6 +1,9 @@
 import { workKey } from "@anishelf/backend/contracts/references";
 import { queryOptions } from "@tanstack/react-query";
-import { boundedSignal } from "../../../shared/api/queries.js";
+import {
+	boundedSignal,
+	queryScopeIdentity,
+} from "../../../shared/api/queries.js";
 import { reportMetadataRefresh } from "../metadata/public.js";
 import {
 	getFileReviews,
@@ -30,6 +33,14 @@ export const localWorkDetailQuery = (id: string, scope: string) =>
 				});
 			return result;
 		},
+		placeholderData: (previous, query) =>
+			query &&
+			queryScopeIdentity(String(query.queryKey[1])) ===
+				queryScopeIdentity(scope) &&
+			query.queryKey[2] === "local" &&
+			query.queryKey[3] === id
+				? previous
+				: undefined,
 		// Reuse the route loader result when the detail component mounts.
 		staleTime: 60_000,
 		gcTime: 15 * 60_000,

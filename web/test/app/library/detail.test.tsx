@@ -383,3 +383,56 @@ test("missing episode directly submits one request and opens its own task detail
 	const dialog = await screen.findByRole("dialog", { name: "Episode 3 task" });
 	expect(await within(dialog).findByText("No active downloads.")).toBeTruthy();
 });
+
+test("an index publication preserves detail content, artwork and spoiler state while loading", async () => {
+	const detail = animeFixture();
+	mockAnime(detail);
+	renderApp("/anime/work-1");
+	const heading = await screen.findByRole("heading", {
+		name: "Frieren",
+		level: 1,
+	});
+	const cover = screen.getByRole("img", { name: "Frieren" });
+	fireEvent.click(screen.getByText("More metadata"));
+	fireEvent.click(screen.getByRole("button", { name: "Show spoiler tags" }));
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	const response = Promise.withResolvers<Response>();
+	let requested = false;
+	fetcher.mockImplementation((input, init) => {
+		if (String(input) === "/api/anime/details/local/work-1") {
+			requested = true;
+			return response.promise;
+		}
+		return fallback(input, init);
+	});
+	act(() => {
+		queryClient.setQueryData(["library"], {
+			...appFixture.library,
+			revision: 2,
+		});
+	});
+	await waitFor(() => expect(requested).toBe(true));
+	expect(screen.getByRole("heading", { name: "Frieren", level: 1 })).toBe(
+		heading,
+	);
+	expect(screen.getByRole("img", { name: "Frieren" })).toBe(cover);
+	expect(screen.getByText("Hidden spoiler")).toBeTruthy();
+	expect(screen.queryByRole("status", { name: "Loading anime" })).toBeNull();
+	await act(async () => {
+		response.resolve(
+			json(
+				animeDetailFixture({
+					...detail,
+					work: { ...detail.work, displayTitle: "Updated Frieren" },
+					metadata: {
+						...detail.metadata,
+						fetchedAt: detail.metadata.fetchedAt + 1,
+					},
+				}),
+			),
+		);
+	});
+	await screen.findByRole("heading", { name: "Updated Frieren", level: 1 });
+	expect(screen.getByRole("img", { name: "Updated Frieren" })).toBe(cover);
+	expect(screen.getByText("Hidden spoiler")).toBeTruthy();
+});

@@ -1,6 +1,9 @@
 import { hashKey, queryOptions, skipToken } from "@tanstack/react-query";
 import type { AnimeLibraryResponse } from "../../../shared/api/contracts.js";
-import { boundedSignal } from "../../../shared/api/queries.js";
+import {
+	boundedSignal,
+	queryScopeIdentity,
+} from "../../../shared/api/queries.js";
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import {
 	reportTrackingReadFailure,
@@ -47,7 +50,8 @@ export const animeLibraryQuery = (
 		placeholderData: (previous, query) => {
 			if (
 				!query ||
-				query.queryKey[1] !== scope ||
+				queryScopeIdentity(String(query.queryKey[1])) !==
+					queryScopeIdentity(scope) ||
 				query.queryKey[2] !== (identity?.accountId ?? null) ||
 				query.queryKey[3] !== (identity?.generation ?? null)
 			)

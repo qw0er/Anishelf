@@ -29,6 +29,10 @@ export function useScans(library: LibraryResponse | null) {
 	const lastRevision = useRef(library?.revision);
 	useEffect(() => {
 		if (library && lastRevision.current !== library.revision) {
+			console.debug("[Library] Refreshing queries after index publication.", {
+				previousRevision: lastRevision.current,
+				revision: library.revision,
+			});
 			lastRevision.current = library.revision;
 			void invalidateAnimeQueries(client, "local");
 			for (const queryKey of [

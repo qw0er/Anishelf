@@ -49,11 +49,7 @@ export function WorkMetadataHeader({
 			)}
 			<div className="work-hero-content">
 				<div className="work-hero-cover">
-					<Artwork
-						key={`cover:${metadata.fetchedAt}`}
-						url={work.coverUrl}
-						title={work.displayTitle}
-					/>
+					<Artwork url={work.coverUrl} title={work.displayTitle} />
 				</div>
 				<div className="min-w-0 max-w-3xl space-y-4">
 					<h1 className="text-2xl leading-tight font-semibold tracking-tight wrap-anywhere sm:text-3xl xl:text-4xl">

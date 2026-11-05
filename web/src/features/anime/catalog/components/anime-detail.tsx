@@ -8,7 +8,10 @@ import type {
 	AnimeDetailResponse,
 	LocalWorkDetailResponse,
 } from "../../../../shared/api/contracts.js";
-import { useQueryScope } from "../../../../shared/api/queries.js";
+import {
+	queryScopeIdentity,
+	useQueryScope,
+} from "../../../../shared/api/queries.js";
 import {
 	Button,
 	buttonStyles,
@@ -73,7 +76,7 @@ export function AnimeDetail({
 		);
 	return (
 		<LocalWorkDetail
-			key={`${id}:${scope}`}
+			key={JSON.stringify([id, queryScopeIdentity(scope)])}
 			data={query.data}
 			renderResourceActions={renderResourceActions}
 			{...(renderSubscription ? { renderSubscription } : {})}

@@ -1,7 +1,10 @@
 import { queryOptions } from "@tanstack/react-query";
 import { request } from "../../../shared/api/client.js";
 import type { AnimeDetailResponse } from "../../../shared/api/contracts.js";
-import { boundedSignal } from "../../../shared/api/queries.js";
+import {
+	boundedSignal,
+	queryScopeIdentity,
+} from "../../../shared/api/queries.js";
 export const animeDetailQuery = (key: string, scope: string) =>
 	queryOptions({
 		queryKey: ["anime-detail", scope, "work", key],
@@ -24,6 +27,14 @@ export const animeDetailQuery = (key: string, scope: string) =>
 			}
 			return detail;
 		},
+		placeholderData: (previous, query) =>
+			query &&
+			queryScopeIdentity(String(query.queryKey[1])) ===
+				queryScopeIdentity(scope) &&
+			query.queryKey[2] === "work" &&
+			query.queryKey[3] === key
+				? previous
+				: undefined,
 		staleTime: 60_000,
 		gcTime: 15 * 60_000,
 		refetchOnWindowFocus: true,
