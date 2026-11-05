@@ -77,6 +77,11 @@ export function SubscriptionsPage() {
 	) => (
 		<Button
 			variant="ghost"
+			aria-label={t(
+				work.excluded
+					? "acquisition.watching.include"
+					: "acquisition.watching.exclude",
+			)}
 			disabled={membership.isPending || !watching.data?.accountId}
 			aria-busy={
 				membership.isPending && membership.variables?.workKey === work.workKey
@@ -85,8 +90,8 @@ export function SubscriptionsPage() {
 		>
 			{t(
 				work.excluded
-					? "acquisition.watching.include"
-					: "acquisition.watching.exclude",
+					? "acquisition.manager.restore"
+					: "acquisition.manager.exclude",
 			)}
 		</Button>
 	);

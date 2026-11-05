@@ -32,6 +32,13 @@ Secondary actions may become more compact when space is limited, but must remain
 identifiable and accessible. Show activity at its initiating action without redundant
 feedback or layout shifts.
 
+Keep button labels and compact status text short enough to scan at a glance. Avoid
+repeating the surrounding context, management mode or full explanations in every row.
+Use a brief action verb or state label; put detailed causes, timing and consequences
+in the associated details or help. Preserve meaningful distinctions between states
+and keep actionable failures discoverable. Do not rely on truncation to make verbose
+copy fit, and account for longer translations when reviewing labels.
+
 ## Reuse and consistency
 
 Reuse established visual and interaction patterns so users can transfer what they

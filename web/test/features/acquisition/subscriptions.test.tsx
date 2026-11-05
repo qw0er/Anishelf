@@ -529,3 +529,21 @@ test.each(["manual", "watching"] as const)(
 		);
 	},
 );
+
+test("compact inventory status keeps the full reason in subscription details", async () => {
+	if (!saved.subscription) throw Error("Missing fixture");
+	fixture({
+		...saved,
+		subscription: {
+			...saved.subscription,
+			enabled: true,
+			management: "watching",
+			runState: "disabled",
+		},
+	});
+	render(<SubscriptionPanel workKey={workKey} compact />);
+	await screen.findByText("Disabled");
+	expect(screen.queryByText("Automatic acquisition disabled")).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: /Subscription details/ }));
+	await screen.findByText("Automatic acquisition disabled");
+});

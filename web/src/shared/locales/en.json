@@ -1278,7 +1278,40 @@
 			"enabled": "Enabled",
 			"disabled": "Disabled",
 			"progressDescription": "Start new subscriptions at the episode after your AniList progress. For example, progress 3 starts at episode 4.",
-			"beginningDescription": "Start new subscriptions at episode 1 to include earlier episodes. Episodes already available locally are reused."
+			"beginningDescription": "Start new subscriptions at episode 1 to include earlier episodes. Episodes already available locally are reused.",
+			"shortReasons": {
+				"disabled": "Disabled",
+				"ready": "Enabled",
+				"managed": "Active",
+				"pending": "Pending",
+				"search_pending": "Searching",
+				"no_eligible_source": "Waiting",
+				"discovery_unavailable": "Source unavailable",
+				"tracking_unavailable": "Awaiting sync",
+				"tracking_account_changed": "Account changed",
+				"source_changed": "Source changed",
+				"profile_changed": "Profile changed",
+				"destination_changed": "Destination changed",
+				"authorization_required": "Review required",
+				"excluded": "Excluded",
+				"manually_paused": "Paused",
+				"manual_subscription_present": "Manual",
+				"tracking_entry_removed": "Removed",
+				"tracking_paused": "Paused",
+				"tracking_dropped": "Dropped",
+				"tracking_completed": "Completed",
+				"tracking_planned": "Planned",
+				"tracking_rewatching": "Rewatch disabled",
+				"not_watching": "Stopped",
+				"completed": "Completed",
+				"paused": "Paused",
+				"active": "Active",
+				"invalid_progress": "Invalid progress",
+				"source_reselection_required": "Select source",
+				"different_account_owner": "Account mismatch",
+				"subscription_limit": "Limit reached",
+				"work_limit": "Limit reached"
+			}
 		},
 		"connection": {
 			"more": "More service actions",
@@ -1322,7 +1355,13 @@
 			"noSubscriptions": "No subscriptions yet",
 			"emptyHelp": "Subscribe from a work’s details to follow new releases.",
 			"browse": "Browse works",
-			"excluded": "Excluded works ({{count}})"
+			"excluded": "Excluded works ({{count}})",
+			"restore": "Restore",
+			"exclude": "Exclude",
+			"cooldown": "Cooling down",
+			"waiting": "Waiting",
+			"searching": "Searching",
+			"active": "Active"
 		}
 	},
 	"profileIssue": {
