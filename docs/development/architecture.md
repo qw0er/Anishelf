@@ -240,20 +240,23 @@ Changing an existing file to another source uses Review's explicit replacement
 confirmation and invalidates captured playback targets through the existing mapping
 revision checks.
 
-Details, primary titles, artwork, relations and airing schedules come from the work's source.
-Names are the sole exception: optional verification searches both providers for an
-identical native title (Unicode/whitespace normalization only), full premiere date,
-format and positive episode count. Each provider must return exactly one matching
-entry including the original entry. Missing fields, incomplete/truncated searches,
+Descriptions, artwork, relations and airing schedules come from the work's source.
+Names are the sole exception: optional verification searches both providers using
+shared explicit native, English or romaji names (Unicode/whitespace normalization
+only), full premiere date, format and positive episode count. An arbitrary alias
+cannot establish the match. Each provider must return exactly one matching entry,
+including the original entry. Missing fields, incomplete/truncated searches,
 ambiguous results, stale data and provider failures leave the source names unchanged.
-Verification inspects at most 50 search results and five plausible details per source,
-with a five-second deadline. Verified names-only evidence is held in a bounded
-10-minute process cache, lost on restart and invalidated by changed source evidence.
+Verification uses bounded search/detail limits, with a five-second foreground
+deadline and a 20-second background-enrichment budget. Verified names-only correspondence is held in a bounded 10-minute process cache, lost on
+restart and invalidated by changed source evidence. Successful merged titles also
+persist in the existing project Metadata cache for later presentation reads.
 Supplemental names remain aliases, retaining an optional explicit `searchKind` for
-romanized/English query selection. They never change
-project IDs, primary display titles, other metadata fields, episode mappings or Tracking.
-Cached-only reads never initiate verification. Detail headers display only the selected
-primary title, without an alternative-title list or expansion control.
+romanized/English query selection. They never change project IDs, original source
+title roles, other metadata fields, episode mappings or Tracking. Presentation can
+select these names according to the global title preference. Cached-only reads never
+initiate verification. Detail headers display only the selected primary title,
+without an alternative-title list or expansion control.
 Unsupported capabilities return `unavailable: true`. Immutable historical snapshots
 remain confirmation evidence; new current reads never compose source fields.
 Tracking resolves the work's own source ID. Bangumi works show unsupported Tracking;
@@ -792,14 +795,26 @@ System configuration owns the persistent `titleDisplayPreference` setting
 current setting through assembly callbacks. Metadata applies `displayTitle` after
 saving immutable snapshots and when reading retained snapshots, so changing a
 presentation preference never changes snapshot identity or provider evidence.
-Catalog and Tracking preserve structured title roles in their internal read models;
-Library, detail and Review projections use the same title selector. Tracking list
-reads also join the existing source identity to its cached project title evidence,
-so Tracking-only posters can display already verified supplemental names without
-a detail request. Tracking search/acquisition title lists retain source evidence. Chinese titles
-require explicit source language tags. Missing preferred titles fall back to a
-nonempty original, first available title, then the supplied fallback. Identification
-and acquisition continue to use the original ordered title evidence.
+Chinese requires an explicit source language tag. Missing preferred titles fall
+back to a nonempty original, first available title, then the supplied fallback.
+Library, detail and Review projections use the same title selector.
+
+Local and Tracking-only Library cards batch-read title evidence from the same
+Metadata project cache before pagination. Catalog supplies local availability and
+Tracking supplies viewing status; neither selects a separate poster title source.
+Tracking search/acquisition title lists retain their original source evidence.
+The current page schedules background enrichment only for works missing the
+preferred title. Existing cards return immediately with their fallback titles.
+
+Metadata owns a serial PQueue with at most 50 active/queued jobs, deduplicated by
+work. Provider calls retain their shared rate limits. Each job has a 30-second
+execution timeout starting after dequeue; name verification is bounded to 20 seconds.
+Unmatched or incomplete evidence is cooled down for 15 minutes and errors for one
+minute. Job and cooldown state is in memory; successful title evidence persists in
+the existing project cache without a schema migration. Module shutdown aborts jobs.
+`titlesRefreshing` in the Library response keeps the Web query polling every 1.5
+seconds while the selected works are pending, then returns to its normal five-minute
+cadence. Background updates retain cards and navigation context.
 
 ### Bangumi protocol and project metadata
 

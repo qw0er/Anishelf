@@ -8,11 +8,15 @@ import {
 	type WorkReference,
 	type WorkRelation,
 } from "../domain/model.js";
+import type { ProjectDocument } from "../domain/project-document.js";
 import { projectDetails, projectSummary } from "../domain/projection.js";
 import type * as Source from "../domain/source-model.js";
 import type { SourceMetadataApi } from "../ports.js";
 import type { MetadataIdentities } from "./identities.js";
-import type { MetadataNameEnrichment } from "./name-enrichment.js";
+import type {
+	MetadataNameEnrichment,
+	NameVerificationOptions,
+} from "./name-enrichment.js";
 import { readMetadata } from "./operations.js";
 import { combineResults, projectEnvelope, projectPage } from "./results.js";
 import type { MetadataSnapshots } from "./snapshots.js";
@@ -27,7 +31,10 @@ export class MetadataWorkReader {
 			MetadataIdentities,
 			"references" | "referenceForExternal"
 		>,
-		private readonly snapshots: Pick<MetadataSnapshots, "save">,
+		private readonly snapshots: Pick<
+			MetadataSnapshots,
+			"save" | "currentDetail" | "reuseDetail"
+		>,
 		private readonly names?: MetadataNameEnrichment,
 	) {}
 	private sourceReference(reference: WorkReference) {
@@ -43,7 +50,13 @@ export class MetadataWorkReader {
 
 	private project(
 		value: CachedMetadata<Source.WorkDetails>,
+		previous: ProjectDocument | null,
 	): CachedMetadata<WorkDetails> {
+		const proof = this.names?.proof(value);
+		if (!proof) {
+			const reused = this.snapshots.reuseDetail(previous, value);
+			if (reused) return reused;
+		}
 		return this.snapshots.save(
 			"detail",
 			projectEnvelope(value, (work) =>
@@ -53,22 +66,35 @@ export class MetadataWorkReader {
 				),
 			),
 			{ cover: value.data, banner: value.data },
+			proof,
 		);
 	}
 	async get(
 		reference: WorkReference,
 		options: ReadOptions = {},
+		verification: NameVerificationOptions = {},
 	): Promise<CachedMetadata<WorkDetails>> {
+		const previous = this.snapshots.currentDetail(reference);
 		const value = await readMetadata(() =>
 			this.source.get(this.sourceReference(reference), options),
 		);
 		return this.project(
-			this.names ? await this.names.enrich(value, options) : value,
+			this.names
+				? await this.names.enrich(
+						value,
+						{ ...options, refresh: false },
+						verification,
+					)
+				: value,
+			previous,
 		);
 	}
 	current(reference: WorkReference): CachedMetadata<WorkDetails> | null {
+		const previous = this.snapshots.currentDetail(reference);
 		const value = this.source.current(this.sourceReference(reference));
-		return value ? this.project(this.names?.cached(value) ?? value) : null;
+		return value
+			? this.project(this.names?.cached(value) ?? value, previous)
+			: null;
 	}
 
 	private relatedReference(

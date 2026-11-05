@@ -864,6 +864,10 @@ test("Tracking-only posters read supplemental Chinese titles from the current pr
 		});
 		const app = new AnimeLibraryQueries({
 			catalog: undefined,
+			titles: {
+				cached: (references) => database.metadata.titles(references),
+				request: () => false,
+			},
 			lists: { list, refreshList: async () => list() },
 			logger: pino({ enabled: false }),
 			titleDisplayPreference: () => "chinese",

@@ -11,6 +11,8 @@ import type {
 } from "../../anime-catalog/public.js";
 import type { MetadataIdentitiesApi } from "../../external-works/metadata/public.js";
 import {
+	type MetadataLibraryTitlesApi,
+	type MetadataTitle,
 	type TitleDisplayPreference,
 	workTitle,
 } from "../../external-works/metadata/public.js";
@@ -35,6 +37,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			logger: Logger;
 			identities?: MetadataIdentitiesApi;
 			titleDisplayPreference?: () => TitleDisplayPreference;
+			titles?: MetadataLibraryTitlesApi;
 		},
 	) {}
 	async list(
@@ -61,6 +64,9 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 		const sort = query.sort ?? "unwatched";
 		const addedAt = new Map<string, number>();
 		const cards = new Map<string, LibraryCard>();
+		const fallbackTitles = new Map<string, readonly MetadataTitle[]>();
+		const searchEvidence = new Map<string, readonly string[]>();
+		const preference = this.options.titleDisplayPreference?.() ?? "native";
 		const localKeys = new Set(
 			index?.items.flatMap((work) => {
 				const ref = this.options.identities?.externalReference(
@@ -84,29 +90,21 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				(query.availability === "available" && !work.available) ||
 				(query.availability === "unavailable" && work.available) ||
 				(query.format && query.format !== work.format) ||
-				(query.year !== undefined && query.year !== work.year) ||
-				(query.query &&
-					![
-						work.providerTitle,
-						...work.searchTitles,
-						...(viewing?.titles ?? []),
-					].some((title) =>
-						title
-							.toLocaleLowerCase("en")
-							.includes(query.query?.toLocaleLowerCase("en") ?? ""),
-					))
+				(query.year !== undefined && query.year !== work.year)
 			)
 				continue;
+			fallbackTitles.set(key, work.titleVariants ?? []);
+			searchEvidence.set(key, [
+				work.providerTitle,
+				...work.searchTitles,
+				...(viewing?.titles ?? []),
+			]);
 			addedAt.set(work.id, work.createdAt);
 			cards.set(key, {
 				id: work.id,
 				localWorkId: work.id,
 				reference,
-				displayTitle: workTitle(
-					work.titleVariants ?? [],
-					work.providerTitle,
-					this.options.titleDisplayPreference?.(),
-				),
+				displayTitle: work.providerTitle,
 				format: work.format,
 				year: work.year,
 				episodeCount: work.episodeCount,
@@ -133,16 +131,14 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			for (const entry of tracking.entries) {
 				const key = entry.mediaId;
 				if (localKeys.has(key) || !matches(entry, query)) continue;
+				fallbackTitles.set(key, entry.titleVariants ?? []);
+				searchEvidence.set(key, entry.titles);
 				addedAt.set(entry.mediaId, entry.updatedAt ?? tracking.fetchedAt ?? 0);
 				cards.set(key, {
 					id: entry.mediaId,
 					localWorkId: null,
 					reference: workReference(entry.mediaId),
-					displayTitle: workTitle(
-						entry.titleVariants ?? [],
-						entry.titles[0] ?? String(entry.mediaId),
-						this.options.titleDisplayPreference?.(),
-					),
+					displayTitle: entry.titles[0] ?? String(entry.mediaId),
 					format: entry.format,
 					year: entry.year,
 					episodeCount: entry.episodeCount,
@@ -159,15 +155,38 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 					viewingAvailability: "tracked",
 				});
 			}
-		let filtered = [...cards.values()].filter(
-			(card) =>
-				!query.viewingStatus ||
-				(query.viewingStatus === "untracked"
-					? card.viewingAvailability === "untracked"
-					: query.viewingStatus === "watching"
-						? isActiveViewing(card.viewing?.status)
-						: card.viewing?.status === query.viewingStatus),
+		const cachedTitles = this.options.titles?.cached(
+			[...cards.values()].map((card) => card.reference),
 		);
+		for (const [key, card] of cards)
+			card.displayTitle = workTitle(
+				cachedTitles?.get(key) ?? fallbackTitles.get(key) ?? [],
+				card.displayTitle,
+				preference,
+			);
+		let filtered = [...cards.values()]
+			.filter((card) => {
+				const term = query.query?.toLocaleLowerCase("en");
+				return (
+					!term ||
+					[
+						card.displayTitle,
+						...(searchEvidence.get(workKey(card.reference)) ?? []),
+						...(cachedTitles?.get(workKey(card.reference)) ?? []).map(
+							(title) => title.value,
+						),
+					].some((title) => title.toLocaleLowerCase("en").includes(term))
+				);
+			})
+			.filter(
+				(card) =>
+					!query.viewingStatus ||
+					(query.viewingStatus === "untracked"
+						? card.viewingAvailability === "untracked"
+						: query.viewingStatus === "watching"
+							? isActiveViewing(card.viewing?.status)
+							: card.viewing?.status === query.viewingStatus),
+			);
 		const hydrated =
 			sort === "unwatched"
 				? await this.hydrate(
@@ -217,13 +236,17 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				card.localWorkId ? hydrated.get(card.localWorkId) : undefined,
 			),
 		);
+		const titlesRefreshing = this.options.titles?.request(
+			items.map((card) => card.reference),
+			preference,
+		);
 		this.options.lists.list(tracking.generation, false);
 		const { entries: _, ...envelope } = tracking;
 		this.options.logger.trace(
 			{
 				event: "anime.library_read",
-				titleDisplayPreference:
-					this.options.titleDisplayPreference?.() ?? "native",
+				titlesRefreshing: titlesRefreshing ?? false,
+				titleDisplayPreference: preference,
 				viewingStatus: query.viewingStatus ?? null,
 				activeViewingCount: items.filter((card) =>
 					isActiveViewing(card.viewing?.status),
@@ -241,6 +264,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			"Anime library projection read.",
 		);
 		return {
+			...(titlesRefreshing === undefined ? {} : { titlesRefreshing }),
 			items,
 			page,
 			perPage,
@@ -294,12 +318,6 @@ function viewingState(entry: TrackingListEntry) {
 }
 function matches(entry: TrackingListEntry, query: AnimeLibraryQuery) {
 	return (
-		(!query.query ||
-			entry.titles.some((title) =>
-				title
-					.toLocaleLowerCase("en")
-					.includes(query.query?.toLocaleLowerCase("en") ?? ""),
-			)) &&
 		(!query.format || entry.format === query.format) &&
 		(query.year === undefined || entry.year === query.year)
 	);

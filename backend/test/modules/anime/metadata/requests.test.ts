@@ -1,3 +1,4 @@
+import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { metadataDefaults } from "../../../../src/modules/anime/external-works/metadata/defaults.js";
 import { createHttpApp } from "../../../support/http.js";
@@ -5,7 +6,6 @@ import { createHttpApp } from "../../../support/http.js";
 import {
 	createProvider,
 	failure,
-	logger,
 	media,
 	noSignal,
 	reference,
@@ -141,9 +141,14 @@ test("uncached work is bounded and queued cancellation does not launch extra req
 test("HTTP request cancellation detaches its subscription and aborts unneeded provider work", async () => {
 	const fetcher = vi.fn<typeof fetch>(() => new Promise(() => {}));
 	const { publicMetadata } = await setup(fetcher);
+	const records: Record<string, unknown>[] = [];
+	const requestLogger = pino(
+		{ level: "debug" },
+		{ write: (line: string) => records.push(JSON.parse(line)) },
+	);
 	const app = createHttpApp({
 		config: { host: "127.0.0.1", port: 0, publicOrigin: "http://localhost" },
-		logger,
+		logger: requestLogger,
 		metadata: publicMetadata,
 	});
 	try {
@@ -162,6 +167,15 @@ test("HTTP request cancellation detaches its subscription and aborts unneeded pr
 		await vi.waitFor(() =>
 			expect(fetcher.mock.calls[0]?.[1]?.signal?.aborted).toBe(true),
 		);
+		await vi.waitFor(() =>
+			expect(
+				records.some((record) => record.event === "http.request_cancelled"),
+			).toBe(true),
+		);
+		expect(
+			records.some((record) => record.event === "http.request_failed"),
+		).toBe(false);
+		expect(records.filter((record) => Number(record.level) >= 40)).toEqual([]);
 	} finally {
 		await app.close();
 	}

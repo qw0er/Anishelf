@@ -77,6 +77,21 @@ export function createHttpApp(options: {
 		else request.log.trace(context, "HTTP request completed.");
 	});
 	app.setErrorHandler((error, request, reply) => {
+		if (
+			error instanceof Error &&
+			error.name === "AbortError" &&
+			(request.raw.aborted || reply.raw.destroyed)
+		) {
+			request.log.debug(
+				{
+					event: "http.request_cancelled",
+					method: request.method,
+					route: request.routeOptions.url,
+				},
+				"Disconnected HTTP request cancelled.",
+			);
+			return reply.hijack();
+		}
 		const { code, status, retryAt } = classifyHttpError(error);
 		if (retryAt !== undefined)
 			reply.header(

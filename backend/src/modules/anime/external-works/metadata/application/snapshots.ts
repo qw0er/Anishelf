@@ -1,14 +1,17 @@
 import { createHash } from "node:crypto";
 import type { Logger } from "pino";
+import { workKey } from "../../../../../shared/external-reference.js";
 import { metadataDefaults } from "../defaults.js";
 import type {
 	CachedMetadata,
 	MetadataSnapshot,
 	WorkDetails,
+	WorkReference,
 	WorkSummary,
 } from "../domain/model.js";
 import type {
 	ArtworkEvidence,
+	NameEvidence,
 	ProjectDocument,
 } from "../domain/project-document.js";
 import { projectDetails, projectSummary } from "../domain/projection.js";
@@ -20,10 +23,10 @@ import { projectEnvelope, projectPage } from "./results.js";
 
 export class MetadataSnapshots {
 	constructor(
-		private readonly source: Pick<SourceMetadataApi, "snapshot">,
+		private readonly source: Pick<SourceMetadataApi, "snapshot" | "current">,
 		private readonly store: Pick<
 			MetadataStore,
-			"get" | "save" | "touch" | "prune"
+			"get" | "save" | "touch" | "prune" | "current"
 		>,
 		private readonly identities: Pick<
 			MetadataIdentities,
@@ -40,22 +43,88 @@ export class MetadataSnapshots {
 			? (entry.data as ProjectDocument)
 			: null;
 	}
+	currentDetail(reference: WorkReference): ProjectDocument | null {
+		const entry = this.storage(() =>
+			this.store.current(
+				workKey({ provider: "metadata", mediaType: "anime", id: reference.id }),
+			),
+		);
+		if (!entry?.key.startsWith("project:")) return null;
+		const document = entry.data as ProjectDocument;
+		return document.project.kind === "detail" ? document : null;
+	}
+	/** Reuse verified names after restart only while both immutable source versions agree. */
+	reuseDetail(
+		document: ProjectDocument | null,
+		value: CachedMetadata<Source.WorkDetails>,
+	): CachedMetadata<WorkDetails> | null {
+		const proof = document?.nameEvidence;
+		if (
+			document?.project.kind !== "detail" ||
+			!proof ||
+			proof.originSnapshotId !== value.snapshotId
+		)
+			return null;
+		const peer = this.source.current(proof.peer);
+		if (!peer || peer.snapshotId !== proof.peerSnapshotId) {
+			this.logger?.debug(
+				{
+					event: "metadata.persisted_names_invalidated",
+					reason: "peer-source-changed-or-missing",
+				},
+				"Persisted supplemental titles require unchanged peer source evidence.",
+			);
+			return null;
+		}
+		this.logger?.trace(
+			{
+				event: "metadata.persisted_names_reused",
+				workId: document.project.data.reference.id,
+			},
+			"Supplemental titles restored from unchanged source evidence.",
+		);
+		return this.save(
+			"detail",
+			{
+				...value,
+				data: document.project.data,
+				stale: value.stale || peer.stale,
+				refreshing: value.refreshing || peer.refreshing,
+				refreshError: value.refreshError ?? peer.refreshError,
+			},
+			document.artwork,
+			proof,
+		);
+	}
 	save<T>(
 		kind: MetadataSnapshot["kind"],
 		value: CachedMetadata<T>,
 		artwork: ArtworkEvidence = {},
+		nameEvidence?: NameEvidence,
 	): CachedMetadata<T> {
 		// Self-contained, immutable project evidence survives source cache eviction and later refreshes.
 		const id = `project:${createHash("sha256")
-			.update(JSON.stringify([kind, value.snapshotId, value.data, artwork]))
+			.update(
+				JSON.stringify(
+					nameEvidence
+						? [kind, value.snapshotId, value.data, artwork, nameEvidence]
+						: [kind, value.snapshotId, value.data, artwork],
+				),
+			)
 			.digest("hex")}`;
 		const result = { ...value, snapshotId: id };
-		const sourceIds = value.snapshotId.split(":").filter(Boolean);
+		const sourceIds = [
+			...new Set([
+				...value.snapshotId.split(":").filter(Boolean),
+				...(nameEvidence ? [nameEvidence.peerSnapshotId] : []),
+			]),
+		];
 		const entries = sourceIds.flatMap((id) => {
 			const entry = this.store.get(id);
 			return entry ? [entry] : [];
 		});
 		const data: ProjectDocument = {
+			...(nameEvidence ? { nameEvidence } : {}),
 			sourceIds,
 			project: { kind, ...result } as MetadataSnapshot,
 			artwork,

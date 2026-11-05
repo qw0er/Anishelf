@@ -7,7 +7,6 @@
 - Save a global title display preference in Settings: Chinese, original, English or
   romaji. Pages use the preferred available title and fall back to the original
   or another available title without changing matching evidence.
-
 - Open the changelog in Settings, including the installed Web version and earlier
   releases. The changelog is bundled with the Web build for offline use.
 - Search torrents with prepared romaji, English, original and Chinese titles instead of
@@ -28,9 +27,16 @@
 
 ### Fixed
 
-- Use cached project titles for Tracking-only posters, including verified Chinese
-  names, while preserving Tracking title evidence for matching and acquisition.
+- Record disconnected metadata requests and their cancelled AniList reads as debug
+  events instead of server errors and upstream warnings. Log routine visible-title enrichment
+  batch scheduling at debug level.
 
+- Resolve poster titles through the same Metadata cache for local and Tracking-only
+  works. Visible works missing the preferred title trigger bounded background name
+  enrichment and update automatically without opening their detail page.
+- Verify cross-source names using shared explicit original, English or romaji titles,
+  including sources whose original-title languages differ; retain premiere-date,
+  format, episode-count and unique-match checks.
 - Merge results from all selected search keywords before assessment, so a matching
   keyword no longer stops collection.
 - Refresh cached pages after a deployment and check for an updated service worker on

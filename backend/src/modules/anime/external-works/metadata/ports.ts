@@ -1,3 +1,4 @@
+import type { MetadataTitle } from "./domain/model.js";
 import type {
 	AiringEpisode,
 	ArtworkAsset,
@@ -62,6 +63,9 @@ export interface ArtworkRecord {
 	accessedAt: number;
 }
 export interface MetadataStore {
+	titles(
+		references: readonly ProviderReference[],
+	): ReadonlyMap<string, readonly MetadataTitle[]>;
 	identify(reference: ProviderReference): string;
 	identity(id: string): string | null;
 	references(id: string): ProviderReference[];

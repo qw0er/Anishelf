@@ -181,10 +181,16 @@ then the first available title and finally the existing fallback or work ID.
 Chinese requires an explicit `zh` or `zh-*` source language tag; English and romaji
 use explicit title roles or search roles. Multiple Chinese titles retain source order.
 Library cards, details, search results, related works and Review use the same policy.
-Changing the setting refreshes page projections from existing evidence; source title
-order, snapshot identities and matching/search evidence remain unchanged. No additional
-provider lookup is required by the preference. Persistence failures retain the saved
-preference. Tracking keeps structured source titles for works without local files.
+Changing the setting refreshes page projections; persistence failures retain the
+saved preference. Display selection preserves source-title order and snapshot identity.
+
+Local and Tracking-only posters use the same Metadata title cache. Missing preferred
+titles on the current page trigger bounded, deduplicated background name enrichment,
+without requiring a detail-page visit or delaying the existing cards. Verified names
+persist in the project cache and appear automatically as the page refreshes. No-match
+and failed attempts have retry cooldowns; unavailable or unverified names continue to
+use the fallback. File availability does not determine title availability. Tracking
+search and acquisition evidence remain independent of poster-title selection.
 
 #### External Metadata and Local Catalog (M01–M07)
 
@@ -417,15 +423,18 @@ available for release-identity assessment. When no Chinese title is available, q
 selection retains the existing non-Chinese behavior.
 
 Names are also merged across the supported metadata providers. Optional verification
-searches both providers for the same normalized native title, full premiere date, format
-and positive episode count, and accepts only a unique match from each provider. Verified
-supplemental names are retained as aliases with an optional explicit `searchKind`; they
-can contribute romaji, English or Chinese queries but never change project IDs, primary
-display titles, other metadata fields, episode mappings or Tracking. The merge is
-names-only evidence, not cross-source identity association. It uses bounded
-search/detail limits, a five-second deadline and a short-lived in-process cache; stale,
-incomplete, ambiguous or failed evidence leaves the source names unchanged. Cached-only
-reads never initiate verification.
+uses shared explicit original, English or romaji names, full premiere date, format and
+positive episode count, and accepts only a unique match from each provider. A shared
+arbitrary alias alone is insufficient. Verified supplemental names are retained as
+aliases with an optional explicit `searchKind`; they can contribute romaji, English or
+Chinese queries and can be selected for presentation by the title preference. They
+never change project IDs, original source-title roles, other metadata fields, episode
+mappings or Tracking. The merge is names-only evidence, not cross-source identity
+association. It uses bounded search/detail limits, a five-second foreground deadline,
+a 20-second background-enrichment budget and a short-lived in-process correspondence
+cache; stale, incomplete, ambiguous or failed
+evidence leaves the source names unchanged. Successful merged names also persist in
+the project cache. Cached-only reads never initiate verification.
 
 Existing subscriptions retain their captured search keywords. Creating a subscription
 or rediscovering and confirming a source applies the current title-selection rules.

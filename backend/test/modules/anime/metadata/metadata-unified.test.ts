@@ -6,10 +6,12 @@ import Database from "better-sqlite3";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
+import { AnimeLibraryQueries } from "../../../../src/modules/anime/anime-library/application/library.js";
 import { createMetadataModule } from "../../../../src/modules/anime/external-works/metadata/create.js";
 import type { WorkDetails } from "../../../../src/modules/anime/external-works/metadata/domain/source-model.js";
 import type { MetadataProvider } from "../../../../src/modules/anime/external-works/metadata/ports.js";
 import { MetadataError } from "../../../../src/modules/anime/external-works/metadata/public.js";
+import { aniListTracking } from "../../../../src/modules/anime/external-works/tracking/infrastructure/provider-mapping.js";
 import {
 	workKey,
 	workReference,
@@ -588,4 +590,206 @@ test("cached search and retained detail apply title preference without refetchin
 	expect(f.database.metadata.get(original.snapshotId)?.data).toEqual(
 		stored?.data,
 	);
+});
+
+test("visible Tracking-only posters enrich in the background and share the local title cache", async () => {
+	const f = await fixture("anilist", () => "chinese");
+	f.first.data.titles = [
+		{
+			value: "サイバーパンク: エッジランナーズ2",
+			language: null,
+			kind: "native",
+		},
+		{ value: "Cyberpunk: Edgerunners 2", language: "en", kind: "english" },
+	];
+	f.second.data.titles = [
+		{ value: "Cyberpunk: Edgerunners 2", language: null, kind: "native" },
+		{ value: "赛博朋克：边缘行者 2", language: "zh-Hans", kind: "alias" },
+	];
+	f.first.data.startDate = f.second.data.startDate = {
+		year: 2026,
+		month: 10,
+		day: 20,
+	};
+	let release: (() => void) | undefined;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	f.second.get.mockImplementation(async () => {
+		await gate;
+		return { data: f.second.data };
+	});
+	const originalEntry = {
+		id: "tracked",
+		mediaId: "anilist:anime:10",
+		progress: 0,
+		status: "watching" as const,
+		updatedAt: 10,
+		titles: f.first.data.titles.map((title) => title.value),
+		titleVariants: f.first.data.titles,
+		format: "TV",
+		year: 2026,
+		episodeCount: 12,
+		coverUrl: null,
+	};
+	f.database.trackingLists.replace({
+		accountId: "account",
+		fetchedAt: 1000,
+		entries: [
+			originalEntry,
+			{
+				...originalEntry,
+				id: "unseen",
+				mediaId: "anilist:anime:99",
+				updatedAt: 1,
+				titles: ["Unseen"],
+				titleVariants: [],
+			},
+		],
+	});
+	const list = () => ({
+		provider: aniListTracking,
+		accountId: "account",
+		generation: "generation",
+		state: "connected" as const,
+		fetchedAt: 1000,
+		stale: false,
+		refreshing: false,
+		error: null,
+		entries: f.database.trackingLists.read("account")?.entries ?? [],
+	});
+	const remote = new AnimeLibraryQueries({
+		catalog: undefined,
+		lists: { list, refreshList: async () => list() },
+		titles: f.metadata.libraryTitles,
+		titleDisplayPreference: () => "chinese",
+		logger,
+	});
+	try {
+		const first = await remote.list({
+			scope: "all",
+			sort: "updated",
+			perPage: 1,
+		});
+		expect(first.items[0]?.displayTitle).toBe(
+			"サイバーパンク: エッジランナーズ2",
+		);
+		expect(first.titlesRefreshing).toBe(true);
+		await expect.poll(() => f.second.get.mock.calls.length).toBe(1);
+		expect(
+			(await remote.list({ scope: "all", sort: "updated", perPage: 1 }))
+				.titlesRefreshing,
+		).toBe(true);
+		release?.();
+		await expect
+			.poll(() =>
+				f.metadata.libraryTitles.request(
+					[{ provider: "anilist", mediaType: "anime", id: "10" }],
+					"chinese",
+				),
+			)
+			.toBe(false);
+		const after = await remote.list({
+			scope: "all",
+			sort: "updated",
+			perPage: 1,
+		});
+		expect(after.titlesRefreshing).toBe(false);
+		expect(after.items[0]?.displayTitle).toBe("赛博朋克：边缘行者 2");
+		expect(
+			(await remote.list({ scope: "all", query: "赛博朋克" })).items,
+		).toHaveLength(1);
+		expect(f.first.get).toHaveBeenCalledTimes(1);
+		expect(
+			f.first.get.mock.calls.every(([reference]) => reference.id === "10"),
+		).toBe(true);
+		expect(list().entries[0]?.titles).toEqual(originalEntry.titles);
+		const project = f.metadata.identities.referenceForExternal({
+			provider: "anilist",
+			mediaType: "anime",
+			id: "10",
+		});
+		expect(
+			f.metadata.identities.externalReference(project, "bangumi"),
+		).toBeNull();
+		const local = new AnimeLibraryQueries({
+			catalog: {
+				index: async () => ({
+					epoch: 1,
+					items: [
+						{
+							id: "local",
+							providerTitle: "Old title",
+							searchTitles: [],
+							reference: project,
+							available: true,
+							format: "TV",
+							year: 2026,
+							episodeCount: 12,
+							airedEpisodeCount: 12,
+							revision: 1,
+							createdAt: 1,
+							updatedAt: 1,
+						},
+					],
+				}),
+				cards: async () => [],
+			},
+			lists: { list, refreshList: async () => list() },
+			identities: f.metadata.identities,
+			titles: f.metadata.libraryTitles,
+			titleDisplayPreference: () => "chinese",
+			logger,
+		});
+		expect((await local.list({ sort: "updated" })).items[0]?.displayTitle).toBe(
+			after.items[0]?.displayTitle,
+		);
+		await f.restart();
+		expect(
+			f.metadata.libraryTitles
+				.cached([{ provider: "anilist", mediaType: "anime", id: "10" }])
+				.get("anilist:anime:10"),
+		).toContainEqual({
+			value: "赛博朋克：边缘行者 2",
+			kind: "alias",
+			language: "zh-Hans",
+		});
+	} finally {
+		release?.();
+	}
+});
+
+test("background title requests await a stale origin refresh instead of cooling down on stale data", async () => {
+	const f = await fixture("anilist", () => "english");
+	const reference = f.metadata.resolveReference("anilist:anime:10");
+	await f.metadata.get(reference);
+	const cache = f.database.metadata.current("anilist:anime:10");
+	if (!cache) throw new Error("Missing cached source detail");
+	f.database.metadata.save({ ...cache, expiresAt: 0 });
+	f.first.data.titles.push({
+		value: "English title",
+		language: "en",
+		kind: "english",
+	});
+	expect(
+		f.metadata.libraryTitles.request(
+			[{ provider: "anilist", mediaType: "anime", id: "10" }],
+			"english",
+		),
+	).toBe(true);
+	await expect
+		.poll(() =>
+			f.metadata.libraryTitles
+				.cached([{ provider: "anilist", mediaType: "anime", id: "10" }])
+				.get("anilist:anime:10")
+				?.some((title) => title.value === "English title"),
+		)
+		.toBe(true);
+	expect(f.first.get).toHaveBeenCalledTimes(2);
+	expect(
+		f.metadata.libraryTitles.request(
+			[{ provider: "anilist", mediaType: "anime", id: "10" }],
+			"english",
+		),
+	).toBe(false);
 });

@@ -201,4 +201,7 @@ internal matching and search evidence so they do not compete with the work's ide
 Title presentation follows the global Settings preference (Chinese, original,
 English or romaji), independently of interface language. Default to original and
 use the original or another available title when the preferred one is missing.
-Apply the same choice to cards, details, search, related works and Review.
+Apply the same choice to cards, details, search, related works and Review. Local
+file availability must not determine whether a work can receive a preferred title.
+When background enrichment finds a missing title, update the existing card without
+resetting its loading state, navigation context or unrelated page controls.

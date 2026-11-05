@@ -94,6 +94,7 @@ test("settings responses expose only the public setting for setup and configured
 		expect(settingsResponse(stored)).toEqual({
 			resourceRoots,
 			defaultMetadataProvider: "anilist",
+			titleDisplayPreference: "native",
 			autoPreparationEnabled: false,
 			autoPreparationPresetId: "builtin:web",
 		});

@@ -1,12 +1,14 @@
 import type { Logger } from "pino";
 import { MetadataArtworkReader } from "./application/artwork.js";
 import { MetadataIdentities } from "./application/identities.js";
+import { MetadataLibraryTitles } from "./application/library-titles.js";
 import { MetadataNameEnrichment } from "./application/name-enrichment.js";
 import { MetadataSearch } from "./application/search.js";
 import { MetadataSnapshots } from "./application/snapshots.js";
 import { SourceMetadataApplication } from "./application/source-metadata.js";
 import { MetadataTitles } from "./application/titles.js";
 import { MetadataWorkReader } from "./application/work-reader.js";
+import { metadataDefaults } from "./defaults.js";
 import type { TitleDisplayPreference } from "./domain/model.js";
 import { MetadataArtworkCache } from "./infrastructure/artwork.js";
 import type {
@@ -60,11 +62,35 @@ export function createMetadataApplication(
 		source.providers()[0]?.key ?? "anilist",
 	titleDisplayPreference: () => TitleDisplayPreference = () => "native",
 ): MetadataModule {
-	const titles = new MetadataTitles(titleDisplayPreference);
 	const identities = new MetadataIdentities(source, store, logger);
+	const titles = new MetadataTitles(titleDisplayPreference);
 	const snapshots = new MetadataSnapshots(source, store, identities, logger);
 	const names = new MetadataNameEnrichment(source, logger);
 	const works = new MetadataWorkReader(source, identities, snapshots, names);
+	const libraryTitles = new MetadataLibraryTitles({
+		store,
+		...(logger ? { logger } : {}),
+		load: async (reference, signal) => {
+			const current = source.current(reference);
+			const value = await works.get(
+				identities.referenceForExternal(reference),
+				{
+					signal,
+					...(current &&
+					(current.stale || current.refreshing || current.refreshError)
+						? { refresh: true }
+						: {}),
+				},
+				{
+					timeoutMs: metadataDefaults.nameVerificationTimeoutMs,
+					throwOnFailure: true,
+				},
+			);
+			if (value.stale || value.refreshError)
+				throw new Error("Fresh title evidence is temporarily unavailable.");
+			return value;
+		},
+	});
 	const search = new MetadataSearch(
 		source,
 		identities,
@@ -113,6 +139,7 @@ export function createMetadataApplication(
 		readArtwork: source.readArtwork.bind(source),
 		cachedArtworkId: artwork.cachedArtworkId.bind(artwork),
 		identities,
+		libraryTitles,
 		providers: () =>
 			source.providers().map(({ key }) => ({
 				key,
@@ -120,6 +147,9 @@ export function createMetadataApplication(
 				metadata: true as const,
 				tracking: key === "anilist",
 			})),
-		close: source.close.bind(source),
+		close: async () => {
+			await libraryTitles.close();
+			await source.close();
+		},
 	};
 }

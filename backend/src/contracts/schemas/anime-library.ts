@@ -30,6 +30,7 @@ export const AnimeLibraryQuerySchema = Type.Object(
 	{ additionalProperties: false },
 );
 export const AnimeLibrarySchema = Type.Object({
+	titlesRefreshing: Type.Optional(Type.Boolean()),
 	items: Type.Array(
 		Type.Object({
 			id: Type.String(),
