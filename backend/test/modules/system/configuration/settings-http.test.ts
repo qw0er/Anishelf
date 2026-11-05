@@ -58,6 +58,7 @@ test("first-run HTTP setup persists settings and automatically scans the configu
 	expect((await app.inject({ url: "/api/settings", headers })).json()).toEqual({
 		resourceRoots: [],
 		defaultMetadataProvider: "anilist",
+		titleDisplayPreference: "native",
 		autoPreparationEnabled: false,
 		autoPreparationPresetId: "builtin:web",
 	});
@@ -93,6 +94,9 @@ test("first-run HTTP setup persists settings and automatically scans the configu
 test.each([
 	{},
 	{ resourceRoots: null },
+	{ titleDisplayPreference: "unknown" },
+	{ titleDisplayPreference: null },
+	{ titleDisplayPreference: 1 },
 	{ resourceRoots: 123 },
 	{ resourceRoots: [""] },
 	{ resourceRoots: ["relative"] },
@@ -346,3 +350,21 @@ test.each([0, -1, 1.5, 1441, "30", null])(
 		expect(configuration.settings).toEqual({ resourceRoots: [] });
 	},
 );
+
+test("title preference HTTP update is independent of resource setup and survives reload", async () => {
+	const response = await app.inject({
+		method: "PUT",
+		url: "/api/settings",
+		headers,
+		payload: { titleDisplayPreference: "chinese" },
+	});
+	expect(response.statusCode).toBe(200);
+	expect(response.json()).toMatchObject({
+		resourceRoots: [],
+		titleDisplayPreference: "chinese",
+	});
+	expect(
+		(await PersistentConfiguration.load(dataDir)).settings
+			.titleDisplayPreference,
+	).toBe("chinese");
+});

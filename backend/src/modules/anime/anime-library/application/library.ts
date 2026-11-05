@@ -10,6 +10,10 @@ import type {
 	WorkCard,
 } from "../../anime-catalog/public.js";
 import type { MetadataIdentitiesApi } from "../../external-works/metadata/public.js";
+import {
+	type TitleDisplayPreference,
+	workTitle,
+} from "../../external-works/metadata/public.js";
 import type {
 	TrackingListEntry,
 	TrackingListsApi,
@@ -30,6 +34,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			lists: TrackingListsApi;
 			logger: Logger;
 			identities?: MetadataIdentitiesApi;
+			titleDisplayPreference?: () => TitleDisplayPreference;
 		},
 	) {}
 	async list(
@@ -97,7 +102,11 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				id: work.id,
 				localWorkId: work.id,
 				reference,
-				displayTitle: work.providerTitle,
+				displayTitle: workTitle(
+					work.titleVariants ?? [],
+					work.providerTitle,
+					this.options.titleDisplayPreference?.(),
+				),
 				format: work.format,
 				year: work.year,
 				episodeCount: work.episodeCount,
@@ -129,7 +138,11 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 					id: entry.mediaId,
 					localWorkId: null,
 					reference: workReference(entry.mediaId),
-					displayTitle: entry.titles[0] ?? String(entry.mediaId),
+					displayTitle: workTitle(
+						entry.titleVariants ?? [],
+						entry.titles[0] ?? String(entry.mediaId),
+						this.options.titleDisplayPreference?.(),
+					),
 					format: entry.format,
 					year: entry.year,
 					episodeCount: entry.episodeCount,
@@ -209,6 +222,8 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 		this.options.logger.trace(
 			{
 				event: "anime.library_read",
+				titleDisplayPreference:
+					this.options.titleDisplayPreference?.() ?? "native",
 				viewingStatus: query.viewingStatus ?? null,
 				activeViewingCount: items.filter((card) =>
 					isActiveViewing(card.viewing?.status),

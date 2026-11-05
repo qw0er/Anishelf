@@ -8,15 +8,29 @@ export interface MetadataTitle {
 	language: string | null;
 	kind: "romaji" | "english" | "native" | "alias";
 }
-/** One title preference for every work projection; original title evidence stays ordered. */
+export type TitleDisplayPreference =
+	| "chinese"
+	| "native"
+	| "english"
+	| "romaji";
+/** Select a presentation title without changing ordered source evidence. */
 export function workTitle(
 	titles: readonly MetadataTitle[],
 	fallback: string,
+	preference: TitleDisplayPreference = "native",
 ): string {
+	const available = titles.filter((title) => title.value.trim());
+	const preferred = available.find((title) =>
+		preference === "chinese"
+			? /^zh(?:-|$)/i.test(title.language ?? "")
+			: title.kind === preference || title.searchKind === preference,
+	);
 	return (
-		titles.find((title) => title.kind === "native")?.value ??
-		titles[0]?.value ??
-		fallback
+		(
+			preferred ??
+			available.find((title) => title.kind === "native") ??
+			available[0]
+		)?.value.trim() ?? fallback
 	);
 }
 
@@ -43,6 +57,8 @@ interface NextAiringEpisode {
 }
 
 export interface WorkSummary {
+	/** Read-time presentation; never source identity or matching evidence. */
+	displayTitle?: string;
 	provider: string;
 	/** Unavailable fields, named using the project metadata vocabulary. */
 	unavailableFields: string[];

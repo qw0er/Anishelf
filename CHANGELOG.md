@@ -4,6 +4,10 @@
 
 ### Added
 
+- Save a global title display preference in Settings: Chinese, original, English or
+  romaji. Pages use the preferred available title and fall back to the original
+  or another available title without changing matching evidence.
+
 - Open the changelog in Settings, including the installed Web version and earlier
   releases. The changelog is bundled with the Web build for offline use.
 - Search torrents with prepared romaji, English, original and Chinese titles instead of
@@ -23,6 +27,9 @@
   internal search evidence.
 
 ### Fixed
+
+- Use cached project titles for Tracking-only posters, including verified Chinese
+  names, while preserving Tracking title evidence for matching and acquisition.
 
 - Merge results from all selected search keywords before assessment, so a matching
   keyword no longer stops collection.

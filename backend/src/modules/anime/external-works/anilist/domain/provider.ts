@@ -87,6 +87,11 @@ export interface AniListListEntry {
 	status: AniListViewingStatus;
 	updatedAt: number;
 	titles: string[];
+	title?: {
+		native: string | null;
+		english: string | null;
+		romaji: string | null;
+	};
 	format: string | null;
 	year: number | null;
 	episodeCount: number | null;

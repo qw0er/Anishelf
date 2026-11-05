@@ -19,6 +19,8 @@ export class AnimeQueries implements Queries {
 		private readonly tracking: Pick<TrackingApi, "list" | "status">,
 		private readonly logger: Logger,
 		private readonly identities?: MetadataIdentitiesApi,
+		private readonly titleDisplayPreference: () => import("./external-works/metadata/public.js").TitleDisplayPreference = () =>
+			"native",
 	) {}
 	async detail(
 		input: { localWorkId: string } | { key: string },
@@ -75,8 +77,9 @@ export class AnimeQueries implements Queries {
 		const entry = entries.find((entry) => entry.mediaId === key) ?? null;
 		const titles = metadata?.data.titles;
 		const displayTitle = workTitle(
-			titles ?? [],
+			titles ?? entry?.titleVariants ?? [],
 			local?.work.displayTitle ?? entry?.titles[0] ?? key,
+			this.titleDisplayPreference(),
 		);
 		this.logger.trace(
 			{

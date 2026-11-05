@@ -1416,6 +1416,14 @@
 		"names": {
 			"anilist": "AniList",
 			"bangumi": "Bangumi"
-		}
+		},
+		"titlePreference": "标题显示偏好",
+		"titlePreferences": {
+			"chinese": "中文",
+			"native": "原文",
+			"english": "英文",
+			"romaji": "罗马字"
+		},
+		"titleFallback": "没有目标标题时，优先使用原文，再使用其他可用标题。"
 	}
 }

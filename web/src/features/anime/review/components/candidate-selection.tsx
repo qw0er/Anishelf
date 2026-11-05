@@ -80,7 +80,7 @@ export function CandidateSelection({
 								<div className="flex items-start justify-between gap-2">
 									<div className="min-w-0 space-y-1">
 										<p className="font-medium wrap-anywhere">
-											{candidate.work.titles[0]}
+											{candidate.work.displayTitle ?? candidate.work.titles[0]}
 										</p>
 										<p className="text-xs text-muted-foreground">
 											{candidate.work.format ?? t("anime.unknown")} ·{" "}
@@ -251,8 +251,10 @@ export function CandidateSelection({
 										className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
 									>
 										<p className="min-w-0 flex-1 wrap-anywhere">
-											{candidate.titles[0]?.value ?? t("anime.unknown")} ·{" "}
-											{candidate.format ?? t("anime.unknown")} ·{" "}
+											{candidate.displayTitle ??
+												candidate.titles[0]?.value ??
+												t("anime.unknown")}{" "}
+											· {candidate.format ?? t("anime.unknown")} ·{" "}
 											{candidate.year ?? t("anime.unknown")} ·{" "}
 											{providersQuery.data?.find(
 												(source) => source.key === candidate.provider,

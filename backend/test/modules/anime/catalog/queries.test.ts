@@ -1,6 +1,9 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
+import { AnimeCatalogApplication } from "../../../../src/modules/anime/anime-catalog/application/catalog.js";
+import { createMetadataApplication } from "../../../../src/modules/anime/external-works/metadata/create.js";
+import type { TitleDisplayPreference } from "../../../../src/modules/anime/external-works/metadata/public.js";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import { createHttpApp } from "../../../support/http.js";
 import { updateResourceSettings } from "../../../support/settings.js";
@@ -330,4 +333,45 @@ test("work review filters match qualified candidates without admitting them and 
 			perPage: 1,
 		}),
 	).toMatchObject({ items: [], hasNextPage: false });
+});
+
+test("Catalog detail and associated Review titles follow preference using stored title evidence", async () => {
+	const f = await fixture();
+	const data = details();
+	data.titles.push({ value: "中文标题", language: "zh-Hans", kind: "alias" });
+	f.setData(data);
+	const confirmed = await confirm(f);
+	let preference: TitleDisplayPreference = "native";
+	const metadata = createMetadataApplication(
+		f.metadata,
+		f.database.metadata,
+		logger,
+		() => "fixture",
+		() => preference,
+	);
+	const catalog = new AnimeCatalogApplication({
+		store: f.database.catalog,
+		metadata,
+		sources: f.library.sources,
+		logger,
+		titleDisplayPreference: () => preference,
+	});
+	cleanups.push(async () => {
+		await catalog.quiesce();
+		catalog.close();
+	});
+	const workId = confirmed.workId;
+	const before = await catalog.getLocalWorkDetail(workId);
+	const calls = f.get.mock.calls.length;
+	preference = "chinese";
+	const after = await catalog.getLocalWorkDetail(workId);
+	expect(after.work.displayTitle).toBe("中文标题");
+	expect(after.metadata.data.displayTitle).toBe("中文标题");
+	expect(after.metadata.snapshotId).toBe(before.metadata.snapshotId);
+	expect(after.metadata.data.titles).toEqual(before.metadata.data.titles);
+	expect((await catalog.list()).items[0]?.displayTitle).toBe("中文标题");
+	expect((await catalog.reviews()).items[0]?.associations[0]?.workTitle).toBe(
+		"中文标题",
+	);
+	expect(f.get.mock.calls.length).toBe(calls);
 });

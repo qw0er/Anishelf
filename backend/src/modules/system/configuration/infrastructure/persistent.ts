@@ -56,6 +56,7 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		);
 	for (const key of Object.keys(settings)) {
 		if (
+			key !== "titleDisplayPreference" &&
 			key !== "defaultMetadataProvider" &&
 			key !== "autoPreparationEnabled" &&
 			key !== "autoPreparationPresetId" &&
@@ -74,6 +75,15 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 				`Unknown persistent setting: ${key}.`,
 			);
 	}
+	const titleDisplayPreference = settings.titleDisplayPreference;
+	if (
+		titleDisplayPreference !== undefined &&
+		(typeof titleDisplayPreference !== "string" ||
+			!["chinese", "native", "english", "romaji"].includes(
+				titleDisplayPreference,
+			))
+	)
+		throw new DomainError("CONFIG_INVALID", "Invalid titleDisplayPreference.");
 	const defaultMetadataProvider = settings.defaultMetadataProvider;
 	if (
 		defaultMetadataProvider !== undefined &&
@@ -181,6 +191,13 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		throw new DomainError("CONFIG_INVALID", "Resource paths must be distinct.");
 	return {
 		resourceRoots: [...roots],
+		...(titleDisplayPreference === undefined
+			? {}
+			: {
+					titleDisplayPreference: titleDisplayPreference as NonNullable<
+						PersistentSettings["titleDisplayPreference"]
+					>,
+				}),
 		...(defaultMetadataProvider === undefined
 			? {}
 			: { defaultMetadataProvider }),

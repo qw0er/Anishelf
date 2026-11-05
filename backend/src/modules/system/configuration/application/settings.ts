@@ -49,6 +49,9 @@ export class SettingsApplication {
 			{
 				event: "settings.updated",
 				fields: Object.keys(patch),
+				...(patch.titleDisplayPreference === undefined
+					? {}
+					: { titleDisplayPreference: patch.titleDisplayPreference }),
 				...(patch.defaultMetadataProvider === undefined
 					? {}
 					: { defaultMetadataProvider: patch.defaultMetadataProvider }),

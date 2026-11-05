@@ -88,6 +88,7 @@ const proposal = Type.Object({
 		work: Type.Object({
 			reference,
 			snapshotId: Type.String(),
+			displayTitle: Type.Optional(Type.String()),
 			titles: Type.Array(Type.String()),
 			titleVariants: Type.Optional(
 				Type.Array(

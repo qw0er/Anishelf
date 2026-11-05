@@ -4,6 +4,10 @@ import type {
 	ResourceAccessApi,
 	ResourceScope,
 } from "../../../resources/public.js";
+import {
+	type TitleDisplayPreference,
+	workTitle,
+} from "../../external-works/metadata/public.js";
 import { catalogDefaults as policy } from "../defaults.js";
 import {
 	automaticBlockers,
@@ -22,6 +26,7 @@ export function page(options: { page?: number; perPage?: number }) {
 
 export interface CatalogOptions {
 	store: CatalogStore;
+	titleDisplayPreference?: () => TitleDisplayPreference;
 	metadata: CatalogMetadata;
 	sources: ResourceAccessApi;
 	logger: Logger;
@@ -65,6 +70,13 @@ export function safeReview(
 export class CatalogContext {
 	private closed = false;
 	constructor(readonly options: CatalogOptions) {}
+	title(work: LocalWork): string {
+		return workTitle(
+			work.titleVariants ?? [],
+			work.providerTitle,
+			this.options.titleDisplayPreference?.(),
+		);
+	}
 	open(): void {
 		if (this.closed)
 			throw new DomainError("CATALOG_UNAVAILABLE", "Catalog is closed.");

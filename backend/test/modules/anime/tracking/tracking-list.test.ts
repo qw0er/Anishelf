@@ -42,6 +42,9 @@ const item = (mediaId = 1): TrackingListEntry => ({
 	status: "watching",
 	updatedAt: 100_000,
 	titles: [`Title ${mediaId}`],
+	titleVariants: [
+		{ value: `Title ${mediaId}`, kind: "romaji", language: null },
+	],
 	format: "TV",
 	year: 2025,
 	episodeCount: 12,
@@ -89,12 +92,15 @@ test("provider reads every chunk, deduplicates custom lists and strips unsafe co
 		lease.signal,
 	);
 	expect(
-		entries.map((entry) => ({
+		entries.map(({ title, ...entry }) => ({
 			...entry,
 			id: `anilist:${entry.id}`,
 			mediaId: `anilist:anime:${entry.mediaId}`,
 			status: "watching",
 			updatedAt: entry.updatedAt * 1000,
+			titleVariants: [
+				{ value: title?.romaji ?? "", kind: "romaji", language: null },
+			],
 		})),
 	).toEqual([item(), item(2)]);
 	expect(request.mock.calls[1]?.[1]).toEqual({ userId: 7, chunk: 2 });
@@ -234,7 +240,10 @@ test("authorization failure retains cached state and requires reconnect", async 
 	expect(JSON.stringify(snapshot)).not.toContain(lease.credential);
 	await f.reader.close();
 });
-function projection() {
+function projection(
+	titleDisplayPreference: () => import("../../../../src/modules/anime/external-works/metadata/public.js").TitleDisplayPreference = () =>
+		"native",
+) {
 	const f = readerFixture();
 	const snapshot: TrackingListSnapshot = {
 		provider: aniListTracking,
@@ -269,6 +278,7 @@ function projection() {
 	const cards = vi.fn<AnimeCatalogApi["cards"]>(async () => []);
 	const app = new AnimeLibraryQueries({
 		identities: fixtureIdentities("anilist"),
+		titleDisplayPreference,
 		catalog: { index: async () => index, cards },
 		lists: { list: () => snapshot, refreshList: async () => snapshot },
 		logger: pino({ enabled: false }),
@@ -803,4 +813,104 @@ test("Watching aggregates both active statuses while Rewatching stays exact acro
 			(card) => card.id,
 		),
 	).toEqual(["anilist:anime:4"]);
+});
+
+test("library uses the current preference for local and Tracking-only cached titles", async () => {
+	let preference: import("../../../../src/modules/anime/external-works/metadata/public.js").TitleDisplayPreference =
+		"native";
+	const { app, snapshot, index } = projection(() => preference);
+	const titles: import("../../../../src/modules/anime/external-works/metadata/public.js").MetadataTitle[] =
+		[
+			{ value: "Original", language: null, kind: "native" },
+			{ value: "中文", language: "zh-Hans", kind: "alias" },
+			{ value: "English", language: "en", kind: "english" },
+			{ value: "Romaji", language: null, kind: "romaji" },
+		];
+	for (const item of index.items) item.titleVariants = titles;
+	for (const entry of snapshot.entries) entry.titleVariants = titles;
+	for (const [selected, expected] of [
+		["native", "Original"],
+		["chinese", "中文"],
+		["english", "English"],
+		["romaji", "Romaji"],
+	] as const) {
+		preference = selected;
+		const result = await app.list({ scope: "all" });
+		expect(result.items).toHaveLength(2);
+		expect(result.items.every((item) => item.displayTitle === expected)).toBe(
+			true,
+		);
+	}
+	expect(titles[0]?.value).toBe("Original");
+});
+
+test("Tracking-only posters read supplemental Chinese titles from the current project cache", async () => {
+	const database = ApplicationDatabase.openMemory();
+	try {
+		const { snapshot } = projection();
+		database.trackingLists.replace({
+			accountId: "anilist:7",
+			fetchedAt: 1000,
+			entries: [item(), item(2)],
+		});
+		const projectId = database.metadata.identify({
+			provider: "anilist",
+			mediaType: "anime",
+			id: "1",
+		});
+		const list = () => ({
+			...snapshot,
+			entries: database.trackingLists.read("anilist:7")?.entries ?? [],
+		});
+		const app = new AnimeLibraryQueries({
+			catalog: undefined,
+			lists: { list, refreshList: async () => list() },
+			logger: pino({ enabled: false }),
+			titleDisplayPreference: () => "chinese",
+		});
+		expect(
+			(await app.list({ scope: "all" })).items.find(
+				(card) => card.reference.id === "1",
+			)?.displayTitle,
+		).toBe("Title 1");
+		// A detail read has cached a verified name; there is still no local Catalog work.
+		database.metadata.save({
+			id: "project:titles",
+			key: "project:titles",
+			kind: "detail",
+			fetchedAt: 2000,
+			expiresAt: 10000,
+			accessedAt: 2000,
+			failure: null,
+			data: {
+				project: {
+					data: {
+						reference: { id: projectId },
+						titles: [
+							{ value: "Title 1", kind: "romaji", language: null },
+							{ value: "僵尸搜寻中", kind: "alias", language: "zh-Hans" },
+						],
+						format: "TV",
+						year: 2025,
+						episodeCount: 12,
+						status: null,
+						nextAiringEpisode: null,
+					},
+				},
+				sourceIds: [],
+				artwork: {},
+			},
+		});
+		const result = await app.list({ scope: "all" });
+		expect(
+			result.items.find((card) => card.reference.id === "1")?.displayTitle,
+		).toBe("僵尸搜寻中");
+		expect(
+			result.items.find((card) => card.reference.id === "2")?.displayTitle,
+		).toBe("Title 2");
+		expect(list().entries[0]?.titles).toEqual(["Title 1"]);
+		expect(result.items.every((card) => card.localWorkId === null)).toBe(true);
+	} finally {
+		database.close();
+	}
 });

@@ -148,6 +148,14 @@ export function createSettingsSchemas() {
 				maxItems: 64,
 				uniqueItems: true,
 			}),
+			titleDisplayPreference: Type.Optional(
+				Type.Union([
+					Type.Literal("chinese"),
+					Type.Literal("native"),
+					Type.Literal("english"),
+					Type.Literal("romaji"),
+				]),
+			),
 			defaultMetadataProvider: Type.Optional(
 				Type.Union([Type.Literal("anilist"), Type.Literal("bangumi")]),
 			),
@@ -183,6 +191,14 @@ export function createSettingsSchemas() {
 					maxItems: 64,
 					uniqueItems: true,
 				}),
+			),
+			titleDisplayPreference: Type.Optional(
+				Type.Union([
+					Type.Literal("chinese"),
+					Type.Literal("native"),
+					Type.Literal("english"),
+					Type.Literal("romaji"),
+				]),
 			),
 			defaultMetadataProvider: Type.Optional(
 				Type.Union([Type.Literal("anilist"), Type.Literal("bangumi")]),

@@ -85,7 +85,9 @@ export function AssociationPreview({
 								{t("review.result")}
 							</p>
 							<p className="font-medium wrap-anywhere">
-								{preview.metadata.data.titles[0]?.value ?? t("anime.unknown")}
+								{preview.metadata.data.displayTitle ??
+									preview.metadata.data.titles[0]?.value ??
+									t("anime.unknown")}
 							</p>
 							<p className="wrap-anywhere">
 								{row.targets

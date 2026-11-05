@@ -21,6 +21,7 @@ export function readCatalogWorks(
 	return {
 		...row,
 		providerTitle: info.providerTitle,
+		titleVariants: info.titles,
 		searchTitles: info.titles.map((title) => title.value),
 		format: info.format,
 		year: info.year,

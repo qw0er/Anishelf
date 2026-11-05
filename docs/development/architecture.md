@@ -785,6 +785,22 @@ bundled connector command accepts `initializeSite: true` as explicit permission 
 retry manual setup; selecting the bundled connection alone does not grant it.
 An administrator password still requires site setup in Jackett management.
 
+### Title presentation preference
+
+System configuration owns the persistent `titleDisplayPreference` setting
+(`chinese`, `native`, `english`, `romaji`), defaulting to `native`. Anime reads the
+current setting through assembly callbacks. Metadata applies `displayTitle` after
+saving immutable snapshots and when reading retained snapshots, so changing a
+presentation preference never changes snapshot identity or provider evidence.
+Catalog and Tracking preserve structured title roles in their internal read models;
+Library, detail and Review projections use the same title selector. Tracking list
+reads also join the existing source identity to its cached project title evidence,
+so Tracking-only posters can display already verified supplemental names without
+a detail request. Tracking search/acquisition title lists retain source evidence. Chinese titles
+require explicit source language tags. Missing preferred titles fall back to a
+nonempty original, first available title, then the supplied fallback. Identification
+and acquisition continue to use the original ordered title evidence.
+
 ### Bangumi protocol and project metadata
 
 Bangumi implements the internal metadata provider port through a separate protocol

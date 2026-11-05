@@ -162,6 +162,7 @@ qBittorrent is a separate capability (D01–D07).
 | WI11 | Prioritize upcoming broadcast plans on work details | Complete | Completed | [Announced future airtimes and next-broadcast highlight](#delivery-notes-m) | 1.4.1 |
 | M05 | Cache metadata so external outages do not prevent browsing or playback | Complete | — | [Cached browsing and playback during provider outages](#delivery-notes-m) | 0.3.0 |
 | M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Complete | — | Available provider language information and stable local identities; no invented translations | 0.3.0 |
+| M09 | Save a title display preference, including available Bangumi Chinese titles | Complete | Completed | [Title display preference](#title-display-preference-m09) | 1.4.2 |
 
 #### Delivery Notes (M)
 
@@ -170,6 +171,20 @@ qBittorrent is a separate capability (D01–D07).
 - **M03:** Default poster library, work details, episode/version playback and file-list location from available-version actions. **Release record:** 0.3.0; 1.0.6 (file location).
 - **M05:** Durable metadata/artwork caching, refresh/retry and retained snapshots during outages.
 - **M06:** **Delivered:** Independently selectable AniList/Bangumi search, persisted default source, isolated identities and source-specific Tracking availability. Cross-source linking and metadata composition are unsupported. **Release record:** 1.0.6 (partial); 1.4.2 (source-isolated identities; complete).
+
+#### Title Display Preference (M09)
+
+Settings persist a global preference for Chinese, original, English or romaji titles,
+independently of interface language and metadata source. Original is the default.
+Display projections select a nonempty preferred title, then the original title,
+then the first available title and finally the existing fallback or work ID.
+Chinese requires an explicit `zh` or `zh-*` source language tag; English and romaji
+use explicit title roles or search roles. Multiple Chinese titles retain source order.
+Library cards, details, search results, related works and Review use the same policy.
+Changing the setting refreshes page projections from existing evidence; source title
+order, snapshot identities and matching/search evidence remain unchanged. No additional
+provider lookup is required by the preference. Persistence failures retain the saved
+preference. Tracking keeps structured source titles for works without local files.
 
 #### External Metadata and Local Catalog (M01–M07)
 

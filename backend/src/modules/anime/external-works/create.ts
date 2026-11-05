@@ -37,6 +37,8 @@ export async function createExternalWorks(options: {
 			...metadataSources,
 			providers: [...metadataSources.providers, bangumi.provider],
 			artworkHosts: [...metadataSources.artworkHosts, "lain.bgm.tv"],
+			titleDisplayPreference: () =>
+				system.snapshot.settings.titleDisplayPreference ?? "native",
 			defaultSearchProvider: () =>
 				system.snapshot.settings.defaultMetadataProvider ?? "anilist",
 			logger,
