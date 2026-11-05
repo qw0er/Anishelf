@@ -6,6 +6,7 @@ import type {
 } from "./domain/model.js";
 
 export interface SubscriptionsApi {
+	list(): Promise<{ title: string; view: SubscriptionView }[]>;
 	profiles(): {
 		profiles: {
 			id: string;

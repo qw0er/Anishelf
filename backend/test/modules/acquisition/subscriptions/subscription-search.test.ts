@@ -290,3 +290,22 @@ test("subscription discovery sends prepared multilingual queries instead of arbi
 	for (const [plan] of f.search.mock.calls)
 		expect(plan.titles).toEqual(selected);
 });
+
+test("subscription inventory includes saved manual intent and tolerates unavailable titles without discovery", async () => {
+	const f = await fixture();
+	expect(await f.subscriptions.list()).toEqual([]);
+	await f.subscriptions.save({
+		...input,
+		source: { kind: "automatic" },
+		target: null,
+	});
+	expect(await f.subscriptions.list()).toMatchObject([
+		{
+			title: "Frieren Season 2",
+			view: { subscription: { workKey, startEpisode: 1 } },
+		},
+	]);
+	f.anime.target.mockRejectedValueOnce(new Error("offline"));
+	expect(await f.subscriptions.list()).toMatchObject([{ title: workKey }]);
+	expect(f.search).not.toHaveBeenCalled();
+});

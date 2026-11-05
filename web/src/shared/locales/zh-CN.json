@@ -1261,7 +1261,9 @@
 				"completed": "已完成 · 获取已停止",
 				"paused": "已暂停",
 				"active": "正在获取发布"
-			}
+			},
+			"progressDescription": "新订阅从 AniList 观看进度的下一集开始。例如，进度为 3 时从第 4 集开始。",
+			"beginningDescription": "新订阅从第 1 集开始，包含之前的集数。已在本地可用的剧集会直接复用。"
 		},
 		"episode": {
 			"actions": "第 {{episode}} 集的更多操作",
@@ -1281,6 +1283,25 @@
 			"compactPaused": "已暂停",
 			"stale": "待更新",
 			"statusUnknown": "状态未知"
+		},
+		"manager": {
+			"title": "订阅",
+			"search": "搜索订阅",
+			"all": "全部",
+			"automatic": "自动",
+			"manual": "手动",
+			"empty": "没有匹配的订阅。",
+			"lastCheck": "最近检查",
+			"notChecked": "尚未检查",
+			"management": "订阅方式",
+			"status": "运行状态",
+			"onlyAttention": "仅显示需处理",
+			"automation": "AniList 自动订阅",
+			"clearFilters": "清除筛选",
+			"noSubscriptions": "还没有订阅",
+			"emptyHelp": "在作品详情页添加订阅，自动追踪后续更新。",
+			"browse": "浏览作品",
+			"excluded": "已排除的作品（{{count}}）"
 		}
 	},
 	"profileIssue": {

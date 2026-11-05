@@ -15,6 +15,19 @@ export function registerSubscriptionRoutes(
 ) {
 	const path = "/api/acquisition/subscriptions";
 	app.get(
+		`${path}/list`,
+		{
+			schema: {
+				response: {
+					200: Type.Array(
+						Type.Object({ title: Type.String(), view: SubscriptionViewSchema }),
+					),
+				},
+			},
+		},
+		() => subscriptions.list(),
+	);
+	app.get(
 		"/api/acquisition/profiles",
 		{ schema: { response: { 200: AcquisitionProfileCatalogSchema } } },
 		async () => subscriptions.profiles(),

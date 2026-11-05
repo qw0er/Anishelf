@@ -1276,7 +1276,9 @@
 			"previewHelp_other": "Enable automatic acquisition for {{count}} Watching works. Manual subscriptions and completed records are preserved.",
 			"previewProfile": "Release profile: {{name}}",
 			"enabled": "Enabled",
-			"disabled": "Disabled"
+			"disabled": "Disabled",
+			"progressDescription": "Start new subscriptions at the episode after your AniList progress. For example, progress 3 starts at episode 4.",
+			"beginningDescription": "Start new subscriptions at episode 1 to include earlier episodes. Episodes already available locally are reused."
 		},
 		"connection": {
 			"more": "More service actions",
@@ -1302,6 +1304,25 @@
 			"compactPaused": "Paused",
 			"stale": "Stale",
 			"statusUnknown": "Status unknown"
+		},
+		"manager": {
+			"title": "Subscriptions",
+			"search": "Search subscriptions",
+			"all": "All",
+			"automatic": "Automatic",
+			"manual": "Manual",
+			"empty": "No matching subscriptions.",
+			"lastCheck": "Last check",
+			"notChecked": "Not checked yet",
+			"management": "Subscription type",
+			"status": "Status",
+			"onlyAttention": "Needs attention only",
+			"automation": "AniList automatic subscriptions",
+			"clearFilters": "Clear filters",
+			"noSubscriptions": "No subscriptions yet",
+			"emptyHelp": "Subscribe from a work’s details to follow new releases.",
+			"browse": "Browse works",
+			"excluded": "Excluded works ({{count}})"
 		}
 	},
 	"profileIssue": {

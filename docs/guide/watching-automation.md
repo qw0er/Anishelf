@@ -11,7 +11,9 @@ AniList Watching and Rewatching entries. Manual subscriptions are independent; W
 3. Optionally enable **Watching automation**: choose progress plus one or episode 1,
    preview the scope and confirm within five minutes in the same login session.
 
-Watching automation appears first in Downloads. Its activation preview uses the
+Watching automation appears first in Downloads. Activation previews open in a dialog.
+Use **Subscriptions** in the main navigation for the subscription inventory and
+per-work inclusion or exclusion; work subscription states open structured details. Its activation preview uses the
 saved release profile in **Subscription defaults**; there is no separate automation
 profile to configure. Save a changed default before previewing again. Existing
 subscriptions retain their saved profile and starting episode.
@@ -40,7 +42,7 @@ and duplicate-acquisition checks.
 | Successful discovery | Pin the first eligible configured site; later outages do not switch it |
 | Starting episode | Fixed at creation, even while waiting for discovery |
 | Manual pause/resume/edit | Independent controls; manual pause survives edits |
-| Automatic subscription | Managed together in Watching settings; exclude/include individual works |
+| Automatic subscription | Managed on the Subscriptions page; exclude/include individual works |
 | Convert to manual | Review and save the work editor; automatic management ends and the saved settings take precedence |
 | Unsubscribe | Record a Watching recreation exclusion; submitted transfers/imports continue |
 | Disable Watching | Stop automatic creation, discovery, refresh and new submissions; manual subscriptions and submitted downloads/imports continue |
@@ -78,7 +80,7 @@ episode view after verification.
 | Source/profile/target changed | Review and save against current configuration |
 | Pinned source unavailable | Repair it or explicitly edit the source |
 | Download/import failure | Use Activity's retry, Review or Settings action |
-| Automatic creation excluded | Include the work again in Watching settings |
+| Automatic creation excluded | Include the work again on the Subscriptions page |
 | Capacity reached | Free subscription capacity or reduce Watching scope |
 | Automatic subscription paused before migration | Confirm Watching settings and explicitly include the excluded work again |
 
