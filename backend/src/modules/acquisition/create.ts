@@ -207,6 +207,7 @@ export async function createAcquisitionModule(options: {
 				}
 			: {}),
 		subscriptions: {
+			list: subscriptions.list.bind(subscriptions),
 			profiles: subscriptions.profiles.bind(subscriptions),
 			search: subscriptions.search.bind(subscriptions),
 			get: subscriptions.get.bind(subscriptions),

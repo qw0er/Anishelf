@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	ChevronRight,
 	Ellipsis,
 	Pause,
 	Pencil,
@@ -36,6 +37,7 @@ import { DownloadActivityPanel } from "./download-activity.js";
 import { downloadKeys } from "./downloads-api.js";
 import { SubscriptionForm } from "./subscription-form.js";
 import {
+	acquisitionProfilesQuery,
 	refreshSubscription,
 	removeSubscription,
 	toggleSubscription,
@@ -47,15 +49,18 @@ export function SubscriptionPanel({
 	workKey,
 	status,
 	activityRequested = false,
+	compact = false,
 	onActivityClose,
 }: {
 	workKey: string;
 	status?: AnimeStatusState;
 	activityRequested?: boolean;
+	compact?: boolean;
 	onActivityClose?: () => void;
 }) {
 	const { t, i18n } = useTranslation();
 	const client = useQueryClient();
+	const profiles = useQuery(acquisitionProfilesQuery());
 	const [editor, setEditor] = useState<{
 			current: SubscriptionView["subscription"];
 		} | null>(null),
@@ -84,20 +89,29 @@ export function SubscriptionPanel({
 	);
 	if (sub?.runState === "completed")
 		summary = t("acquisition.subscription.completed");
-	else if (sub?.management === "watching")
-		summary = `${t("acquisition.subscription.automaticManaged")} · ${watchingReason(sub.runState === "active" ? "managed" : (sub.runState ?? "managed"))}`;
 	else if (cooling)
 		summary = t("acquisition.subscription.cooldownUntil", {
 			time: new Date(sub.nextAttemptAt).toLocaleString(i18n.language),
 		});
 	else if (needsAttention) summary = t("acquisition.activity.needsAttention");
 	else if (sub && !sub.enabled) summary = t("acquisition.subscription.paused");
+	else if (
+		sub?.management === "watching" &&
+		sub.runState &&
+		sub.runState !== "active"
+	)
+		summary = watchingReason(sub.runState);
 	else if (sub?.sourceKind === "automatic")
 		summary = t(
 			sub.error === "no_eligible_source"
 				? "acquisition.subscription.waitingForReleases"
 				: "acquisition.subscription.findingSource",
 		);
+	else if (sub?.management === "watching")
+		summary =
+			sub.runState && sub.runState !== "active"
+				? watchingReason(sub.runState)
+				: t("acquisition.subscription.automaticManaged");
 	const updated = async (result?: SubscriptionView) => {
 		await client.cancelQueries({
 			queryKey: ["anime-status"],
@@ -165,22 +179,22 @@ export function SubscriptionPanel({
 	});
 	return (
 		<section
-			className="min-w-0 border-t pt-3"
+			className={compact ? "min-w-0" : "min-w-0 border-t pt-3"}
 			aria-label={t("acquisition.subscription.aria")}
 			aria-busy={query.isFetching}
 		>
-			<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-				<div className="flex min-w-0 flex-wrap items-center gap-2">
-					<Rss
-						className="size-4 shrink-0 text-muted-foreground"
-						aria-hidden="true"
-					/>
-					<h2 className="font-medium">{t("acquisition.subscription.title")}</h2>
+			<div className="flex min-w-0 items-center justify-between gap-2 text-sm">
+				<Button
+					variant="ghost"
+					className="min-w-0 justify-start gap-2 px-0"
+					disabled={!sub && !needsAttention}
+					onClick={() => setActivityOpen(true)}
+					aria-label={t("acquisition.subscription.activity")}
+				>
+					<Rss className="size-4 shrink-0" aria-hidden="true" />
 					<span
 						role="status"
-						className={
-							needsAttention ? "text-destructive" : "text-muted-foreground"
-						}
+						className={`truncate ${needsAttention ? "text-destructive" : ""}`}
 					>
 						{query.isPending
 							? t("acquisition.subscription.loading")
@@ -188,14 +202,14 @@ export function SubscriptionPanel({
 								? t("acquisition.subscription.unavailable")
 								: summary}
 					</span>
-				</div>
-				<div className="flex items-center gap-1">
 					{(sub || needsAttention) && (
-						<Button variant="ghost" onClick={() => setActivityOpen(true)}>
-							{t("acquisition.subscription.activity")}
-							{needsAttention ? " · !" : ""}
-						</Button>
+						<ChevronRight
+							className="size-4 shrink-0 text-muted-foreground"
+							aria-hidden="true"
+						/>
 					)}
+				</Button>
+				<div className="flex shrink-0 items-center gap-1">
 					{!sub && !query.isPending && !query.isError && (
 						<Button
 							variant="outline"
@@ -222,7 +236,7 @@ export function SubscriptionPanel({
 								{sub.management === "watching" && (
 									<DropdownMenuItem
 										onClick={() => {
-											window.location.href = "/settings?section=downloads";
+											window.location.href = "/subscriptions";
 										}}
 									>
 										<Settings size={16} aria-hidden="true" />
@@ -335,6 +349,65 @@ export function SubscriptionPanel({
 					<DialogHeader>
 						<DialogTitle>{t("acquisition.subscription.activity")}</DialogTitle>
 					</DialogHeader>
+					{sub && (
+						<div className="space-y-4">
+							<p className="font-medium" role="status">
+								{summary}
+							</p>
+							<dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-3 border-y py-4 text-sm">
+								<dt className="text-muted-foreground">
+									{t("acquisition.subscription.policy")}
+								</dt>
+								<dd>
+									{t(
+										sub.management === "watching"
+											? "acquisition.subscription.automaticManaged"
+											: "acquisition.manager.manual",
+									)}
+								</dd>
+								<dt className="text-muted-foreground">
+									{t("acquisition.subscription.startingEpisode")}
+								</dt>
+								<dd>{sub.startEpisode}</dd>
+								<dt className="text-muted-foreground">
+									{t("acquisition.subscription.source")}
+								</dt>
+								<dd className="break-all">{sub.source}</dd>
+								<dt className="text-muted-foreground">
+									{t("acquisition.subscription.releaseProfile")}
+								</dt>
+								<dd>
+									{profiles.data?.profiles.find(
+										(profile) => profile.id === sub.profileId,
+									)?.name ??
+										sub.profileId ??
+										t("acquisition.subscription.followDefault")}
+								</dd>
+								<dt className="text-muted-foreground">
+									{t("acquisition.manager.lastCheck")}
+								</dt>
+								<dd>
+									{sub.checkedAt
+										? new Date(sub.checkedAt).toLocaleString(i18n.language)
+										: t("acquisition.manager.notChecked")}
+								</dd>
+							</dl>
+							<Button
+								variant="outline"
+								onClick={() => {
+									setActivityOpen(false);
+									onActivityClose?.();
+									setEditor({ current: sub });
+								}}
+							>
+								{t(
+									sub.management === "watching"
+										? "acquisition.subscription.convertToManual"
+										: "acquisition.subscription.edit",
+								)}
+							</Button>
+						</div>
+					)}
 					{
 						<DownloadActivityPanel
 							subscriptionOnly
@@ -349,6 +422,7 @@ export function SubscriptionPanel({
 							}
 							onConfigure={() => {
 								setActivityOpen(false);
+								onActivityClose?.();
 								setEditor({ current: sub ?? null });
 							}}
 						/>

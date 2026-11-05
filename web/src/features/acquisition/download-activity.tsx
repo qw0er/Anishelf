@@ -339,8 +339,11 @@ export function DownloadActivityPanel({
 										})}
 									</p>
 									{releases.data.discovery.attempts.map((attempt) => (
-										<div key={attempt.providerId}>
-											<p>
+										<div
+											key={attempt.providerId}
+											className="grid gap-1 border-b py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
+										>
+											<p className="font-medium">
 												{attempt.providerId} ·{" "}
 												{t(
 													`acquisition.subscription.attempt.${attempt.outcome}`,

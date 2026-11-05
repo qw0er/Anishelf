@@ -34,6 +34,27 @@ function conflict(): never {
 	);
 }
 export class SubscriptionsApplication implements SubscriptionsApi {
+	async list() {
+		return Promise.all(
+			this.options.store.subscriptions().map(async (sub) => {
+				let title = sub.workKey;
+				try {
+					title =
+						(await this.options.anime.target(sub.workKey, this.context.signal))
+							.searchTitles[0] ?? title;
+				} catch {
+					this.options.logger.debug(
+						{
+							event: "acquisition.subscription_summary_unavailable",
+							workKey: sub.workKey,
+						},
+						"Subscription title unavailable",
+					);
+				}
+				return { title, view: this.get(sub.workKey, 1, false) };
+			}),
+		);
+	}
 	hasCapacity(): boolean {
 		return this.options.store.subscriptions().length < maximumSubscriptions;
 	}

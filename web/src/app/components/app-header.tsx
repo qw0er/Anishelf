@@ -3,6 +3,7 @@ import {
 	History,
 	Library,
 	ListChecks,
+	Rss,
 	Settings,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -35,6 +36,7 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 			to: "/review",
 			label: t("review.title"),
 			icon: ListChecks,
+			Rss,
 			active: pathname === "/review",
 		},
 		{
@@ -48,6 +50,12 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 			label: t("app.settings"),
 			icon: Settings,
 			active: pathname === "/settings",
+		},
+		{
+			to: "/subscriptions",
+			label: t("acquisition.manager.title"),
+			icon: Rss,
+			active: pathname === "/subscriptions",
 		},
 	] as const;
 	return (
@@ -68,26 +76,31 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 				className="compact-navigation app-navigation"
 			>
 				<div className="app-navigation-items">
-					{[entries[0], entries[3], entries[1], entries[2], entries[4]].map(
-						({ to, label, icon: Icon, active }, index) => (
-							<Tooltip key={to} content={label}>
-								<NavLink
-									to={to}
-									end={to === "/"}
-									aria-label={label}
-									aria-current={active ? "page" : undefined}
-									className={`${buttonStyles("ghost")} header-nav-link app-nav-item ${active ? "app-nav-active" : ""} ${index === 2 ? "app-nav-management" : ""} ${index === 4 ? "app-nav-settings" : ""}`}
-								>
-									<Icon
-										size={18}
-										aria-hidden="true"
-										className="header-nav-icon"
-									/>
-									<span className="header-nav-label">{label}</span>
-								</NavLink>
-							</Tooltip>
-						),
-					)}
+					{[
+						entries[0],
+						entries[3],
+						entries[1],
+						entries[2],
+						entries[5],
+						entries[4],
+					].map(({ to, label, icon: Icon, active }, index) => (
+						<Tooltip key={to} content={label}>
+							<NavLink
+								to={to}
+								end={to === "/"}
+								aria-label={label}
+								aria-current={active ? "page" : undefined}
+								className={`${buttonStyles("ghost")} header-nav-link app-nav-item ${active ? "app-nav-active" : ""} ${index === 2 ? "app-nav-management" : ""} ${index === 5 ? "app-nav-settings" : ""}`}
+							>
+								<Icon
+									size={18}
+									aria-hidden="true"
+									className="header-nav-icon"
+								/>
+								<span className="header-nav-label">{label}</span>
+							</NavLink>
+						</Tooltip>
+					))}
 				</div>
 			</nav>
 		</header>

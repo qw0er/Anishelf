@@ -477,7 +477,7 @@ test("automatic subscriptions show group management and manual takeover without 
 		},
 	});
 	render(<SubscriptionPanel workKey={workKey} />);
-	await screen.findByText(/Automatic subscription/);
+	await screen.findByText("Automatic acquisition disabled");
 	fireEvent.click(screen.getByRole("button", { name: "Subscription actions" }));
 	expect(
 		await screen.findByRole("menuitem", {

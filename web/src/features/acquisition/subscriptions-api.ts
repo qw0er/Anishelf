@@ -46,3 +46,14 @@ export const acquisitionProfilesQuery = () => ({
 			signal,
 		}),
 });
+
+export const subscriptionListQuery = () => ({
+	queryKey: ["acquisition", "subscription", "list"] as const,
+	queryFn: ({ signal }: { signal: AbortSignal }) =>
+		request<{ title: string; view: SubscriptionView }[]>(
+			`${path}/list`,
+			"GET",
+			{ signal },
+		),
+	refetchInterval: 15000,
+});

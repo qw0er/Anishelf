@@ -1,5 +1,8 @@
 import type { RouteObject } from "react-router";
-import { EpisodeDownloadAction } from "../../features/acquisition/ui.js";
+import {
+	EpisodeDownloadAction,
+	SubscriptionsPage,
+} from "../../features/acquisition/ui.js";
 import { ReviewPage, TrackedAnimeDetail } from "../../features/anime/ui.js";
 import { HistoryPage } from "../../features/playback/ui.js";
 import App from "../App.js";
@@ -29,6 +32,7 @@ export const libraryRoute: RouteObject = {
 	errorElement: <RouteError kind="page" />,
 	hydrateFallbackElement: <InitialLoading />,
 	children: [
+		{ path: "subscriptions", element: <SubscriptionsPage /> },
 		{ path: "review", element: <ReviewPage /> },
 		{
 			path: "history",

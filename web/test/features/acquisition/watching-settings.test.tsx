@@ -113,7 +113,7 @@ test("Watching activation requires a separate preview and explicit confirmation,
 		0,
 	);
 	fireEvent.click(preview);
-	await screen.findByLabelText("Watching activation preview");
+	await screen.findByRole("dialog", { name: "Watching activation preview" });
 	expect(screen.getByText("Destination: /downloads")).toBeTruthy();
 	expect(request.mock.calls.some((call) => call[0] === `${base}/confirm`)).toBe(
 		false,
@@ -159,13 +159,18 @@ test("changing activation policy discards the preview; work overrides carry curr
 	await screen.findByRole("button", {
 		name: "Confirm and enable Watching automation",
 	});
-	fireEvent.click(screen.getByRole("radio", { name: "From episode 1" }));
+	fireEvent.click(screen.getByRole("button", { name: "Close" }));
+	fireEvent.click(
+		await screen.findByRole("radio", { name: /^From episode 1/ }),
+	);
 	expect(
 		screen.queryByRole("button", {
 			name: "Confirm and enable Watching automation",
 		}),
 	).toBeNull();
-	fireEvent.click(screen.getByText("Automatic subscriptions · 1 work"));
+	cleanup();
+	render(<WatchingSettings management />);
+	await screen.findByText("Automatic subscriptions · 1 work");
 	fireEvent.click(
 		screen.getByRole("button", { name: "Include in automation" }),
 	);
