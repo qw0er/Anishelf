@@ -13,24 +13,34 @@ export type TitleDisplayPreference =
 	| "native"
 	| "english"
 	| "romaji";
+/** Select only an explicitly classified nonempty title of the requested type. */
+export function preferredWorkTitle(
+	titles: readonly MetadataTitle[],
+	preference: TitleDisplayPreference,
+): string | null {
+	return (
+		titles
+			.find(
+				(title) =>
+					title.value.trim() &&
+					(preference === "chinese"
+						? /^zh(?:-|$)/i.test(title.language ?? "")
+						: title.kind === preference || title.searchKind === preference),
+			)
+			?.value.trim() ?? null
+	);
+}
 /** Select a presentation title without changing ordered source evidence. */
 export function workTitle(
 	titles: readonly MetadataTitle[],
 	fallback: string,
 	preference: TitleDisplayPreference = "native",
 ): string {
-	const available = titles.filter((title) => title.value.trim());
-	const preferred = available.find((title) =>
-		preference === "chinese"
-			? /^zh(?:-|$)/i.test(title.language ?? "")
-			: title.kind === preference || title.searchKind === preference,
-	);
 	return (
-		(
-			preferred ??
-			available.find((title) => title.kind === "native") ??
-			available[0]
-		)?.value.trim() ?? fallback
+		preferredWorkTitle(titles, preference) ??
+		preferredWorkTitle(titles, "native") ??
+		titles.find((title) => title.value.trim())?.value.trim() ??
+		fallback
 	);
 }
 

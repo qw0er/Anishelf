@@ -121,6 +121,13 @@ export class AniListWrapper implements AniListClient {
 						retryAt: null,
 					})
 				: normalize(error, this.feedback.getState().blockedUntil ?? null);
+			if (signal.aborted) {
+				this.logger?.debug(
+					{ event: "anilist.request_cancelled", ...context },
+					"AniList SDK request cancelled.",
+				);
+				throw failure;
+			}
 			this.logger?.warn(
 				{
 					event: "anilist.request_failed",

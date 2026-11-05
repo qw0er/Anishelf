@@ -1,12 +1,15 @@
+import type { ExternalWorkReference } from "../../../../shared/external-reference.js";
 import type {
 	AiringEpisode,
 	ArtworkAsset,
 	ArtworkStatus,
 	CachedMetadata,
 	MetadataSnapshot,
+	MetadataTitle,
 	Page,
 	ReadOptions,
 	SearchRequest,
+	TitleDisplayPreference,
 	WorkDetails,
 	WorkReference,
 	WorkRelation,
@@ -75,9 +78,21 @@ export interface MetadataApi {
 	): Promise<string | null>;
 }
 
+/** Presentation capability: reads cached evidence and schedules only the requested page. */
+export interface MetadataLibraryTitlesApi {
+	cached(
+		references: readonly ExternalWorkReference[],
+	): ReadonlyMap<string, readonly MetadataTitle[]>;
+	request(
+		references: readonly ExternalWorkReference[],
+		preference: TitleDisplayPreference,
+	): boolean;
+}
+
 /** Assembly result; ordinary consumers depend on MetadataApi or narrower ports. */
 export interface MetadataModule extends MetadataApi {
 	readonly identities: MetadataIdentitiesApi;
+	readonly libraryTitles: MetadataLibraryTitlesApi;
 	close(): Promise<void>;
 }
 

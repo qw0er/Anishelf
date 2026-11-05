@@ -1,4 +1,9 @@
 export const metadataDefaults = {
+	nameVerificationTimeoutMs: 20_000,
+	titleMaximumPending: 50,
+	titleRequestTimeoutMs: 30_000,
+	titleMissingRetryMs: 15 * 60_000,
+	titleFailureRetryMs: 60_000,
 	projectionVersion: "metadata-v1",
 	searchFreshMs: 24 * 60 * 60 * 1000,
 	emptySearchFreshMs: 15 * 60 * 1000,

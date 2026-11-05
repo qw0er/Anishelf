@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, ne, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import type { Store } from "../../../../../platform/database/store.js";
 import type { ExternalWorkReference } from "../../../../../shared/external-reference.js";
+import { workKey } from "../../../../../shared/external-reference.js";
+import type { MetadataTitle } from "../domain/model.js";
+import type { NameEvidence } from "../domain/project-document.js";
 import type {
 	MetadataFailure,
 	Page,
@@ -19,6 +23,86 @@ import {
 import { saveWorkSummary } from "./works.js";
 export class MetadataRepository implements MetadataStore {
 	constructor(private readonly store: Store) {}
+	titles(
+		references: readonly ExternalWorkReference[],
+	): ReadonlyMap<string, readonly MetadataTitle[]> {
+		if (!references.length) return new Map();
+		const projectWorks = alias(metadataWorks, "library_project_titles");
+		const projectSnapshots = alias(metadataSnapshots, "library_project_proof");
+		const result = new Map<string, readonly MetadataTitle[]>();
+		// Bound SQL parameter counts while retaining a single ownership boundary for titles.
+		for (let offset = 0; offset < references.length; offset += 200) {
+			const rows = this.store
+				.select({
+					source: metadataWorks,
+					project: projectWorks,
+					proof: sql<
+						string | null
+					>`json_extract(${projectSnapshots.data}, '$.nameEvidence')`,
+				})
+				.from(metadataWorks)
+				.leftJoin(
+					metadataReferences,
+					and(
+						eq(metadataReferences.provider, metadataWorks.provider),
+						eq(metadataReferences.providerId, metadataWorks.providerId),
+					),
+				)
+				.leftJoin(
+					projectWorks,
+					and(
+						eq(projectWorks.provider, "metadata"),
+						eq(projectWorks.providerId, metadataReferences.workId),
+					),
+				)
+				.leftJoin(
+					projectSnapshots,
+					eq(projectSnapshots.id, projectWorks.detailSnapshotId),
+				)
+				.where(
+					inArray(
+						metadataWorks.key,
+						references.slice(offset, offset + 200).map(workKey),
+					),
+				)
+				.all();
+			const documents = rows.map((row) => ({
+				...row,
+				evidence: row.proof ? (JSON.parse(row.proof) as NameEvidence) : null,
+			}));
+			const peerKeys = [
+				...new Set(
+					documents.flatMap(({ evidence }) =>
+						evidence ? [workKey(evidence.peer)] : [],
+					),
+				),
+			];
+			const peers = new Map(
+				peerKeys.length
+					? this.store
+							.select({
+								key: metadataWorks.key,
+								version: metadataWorks.detailSnapshotId,
+							})
+							.from(metadataWorks)
+							.where(inArray(metadataWorks.key, peerKeys))
+							.all()
+							.map((row) => [row.key, row.version])
+					: [],
+			);
+			for (const { source, project, evidence } of documents) {
+				const valid =
+					!evidence ||
+					(evidence.originSnapshotId === source.detailSnapshotId &&
+						peers.get(workKey(evidence.peer)) === evidence.peerSnapshotId);
+				result.set(
+					source.key,
+					valid && project?.titles.length ? project.titles : source.titles,
+				);
+			}
+		}
+		return result;
+	}
 	identify(reference: ExternalWorkReference): string {
 		return this.store.transaction(() => {
 			const existing = this.store
@@ -145,6 +229,7 @@ export class MetadataRepository implements MetadataStore {
 					const document = entry.data as {
 						project: { data: import("../domain/model.js").WorkDetails };
 						sourceIds: string[];
+						nameEvidence?: NameEvidence;
 						artwork: { cover?: WorkSummary };
 					};
 					const work = document.project.data;
@@ -161,9 +246,12 @@ export class MetadataRepository implements MetadataStore {
 						},
 						Math.max(
 							entry.fetchedAt,
-							...(document.sourceIds ?? []).map(
-								(sourceId) => this.get(sourceId)?.fetchedAt ?? entry.fetchedAt,
-							),
+							...(document.sourceIds ?? [])
+								.filter((id) => id !== document.nameEvidence?.peerSnapshotId)
+								.map(
+									(sourceId) =>
+										this.get(sourceId)?.fetchedAt ?? entry.fetchedAt,
+								),
 						),
 						true,
 						entry.id,

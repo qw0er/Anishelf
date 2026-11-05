@@ -46,6 +46,7 @@ export interface LibraryCard {
 	} | null;
 }
 export interface LibraryResult {
+	titlesRefreshing?: boolean;
 	items: LibraryCard[];
 	page: number;
 	perPage: number;

@@ -38,7 +38,9 @@ export async function createAnimeModule(options: {
 		lists: tracking,
 		titleDisplayPreference,
 		logger,
-		...(metadata ? { identities: metadata.identities } : {}),
+		...(metadata
+			? { identities: metadata.identities, titles: metadata.libraryTitles }
+			: {}),
 	});
 	const identification = createIdentificationModule({
 		metadataContext: () =>

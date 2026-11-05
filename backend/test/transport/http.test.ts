@@ -274,7 +274,11 @@ test("maps domain and unexpected errors without exposing internal paths", async 
 	app.get("/api/failure", async () => {
 		throw new Error("/private/settings.json secret");
 	});
+	app.get("/api/abort-failure", async () => {
+		throw new DOMException("/private/secret", "AbortError");
+	});
 	for (const [url, status, code] of [
+		["/api/abort-failure", 500, "INTERNAL_ERROR"],
 		["/api/domain", 404, "RESOURCE_MISSING"],
 		["/api/failure", 500, "INTERNAL_ERROR"],
 	] as const) {

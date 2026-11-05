@@ -429,7 +429,16 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			expect(
 				db.trackingOperations.list("account")[0]?.desired,
 			).not.toHaveProperty("status");
-			expect(db.trackingLists.read("account")?.entries).toEqual(entries);
+			expect(db.trackingLists.read("account")?.entries).toEqual(
+				entries.map((entry) => ({
+					...entry,
+					titleVariants: [
+						{ value: "B", kind: "native", language: null },
+						{ value: "A", kind: "native", language: null },
+						{ value: "B", kind: "native", language: null },
+					],
+				})),
+			);
 			const cached = db.trackingLists.read("account");
 			if (!cached) throw new Error("Missing account snapshot.");
 			expect(() =>

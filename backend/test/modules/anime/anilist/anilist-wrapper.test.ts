@@ -227,3 +227,26 @@ test("SDK adapter diagnostics never expose tokens, payloads or raw errors", asyn
 	expect(output).not.toContain("private-provider-sentinel");
 	expect(output).not.toContain("private-token-sentinel");
 });
+
+test("caller cancellation is a debug event rather than an upstream warning", async () => {
+	const records: Record<string, unknown>[] = [];
+	const logger = pino(
+		{ level: "debug" },
+		{ write: (line: string) => records.push(JSON.parse(line)) },
+	);
+	const fetcher = vi.fn<typeof fetch>(() => new Promise(() => {}));
+	const value = client({ logger, fetch: fetcher });
+	const controller = new AbortController();
+	const rejected = expect(read(value, controller.signal)).rejects.toMatchObject(
+		{ failure: { code: "unavailable" } },
+	);
+	await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+	controller.abort();
+	await rejected;
+	expect(records).toContainEqual(
+		expect.objectContaining({ event: "anilist.request_cancelled", level: 20 }),
+	);
+	expect(
+		records.some((record) => record.event === "anilist.request_failed"),
+	).toBe(false);
+});

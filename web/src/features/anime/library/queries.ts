@@ -66,5 +66,8 @@ export const animeLibraryQuery = (
 		gcTime: 15 * 60_000,
 		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
-			query.state.data?.tracking.refreshing ? 1500 : 5 * 60_000,
+			query.state.data?.tracking.refreshing ||
+			query.state.data?.titlesRefreshing
+				? 1500
+				: 5 * 60_000,
 	});
