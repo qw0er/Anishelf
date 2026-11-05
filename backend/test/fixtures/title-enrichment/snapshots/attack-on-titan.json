@@ -1,0 +1,392 @@
+{
+	"schemaVersion": 1,
+	"id": "attack-on-titan",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/16498",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:43:18.407Z",
+		"responseSha256": "054c494fefa27436bfd93b97aa6be69c338242afec82d4d2a5293e86625baa7c",
+		"data": {
+			"id": 16498,
+			"type": "ANIME",
+			"title": {
+				"native": "進撃の巨人",
+				"romaji": "Shingeki no Kyojin",
+				"english": "Attack on Titan"
+			},
+			"synonyms": [
+				"SnK",
+				"AoT",
+				"Ataque a los Titanes",
+				"Ataque dos Titãs",
+				"L'Attacco dei Giganti",
+				"מתקפת הטיטאנים",
+				"进击的巨人",
+				"L’Attaque des Titans",
+				"الهجوم على العمالقة",
+				"ผ่าพิภพไททัน",
+				"حمله به تایتان",
+				"Ataque de Titãs",
+				"Atak Tytanów",
+				"Атака титанов",
+				"Đại Chiến Titan"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 25,
+			"duration": 24,
+			"seasonYear": 2013,
+			"startDate": {
+				"year": 2013,
+				"month": 4,
+				"day": 7
+			},
+			"endDate": {
+				"year": 2013,
+				"month": 9,
+				"day": 28
+			},
+			"siteUrl": "https://anilist.co/anime/16498",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 53390,
+							"type": "MANGA",
+							"title": {
+								"native": "進撃の巨人",
+								"romaji": "Shingeki no Kyojin",
+								"english": "Attack on Titan"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2009,
+								"month": 9,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 20691,
+							"type": "ANIME",
+							"title": {
+								"native": "劇場版「進撃の巨人」前編～紅蓮の弓矢～",
+								"romaji": "Shingeki no Kyojin Zenpen: Guren no Yumiya",
+								"english": "Attack on Titan Part I: Crimson Bow and Arrow"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2014,
+								"month": 11,
+								"day": 22
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 20692,
+							"type": "ANIME",
+							"title": {
+								"native": "劇場版「進撃の巨人」後編～自由の翼～",
+								"romaji": "Shingeki no Kyojin Kouhen: Jiyuu no Tsubasa",
+								"english": "Attack on Titan Part II: Wings of Freedom"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2015,
+								"month": 6,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 20958,
+							"type": "ANIME",
+							"title": {
+								"native": "進撃の巨人 Season２",
+								"romaji": "Shingeki no Kyojin Season 2",
+								"english": "Attack on Titan Season 2"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2017,
+								"month": 4,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 21281,
+							"type": "ANIME",
+							"title": {
+								"native": "進撃！巨人中学校",
+								"romaji": "Shingeki! Kyojin Chuugakkou",
+								"english": "Attack on Titan: Junior High"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2015,
+								"month": 10,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 18397,
+							"type": "ANIME",
+							"title": {
+								"native": "進撃の巨人 OVA",
+								"romaji": "Shingeki no Kyojin OVA",
+								"english": "Attack on Titan OVA"
+							},
+							"format": "OVA",
+							"episodes": 3,
+							"startDate": {
+								"year": 2013,
+								"month": 12,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 119113,
+							"type": "ANIME",
+							"title": {
+								"native": "進撃の巨人 〜クロニクル〜",
+								"romaji": "Shingeki no Kyojin: Chronicle",
+								"english": "Attack on Titan ~Chronicle~"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2020,
+								"month": 7,
+								"day": 17
+							}
+						}
+					},
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 20811,
+							"type": "ANIME",
+							"title": {
+								"native": "進撃の巨人 外伝 悔いなき選択",
+								"romaji": "Shingeki no Kyojin Gaiden: Kuinaki Sentaku",
+								"english": "Attack on Titan: No Regrets"
+							},
+							"format": "OVA",
+							"episodes": 2,
+							"startDate": {
+								"year": 2014,
+								"month": 12,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 99634,
+							"type": "ANIME",
+							"title": {
+								"native": "進撃の巨人 LOST GIRLS",
+								"romaji": "Shingeki no Kyojin: LOST GIRLS",
+								"english": "Attack on Titan: Lost Girls"
+							},
+							"format": "OVA",
+							"episodes": 3,
+							"startDate": {
+								"year": 2017,
+								"month": 12,
+								"day": 8
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 19391,
+							"type": "ANIME",
+							"title": {
+								"native": "「進撃の巨人」ちみキャラ劇場\"とんでけ! 訓練兵団\"",
+								"romaji": "Shingeki no Kyojin: Chimi Kyara Gekijou - Tondeke! Kunren Heidan",
+								"english": "Attack on Titan Picture Drama"
+							},
+							"format": "SPECIAL",
+							"episodes": 9,
+							"startDate": {
+								"year": 2013,
+								"month": 7,
+								"day": 17
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 143391,
+							"type": "ANIME",
+							"title": {
+								"native": "千雪のファッションチェック！",
+								"romaji": "Chiyuki no Fashion Check",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 9,
+							"startDate": {
+								"year": 2020,
+								"month": 3,
+								"day": 8
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "進撃の巨人",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:43:19.255Z",
+		"responseSha256": "80fdc2dce654a820ce2fc23bd62fb16c71592bf3abfddb0c4d0feaaae252d155",
+		"total": 22,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			55770, 80993, 110049, 118335, 158003, 217300, 221781, 263750, 285666,
+			310656, 331752, 376739, 415779, 495007, 495012, 499144, 101266, 101267,
+			228407, 508708
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/55770",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/55770",
+			"fetchedAt": "2026-11-05T15:43:20.215Z",
+			"responseSha256": "963b879b6c2fe4954ce0605f9d275a1bcb16894a75c4eeca23637f39cfa649f8",
+			"data": {
+				"id": 55770,
+				"type": 2,
+				"name": "進撃の巨人",
+				"name_cn": "进击的巨人",
+				"date": "2013-04-06",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 26,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "进击的巨人"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "自由之翼"
+							},
+							{
+								"v": "進擊的巨人"
+							},
+							{
+								"v": "Attack on Titan"
+							},
+							{
+								"v": "Shingeki no Kyojin"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2013年4月6日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "MBS"
+					},
+					{
+						"key": "播放结束",
+						"value": "2013年9月28日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/80993",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/80993",
+			"fetchedAt": "2026-11-05T15:43:21.384Z",
+			"responseSha256": "4c6588e69cde635b7579a96c77369b87ead102e8ee286845055904bbb3a6b6ae",
+			"data": {
+				"id": 80993,
+				"type": 2,
+				"name": "進撃の巨人 OAD",
+				"name_cn": "进击的巨人 OAD",
+				"date": "2013-12-09",
+				"platform": "OVA",
+				"eps": 3,
+				"total_episodes": 3,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "进击的巨人 OAD"
+					},
+					{
+						"key": "话数",
+						"value": "3"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/110049",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/110049",
+			"fetchedAt": "2026-11-05T15:43:22.393Z",
+			"responseSha256": "d5b2df9f2e15a2e52a078dff2e740b123ac89e180b415b77d0abf2c3b023de10",
+			"data": {
+				"id": 110049,
+				"type": 2,
+				"name": "進撃の巨人 悔いなき選択 OAD",
+				"name_cn": "进击的巨人 无悔的选择 OAD",
+				"date": "2014-12-09",
+				"platform": "OVA",
+				"eps": 2,
+				"total_episodes": 2,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "进击的巨人 无悔的选择 OAD"
+					},
+					{
+						"key": "话数",
+						"value": "2"
+					}
+				]
+			}
+		}
+	]
+}

@@ -1,0 +1,221 @@
+{
+	"schemaVersion": 1,
+	"id": "violet-movie",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/103047",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:04.815Z",
+		"responseSha256": "425977c1975b2be79eaad3b2e900dae48d905ef822aa7ba0ccc917ae38a3d5ac",
+		"data": {
+			"id": 103047,
+			"type": "ANIME",
+			"title": {
+				"native": "劇場版 ヴァイオレット・エヴァーガーデン",
+				"romaji": "Violet Evergarden Movie",
+				"english": "Violet Evergarden: the Movie"
+			},
+			"synonyms": [
+				"Виолетта Эвергарден",
+				"Вайоллет Эвергарден",
+				"薇尔莉特·伊芙加登",
+				"Violet Evergarden : Le film"
+			],
+			"format": "MOVIE",
+			"status": "FINISHED",
+			"episodes": 1,
+			"duration": 140,
+			"seasonYear": 2020,
+			"startDate": {
+				"year": 2020,
+				"month": 9,
+				"day": 18
+			},
+			"endDate": {
+				"year": 2020,
+				"month": 9,
+				"day": 18
+			},
+			"siteUrl": "https://anilist.co/anime/103047",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 97298,
+							"type": "MANGA",
+							"title": {
+								"native": "ヴァイオレット・エヴァーガーデン",
+								"romaji": "Violet Evergarden",
+								"english": null
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2015,
+								"month": 12,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 109190,
+							"type": "ANIME",
+							"title": {
+								"native": "ヴァイオレット・エヴァーガーデン 外伝~永遠と自動手記人形~",
+								"romaji": "Violet Evergarden Gaiden: Eien to Jidou Shuki Ningyou",
+								"english": "Violet Evergarden: Eternity and the Auto Memory Doll"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2019,
+								"month": 9,
+								"day": 6
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "劇場版 ヴァイオレット・エヴァーガーデン",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:06.815Z",
+		"responseSha256": "c2b4474403944bc2091c14fff61d2be23b75c388a50703f96fdb6a0abdca78fd",
+		"total": 796,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			242216, 233, 766, 767, 812, 1333, 1862, 1941, 1942, 2225, 2504, 2893,
+			2905, 3022, 3023, 3024, 3025, 3026, 3027, 3028
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/242216",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/242216",
+			"fetchedAt": "2026-11-05T15:41:07.339Z",
+			"responseSha256": "f62089f6776537d026b0be8b135574a0651a3462e0b4feb78932dbe2a8ed421d",
+			"data": {
+				"id": 242216,
+				"type": 2,
+				"name": "劇場版 ヴァイオレット・エヴァーガーデン",
+				"name_cn": "剧场版 紫罗兰永恒花园",
+				"date": "2020-09-18",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "剧场版 紫罗兰永恒花园"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "VIOLET EVERGARDEN the Movie"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2020年9月18日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/233",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/233",
+			"fetchedAt": "2026-11-05T15:41:08.568Z",
+			"responseSha256": "670d24a648426587a2258788fb3f8821c1612e45dd9096fc947dd1cfb82e5329",
+			"data": {
+				"id": 233,
+				"type": 2,
+				"name": "劇場版 空の境界 第一章 俯瞰風景",
+				"name_cn": "剧场版 空之境界 第一章 俯瞰风景",
+				"date": "2007-12-01",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "剧场版 空之境界 第一章 俯瞰风景"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Gekijouban Kara no Kyoukai: The Garden of Sinners"
+							},
+							{
+								"v": "the Garden of sinners: Thanatos"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2007年12月1日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/766",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/766",
+			"fetchedAt": "2026-11-05T15:41:09.422Z",
+			"responseSha256": "8d37a38f1ed38d0fb50fbd67b25d5f8eed8c153b0eb997ebdabc1cd46019e4f4",
+			"data": {
+				"id": 766,
+				"type": 2,
+				"name": "劇場版 空の境界 第四章 伽藍の洞",
+				"name_cn": "剧场版 空之境界 第四章 伽蓝之洞",
+				"date": "2008-05-24",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "剧场版 空之境界 第四章 伽蓝之洞"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "공의 경계"
+							},
+							{
+								"v": "Gekijouban Kara no Kyoukai"
+							},
+							{
+								"v": "the Garden of sinners: garan-no-dou."
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2008年5月24日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		}
+	]
+}

@@ -1,0 +1,259 @@
+{
+	"schemaVersion": 1,
+	"id": "goblin-slayer",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/101165",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:43:06.845Z",
+		"responseSha256": "f4ac282c3b35ebaca503e170dbe0516e1975d86ada7737e48e4dff2edd7e3e93",
+		"data": {
+			"id": 101165,
+			"type": "ANIME",
+			"title": {
+				"native": "ゴブリンスレイヤー",
+				"romaji": "Goblin Slayer",
+				"english": "GOBLIN SLAYER"
+			},
+			"synonyms": ["ก็อบลิน สเลเยอร์"],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 12,
+			"duration": 24,
+			"seasonYear": 2018,
+			"startDate": {
+				"year": 2018,
+				"month": 10,
+				"day": 7
+			},
+			"endDate": {
+				"year": 2018,
+				"month": 12,
+				"day": 30
+			},
+			"siteUrl": "https://anilist.co/anime/101165",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 87320,
+							"type": "MANGA",
+							"title": {
+								"native": "ゴブリンスレイヤー",
+								"romaji": "Goblin Slayer",
+								"english": "Goblin Slayer!"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2016,
+								"month": 2,
+								"day": 15
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 108623,
+							"type": "ANIME",
+							"title": {
+								"native": "ゴブリンスレイヤー -GOBLIN'S CROWN-",
+								"romaji": "Goblin Slayer: GOBLIN'S CROWN",
+								"english": "GOBLIN SLAYER -GOBLIN’S CROWN-"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2020,
+								"month": 2,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 87321,
+							"type": "MANGA",
+							"title": {
+								"native": "ゴブリンスレイヤー",
+								"romaji": "Goblin Slayer",
+								"english": "Goblin Slayer"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2016,
+								"month": 5,
+								"day": 25
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ゴブリンスレイヤー",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:43:07.527Z",
+		"responseSha256": "c7a0c7cb69424191565fb071285bb5716c30e399c06878320830a96eaf7d44c0",
+		"total": 6,
+		"limit": 20,
+		"offset": 0,
+		"ids": [238006, 278661, 326867, 634587, 314424, 486423]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/238006",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/238006",
+			"fetchedAt": "2026-11-05T15:43:08.369Z",
+			"responseSha256": "2a53382222477016a8e2c2d41b2805190ca64ffc6cdb184f059623af745a6dcd",
+			"data": {
+				"id": 238006,
+				"type": 2,
+				"name": "ゴブリンスレイヤー",
+				"name_cn": "哥布林杀手",
+				"date": "2018-10-06",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "哥布林杀手"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "哥布林猎人"
+							},
+							{
+								"v": "哥布林殺手"
+							},
+							{
+								"v": "Goblin Slayer"
+							},
+							{
+								"v": "哥布林猎手"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2018年10月6日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "AT-X"
+					},
+					{
+						"key": "播放结束",
+						"value": "2018年12月29日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/278661",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/278661",
+			"fetchedAt": "2026-11-05T15:43:09.751Z",
+			"responseSha256": "f24faadab5c35b78c02084be66086a9766392db4187cd4fb615880d62fb97b8d",
+			"data": {
+				"id": 278661,
+				"type": 2,
+				"name": "ゴブリンスレイヤー GOBLIN’S CROWN",
+				"name_cn": "哥布林杀手 哥布林的王冠",
+				"date": "2020-02-01",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "哥布林杀手 哥布林的王冠"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Goblin Slayer: Goblin`s Crown"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2020年2月1日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/326867",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/326867",
+			"fetchedAt": "2026-11-05T15:43:10.860Z",
+			"responseSha256": "9b7a743348e0d0547a6100eb7c23fe1e054e7a57a5eef48996b62f1361d46d36",
+			"data": {
+				"id": 326867,
+				"type": 2,
+				"name": "ゴブリンスレイヤーⅡ",
+				"name_cn": "哥布林杀手 第二季",
+				"date": "2023-10-06",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "哥布林杀手 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Goblin Slayer II"
+							},
+							{
+								"v": "ゴブリンスレイヤー 2期"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2023年10月6日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "播放电视台",
+						"value": "AT-X"
+					},
+					{
+						"key": "播放结束",
+						"value": "2023年12月22日"
+					}
+				]
+			}
+		}
+	]
+}

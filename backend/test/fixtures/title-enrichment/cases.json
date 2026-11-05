@@ -1,0 +1,1029 @@
+{
+	"schemaVersion": 1,
+	"reviewedOn": "2026-11-05",
+	"labelPolicy": "Manual source-record comparison; expected values are independent of the current algorithm. Unresolved cases must not be counted as confirmed matches.",
+	"cases": [
+		{
+			"id": "apothecary-2-positive",
+			"snapshot": "apothecary-2",
+			"bangumiId": 486347,
+			"expected": "same-work",
+			"split": "development",
+			"family": "apothecary",
+			"tags": ["existing-reviewed-identification-pair", "tv", "sequel"],
+			"rationale": "Same named anime release/season, manually compared in AniList 176301 and Bangumi 486347; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "apothecary-positive",
+			"snapshot": "apothecary",
+			"bangumiId": 420628,
+			"expected": "same-work",
+			"split": "development",
+			"family": "apothecary",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"date-disagreement"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 161645 and Bangumi 420628; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "bocchi-positive",
+			"snapshot": "bocchi",
+			"bangumiId": 328609,
+			"expected": "same-work",
+			"split": "development",
+			"family": "bocchi",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"date-disagreement"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 130003 and Bangumi 328609; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "dungeon-positive",
+			"snapshot": "dungeon",
+			"bangumiId": 395378,
+			"expected": "same-work",
+			"split": "development",
+			"family": "dungeon",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 153518 and Bangumi 395378; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "frieren-2-positive",
+			"snapshot": "frieren-2",
+			"bangumiId": 515759,
+			"expected": "same-work",
+			"split": "development",
+			"family": "frieren",
+			"tags": ["existing-reviewed-identification-pair", "tv", "sequel"],
+			"rationale": "Same named anime release/season, manually compared in AniList 182255 and Bangumi 515759; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "frieren-positive",
+			"snapshot": "frieren",
+			"bangumiId": 400602,
+			"expected": "same-work",
+			"split": "development",
+			"family": "frieren",
+			"tags": ["existing-reviewed-identification-pair", "tv"],
+			"rationale": "Same named anime release/season, manually compared in AniList 154587 and Bangumi 400602; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "magia-record-positive",
+			"snapshot": "magia-record",
+			"bangumiId": 159690,
+			"expected": "same-work",
+			"split": "development",
+			"family": "magia-record",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"date-disagreement"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 104051 and Bangumi 159690; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "mushoku-2-positive",
+			"snapshot": "mushoku-2",
+			"bangumiId": 373247,
+			"expected": "same-work",
+			"split": "development",
+			"family": "mushoku",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"date-disagreement",
+				"sequel",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 146065 and Bangumi 373247; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "mushoku-part-2-positive",
+			"snapshot": "mushoku-part-2",
+			"bangumiId": 325585,
+			"expected": "same-work",
+			"split": "development",
+			"family": "mushoku",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"date-disagreement",
+				"sequel",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 127720 and Bangumi 325585; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "oshi-2-positive",
+			"snapshot": "oshi-2",
+			"bangumiId": 443428,
+			"expected": "same-work",
+			"split": "development",
+			"family": "oshi",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"title-variation",
+				"sequel"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 166531 and Bangumi 443428; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "oshi-positive",
+			"snapshot": "oshi",
+			"bangumiId": 386809,
+			"expected": "same-work",
+			"split": "development",
+			"family": "oshi",
+			"tags": ["existing-reviewed-identification-pair", "tv"],
+			"rationale": "Same named anime release/season, manually compared in AniList 150672 and Bangumi 386809; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "rezero-2-positive",
+			"snapshot": "rezero-2",
+			"bangumiId": 278826,
+			"expected": "same-work",
+			"split": "development",
+			"family": "rezero",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"title-variation",
+				"sequel",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 108632 and Bangumi 278826; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "rezero-positive",
+			"snapshot": "rezero",
+			"bangumiId": 140001,
+			"expected": "same-work",
+			"split": "development",
+			"family": "rezero",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"date-disagreement",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 21355 and Bangumi 140001; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "spy-2-positive",
+			"snapshot": "spy-2",
+			"bangumiId": 411427,
+			"expected": "same-work",
+			"split": "development",
+			"family": "spy",
+			"tags": ["existing-reviewed-identification-pair", "tv", "sequel"],
+			"rationale": "Same named anime release/season, manually compared in AniList 158927 and Bangumi 411427; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "spy-positive",
+			"snapshot": "spy",
+			"bangumiId": 329906,
+			"expected": "same-work",
+			"split": "development",
+			"family": "spy",
+			"tags": ["existing-reviewed-identification-pair", "tv"],
+			"rationale": "Same named anime release/season, manually compared in AniList 140960 and Bangumi 329906; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "steins-zero-positive",
+			"snapshot": "steins-zero",
+			"bangumiId": 129807,
+			"expected": "same-work",
+			"split": "development",
+			"family": "steins",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"date-disagreement",
+				"episode-count-disagreement",
+				"sequel"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 21127 and Bangumi 129807; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement, episode-count-disagreement."
+		},
+		{
+			"id": "suzume-positive",
+			"snapshot": "suzume",
+			"bangumiId": 362577,
+			"expected": "same-work",
+			"split": "development",
+			"family": "suzume",
+			"tags": ["existing-reviewed-identification-pair", "movie"],
+			"rationale": "Same named anime release/season, manually compared in AniList 142770 and Bangumi 362577; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "violet-movie-positive",
+			"snapshot": "violet-movie",
+			"bangumiId": 242216,
+			"expected": "same-work",
+			"split": "development",
+			"family": "violet",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"movie",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 103047 and Bangumi 242216; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "violet-positive",
+			"snapshot": "violet",
+			"bangumiId": 183878,
+			"expected": "same-work",
+			"split": "development",
+			"family": "violet",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"tv",
+				"date-disagreement"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 21827 and Bangumi 183878; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "your-name-positive",
+			"snapshot": "your-name",
+			"bangumiId": 160209,
+			"expected": "same-work",
+			"split": "development",
+			"family": "your-name",
+			"tags": [
+				"existing-reviewed-identification-pair",
+				"movie",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 21519 and Bangumi 160209; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "student-council-positive",
+			"snapshot": "student-council",
+			"bangumiId": 554779,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "student-council",
+			"tags": ["reported-regression", "tv", "date-disagreement"],
+			"rationale": "Same named anime release/season, manually compared in AniList 191656 and Bangumi 554779; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "steel-ball-run-2-3-positive",
+			"snapshot": "steel-ball-run-2-3",
+			"bangumiId": 639938,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "steel-ball-run-2-3",
+			"tags": ["reported-regression", "ona", "title-variation", "sequel"],
+			"rationale": "Same named anime release/season, manually compared in AniList 210482 and Bangumi 639938; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "dark-summoner-positive",
+			"snapshot": "dark-summoner",
+			"bangumiId": 630160,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "dark-summoner",
+			"tags": [
+				"reported-regression",
+				"short-form",
+				"date-disagreement",
+				"format-family-disagreement"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 208025 and Bangumi 630160; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement, format-family-disagreement."
+		},
+		{
+			"id": "tetsuryo-positive",
+			"snapshot": "tetsuryo",
+			"bangumiId": 590553,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "tetsuryo",
+			"tags": [
+				"reported-regression",
+				"tv",
+				"date-disagreement",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 199594 and Bangumi 590553; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "dark-item-positive",
+			"snapshot": "dark-item",
+			"bangumiId": 537738,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "dark-item",
+			"tags": ["reported-regression", "tv", "missing-episode-count"],
+			"rationale": "Same named anime release/season, manually compared in AniList 186742 and Bangumi 537738; corresponding source titles and part identity agree. Field differences are retained as observed: missing-episode-count."
+		},
+		{
+			"id": "fool-night-positive",
+			"snapshot": "fool-night",
+			"bangumiId": 661692,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "fool-night",
+			"tags": ["reported-regression", "ona", "missing-episode-count"],
+			"rationale": "Same named anime release/season, manually compared in AniList 213457 and Bangumi 661692; corresponding source titles and part identity agree. Field differences are retained as observed: missing-episode-count."
+		},
+		{
+			"id": "strongest-witch-positive",
+			"snapshot": "strongest-witch",
+			"bangumiId": 646154,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "strongest-witch",
+			"tags": [
+				"reported-regression",
+				"tv",
+				"missing-episode-count",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 211778 and Bangumi 646154; corresponding source titles and part identity agree. Field differences are retained as observed: missing-episode-count."
+		},
+		{
+			"id": "cyberpunk-2-positive",
+			"snapshot": "cyberpunk-2",
+			"bangumiId": 513878,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "cyberpunk",
+			"tags": ["reported-regression", "ona", "title-variation", "sequel"],
+			"rationale": "Same named anime release/season, manually compared in AniList 195539 and Bangumi 513878; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "bebop-positive",
+			"snapshot": "bebop",
+			"bangumiId": 253,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "bebop",
+			"tags": [
+				"coverage-expansion",
+				"tv",
+				"date-disagreement",
+				"large-date-disagreement"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 1 and Bangumi 253; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement, large-date-disagreement."
+		},
+		{
+			"id": "evangelion-positive",
+			"snapshot": "evangelion",
+			"bangumiId": 265,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "evangelion",
+			"tags": [
+				"coverage-expansion",
+				"tv",
+				"date-disagreement",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 30 and Bangumi 265; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "end-of-evangelion-positive",
+			"snapshot": "end-of-evangelion",
+			"bangumiId": 6049,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "evangelion",
+			"tags": [
+				"coverage-expansion",
+				"movie",
+				"episode-count-disagreement",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 32 and Bangumi 6049; corresponding source titles and part identity agree. Field differences are retained as observed: episode-count-disagreement."
+		},
+		{
+			"id": "flcl-positive",
+			"snapshot": "flcl",
+			"bangumiId": 822,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "flcl",
+			"tags": ["coverage-expansion", "ova"],
+			"rationale": "Same named anime release/season, manually compared in AniList 227 and Bangumi 822; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "jujutsu-zero-positive",
+			"snapshot": "jujutsu-zero",
+			"bangumiId": 331559,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "jujutsu-zero",
+			"tags": ["coverage-expansion", "movie", "title-variation"],
+			"rationale": "Same named anime release/season, manually compared in AniList 131573 and Bangumi 331559; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "haikyu-positive",
+			"snapshot": "haikyu",
+			"bangumiId": 84171,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "haikyu",
+			"tags": ["coverage-expansion", "tv"],
+			"rationale": "Same named anime release/season, manually compared in AniList 20464 and Bangumi 84171; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "silent-voice-positive",
+			"snapshot": "silent-voice",
+			"bangumiId": 117777,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "silent-voice",
+			"tags": ["coverage-expansion", "movie"],
+			"rationale": "Same named anime release/season, manually compared in AniList 20954 and Bangumi 117777; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "sao-positive",
+			"snapshot": "sao",
+			"bangumiId": 23686,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "sao",
+			"tags": ["coverage-expansion", "tv", "date-disagreement"],
+			"rationale": "Same named anime release/season, manually compared in AniList 11757 and Bangumi 23686; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "sao-ordinal-positive",
+			"snapshot": "sao-ordinal",
+			"bangumiId": 148099,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "sao",
+			"tags": ["coverage-expansion", "movie", "title-variation"],
+			"rationale": "Same named anime release/season, manually compared in AniList 21403 and Bangumi 148099; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "goblin-slayer-positive",
+			"snapshot": "goblin-slayer",
+			"bangumiId": 238006,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "goblin-slayer",
+			"tags": ["coverage-expansion", "tv", "date-disagreement"],
+			"rationale": "Same named anime release/season, manually compared in AniList 101165 and Bangumi 238006; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "one-piece-positive",
+			"snapshot": "one-piece",
+			"bangumiId": 975,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "one-piece",
+			"tags": [
+				"coverage-expansion",
+				"tv",
+				"missing-episode-count",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 21 and Bangumi 975; corresponding source titles and part identity agree. Field differences are retained as observed: missing-episode-count."
+		},
+		{
+			"id": "attack-on-titan-positive",
+			"snapshot": "attack-on-titan",
+			"bangumiId": 55770,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "attack-on-titan",
+			"tags": [
+				"coverage-expansion",
+				"tv",
+				"date-disagreement",
+				"search-pagination"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 16498 and Bangumi 55770; corresponding source titles and part identity agree. Field differences are retained as observed: date-disagreement."
+		},
+		{
+			"id": "steins-gate-positive",
+			"snapshot": "steins-gate",
+			"bangumiId": 10380,
+			"expected": "same-work",
+			"split": "development",
+			"family": "steins",
+			"tags": [
+				"coverage-expansion",
+				"tv",
+				"episode-count-disagreement",
+				"title-variation"
+			],
+			"rationale": "Same named anime release/season, manually compared in AniList 9253 and Bangumi 10380; corresponding source titles and part identity agree. Field differences are retained as observed: episode-count-disagreement, title-variation."
+		},
+		{
+			"id": "tales-zestiria-2-positive",
+			"snapshot": "tales-zestiria-2",
+			"bangumiId": 186184,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "tales-zestiria-2",
+			"tags": ["coverage-expansion", "tv", "title-variation", "sequel"],
+			"rationale": "Same named anime release/season, manually compared in AniList 97645 and Bangumi 186184; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "saiki-positive",
+			"snapshot": "saiki",
+			"bangumiId": 181354,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "saiki",
+			"tags": [
+				"coverage-expansion",
+				"short-form",
+				"date-disagreement",
+				"episode-count-disagreement",
+				"grouped-episode-count",
+				"format-family-disagreement"
+			],
+			"rationale": "Same 2016 TV adaptation: AniList records 120 short segments while Bangumi groups them into 24 TV episodes. This is a title-only correspondence, not an episode identity mapping."
+		},
+		{
+			"id": "gintama-positive",
+			"snapshot": "gintama",
+			"bangumiId": 247,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "gintama",
+			"tags": ["coverage-expansion", "tv", "search-pagination"],
+			"rationale": "Same named anime release/season, manually compared in AniList 918 and Bangumi 247; corresponding source titles and part identity agree. No field-disagreement tag is required for this pair."
+		},
+		{
+			"id": "cyberpunk-positive",
+			"snapshot": "cyberpunk",
+			"bangumiId": 309311,
+			"expected": "same-work",
+			"split": "regression",
+			"family": "cyberpunk",
+			"tags": ["coverage-expansion", "ona", "title-variation"],
+			"rationale": "Same named anime release/season, manually compared in AniList 120377 and Bangumi 309311; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "shelter-positive",
+			"snapshot": "shelter",
+			"bangumiId": 195249,
+			"expected": "same-work",
+			"split": "holdout",
+			"family": "shelter",
+			"tags": ["coverage-expansion", "music", "title-variation"],
+			"rationale": "Same named anime release/season, manually compared in AniList 97731 and Bangumi 195249; corresponding source titles and part identity agree. Field differences are retained as observed: title-variation."
+		},
+		{
+			"id": "apothecary-negative",
+			"snapshot": "apothecary",
+			"bangumiId": 486347,
+			"expected": "different-work",
+			"split": "development",
+			"family": "apothecary",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Different season, not the selected first-season release."
+		},
+		{
+			"id": "apothecary-2-negative",
+			"snapshot": "apothecary-2",
+			"bangumiId": 533096,
+			"expected": "different-work",
+			"split": "development",
+			"family": "apothecary",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Companion short series, not the full second-season TV release."
+		},
+		{
+			"id": "bocchi-negative",
+			"snapshot": "bocchi",
+			"bangumiId": 537409,
+			"expected": "different-work",
+			"split": "development",
+			"family": "bocchi",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Second season, not the first-season TV release."
+		},
+		{
+			"id": "dungeon-negative",
+			"snapshot": "dungeon",
+			"bangumiId": 499073,
+			"expected": "different-work",
+			"split": "development",
+			"family": "dungeon",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Second season, not the original TV season."
+		},
+		{
+			"id": "frieren-negative",
+			"snapshot": "frieren",
+			"bangumiId": 459283,
+			"expected": "different-work",
+			"split": "development",
+			"family": "frieren",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Companion magic shorts, not the original 28-episode TV series."
+		},
+		{
+			"id": "frieren-2-negative",
+			"snapshot": "frieren-2",
+			"bangumiId": 638133,
+			"expected": "different-work",
+			"split": "development",
+			"family": "frieren",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Third season, not the selected second season."
+		},
+		{
+			"id": "magia-record-negative",
+			"snapshot": "magia-record",
+			"bangumiId": 302875,
+			"expected": "different-work",
+			"split": "development",
+			"family": "magia-record",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Second season has a different season ordinal and release scope."
+		},
+		{
+			"id": "mushoku-2-negative",
+			"snapshot": "mushoku-2",
+			"bangumiId": 444557,
+			"expected": "different-work",
+			"split": "development",
+			"family": "mushoku",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Second cour of season two, not the first cour of season two."
+		},
+		{
+			"id": "mushoku-part-2-negative",
+			"snapshot": "mushoku-part-2",
+			"bangumiId": 277554,
+			"expected": "different-work",
+			"split": "development",
+			"family": "mushoku",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "First cour, not the selected second cour."
+		},
+		{
+			"id": "oshi-2-negative",
+			"snapshot": "oshi-2",
+			"bangumiId": 517057,
+			"expected": "different-work",
+			"split": "development",
+			"family": "oshi",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Third season, not the selected second season."
+		},
+		{
+			"id": "rezero-negative",
+			"snapshot": "rezero",
+			"bangumiId": 225462,
+			"expected": "different-work",
+			"split": "development",
+			"family": "rezero",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Memory Snow OVA is a distinct release from the TV season."
+		},
+		{
+			"id": "rezero-2-negative",
+			"snapshot": "rezero-2",
+			"bangumiId": 316247,
+			"expected": "different-work",
+			"split": "development",
+			"family": "rezero",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Second half of season two, not the selected first half."
+		},
+		{
+			"id": "spy-negative",
+			"snapshot": "spy",
+			"bangumiId": 373267,
+			"expected": "different-work",
+			"split": "development",
+			"family": "spy",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "CODE: White movie is a distinct release from the TV season."
+		},
+		{
+			"id": "spy-2-negative",
+			"snapshot": "spy-2",
+			"bangumiId": 498378,
+			"expected": "different-work",
+			"split": "development",
+			"family": "spy",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Third season, not the selected second season."
+		},
+		{
+			"id": "steins-zero-negative",
+			"snapshot": "steins-zero",
+			"bangumiId": 10380,
+			"expected": "different-work",
+			"split": "development",
+			"family": "steins",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Original series, not the zero alternate-world follow-up."
+		},
+		{
+			"id": "steins-gate-negative",
+			"snapshot": "steins-gate",
+			"bangumiId": 129807,
+			"expected": "different-work",
+			"split": "development",
+			"family": "steins",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Zero alternate-world follow-up, not the original series."
+		},
+		{
+			"id": "student-council-negative",
+			"snapshot": "student-council",
+			"bangumiId": 502809,
+			"expected": "different-work",
+			"split": "regression",
+			"family": "student-council",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Promotional anime commercial, not the full TV series."
+		},
+		{
+			"id": "steel-ball-run-2-3-negative",
+			"snapshot": "steel-ball-run-2-3",
+			"bangumiId": 551918,
+			"expected": "different-work",
+			"split": "regression",
+			"family": "steel-ball-run-2-3",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "First stage, not the second and third stage release."
+		},
+		{
+			"id": "dark-summoner-negative",
+			"snapshot": "dark-summoner",
+			"bangumiId": 708612,
+			"expected": "different-work",
+			"split": "regression",
+			"family": "dark-summoner",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Mini anime theater is a separate companion production."
+		},
+		{
+			"id": "cyberpunk-2-negative",
+			"snapshot": "cyberpunk-2",
+			"bangumiId": 309311,
+			"expected": "different-work",
+			"split": "regression",
+			"family": "cyberpunk",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "First season, not the selected sequel."
+		},
+		{
+			"id": "cyberpunk-negative",
+			"snapshot": "cyberpunk",
+			"bangumiId": 513878,
+			"expected": "different-work",
+			"split": "regression",
+			"family": "cyberpunk",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Second season, not the original production."
+		},
+		{
+			"id": "bebop-negative",
+			"snapshot": "bebop",
+			"bangumiId": 860,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "bebop",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Heaven Door movie, not the original TV series."
+		},
+		{
+			"id": "evangelion-negative",
+			"snapshot": "evangelion",
+			"bangumiId": 6049,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "evangelion",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Air/Magokoro movie, not the original TV series."
+		},
+		{
+			"id": "flcl-negative",
+			"snapshot": "flcl",
+			"bangumiId": 175398,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "flcl",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Alternative sequel production, not the original six-episode OVA."
+		},
+		{
+			"id": "jujutsu-zero-negative",
+			"snapshot": "jujutsu-zero",
+			"bangumiId": 294993,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "jujutsu-zero",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Original TV season, not the prequel movie zero."
+		},
+		{
+			"id": "haikyu-negative",
+			"snapshot": "haikyu",
+			"bangumiId": 120236,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "haikyu",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Second season, not the original TV season."
+		},
+		{
+			"id": "sao-negative",
+			"snapshot": "sao",
+			"bangumiId": 92382,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "sao",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Season II, not the original TV series."
+		},
+		{
+			"id": "sao-ordinal-negative",
+			"snapshot": "sao-ordinal",
+			"bangumiId": 23686,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "sao",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Original TV series, not the Ordinal Scale movie. Native-title search ranks the TV series above the correct movie."
+		},
+		{
+			"id": "goblin-slayer-negative",
+			"snapshot": "goblin-slayer",
+			"bangumiId": 278661,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "goblin-slayer",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Goblin Crown movie, not the original TV series."
+		},
+		{
+			"id": "one-piece-negative",
+			"snapshot": "one-piece",
+			"bangumiId": 1869,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "one-piece",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Standalone movie, not the long-running TV adaptation."
+		},
+		{
+			"id": "attack-on-titan-negative",
+			"snapshot": "attack-on-titan",
+			"bangumiId": 80993,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "attack-on-titan",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "OAD companion release, not the original TV season."
+		},
+		{
+			"id": "tales-zestiria-2-negative",
+			"snapshot": "tales-zestiria-2",
+			"bangumiId": 136371,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "tales-zestiria-2",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "First cour, not the selected second cour."
+		},
+		{
+			"id": "saiki-negative",
+			"snapshot": "saiki",
+			"bangumiId": 80932,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "saiki",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "2013 web Flash adaptation, not the 2016 TV adaptation; the native titles are identical."
+		},
+		{
+			"id": "gintama-negative",
+			"snapshot": "gintama",
+			"bangumiId": 11834,
+			"expected": "different-work",
+			"split": "holdout",
+			"family": "gintama",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "Distinct later TV sequel with a prime mark in its title."
+		},
+		{
+			"id": "student-council-manga-negative",
+			"snapshot": "student-council",
+			"bangumiId": 379566,
+			"expected": "different-work",
+			"split": "regression",
+			"family": "student-council",
+			"tags": ["hard-negative", "wrong-medium", "identical-title"],
+			"rationale": "Same-title manga source entry (Bangumi type 1) must not supply an anime correspondence (type 2). Shared branding does not establish an anime release match."
+		},
+		{
+			"id": "end-of-evangelion-overlap-unresolved",
+			"snapshot": "end-of-evangelion",
+			"bangumiId": 39923,
+			"expected": "unresolved",
+			"split": "holdout",
+			"family": "evangelion",
+			"tags": ["scope-ambiguity", "overlapping-material"],
+			"rationale": "Later combined REVIVAL theatrical program contains overlapping material. Keep unresolved until release scope is explicitly reviewed; do not infer one-to-one work or episode identity."
+		},
+		{
+			"id": "oshi-overlap-unresolved",
+			"snapshot": "oshi",
+			"bangumiId": 424227,
+			"expected": "unresolved",
+			"split": "development",
+			"family": "oshi",
+			"tags": ["scope-ambiguity", "overlapping-material"],
+			"rationale": "Advance theatrical presentation of Mother and Children overlaps the television premiere. Title-only sharing is ambiguous without an explicit scope policy, so leave unresolved."
+		},
+		{
+			"id": "bocchi-2-positive",
+			"snapshot": "bocchi-2",
+			"bangumiId": 537409,
+			"expected": "same-work",
+			"split": "development",
+			"family": "bocchi",
+			"tags": [
+				"coverage-expansion",
+				"sequel",
+				"incomplete-date",
+				"tv",
+				"missing-episode-count"
+			],
+			"rationale": "Corresponding announced sequel in both sources: AniList 186712 and Bangumi 537409. The same franchise and explicit season ordinal identify the intended release despite incomplete date fields; no dates or episode counts are synthesized."
+		},
+		{
+			"id": "bocchi-2-negative",
+			"snapshot": "bocchi-2",
+			"bangumiId": 328609,
+			"expected": "different-work",
+			"split": "development",
+			"family": "bocchi",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "The captured candidate is the preceding season of this franchise, not the announced sequel. Missing future dates must not erase an explicit season difference."
+		},
+		{
+			"id": "frieren-3-positive",
+			"snapshot": "frieren-3",
+			"bangumiId": 638133,
+			"expected": "same-work",
+			"split": "development",
+			"family": "frieren",
+			"tags": [
+				"coverage-expansion",
+				"sequel",
+				"incomplete-date",
+				"tv",
+				"missing-episode-count"
+			],
+			"rationale": "Corresponding announced sequel in both sources: AniList 209939 and Bangumi 638133. The same franchise and explicit season ordinal identify the intended release despite incomplete date fields; no dates or episode counts are synthesized."
+		},
+		{
+			"id": "frieren-3-negative",
+			"snapshot": "frieren-3",
+			"bangumiId": 515759,
+			"expected": "different-work",
+			"split": "development",
+			"family": "frieren",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "The captured candidate is the preceding season of this franchise, not the announced sequel. Missing future dates must not erase an explicit season difference."
+		},
+		{
+			"id": "dungeon-2-positive",
+			"snapshot": "dungeon-2",
+			"bangumiId": 499073,
+			"expected": "same-work",
+			"split": "development",
+			"family": "dungeon",
+			"tags": [
+				"coverage-expansion",
+				"sequel",
+				"incomplete-date",
+				"tv",
+				"missing-episode-count"
+			],
+			"rationale": "Corresponding announced sequel in both sources: AniList 178031 and Bangumi 499073. The same franchise and explicit season ordinal identify the intended release despite incomplete date fields; no dates or episode counts are synthesized."
+		},
+		{
+			"id": "dungeon-2-negative",
+			"snapshot": "dungeon-2",
+			"bangumiId": 395378,
+			"expected": "different-work",
+			"split": "development",
+			"family": "dungeon",
+			"tags": ["hard-negative", "related-release"],
+			"rationale": "The captured candidate is the preceding season of this franchise, not the announced sequel. Missing future dates must not erase an explicit season difference."
+		}
+	]
+}

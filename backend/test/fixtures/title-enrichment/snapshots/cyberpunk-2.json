@@ -1,0 +1,221 @@
+{
+	"schemaVersion": 1,
+	"id": "cyberpunk-2",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/195539",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:42:00.252Z",
+		"responseSha256": "1617c8a88cc0775386db90befe4a51a9dcf3f68347a9441fe139a375ffef82e1",
+		"data": {
+			"id": 195539,
+			"type": "ANIME",
+			"title": {
+				"native": "サイバーパンク: エッジランナーズ2",
+				"romaji": "Cyberpunk: Edgerunners 2",
+				"english": "Cyberpunk: Edgerunners 2"
+			},
+			"synonyms": [
+				"サイバーパンク: エッジランナーズ II",
+				"Cyberpunk: Edgerunners II"
+			],
+			"format": "ONA",
+			"status": "FINISHED",
+			"episodes": 10,
+			"duration": 28,
+			"seasonYear": 2026,
+			"startDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 20
+			},
+			"endDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 20
+			},
+			"siteUrl": "https://anilist.co/anime/195539",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 120377,
+							"type": "ANIME",
+							"title": {
+								"native": "サイバーパンク エッジランナーズ",
+								"romaji": "Cyberpunk: Edgerunners",
+								"english": "Cyberpunk: Edgerunners"
+							},
+							"format": "ONA",
+							"episodes": 10,
+							"startDate": {
+								"year": 2022,
+								"month": 9,
+								"day": 13
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "サイバーパンク: エッジランナーズ2",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:42:01.332Z",
+		"responseSha256": "5c04553e66c813b74ffd7514eb87f75e148028b6d5257f49e6b8e441c3c14428",
+		"total": 16,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			513878, 309311, 316757, 1954, 1955, 1956, 1957, 1958, 435565, 435568,
+			641552, 714541, 304638, 36588, 88751, 79969
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/513878",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/513878",
+			"fetchedAt": "2026-11-05T15:42:02.072Z",
+			"responseSha256": "05c42398c5691a3557cf76c968845f2e1f1fde14121b8fe8a53d78c79c6f5dc7",
+			"data": {
+				"id": 513878,
+				"type": 2,
+				"name": "Cyberpunk: Edgerunners 2",
+				"name_cn": "赛博朋克：边缘行者 2",
+				"date": "2026-10-20",
+				"platform": "WEB",
+				"eps": 10,
+				"total_episodes": 10,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "赛博朋克：边缘行者 2"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "サイバーパンク: エッジランナーズ２"
+							},
+							{
+								"v": "電馭叛客：邊緣行者 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "10"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年10月20日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期二"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "Netflix"
+					},
+					{
+						"key": "播放结束",
+						"value": "2026年10月20日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/309311",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/309311",
+			"fetchedAt": "2026-11-05T15:42:02.941Z",
+			"responseSha256": "955f92b515cf3d6bcf666616308333fcfbad208c4e132fa017672ca9f700e739",
+			"data": {
+				"id": 309311,
+				"type": 2,
+				"name": "Cyberpunk: Edgerunners",
+				"name_cn": "赛博朋克：边缘行者",
+				"date": "2022-09-13",
+				"platform": "WEB",
+				"eps": 10,
+				"total_episodes": 10,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "赛博朋克：边缘行者"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "サイバーパンク エッジランナーズ"
+							},
+							{
+								"v": "赛博浪客"
+							},
+							{
+								"v": "赛博朋克：Edgerunners"
+							},
+							{
+								"v": "赛博朋克：浪客"
+							},
+							{
+								"v": "電馭叛客：邊緣行者"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "10"
+					},
+					{
+						"key": "放送开始",
+						"value": "2022年9月13日"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "Netflix"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/316757",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/316757",
+			"fetchedAt": "2026-11-05T15:42:04.069Z",
+			"responseSha256": "1599d98b0d78ecd19948b6073b71f187fdc1848b7719234e6512ed53e005a4d0",
+			"data": {
+				"id": 316757,
+				"type": 2,
+				"name": "サイバードール FeiFei",
+				"name_cn": "网络维纳斯飞飞",
+				"date": "2001-11-21",
+				"platform": "OVA",
+				"eps": 6,
+				"total_episodes": 6,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "网络维纳斯飞飞"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Cybervenus FeiFei"
+							},
+							{
+								"v": "Virtually Real - Cybervenus FeiFei"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "6"
+					}
+				]
+			}
+		}
+	]
+}

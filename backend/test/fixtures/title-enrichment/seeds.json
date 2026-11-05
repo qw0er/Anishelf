@@ -1,0 +1,300 @@
+{
+	"schemaVersion": 1,
+	"seeds": [
+		{
+			"id": "apothecary-2",
+			"anilistId": 176301,
+			"bangumiId": 486347,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "apothecary",
+			"anilistId": 161645,
+			"bangumiId": 420628,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "bocchi",
+			"anilistId": 130003,
+			"bangumiId": 328609,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "dungeon",
+			"anilistId": 153518,
+			"bangumiId": 395378,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "frieren-2",
+			"anilistId": 182255,
+			"bangumiId": 515759,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "frieren",
+			"anilistId": 154587,
+			"bangumiId": 400602,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "magia-record",
+			"anilistId": 104051,
+			"bangumiId": 159690,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "mushoku-2",
+			"anilistId": 146065,
+			"bangumiId": 373247,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "mushoku-part-2",
+			"anilistId": 127720,
+			"bangumiId": 325585,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "oshi-2",
+			"anilistId": 166531,
+			"bangumiId": 443428,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "oshi",
+			"anilistId": 150672,
+			"bangumiId": 386809,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "rezero-2",
+			"anilistId": 108632,
+			"bangumiId": 278826,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "rezero",
+			"anilistId": 21355,
+			"bangumiId": 140001,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "spy-2",
+			"anilistId": 158927,
+			"bangumiId": 411427,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "spy",
+			"anilistId": 140960,
+			"bangumiId": 329906,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "steins-zero",
+			"anilistId": 21127,
+			"bangumiId": 129807,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "suzume",
+			"anilistId": 142770,
+			"bangumiId": 362577,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "violet-movie",
+			"anilistId": 103047,
+			"bangumiId": 242216,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "violet",
+			"anilistId": 21827,
+			"bangumiId": 183878,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "your-name",
+			"anilistId": 21519,
+			"bangumiId": 160209,
+			"origin": "existing-reviewed-identification-pair"
+		},
+		{
+			"id": "student-council",
+			"anilistId": 191656,
+			"bangumiId": 554779,
+			"origin": "reported-regression",
+			"extraBangumiIds": [379566]
+		},
+		{
+			"id": "steel-ball-run-2-3",
+			"anilistId": 210482,
+			"bangumiId": 639938,
+			"origin": "reported-regression"
+		},
+		{
+			"id": "dark-summoner",
+			"anilistId": 208025,
+			"bangumiId": 630160,
+			"origin": "reported-regression"
+		},
+		{
+			"id": "tetsuryo",
+			"anilistId": 199594,
+			"bangumiId": 590553,
+			"origin": "reported-regression"
+		},
+		{
+			"id": "dark-item",
+			"anilistId": 186742,
+			"bangumiId": 537738,
+			"origin": "reported-regression"
+		},
+		{
+			"id": "fool-night",
+			"anilistId": 213457,
+			"bangumiId": 661692,
+			"origin": "reported-regression"
+		},
+		{
+			"id": "strongest-witch",
+			"anilistId": 211778,
+			"bangumiId": 646154,
+			"origin": "reported-regression"
+		},
+		{
+			"id": "cyberpunk-2",
+			"anilistId": 195539,
+			"bangumiId": 513878,
+			"origin": "reported-regression"
+		},
+		{
+			"id": "bebop",
+			"anilistId": 1,
+			"bangumiId": 253,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "evangelion",
+			"anilistId": 30,
+			"bangumiId": 265,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "end-of-evangelion",
+			"anilistId": 32,
+			"bangumiId": 6049,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "flcl",
+			"anilistId": 227,
+			"bangumiId": 822,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "jujutsu-zero",
+			"anilistId": 131573,
+			"bangumiId": 331559,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "haikyu",
+			"anilistId": 20464,
+			"bangumiId": 84171,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "silent-voice",
+			"anilistId": 20954,
+			"bangumiId": 117777,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "sao",
+			"anilistId": 11757,
+			"bangumiId": 23686,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "sao-ordinal",
+			"anilistId": 21403,
+			"bangumiId": 148099,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "goblin-slayer",
+			"anilistId": 101165,
+			"bangumiId": 238006,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "one-piece",
+			"anilistId": 21,
+			"bangumiId": 975,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "attack-on-titan",
+			"anilistId": 16498,
+			"bangumiId": 55770,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "steins-gate",
+			"anilistId": 9253,
+			"bangumiId": 10380,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "tales-zestiria-2",
+			"anilistId": 97645,
+			"bangumiId": 186184,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "saiki",
+			"anilistId": 21804,
+			"bangumiId": 181354,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "gintama",
+			"anilistId": 918,
+			"bangumiId": 247,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "cyberpunk",
+			"anilistId": 120377,
+			"bangumiId": 309311,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "shelter",
+			"anilistId": 97731,
+			"bangumiId": 195249,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "bocchi-2",
+			"anilistId": 186712,
+			"bangumiId": 537409,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "frieren-3",
+			"anilistId": 209939,
+			"bangumiId": 638133,
+			"origin": "coverage-expansion"
+		},
+		{
+			"id": "dungeon-2",
+			"anilistId": 178031,
+			"bangumiId": 499073,
+			"origin": "coverage-expansion"
+		}
+	]
+}

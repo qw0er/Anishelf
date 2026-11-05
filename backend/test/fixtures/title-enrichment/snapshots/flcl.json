@@ -1,0 +1,242 @@
+{
+	"schemaVersion": 1,
+	"id": "flcl",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/227",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:42:22.156Z",
+		"responseSha256": "9ab28c0476b833127a1071a5cc332e0dfb19063bf73b5d1de428b8e509432bde",
+		"data": {
+			"id": 227,
+			"type": "ANIME",
+			"title": {
+				"native": "フリクリ",
+				"romaji": "FLCL",
+				"english": "FLCL"
+			},
+			"synonyms": ["Fooly Cooly", "Furi Kuri"],
+			"format": "OVA",
+			"status": "FINISHED",
+			"episodes": 6,
+			"duration": 25,
+			"seasonYear": 2000,
+			"startDate": {
+				"year": 2000,
+				"month": 4,
+				"day": 26
+			},
+			"endDate": {
+				"year": 2001,
+				"month": 3,
+				"day": 16
+			},
+			"siteUrl": "https://anilist.co/anime/227",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 21746,
+							"type": "ANIME",
+							"title": {
+								"native": "フリクリ プログレ",
+								"romaji": "FLCL Progressive",
+								"english": "FLCL Progressive"
+							},
+							"format": "TV",
+							"episodes": 6,
+							"startDate": {
+								"year": 2018,
+								"month": 6,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 30646,
+							"type": "MANGA",
+							"title": {
+								"native": "フリクリ",
+								"romaji": "FLCL",
+								"english": "FLCL"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 1999,
+								"month": 12,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 38173,
+							"type": "MANGA",
+							"title": {
+								"native": "フリクリ",
+								"romaji": "FLCL",
+								"english": "FLCL"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2000,
+								"month": 6,
+								"day": 1
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "フリクリ",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:42:22.966Z",
+		"responseSha256": "b7a7fe0b419ac369b4b35052f5ffb5fd578bfa0c19353ff7582529fdabcc8569",
+		"total": 8,
+		"limit": 20,
+		"offset": 0,
+		"ids": [822, 175398, 175399, 375217, 217607, 309635, 281096, 144843]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/822",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/822",
+			"fetchedAt": "2026-11-05T15:42:24.098Z",
+			"responseSha256": "af27a3f9506590b59c251ebb55e07735e177d257c950c70388f0ba9e46f76339",
+			"data": {
+				"id": 822,
+				"type": 2,
+				"name": "フリクリ",
+				"name_cn": "FLCL",
+				"date": "2000-04-26",
+				"platform": "OVA",
+				"eps": 6,
+				"total_episodes": 6,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "FLCL"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"k": "日文名",
+								"v": "フリクリ"
+							},
+							{
+								"k": "常用译名",
+								"v": "特别的她"
+							},
+							{
+								"k": "中文别名",
+								"v": "求恋期"
+							},
+							{
+								"k": "英文名",
+								"v": "Fooly Cooly"
+							},
+							{
+								"k": "英文别名",
+								"v": "First Love Cyber Love"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "6"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/175398",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/175398",
+			"fetchedAt": "2026-11-05T15:42:25.054Z",
+			"responseSha256": "d66270d82f283f4e46abbd57a4d68ef39c87a331bfe4d63fc6cad7e1be5c3296",
+			"data": {
+				"id": 175398,
+				"type": 2,
+				"name": "フリクリ オルタナ",
+				"name_cn": "FLCL Alternative",
+				"date": "2018-09-07",
+				"platform": "剧场版",
+				"eps": 6,
+				"total_episodes": 6,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "FLCL Alternative"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "FLCL 第2季"
+							},
+							{
+								"v": "フリクリ Season 2"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2018年9月7日"
+					},
+					{
+						"key": "话数",
+						"value": "6"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/175399",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/175399",
+			"fetchedAt": "2026-11-05T15:42:26.099Z",
+			"responseSha256": "bd8278a2888f1fa8bee670bbf5243a606e4b6078de98066428a90e10a40cd910",
+			"data": {
+				"id": 175399,
+				"type": 2,
+				"name": "フリクリ プログレ",
+				"name_cn": "FLCL Progressive",
+				"date": "2018-09-28",
+				"platform": "剧场版",
+				"eps": 6,
+				"total_episodes": 6,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "FLCL Progressive"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "FLCL 第3季"
+							},
+							{
+								"v": "フリクリ Season 3"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2018年9月28日"
+					},
+					{
+						"key": "话数",
+						"value": "6"
+					}
+				]
+			}
+		}
+	]
+}

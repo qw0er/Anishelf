@@ -1,0 +1,340 @@
+{
+	"schemaVersion": 1,
+	"id": "haikyu",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/20464",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:42:33.142Z",
+		"responseSha256": "a0312abe71f3f88655641645e6e47175b68ab692cf37eb22f08ab82bad1b8d4e",
+		"data": {
+			"id": 20464,
+			"type": "ANIME",
+			"title": {
+				"native": "ハイキュー!!",
+				"romaji": "Haikyuu!!",
+				"english": "HAIKYU!!"
+			},
+			"synonyms": [
+				"High Kyuu!!",
+				"HAIKYÛ !!",
+				"排球少年！！",
+				"Haikyu!! L'asso del volley",
+				"ไฮคิว!! คู่ตบฟ้าประทาน"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 25,
+			"duration": 24,
+			"seasonYear": 2014,
+			"startDate": {
+				"year": 2014,
+				"month": 4,
+				"day": 6
+			},
+			"endDate": {
+				"year": 2014,
+				"month": 9,
+				"day": 21
+			},
+			"siteUrl": "https://anilist.co/anime/20464",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 21120,
+							"type": "ANIME",
+							"title": {
+								"native": "ハイキュー!! 終わりと始まり",
+								"romaji": "Haikyuu!!: Owari to Hajimari",
+								"english": "Haikyu!! the Movie: The End and the Beginning"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2015,
+								"month": 7,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 21244,
+							"type": "ANIME",
+							"title": {
+								"native": "ハイキュー!! 勝者と敗者",
+								"romaji": "Haikyuu!!: Shousha to Haisha",
+								"english": "Haikyuu!! the Movie: The Winner and the Loser"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2015,
+								"month": 9,
+								"day": 18
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 65243,
+							"type": "MANGA",
+							"title": {
+								"native": "ハイキュー！！",
+								"romaji": "Haikyuu!!",
+								"english": "Haikyu!!"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2012,
+								"month": 2,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 20992,
+							"type": "ANIME",
+							"title": {
+								"native": "ハイキュー!! セカンドシーズン",
+								"romaji": "Haikyuu!! 2nd Season",
+								"english": "HAIKYU!! 2nd Season"
+							},
+							"format": "TV",
+							"episodes": 25,
+							"startDate": {
+								"year": 2015,
+								"month": 10,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 115217,
+							"type": "ANIME",
+							"title": {
+								"native": "ハイキュー!! 人形アニメ",
+								"romaji": "Haikyuu!! Ningyou Anime",
+								"english": null
+							},
+							"format": "OVA",
+							"episodes": 10,
+							"startDate": {
+								"year": 2020,
+								"month": 3,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 20884,
+							"type": "ANIME",
+							"title": {
+								"native": "ハイキュー!! リエーフ見参！",
+								"romaji": "Haikyuu!!: Lev Kenzan!",
+								"english": "HAIKYU!!: Lev Appears!"
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2014,
+								"month": 11,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 107263,
+							"type": "ANIME",
+							"title": {
+								"native": "ハイキュークエスト",
+								"romaji": "Haikyuu Quest",
+								"english": "Haikyuu!! Quest Picture Drama"
+							},
+							"format": "OVA",
+							"episodes": 3,
+							"startDate": {
+								"year": 2014,
+								"month": 9,
+								"day": 25
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ハイキュー!!",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:42:33.968Z",
+		"responseSha256": "2516873065b27f14e7458559c66577a9d53de4caacb9d7ab664d95fef88fed65",
+		"total": 17,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			84171, 118107, 120236, 144852, 173849, 211522, 211523, 212459, 269918,
+			289054, 295421, 541282, 123136, 128952, 293947, 394621, 396016
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/84171",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/84171",
+			"fetchedAt": "2026-11-05T15:42:34.897Z",
+			"responseSha256": "09cfe68bc879a41ae78f6e1b8c09d59605be97d2c5539176d59b9a4cf9db7fc0",
+			"data": {
+				"id": 84171,
+				"type": 2,
+				"name": "ハイキュー!!",
+				"name_cn": "排球少年",
+				"date": "2014-04-06",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 25,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "排球少年"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Haikyuu!!"
+							},
+							{
+								"v": "Haikyu!!"
+							},
+							{
+								"v": "排球！！"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2014年4月6日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "MBS・TBS系"
+					},
+					{
+						"key": "播放结束",
+						"value": "2014年9月21日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/118107",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/118107",
+			"fetchedAt": "2026-11-05T15:42:36.120Z",
+			"responseSha256": "6fcaebcc26e4f906cc915fb41ce2544d6941ee84177d26192dfd610547c97338",
+			"data": {
+				"id": 118107,
+				"type": 2,
+				"name": "ハイキュー!! リエーフ見参!",
+				"name_cn": "排球少年 列夫参上",
+				"date": "2015-03-04",
+				"platform": "OVA",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "排球少年 列夫参上"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "排球少年 OAD"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/120236",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/120236",
+			"fetchedAt": "2026-11-05T15:42:36.865Z",
+			"responseSha256": "041a86f611456a4728be7b4e64bdd1dc0c24544824c607a07d0ef57ff1df00d1",
+			"data": {
+				"id": 120236,
+				"type": 2,
+				"name": "ハイキュー!! セカンドシーズン",
+				"name_cn": "排球少年 第二季",
+				"date": "2015-10-03",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 25,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "排球少年 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Haikyuu!! 2nd Season"
+							},
+							{
+								"v": "Haikyuu!! Second Season"
+							},
+							{
+								"v": "Haikyu!! 2nd Season"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2015年10月3日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "MBS"
+					},
+					{
+						"key": "播放结束",
+						"value": "2016年3月26日"
+					}
+				]
+			}
+		}
+	]
+}

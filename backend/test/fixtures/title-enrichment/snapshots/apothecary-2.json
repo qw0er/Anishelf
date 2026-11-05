@@ -1,0 +1,296 @@
+{
+	"schemaVersion": 1,
+	"id": "apothecary-2",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/176301",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:39:32.175Z",
+		"responseSha256": "b0a4561e589f62bfd9bda0dad4229559111f322c0289acc5e51e2dc73cae3fca",
+		"data": {
+			"id": 176301,
+			"type": "ANIME",
+			"title": {
+				"native": "薬屋のひとりごと 第2期",
+				"romaji": "Kusuriya no Hitorigoto 2nd Season",
+				"english": "The Apothecary Diaries Season 2"
+			},
+			"synonyms": [
+				"Die Tagebücher der Apothekerin Season 2",
+				"Diários de uma Apotecária 2ª Temporada",
+				"Монолог фармацевта 2",
+				"Les Carnets de l'apothicaire Saison 2",
+				"Los diarios de la boticaria temporada 2",
+				"Dược sư tự sự"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 24,
+			"duration": 24,
+			"seasonYear": 2025,
+			"startDate": {
+				"year": 2025,
+				"month": 1,
+				"day": 10
+			},
+			"endDate": {
+				"year": 2025,
+				"month": 7,
+				"day": 4
+			},
+			"siteUrl": "https://anilist.co/anime/176301",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 99026,
+							"type": "MANGA",
+							"title": {
+								"native": "薬屋のひとりごと",
+								"romaji": "Kusuriya no Hitorigoto",
+								"english": "The Apothecary Diaries"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 8,
+								"day": 29
+							}
+						}
+					},
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 161645,
+							"type": "ANIME",
+							"title": {
+								"native": "薬屋のひとりごと",
+								"romaji": "Kusuriya no Hitorigoto",
+								"english": "The Apothecary Diaries"
+							},
+							"format": "TV",
+							"episodes": 24,
+							"startDate": {
+								"year": 2023,
+								"month": 10,
+								"day": 22
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 186148,
+							"type": "ANIME",
+							"title": {
+								"native": "猫猫のひとりごと 第2期",
+								"romaji": "Maomao no Hitorigoto 2nd Season",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 24,
+							"startDate": {
+								"year": 2025,
+								"month": 1,
+								"day": 13
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 195516,
+							"type": "ANIME",
+							"title": {
+								"native": "薬屋のひとりごと 第3期",
+								"romaji": "Kusuriya no Hitorigoto 3rd Season",
+								"english": "The Apothecary Diaries Season 3"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2026,
+								"month": 10,
+								"day": 2
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 99022,
+							"type": "MANGA",
+							"title": {
+								"native": "薬屋のひとりごと",
+								"romaji": "Kusuriya no Hitorigoto",
+								"english": "The Apothecary Diaries"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2017,
+								"month": 5,
+								"day": 25
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "薬屋のひとりごと 第2期",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:39:33.461Z",
+		"responseSha256": "815a429e9b128f99c28f48e4035d12796506aa4de6f0f64f873c10ab0184e975",
+		"total": 8,
+		"limit": 20,
+		"offset": 0,
+		"ids": [486347, 533096, 599893, 568244, 707667, 420628, 599894, 461203]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/486347",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/486347",
+			"fetchedAt": "2026-11-05T15:39:33.657Z",
+			"responseSha256": "88a92ba2c057e57dd75d623febaa117b698b91390472f5ac7fffbb6b78b56ed2",
+			"data": {
+				"id": 486347,
+				"type": 2,
+				"name": "薬屋のひとりごと 第2期",
+				"name_cn": "药屋少女的呢喃 第二季",
+				"date": "2025-01-10",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 24,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "药屋少女的呢喃 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Kusuriya no Hitorigoto 2nd Season"
+							},
+							{
+								"v": "药师少女的独语 第二季"
+							},
+							{
+								"v": "Kusuriya no Hitorigoto Season 2"
+							},
+							{
+								"v": "The Apothecary Diaries Season 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2025年1月10日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "播放电视台",
+						"value": "日本テレビ系"
+					},
+					{
+						"key": "播放结束",
+						"value": "2025年7月4日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/533096",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/533096",
+			"fetchedAt": "2026-11-05T15:39:35.050Z",
+			"responseSha256": "28a9c8379a61efb23ddc78978e3c2c2e70f13ff82f0fe59ac06d738aa7d0bf5a",
+			"data": {
+				"id": 533096,
+				"type": 2,
+				"name": "猫猫のひとりごと 第2期",
+				"name_cn": "猫猫的呢喃 第二季",
+				"date": "2025-01-13",
+				"platform": "WEB",
+				"eps": 24,
+				"total_episodes": 26,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "猫猫的呢喃 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "『薬屋のひとりごと』第2期 ミニアニメ"
+							},
+							{
+								"v": "Maomao no Hitorigoto 2nd Season"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2025年1月13日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期一"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "YouTube"
+					},
+					{
+						"key": "播放结束",
+						"value": "2025年7月7日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/599893",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/599893",
+			"fetchedAt": "2026-11-05T15:39:36.191Z",
+			"responseSha256": "1cd767752fc2dc2bef02b770cd0c17d04b516d686730b8f039232f4baeebb6e8",
+			"data": {
+				"id": 599893,
+				"type": 2,
+				"name": "薬屋のひとりごと 第3期 第2クール",
+				"name_cn": "药屋少女的呢喃 第三季 第2部分",
+				"date": null,
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "药屋少女的呢喃 第三季 第2部分"
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2027年4月"
+					}
+				]
+			}
+		}
+	]
+}

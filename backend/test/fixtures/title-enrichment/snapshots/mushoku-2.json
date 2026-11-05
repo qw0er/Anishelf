@@ -1,0 +1,331 @@
+{
+	"schemaVersion": 1,
+	"id": "mushoku-2",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/146065",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:10.803Z",
+		"responseSha256": "55f7399c7703cfe784009222935c0dc4d3dc031e4a25526bdbc1404d78ea468a",
+		"data": {
+			"id": 146065,
+			"type": "ANIME",
+			"title": {
+				"native": "無職転生Ⅱ ～異世界行ったら本気だす～",
+				"romaji": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+				"english": "Mushoku Tensei: Jobless Reincarnation Season 2"
+			},
+			"synonyms": [
+				"เกิดชาตินี้พี่ต้องเทพ ซีซั่น 2",
+				"Mushoku Tensei: Isekai Ittara Honki Dasu 2nd Season",
+				"Mushoku Tensei II: Jobless Reincarnation",
+				"Mushoku Tensei II: Reencarnación desde cero",
+				"无职转生～到了异世界就拿出真本事～第2季"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 13,
+			"duration": 24,
+			"seasonYear": 2023,
+			"startDate": {
+				"year": 2023,
+				"month": 7,
+				"day": 3
+			},
+			"endDate": {
+				"year": 2023,
+				"month": 9,
+				"day": 25
+			},
+			"siteUrl": "https://anilist.co/anime/146065",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 127720,
+							"type": "ANIME",
+							"title": {
+								"native": "無職転生 ～異世界行ったら本気だす～ 第2クール",
+								"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+								"english": "Mushoku Tensei: Jobless Reincarnation Cour 2"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2021,
+								"month": 10,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 85470,
+							"type": "MANGA",
+							"title": {
+								"native": "無職転生 ～異世界行ったら本気だす～",
+								"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+								"english": "Mushoku Tensei: Jobless Reincarnation"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 1,
+								"day": 23
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 142989,
+							"type": "MANGA",
+							"title": {
+								"native": "無職転生 ～異世界行ったら本気だす～ 失意の魔術師編",
+								"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu - Shitsui no Majutsushi-hen",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2021,
+								"month": 12,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 85564,
+							"type": "MANGA",
+							"title": {
+								"native": "無職転生 ～異世界行ったら本気だす～",
+								"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+								"english": "Mushoku Tensei: Jobless Reincarnation"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 5,
+								"day": 2
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 166873,
+							"type": "ANIME",
+							"title": {
+								"native": "無職転生Ⅱ ～異世界行ったら本気だす～ 第2クール",
+								"romaji": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+								"english": "Mushoku Tensei: Jobless Reincarnation Season 2 Part 2"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2024,
+								"month": 4,
+								"day": 8
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "無職転生Ⅱ ～異世界行ったら本気だす～",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:40:11.683Z",
+		"responseSha256": "1bae231db521e4c3ad52b565cb9a7b216bddc92386e1e4e7a949fdb4fcb70a11",
+		"total": 114,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			373247, 444557, 277554, 325585, 501963, 708197, 458125, 481655, 567520,
+			8249, 10595, 116150, 152955, 168106, 216995, 306706, 336025, 458951,
+			466773, 466780
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/373247",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/373247",
+			"fetchedAt": "2026-11-05T15:40:12.402Z",
+			"responseSha256": "8c1832194e451b8a4762cc30c12c8fbeac040726d2445f3b68e9f8db648185bc",
+			"data": {
+				"id": 373247,
+				"type": 2,
+				"name": "無職転生Ⅱ ～異世界行ったら本気だす～",
+				"name_cn": "无职转生 第二季 ～到了异世界就拿出真本事～",
+				"date": "2023-07-02",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "无职转生 第二季 ～到了异世界就拿出真本事～"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "无职转生 第二季 ～在异世界认真地活下去～"
+							},
+							{
+								"v": "Mushoku Tensei II: Isekai Ittara Honki Dasu"
+							},
+							{
+								"v": "Mushoku Tensei: Jobless Reincarnation Season 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2023年7月2日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX / BS11"
+					},
+					{
+						"key": "播放结束",
+						"value": "2023年9月24日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/444557",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/444557",
+			"fetchedAt": "2026-11-05T15:40:13.438Z",
+			"responseSha256": "1ddf6f1f5f7300ebd5b0b943aea9fc3fa3d9a25f0e20f4a6a859391bd507da2f",
+			"data": {
+				"id": 444557,
+				"type": 2,
+				"name": "無職転生Ⅱ ～異世界行ったら本気だす～ 第2クール",
+				"name_cn": "无职转生 第二季 ～到了异世界就拿出真本事～ 第2部分",
+				"date": "2024-04-07",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "无职转生 第二季 ～到了异世界就拿出真本事～ 第2部分"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "无职转生 第二季 ～在异世界认真地活下去～ 第2部分"
+							},
+							{
+								"v": "Mushoku Tensei II: Isekai Ittara Honki Dasu (2024)"
+							},
+							{
+								"v": "Mushoku Tensei: Jobless Reincarnation Season 2 (2024)"
+							},
+							{
+								"v": "Mushoku Tensei: Jobless Reincarnation Season 2 part 2"
+							},
+							{
+								"v": "Mushoku Tensei II: Isekai Ittara Honki Dasu part 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2024年4月7日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX / BS11 / KBS京都"
+					},
+					{
+						"key": "播放结束",
+						"value": "2024年6月30日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/277554",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/277554",
+			"fetchedAt": "2026-11-05T15:40:14.954Z",
+			"responseSha256": "e9957330b79138687bd38b45773518560ea79ad6c7ff26c5f1a5032569bd80be",
+			"data": {
+				"id": 277554,
+				"type": 2,
+				"name": "無職転生 ～異世界行ったら本気だす～",
+				"name_cn": "无职转生～到了异世界就拿出真本事～",
+				"date": "2021-01-10",
+				"platform": "TV",
+				"eps": 11,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "无职转生～到了异世界就拿出真本事～"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "无职转生 ～在异世界认真地活下去～"
+							},
+							{
+								"v": "Jobless Reincarnation ~I Will Seriously Try If I Go to Another World~"
+							},
+							{
+								"v": "Mushoku Tensei ~Isekai Ittara Honki Dasu~"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "11"
+					},
+					{
+						"key": "放送开始",
+						"value": "2021年1月10日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2021年3月21日"
+					}
+				]
+			}
+		}
+	]
+}

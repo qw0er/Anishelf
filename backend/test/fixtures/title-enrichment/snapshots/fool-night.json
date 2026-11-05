@@ -1,0 +1,196 @@
+{
+	"schemaVersion": 1,
+	"id": "fool-night",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/213457",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:48.883Z",
+		"responseSha256": "43da3e2be03f90264620686f4b69fe6e84df08b6e1ef3aaf1feac141647b40a5",
+		"data": {
+			"id": 213457,
+			"type": "ANIME",
+			"title": {
+				"native": "フールナイト",
+				"romaji": "Fool Night",
+				"english": "Fool Night"
+			},
+			"synonyms": [],
+			"format": "ONA",
+			"status": "NOT_YET_RELEASED",
+			"episodes": null,
+			"duration": null,
+			"seasonYear": 2026,
+			"startDate": {
+				"year": 2026,
+				"month": 11,
+				"day": 26
+			},
+			"endDate": {
+				"year": 2026,
+				"month": 11,
+				"day": 26
+			},
+			"siteUrl": "https://anilist.co/anime/213457",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 126559,
+							"type": "MANGA",
+							"title": {
+								"native": "フールナイト",
+								"romaji": "Fool Night",
+								"english": "Fool Night"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2020,
+								"month": 11,
+								"day": 13
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "フールナイト",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:49.427Z",
+		"responseSha256": "339c44a3d08b51c694468cfa3030fabd3916f963b5d67d3f16759cb19877c660",
+		"total": 5,
+		"limit": 20,
+		"offset": 0,
+		"ids": [661692, 121817, 121818, 205845, 87625]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/661692",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/661692",
+			"fetchedAt": "2026-11-05T15:41:50.384Z",
+			"responseSha256": "13ba133b325def7163bf95b8a2ca61cf2d4254cf1da031108f0d7ad56c4a4686",
+			"data": {
+				"id": 661692,
+				"type": 2,
+				"name": "フールナイト",
+				"name_cn": "愚者之夜",
+				"date": "2026-11-26",
+				"platform": "WEB",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "愚者之夜"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Fool Night"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年11月26日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期四"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "Netflix"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/121817",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/121817",
+			"fetchedAt": "2026-11-05T15:41:51.500Z",
+			"responseSha256": "15137ad2e2a60707f256d2186950130e267c9a8a3c9b63a865143ea1270d803c",
+			"data": {
+				"id": 121817,
+				"type": 2,
+				"name": "ワールド フールニュース",
+				"name_cn": "",
+				"date": "2013-04-01",
+				"platform": "WEB",
+				"eps": 6,
+				"total_episodes": 6,
+				"infobox": [
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "World Fool News"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "6"
+					},
+					{
+						"key": "放送开始",
+						"value": "2013-04-01"
+					},
+					{
+						"key": "播放结束",
+						"value": "2013-05-06"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/121818",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/121818",
+			"fetchedAt": "2026-11-05T15:41:52.612Z",
+			"responseSha256": "335c2e683d57d60a60bcad13c079a818249b496dafa15fbc6c75291bd0a996b1",
+			"data": {
+				"id": 121818,
+				"type": 2,
+				"name": "ワールドフールニュース",
+				"name_cn": "",
+				"date": "2014-04-24",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "World Fool News (2014)"
+							},
+							{
+								"v": "ワールド フールニュース (2014)"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2014年4月24日"
+					},
+					{
+						"key": "播放结束",
+						"value": "2014年7月3日"
+					}
+				]
+			}
+		}
+	]
+}

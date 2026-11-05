@@ -1,0 +1,242 @@
+{
+	"schemaVersion": 1,
+	"id": "frieren-3",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/209939",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:48:24.465Z",
+		"responseSha256": "5fe3a18b1702538daee64d42e63e25652d5834a46f21964025bbef75009b6621",
+		"data": {
+			"id": 209939,
+			"type": "ANIME",
+			"title": {
+				"native": "葬送のフリーレン 第3期",
+				"romaji": "Sousou no Frieren 3rd Season",
+				"english": null
+			},
+			"synonyms": [
+				"Frieren: Beyond Journey’s End Season 3 Golden Land Arc",
+				"葬送のフリーレン 第3期【黄金郷編】",
+				"Sousou no Frieren 3rd Season [Ougonkyou-hen]"
+			],
+			"format": "TV",
+			"status": "NOT_YET_RELEASED",
+			"episodes": null,
+			"duration": null,
+			"seasonYear": 2027,
+			"startDate": {
+				"year": 2027,
+				"month": 10,
+				"day": null
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/209939",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 182255,
+							"type": "ANIME",
+							"title": {
+								"native": "葬送のフリーレン 第2期",
+								"romaji": "Sousou no Frieren 2nd Season",
+								"english": "Frieren: Beyond Journey’s End Season 2"
+							},
+							"format": "TV",
+							"episodes": 10,
+							"startDate": {
+								"year": 2026,
+								"month": 1,
+								"day": 16
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 118586,
+							"type": "MANGA",
+							"title": {
+								"native": "葬送のフリーレン",
+								"romaji": "Sousou no Frieren",
+								"english": "Frieren: Beyond Journey’s End"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2020,
+								"month": 4,
+								"day": 28
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "葬送のフリーレン 第3期",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:48:25.212Z",
+		"responseSha256": "fee7cbdeeb5292d53d731d11381f7a6607d295bad218d7132a34f5d98298ee62",
+		"total": 5,
+		"limit": 20,
+		"offset": 0,
+		"ids": [638133, 515759, 400602, 459283, 549563]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/638133",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/638133",
+			"fetchedAt": "2026-11-05T15:48:26.000Z",
+			"responseSha256": "d42d0e2f64cfa9cd07ca68550f6f6276be917bbeb41b8eda7b29d90c7b88c08b",
+			"data": {
+				"id": 638133,
+				"type": 2,
+				"name": "葬送のフリーレン 第3期【黄金郷編】",
+				"name_cn": "葬送的芙莉莲 第三季 黄金乡篇",
+				"date": null,
+				"platform": "TV",
+				"eps": 0,
+				"total_episodes": 0,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "葬送的芙莉莲 第三季 黄金乡篇"
+					},
+					{
+						"key": "话数",
+						"value": "*"
+					},
+					{
+						"key": "放送开始",
+						"value": "2027年10月"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/515759",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/515759",
+			"fetchedAt": "2026-11-05T15:48:27.129Z",
+			"responseSha256": "ad8dc8942b5e64c51f3f641d30b3acc23d43d1b5be0d0377410a1334885ce9fb",
+			"data": {
+				"id": 515759,
+				"type": 2,
+				"name": "葬送のフリーレン 第2期",
+				"name_cn": "葬送的芙莉莲 第二季",
+				"date": "2026-01-16",
+				"platform": "TV",
+				"eps": 10,
+				"total_episodes": 10,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "葬送的芙莉莲 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Sousou no Frieren 2nd Season"
+							},
+							{
+								"v": "Frieren: Beyond Journey's End Season 2"
+							},
+							{
+								"v": "Sousou no Frieren (2026)"
+							},
+							{
+								"v": "Beyond Journey`s End (2026)"
+							},
+							{
+								"v": "葬送のフリーレン (2026)"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "10"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年1月16日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "播放电视台",
+						"value": "日本テレビ系全国30局“FRIDAY ANIME NIGHT\""
+					},
+					{
+						"key": "播放结束",
+						"value": "2026年3月27日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/400602",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/400602",
+			"fetchedAt": "2026-11-05T15:48:28.384Z",
+			"responseSha256": "380ebddf6c15f4409816090a34170e3a7bcdbf31549b58e23baa2a716ba01fd4",
+			"data": {
+				"id": 400602,
+				"type": 2,
+				"name": "葬送のフリーレン",
+				"name_cn": "葬送的芙莉莲",
+				"date": "2023-09-29",
+				"platform": "TV",
+				"eps": 28,
+				"total_episodes": 36,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "葬送的芙莉莲"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Frieren: Beyond Journey's End"
+							},
+							{
+								"v": "Sousou no Frieren"
+							},
+							{
+								"v": "葬送的芙莉蓮"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "28"
+					},
+					{
+						"key": "放送开始",
+						"value": "2023年9月29日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "播放电视台",
+						"value": "日本テレビ系"
+					},
+					{
+						"key": "播放结束",
+						"value": "2024年3月22日"
+					}
+				]
+			}
+		}
+	]
+}

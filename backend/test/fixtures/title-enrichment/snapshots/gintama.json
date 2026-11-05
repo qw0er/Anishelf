@@ -1,0 +1,477 @@
+{
+	"schemaVersion": 1,
+	"id": "gintama",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/918",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:43:39.307Z",
+		"responseSha256": "91c27627cab305aab95e1660610b6a129f507fa7d32aafe3146aa83986a09415",
+		"data": {
+			"id": 918,
+			"type": "ANIME",
+			"title": {
+				"native": "銀魂",
+				"romaji": "Gintama",
+				"english": "Gintama"
+			},
+			"synonyms": ["Gin Tama", "Silver Soul", "גינטאמה", "Гинтама"],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 201,
+			"duration": 25,
+			"seasonYear": 2006,
+			"startDate": {
+				"year": 2006,
+				"month": 4,
+				"day": 4
+			},
+			"endDate": {
+				"year": 2010,
+				"month": 3,
+				"day": 25
+			},
+			"siteUrl": "https://anilist.co/anime/918",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 9969,
+							"type": "ANIME",
+							"title": {
+								"native": "銀魂’",
+								"romaji": "Gintama'",
+								"english": "Gintama Season 2"
+							},
+							"format": "TV",
+							"episodes": 51,
+							"startDate": {
+								"year": 2011,
+								"month": 4,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 2951,
+							"type": "ANIME",
+							"title": {
+								"native": "銀魂ジャンプフェスタアニメツアー’０５",
+								"romaji": "Gintama: Jump Festa 2005 Special",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2005,
+								"month": 9,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 6945,
+							"type": "ANIME",
+							"title": {
+								"native": "ジャンプアニメツアー 2008 白夜叉降誕",
+								"romaji": "Gintama: Jump Festa 2008 Special",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2009,
+								"month": 9,
+								"day": 30
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 10643,
+							"type": "ANIME",
+							"title": {
+								"native": "アニメ銀魂　大反省会",
+								"romaji": "Gintama: Dai Hanseikai",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2010,
+								"month": 3,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 7472,
+							"type": "ANIME",
+							"title": {
+								"native": "銀魂 新訳紅桜篇",
+								"romaji": "Gintama: Shinyaku Benizakura-hen",
+								"english": "Gintama - The Movie"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2010,
+								"month": 4,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 20760,
+							"type": "ANIME",
+							"title": {
+								"native": "銀魂 よりぬき銀魂さんオンシアター2D",
+								"romaji": "Gintama: Yorinuki Gintama-san on Theater 2D",
+								"english": null
+							},
+							"format": "MOVIE",
+							"episodes": 2,
+							"startDate": {
+								"year": 2012,
+								"month": 8,
+								"day": 26
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 15335,
+							"type": "ANIME",
+							"title": {
+								"native": "劇場版 銀魂 完結篇 万事屋よ永遠なれ",
+								"romaji": "Gintama: Kanketsu-hen - Yorozuya yo Eien Nare",
+								"english": "Gintama: The Final Chapter - Be Forever Yorozuya"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2013,
+								"month": 7,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 30044,
+							"type": "MANGA",
+							"title": {
+								"native": "銀魂",
+								"romaji": "Gintama",
+								"english": "Gin Tama"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2003,
+								"month": 12,
+								"day": 8
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 111952,
+							"type": "ANIME",
+							"title": {
+								"native": "銀魂 ～モンスターストライク編～",
+								"romaji": "Gintama: Monster Strike-hen",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 2,
+							"startDate": {
+								"year": 2019,
+								"month": 8,
+								"day": 29
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 98034,
+							"type": "ANIME",
+							"title": {
+								"native": "斉木楠雄のΨ難 2",
+								"romaji": "Saiki Kusuo no Ψ-nan 2",
+								"english": "The Disastrous Life of Saiki K. Season 2"
+							},
+							"format": "TV",
+							"episodes": 24,
+							"startDate": {
+								"year": 2018,
+								"month": 1,
+								"day": 17
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 162890,
+							"type": "ANIME",
+							"title": {
+								"native": "3年Z組銀八先生",
+								"romaji": "3-nen Z-gumi Ginpachi-sensei",
+								"english": "GINTAMA - Mr. Ginpachi's Zany Class"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2025,
+								"month": 10,
+								"day": 7
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 197474,
+							"type": "ANIME",
+							"title": {
+								"native": "新劇場版 銀魂 -吉原大炎上-",
+								"romaji": "Shin Gintama Movie: Yoshiwara Daienjou",
+								"english": "Gintama the Movie 2026: Yoshiwara in Flames"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2026,
+								"month": 2,
+								"day": 13
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 207475,
+							"type": "ANIME",
+							"title": {
+								"native": "雀魂×銀魂コラボ決定プロモーションアニメ",
+								"romaji": "Jongtama × Gintama Collab Kettei Promotion Anime",
+								"english": "Mahjong Soul X Gintama Collab - Anime Preview"
+							},
+							"format": "ONA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2025,
+								"month": 10,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 176636,
+							"type": "ANIME",
+							"title": {
+								"native": "新劇場版 ケロロ軍曹 復活して速攻地球滅亡の危機であります！",
+								"romaji": "Shin Keroro Gunsou Movie: Fukkatsushite Sokkou Chikyuu Metsubou no Kiki de Arimasu!",
+								"english": null
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2026,
+								"month": 6,
+								"day": 26
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "銀魂",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:43:40.415Z",
+		"responseSha256": "7530f8ad91186953d2afa0cbd7b5764949e346e091bf526e4f0e3c58f0bc9038",
+		"total": 90,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			247, 11834, 193298, 4475, 47576, 120791, 161710, 162688, 232884, 240811,
+			276641, 309002, 500060, 3153, 67217, 114391, 218740, 218963, 453179,
+			467502
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/247",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/247",
+			"fetchedAt": "2026-11-05T15:43:41.113Z",
+			"responseSha256": "f87c1c75264f712e81e25a8ee239ba1b5091c2b955b6377c2c546dcede21d868",
+			"data": {
+				"id": 247,
+				"type": 2,
+				"name": "銀魂",
+				"name_cn": "银魂",
+				"date": "2006-04-04",
+				"platform": "TV",
+				"eps": 201,
+				"total_episodes": 201,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "银魂"
+					},
+					{
+						"key": "话数",
+						"value": "201"
+					},
+					{
+						"key": "放送开始",
+						"value": "2006年4月4日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期二、星期四（25话起）"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "BANDAI CHANNEL"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京"
+					},
+					{
+						"key": "播放结束",
+						"value": "2010年3月25日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/11834",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/11834",
+			"fetchedAt": "2026-11-05T15:43:42.247Z",
+			"responseSha256": "0e7aefcc822980ef26aca000f9bd9898890def2a908c69f9d07daf9015515797",
+			"data": {
+				"id": 11834,
+				"type": 2,
+				"name": "銀魂'",
+				"name_cn": "银魂'",
+				"date": "2011-04-04",
+				"platform": "TV",
+				"eps": 51,
+				"total_episodes": 51,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "银魂'"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "银魂 第2期"
+							},
+							{
+								"v": "銀魂 第2期"
+							},
+							{
+								"v": "GINTAMA(season2)"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "51"
+					},
+					{
+						"key": "放送开始",
+						"value": "2011年4月4日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期一"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京系"
+					},
+					{
+						"key": "播放结束",
+						"value": "2012年3月26日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/193298",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/193298",
+			"fetchedAt": "2026-11-05T15:43:43.338Z",
+			"responseSha256": "9b27a2a3ac3374dbbd9b2074470d32b5951199e50cde1dce4efb684668d1eb88",
+			"data": {
+				"id": 193298,
+				"type": 2,
+				"name": "銀魂.",
+				"name_cn": "银魂.",
+				"date": "2017-01-08",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "银魂."
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "銀魂. 烙陽決戦篇"
+							},
+							{
+								"v": "银魂 第4期"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2017年1月8日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京"
+					},
+					{
+						"key": "播放结束",
+						"value": "2017年3月26日"
+					}
+				]
+			}
+		}
+	]
+}

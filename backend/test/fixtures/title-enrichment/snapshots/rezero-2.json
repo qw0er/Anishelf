@@ -1,0 +1,326 @@
+{
+	"schemaVersion": 1,
+	"id": "rezero-2",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/108632",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:32.933Z",
+		"responseSha256": "c6cd39ae13170a03bfb081850aac05473403a8f66eeb4973913799854c123830",
+		"data": {
+			"id": 108632,
+			"type": "ANIME",
+			"title": {
+				"native": "Re:ゼロから始める異世界生活 2nd Season",
+				"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+				"english": "Re:ZERO -Starting Life in Another World- Season 2"
+			},
+			"synonyms": [
+				"Re:Zero kara Hajimeru Isekai Seikatsu (2020)",
+				"Re: 제로부터 시작하는 이세계 생활 2기",
+				"Re:从零开始的异世界生活第二季（上半）",
+				"Re:从零开始的异世界生活 2 上半",
+				"Re:Zero รีเซทชีวิต ฝ่าวิกฤตต่างโลก ภาค 2",
+				"Re:Zero — жизнь с нуля в другом мире. Второй сезон"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 13,
+			"duration": 26,
+			"seasonYear": 2020,
+			"startDate": {
+				"year": 2020,
+				"month": 7,
+				"day": 8
+			},
+			"endDate": {
+				"year": 2020,
+				"month": 9,
+				"day": 30
+			},
+			"siteUrl": "https://anilist.co/anime/108632",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 85737,
+							"type": "MANGA",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu",
+								"english": "Re:ZERO -Starting Life in Another World-"
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2014,
+								"month": 1,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 21355,
+							"type": "ANIME",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu",
+								"english": "Re:ZERO -Starting Life in Another World-"
+							},
+							"format": "TV",
+							"episodes": 25,
+							"startDate": {
+								"year": 2016,
+								"month": 4,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 119661,
+							"type": "ANIME",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活 2nd Season Part 2",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+								"english": "Re:ZERO -Starting Life in Another World- Season 2 Part 2"
+							},
+							"format": "TV",
+							"episodes": 12,
+							"startDate": {
+								"year": 2021,
+								"month": 1,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 112218,
+							"type": "MANGA",
+							"title": {
+								"native": "Re:ゼロから始める異世界生活 第四章 聖域と強欲の魔女",
+								"romaji": "Re:Zero kara Hajimeru Isekai Seikatsu: Dai-4 Shou - Seiiki to Gouyoku no Majo",
+								"english": "Re:ZERO -Starting Life in Another World- Chapter 4: The Sanctuary and the Witch of Greed"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2019,
+								"month": 9,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 120700,
+							"type": "ANIME",
+							"title": {
+								"native": "Re:ゼロから始める休憩時間(ブレイクタイム) 2nd Season",
+								"romaji": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 13,
+							"startDate": {
+								"year": 2020,
+								"month": 7,
+								"day": 10
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "Re:ゼロから始める異世界生活 2nd Season",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:40:34.050Z",
+		"responseSha256": "b300d09b0c210a680b23a5740bc2cace70b7fa788c6577b9b6f8a8ee214991bd",
+		"total": 69,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			278826, 316247, 140001, 225462, 261805, 296195, 425998, 510728, 547888,
+			633836, 177998, 310194, 516311, 638494, 533327, 9303, 24053, 101322,
+			185837, 202419
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/278826",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/278826",
+			"fetchedAt": "2026-11-05T15:40:34.489Z",
+			"responseSha256": "43fd9013348cc929c2aa9aef3de065f70ca1b7133f482e3934681dd260b4e1d7",
+			"data": {
+				"id": 278826,
+				"type": 2,
+				"name": "Re:ゼロから始める異世界生活 2nd season",
+				"name_cn": "Re：从零开始的异世界生活 第二季",
+				"date": "2020-07-08",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "Re：从零开始的异世界生活 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Re:Zero kara Hajimeru Isekai Seikatsu (2020)"
+							},
+							{
+								"v": "Re0 第二季"
+							},
+							{
+								"v": "Re:ゼロから始める異世界生活2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2020年7月8日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京"
+					},
+					{
+						"key": "播放结束",
+						"value": "2020年9月30日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/316247",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/316247",
+			"fetchedAt": "2026-11-05T15:40:35.803Z",
+			"responseSha256": "23993692ebc6c90459c51291c7454a24912cc55ef446e5f9400e4f5a4608629f",
+			"data": {
+				"id": 316247,
+				"type": 2,
+				"name": "Re:ゼロから始める異世界生活 2nd season 後半クール",
+				"name_cn": "Re：从零开始的异世界生活 第二季 后半部分",
+				"date": "2021-01-06",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "Re：从零开始的异世界生活 第二季 后半部分"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Re:Zero kara Hajimeru Isekai Seikatsu (2021)"
+							},
+							{
+								"v": "Re0 第二季后半"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2021年1月6日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "AT-X"
+					},
+					{
+						"key": "播放结束",
+						"value": "2021年3月24日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/140001",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/140001",
+			"fetchedAt": "2026-11-05T15:40:36.646Z",
+			"responseSha256": "dc8ac397f76513563b7f1526fdc0d4a91cccd394dc64eb69269b836073507aa8",
+			"data": {
+				"id": 140001,
+				"type": 2,
+				"name": "Re:ゼロから始める異世界生活",
+				"name_cn": "Re：从零开始的异世界生活",
+				"date": "2016-04-03",
+				"platform": "TV",
+				"eps": 25,
+				"total_episodes": 26,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "Re：从零开始的异世界生活"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Re:Zero kara Hajimeru Isekai Seikatsu"
+							},
+							{
+								"v": "rezero"
+							},
+							{
+								"v": "Re0"
+							},
+							{
+								"v": "Re: Life a Different World from Zero"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "25"
+					},
+					{
+						"key": "放送开始",
+						"value": "2016年4月3日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京"
+					},
+					{
+						"key": "播放结束",
+						"value": "2016年9月18日"
+					}
+				]
+			}
+		}
+	]
+}

@@ -1,0 +1,268 @@
+{
+	"schemaVersion": 1,
+	"id": "spy",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/140960",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:49.385Z",
+		"responseSha256": "9bce182737092d60150bc3197f4e8c2e4c3f31e435147212c09ee95f288dac06",
+		"data": {
+			"id": 140960,
+			"type": "ANIME",
+			"title": {
+				"native": "SPY×FAMILY",
+				"romaji": "SPY×FAMILY",
+				"english": "SPY x FAMILY"
+			},
+			"synonyms": [
+				"SxF",
+				"스파이 패밀리",
+				"间谍过家家",
+				"Семья шпиона",
+				"سباي إكس فاميلي",
+				"Gia Đình Điệp Viên"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 12,
+			"duration": 24,
+			"seasonYear": 2022,
+			"startDate": {
+				"year": 2022,
+				"month": 4,
+				"day": 9
+			},
+			"endDate": {
+				"year": 2022,
+				"month": 6,
+				"day": 25
+			},
+			"siteUrl": "https://anilist.co/anime/140960",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 108556,
+							"type": "MANGA",
+							"title": {
+								"native": "SPY×FAMILY",
+								"romaji": "SPY×FAMILY",
+								"english": "SPY x FAMILY"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2019,
+								"month": 3,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 142838,
+							"type": "ANIME",
+							"title": {
+								"native": "SPY×FAMILY 第2クール",
+								"romaji": "SPY×FAMILY Part 2",
+								"english": "SPY x FAMILY Cour 2"
+							},
+							"format": "TV",
+							"episodes": 13,
+							"startDate": {
+								"year": 2022,
+								"month": 10,
+								"day": 1
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "SPY×FAMILY",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:40:50.275Z",
+		"responseSha256": "3ab1ff8e7374d981c859ed8c6d6e42fb8cda9b2bb5ed80fe73f1ef15a91bb3fe",
+		"total": 10,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			329906, 373267, 411427, 498378, 411428, 515018, 222890, 139949, 374206,
+			428418
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/329906",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/329906",
+			"fetchedAt": "2026-11-05T15:40:50.944Z",
+			"responseSha256": "5f956f9d494b422b66873d675677eb4d7efcbc4fb2c2b0a8066afe9511454427",
+			"data": {
+				"id": 329906,
+				"type": 2,
+				"name": "SPY×FAMILY",
+				"name_cn": "间谍过家家",
+				"date": "2022-04-09",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "间谍过家家"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Spy x Family"
+							},
+							{
+								"v": "スパイファミリー"
+							},
+							{
+								"v": "SPY×FAMILY间谍家家酒(港/台)"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2022年4月9日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京 / テレビ大阪 / テレビ愛知 / テレビせとうち / テレビ北海道 / TVQ九州"
+					},
+					{
+						"key": "播放结束",
+						"value": "2022年6月25日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/373267",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/373267",
+			"fetchedAt": "2026-11-05T15:40:52.053Z",
+			"responseSha256": "403178084a5bfac1d16b33693b6e97a6e7511b01c81c77496177e2c4f655dfc8",
+			"data": {
+				"id": 373267,
+				"type": 2,
+				"name": "SPY×FAMILY 第2クール",
+				"name_cn": "间谍过家家 第2部分",
+				"date": "2022-10-01",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 15,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "间谍过家家 第2部分"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Spy x Family (2022)"
+							},
+							{
+								"v": "スパイファミリー 第2クール"
+							},
+							{
+								"v": "SPY×FAMILY Part 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2022年10月1日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京 / テレビ大阪 / テレビ愛知 / テレビせとうち / テレビ北海道 / TVQ九州放送"
+					},
+					{
+						"key": "播放结束",
+						"value": "2022年12月24日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/411427",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/411427",
+			"fetchedAt": "2026-11-05T15:40:53.195Z",
+			"responseSha256": "593994952c63a2414216a54030940c0e3083cc7e379ee6afc5cb43a235e91dd6",
+			"data": {
+				"id": 411427,
+				"type": 2,
+				"name": "SPY×FAMILY Season 2",
+				"name_cn": "间谍过家家 第二季",
+				"date": "2023-10-07",
+				"platform": "TV",
+				"eps": 12,
+				"total_episodes": 12,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "间谍过家家 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "スパイファミリー (2023)"
+							},
+							{
+								"v": "Spy x Family (2023)"
+							},
+							{
+								"v": "SPY×FAMILY 間諜家家酒 Season 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "12"
+					},
+					{
+						"key": "放送开始",
+						"value": "2023年10月7日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "テレビ東京系列"
+					},
+					{
+						"key": "播放结束",
+						"value": "2023年12月23日"
+					}
+				]
+			}
+		}
+	]
+}

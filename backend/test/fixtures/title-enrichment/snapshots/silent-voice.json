@@ -1,0 +1,268 @@
+{
+	"schemaVersion": 1,
+	"id": "silent-voice",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/20954",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:42:38.742Z",
+		"responseSha256": "f843bb271f29485658a5f05e3f7a9e604abf9aed02924f43cca69d60481cf73c",
+		"data": {
+			"id": 20954,
+			"type": "ANIME",
+			"title": {
+				"native": "聲の形",
+				"romaji": "Koe no Katachi",
+				"english": "A Silent Voice"
+			},
+			"synonyms": [
+				"The Shape of Voice",
+				"A Voz do Silêncio",
+				"A Forma da Voz",
+				"La Forma della Voce",
+				"צורתו של קול",
+				"声之形",
+				"الحزن الصامت",
+				"Una voz silenciosa",
+				"La Forme de la voix",
+				"Форма голоса",
+				"Форма голосу",
+				"Tylus balsas",
+				"Balss forma",
+				"Дауыс пішіні",
+				"Sakit səs",
+				"รักไร้เสียง",
+				"Dáng hình thanh âm"
+			],
+			"format": "MOVIE",
+			"status": "FINISHED",
+			"episodes": 1,
+			"duration": 130,
+			"seasonYear": 2016,
+			"startDate": {
+				"year": 2016,
+				"month": 9,
+				"day": 17
+			},
+			"endDate": {
+				"year": 2016,
+				"month": 9,
+				"day": 17
+			},
+			"siteUrl": "https://anilist.co/anime/20954",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 85135,
+							"type": "MANGA",
+							"title": {
+								"native": "聲の形",
+								"romaji": "Koe no Katachi",
+								"english": "A Silent Voice"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2013,
+								"month": 8,
+								"day": 7
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 107764,
+							"type": "ANIME",
+							"title": {
+								"native": "聲の形スペシャル",
+								"romaji": "Koe no Katachi Specials",
+								"english": "A Silent Voice Specials"
+							},
+							"format": "MUSIC",
+							"episodes": 2,
+							"startDate": {
+								"year": 2017,
+								"month": 5,
+								"day": 17
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "聲の形",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:42:39.508Z",
+		"responseSha256": "e2b3ff7e3fc5178a566cf0476da2522cc2fb41c0b31cbf244d71f72f56c59455",
+		"total": 6,
+		"limit": 20,
+		"offset": 0,
+		"ids": [117777, 513, 441670, 659153, 119344, 544104]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/117777",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/117777",
+			"fetchedAt": "2026-11-05T15:42:40.463Z",
+			"responseSha256": "edc9e713dd4e8c728fbcde9a630ce0f3a04feb3e98baa2052a41a1a92083822b",
+			"data": {
+				"id": 117777,
+				"type": 2,
+				"name": "聲の形",
+				"name_cn": "声之形",
+				"date": "2016-09-17",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "声之形"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "映画 聲の形"
+							},
+							{
+								"v": "Eiga Koe no Katachi"
+							},
+							{
+								"v": "A Silent Voice"
+							},
+							{
+								"v": "the shape of voice"
+							},
+							{
+								"v": "A Silent Voice"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2016年9月17日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/513",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/513",
+			"fetchedAt": "2026-11-05T15:42:41.620Z",
+			"responseSha256": "03d93fc18bc08d02cbc6c02719b47a77f4623d02694f6e492483199e62edde2d",
+			"data": {
+				"id": 513,
+				"type": 2,
+				"name": "海がきこえる",
+				"name_cn": "听到涛声",
+				"date": "1993-05-05",
+				"platform": "TV",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "听到涛声"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "听见涛声"
+							},
+							{
+								"v": "海潮之聲"
+							},
+							{
+								"v": "海潮之声"
+							},
+							{
+								"v": "Ocean Waves"
+							},
+							{
+								"v": "Umi ga Kikoeru"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					},
+					{
+						"key": "放送开始",
+						"value": "1993年5月5日"
+					},
+					{
+						"key": "播放电视台",
+						"value": "日本テレビ"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/441670",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/441670",
+			"fetchedAt": "2026-11-05T15:42:53.937Z",
+			"responseSha256": "0d84f02bd8970d9812d892a5632829b84a9f780a2063adaea093a05f1d39f064",
+			"data": {
+				"id": 441670,
+				"type": 2,
+				"name": "うたごえはミルフィーユ",
+				"name_cn": "歌声是千层派",
+				"date": "2025-07-17",
+				"platform": "TV",
+				"eps": 10,
+				"total_episodes": 10,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "歌声是千层派"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "Harmony of Mille-Feuille"
+							},
+							{
+								"v": "歌聲是法式千層酥"
+							},
+							{
+								"v": "Utagoe wa Mille-Feuille"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "10"
+					},
+					{
+						"key": "放送开始",
+						"value": "2025年7月17日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期四"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2025年9月18日"
+					}
+				]
+			}
+		}
+	]
+}

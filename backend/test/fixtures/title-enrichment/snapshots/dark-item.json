@@ -1,0 +1,277 @@
+{
+	"schemaVersion": 1,
+	"id": "dark-item",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/186742",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:42.867Z",
+		"responseSha256": "d4435f36ffb22c47c6af43939545c55922efa62c0d74be78eb0579df9e557259",
+		"data": {
+			"id": 186742,
+			"type": "ANIME",
+			"title": {
+				"native": "とある暗部の少女共棲",
+				"romaji": "Toaru Anbu no ITEM",
+				"english": "A Certain Dark Item"
+			},
+			"synonyms": ["A Certain Dark Side's Item"],
+			"format": "TV",
+			"status": "RELEASING",
+			"episodes": null,
+			"duration": 23,
+			"seasonYear": 2026,
+			"startDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 9
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/186742",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 162615,
+							"type": "MANGA",
+							"title": {
+								"native": "とある暗部の少女共棲",
+								"romaji": "Toaru Anbu no ITEM",
+								"english": null
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2023,
+								"month": 10,
+								"day": 27
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 159459,
+							"type": "MANGA",
+							"title": {
+								"native": "とある暗部の少女共棲",
+								"romaji": "Toaru Anbu no ITEM",
+								"english": null
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2023,
+								"month": 3,
+								"day": 10
+							}
+						}
+					},
+					{
+						"relationType": "PARENT",
+						"node": {
+							"id": 4654,
+							"type": "ANIME",
+							"title": {
+								"native": "とある魔術の禁書目録",
+								"romaji": "Toaru Majutsu no Index",
+								"english": "A Certain Magical Index"
+							},
+							"format": "TV",
+							"episodes": 24,
+							"startDate": {
+								"year": 2008,
+								"month": 10,
+								"day": 5
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "とある暗部の少女共棲",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:43.867Z",
+		"responseSha256": "50c89292b5248b1c6e849240b2375bf22f4aec6322275e9593e1133da83c3fa0",
+		"total": 16,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			537738, 1014, 2585, 7843, 10829, 25363, 26804, 51928, 73828, 97197, 98371,
+			226540, 262939, 262940, 419728, 537743
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/537738",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/537738",
+			"fetchedAt": "2026-11-05T15:41:44.408Z",
+			"responseSha256": "6c33754dd9eadfd28e5d4904976996357212747415a9a5ab54c0a225620621ab",
+			"data": {
+				"id": 537738,
+				"type": 2,
+				"name": "とある暗部の少女共棲",
+				"name_cn": "某暗部的少女共栖",
+				"date": "2026-10-09",
+				"platform": "TV",
+				"eps": 11,
+				"total_episodes": 14,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "某暗部的少女共栖"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "暗部共生少女"
+							},
+							{
+								"v": "暗部少女共栖"
+							},
+							{
+								"v": "Toaru Anbu no Item"
+							},
+							{
+								"v": "A Certain Dark Item"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "11"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年10月9日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "ABEMA / ABEMAプレミアム / アニメ放題 / dアニメストア / DMM TV / FODプレミアム / Hulu / niconico / U-NEXT"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX / BS11"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/1014",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/1014",
+			"fetchedAt": "2026-11-05T15:41:45.785Z",
+			"responseSha256": "e8aae7e56e315d5e3d7ebafde536977f7ea9d3fb5759cdcdabcfacd93689f4db",
+			"data": {
+				"id": 1014,
+				"type": 2,
+				"name": "とある魔術の禁書目録",
+				"name_cn": "魔法禁书目录",
+				"date": "2008-10-04",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 24,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "魔法禁书目录"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "某魔法的禁书目录"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2008年10月4日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期六"
+					},
+					{
+						"key": "播放电视台",
+						"value": "チバテレビ"
+					},
+					{
+						"key": "播放结束",
+						"value": "2009年3月19日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/2585",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/2585",
+			"fetchedAt": "2026-11-05T15:41:46.872Z",
+			"responseSha256": "f01ddc06d5ef63fd624ec329621e0f040dc3932e15eeb610503163c1f3b62173",
+			"data": {
+				"id": 2585,
+				"type": 2,
+				"name": "とある科学の超電磁砲",
+				"name_cn": "某科学的超电磁炮",
+				"date": "2009-10-02",
+				"platform": "TV",
+				"eps": 24,
+				"total_episodes": 26,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "某科学的超电磁炮"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "科学超电磁炮"
+							},
+							{
+								"v": "科学的超电磁炮"
+							},
+							{
+								"v": "Toaru Kagaku no Railgun"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "24"
+					},
+					{
+						"key": "放送开始",
+						"value": "2009年10月2日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2010年3月19日"
+					}
+				]
+			}
+		}
+	]
+}

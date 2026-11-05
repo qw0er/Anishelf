@@ -1,0 +1,254 @@
+{
+	"schemaVersion": 1,
+	"id": "oshi-2",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/166531",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:40:21.934Z",
+		"responseSha256": "dee7a535276fb6e84330a13b28881a0561889559da0e199ad4530be078263f9f",
+		"data": {
+			"id": 166531,
+			"type": "ANIME",
+			"title": {
+				"native": "【推しの子】第2期",
+				"romaji": "[Oshi no Ko] 2nd Season",
+				"english": "OSHI NO KO Season 2"
+			},
+			"synonyms": [
+				"我推的孩子",
+				"[OSHI NO KO] Season 2",
+				"【OSHI NO KO】Season 2"
+			],
+			"format": "TV",
+			"status": "FINISHED",
+			"episodes": 13,
+			"duration": 24,
+			"seasonYear": 2024,
+			"startDate": {
+				"year": 2024,
+				"month": 7,
+				"day": 3
+			},
+			"endDate": {
+				"year": 2024,
+				"month": 10,
+				"day": 6
+			},
+			"siteUrl": "https://anilist.co/anime/166531",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 150672,
+							"type": "ANIME",
+							"title": {
+								"native": "【推しの子】",
+								"romaji": "[Oshi no Ko]",
+								"english": "OSHI NO KO"
+							},
+							"format": "TV",
+							"episodes": 11,
+							"startDate": {
+								"year": 2023,
+								"month": 4,
+								"day": 12
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 117195,
+							"type": "MANGA",
+							"title": {
+								"native": "【推しの子】",
+								"romaji": "[Oshi no Ko]",
+								"english": "[Oshi no Ko]"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2020,
+								"month": 4,
+								"day": 23
+							}
+						}
+					},
+					{
+						"relationType": "SEQUEL",
+						"node": {
+							"id": 182587,
+							"type": "ANIME",
+							"title": {
+								"native": "【推しの子】第3期",
+								"romaji": "[Oshi no Ko] 3rd Season",
+								"english": "OSHI NO KO Season 3"
+							},
+							"format": "TV",
+							"episodes": 11,
+							"startDate": {
+								"year": 2026,
+								"month": 1,
+								"day": 14
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "【推しの子】第2期",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:40:23.068Z",
+		"responseSha256": "75d16e5120ba93c6c5a1e86d2ceddf9689c06491d8f09b226478b35bd681ff29",
+		"total": 11,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			443428, 517057, 637659, 386809, 424227, 567362, 410928, 455073, 246915,
+			589808, 718509
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/443428",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/443428",
+			"fetchedAt": "2026-11-05T15:40:23.658Z",
+			"responseSha256": "e4df3e15bfd90d8f0802902a7976796373e2b72bf67e1841941f240ff017f9a1",
+			"data": {
+				"id": 443428,
+				"type": 2,
+				"name": "【推しの子】 第2期",
+				"name_cn": "【我推的孩子】 第二季",
+				"date": "2024-07-03",
+				"platform": "TV",
+				"eps": 13,
+				"total_episodes": 14,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "【我推的孩子】 第二季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "【推しの子】 シーズン2"
+							},
+							{
+								"v": "Oshi no Ko 2nd Season"
+							},
+							{
+								"v": "\"Oshi no Ko\" 2"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					},
+					{
+						"key": "放送开始",
+						"value": "2024年7月3日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX"
+					},
+					{
+						"key": "播放结束",
+						"value": "2024年10月6日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/517057",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/517057",
+			"fetchedAt": "2026-11-05T15:40:24.669Z",
+			"responseSha256": "7aeeb3bb0cee045e9ea79f99e255ec63d7e5a6c714fb69ebfa6b5d09220926cd",
+			"data": {
+				"id": 517057,
+				"type": 2,
+				"name": "【推しの子】 第3期",
+				"name_cn": "【我推的孩子】 第三季",
+				"date": "2026-01-14",
+				"platform": "TV",
+				"eps": 11,
+				"total_episodes": 11,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "【我推的孩子】 第三季"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "[Oshi no Ko] 3rd Season"
+							},
+							{
+								"v": "Oshi no Ko Season 3"
+							},
+							{
+								"v": "\"Oshi no Ko\" 3"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "11"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年1月14日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三"
+					},
+					{
+						"key": "播放电视台",
+						"value": "TOKYO MX 全国30局"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/637659",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/637659",
+			"fetchedAt": "2026-11-05T15:40:25.916Z",
+			"responseSha256": "a1049233e90d7a7da4595105ddbdc06dc2766503ffdeb24c7aaa82b85977974f",
+			"data": {
+				"id": 637659,
+				"type": 2,
+				"name": "【推しの子】第4期 Final Season",
+				"name_cn": "【我推的孩子】 第四季 最终季",
+				"date": null,
+				"platform": "TV",
+				"eps": 0,
+				"total_episodes": 0,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "【我推的孩子】 第四季 最终季"
+					},
+					{
+						"key": "话数",
+						"value": "*"
+					},
+					{
+						"key": "放送开始",
+						"value": "*"
+					}
+				]
+			}
+		}
+	]
+}

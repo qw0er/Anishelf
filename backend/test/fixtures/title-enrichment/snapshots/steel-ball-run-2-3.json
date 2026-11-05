@@ -1,0 +1,247 @@
+{
+	"schemaVersion": 1,
+	"id": "steel-ball-run-2-3",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/210482",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:41:27.435Z",
+		"responseSha256": "05d348d1f9440e92f6b5d276ea3b5554cf52b34f920840401f51a5ade46d5875",
+		"data": {
+			"id": 210482,
+			"type": "ANIME",
+			"title": {
+				"native": "ジョジョの奇妙な冒険 スティール・ボール・ラン 2nd＆3rd STAGE",
+				"romaji": "JoJo no Kimyou na Bouken: Steel Ball Run - 2nd & 3rd STAGE",
+				"english": "STEEL BALL RUN JoJo's Bizarre Adventure 2nd - 3rd STAGE"
+			},
+			"synonyms": ["JoJo's Bizarre Adventure: Part 7–Steel Ball Run", "SBR"],
+			"format": "ONA",
+			"status": "RELEASING",
+			"episodes": 11,
+			"duration": 23,
+			"seasonYear": 2026,
+			"startDate": {
+				"year": 2026,
+				"month": 9,
+				"day": 25
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/210482",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 190327,
+							"type": "ANIME",
+							"title": {
+								"native": "ジョジョの奇妙な冒険 スティール・ボール・ラン 1st STAGE",
+								"romaji": "JoJo no Kimyou na Bouken: Steel Ball Run - 1st STAGE",
+								"english": "STEEL BALL RUN JoJo's Bizarre Adventure 1st STAGE"
+							},
+							"format": "ONA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2026,
+								"month": 3,
+								"day": 19
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 31706,
+							"type": "MANGA",
+							"title": {
+								"native": "ジョジョの奇妙な冒険 スティール・ボール・ラン",
+								"romaji": "JoJo no Kimyou na Bouken: Steel Ball Run",
+								"english": "JoJo's Bizarre Adventure: Part 7–Steel Ball Run"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 2004,
+								"month": 1,
+								"day": 19
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ジョジョの奇妙な冒険 スティール・ボール・ラン 2nd＆3rd STAGE",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:41:28.415Z",
+		"responseSha256": "7e655f02d16a024565bfe6707b1a4922c1de4ad0aa3b2061fc21903c988f2fae",
+		"total": 18,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			639938, 551918, 38326, 43558, 61534, 85631, 99859, 113292, 150490, 235128,
+			332261, 375913, 395782, 524424, 188710, 188708, 188711, 188709
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/639938",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/639938",
+			"fetchedAt": "2026-11-05T15:41:28.989Z",
+			"responseSha256": "1e9b1be93a9c037e73e6e823518418bf8cfb18e9d2e30f78d1a16ed04503541e",
+			"data": {
+				"id": 639938,
+				"type": 2,
+				"name": "スティール・ボール・ラン ジョジョの奇妙な冒険 2nd & 3rd STAGE",
+				"name_cn": "飙马野郎 JOJO的奇妙冒险 第二&第三赛段",
+				"date": "2026-09-25",
+				"platform": "WEB",
+				"eps": 11,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "飙马野郎 JOJO的奇妙冒险 第二&第三赛段"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "JoJo's Bizarre Adventure Part 7: Steel Ball Run 2nd-3rd STAGE"
+							},
+							{
+								"v": "JoJo no Kimyou na Bouken: Steel Ball Run - 2nd - 3rd STAGE"
+							},
+							{
+								"v": "STEEL BALL RUN JoJo's Bizarre Adventure 2nd & 3rd STAGE"
+							},
+							{
+								"v": "飙马野郎 JOJO的奇妙冒险 第2、3阶段"
+							},
+							{
+								"v": "SBR"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "11"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年9月25日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期五"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "Netflix"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/551918",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/551918",
+			"fetchedAt": "2026-11-05T15:41:30.125Z",
+			"responseSha256": "9fe1d92a789afcf279b270b419a95ac00c83592c04fbdcbce37088e480637c17",
+			"data": {
+				"id": 551918,
+				"type": 2,
+				"name": "スティール・ボール・ラン ジョジョの奇妙な冒険 1st STAGE",
+				"name_cn": "飙马野郎 JOJO的奇妙冒险 第一赛段",
+				"date": "2026-03-19",
+				"platform": "WEB",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "飙马野郎 JOJO的奇妙冒险 第一赛段"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "JoJo's Bizarre Adventure Part 7: Steel Ball Run 1st STAGE"
+							},
+							{
+								"v": "Steel Ball Run: JoJo no Kimyou na Bouken 1st STAGE"
+							},
+							{
+								"v": "Steel Ball Run JoJo’s Bizarre Adventure 1st STAGE"
+							},
+							{
+								"v": "JOJO的奇妙冒险 S7"
+							},
+							{
+								"v": "SBR JOJO的奇妙冒险"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					},
+					{
+						"key": "放送开始",
+						"value": "2026年3月19日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期四"
+					},
+					{
+						"key": "在线播放平台",
+						"value": "Netflix"
+					},
+					{
+						"key": "播放结束",
+						"value": "2026年3月19日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/38326",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/38326",
+			"fetchedAt": "2026-11-05T15:41:31.512Z",
+			"responseSha256": "f4209d28ae5ae0e5662f44988dedbb2cd15136796e8e7c03b01840cade8040de",
+			"data": {
+				"id": 38326,
+				"type": 2,
+				"name": "ジョジョの奇妙な冒険",
+				"name_cn": "JOJO的奇妙冒险",
+				"date": "1993-11-19",
+				"platform": "OVA",
+				"eps": 13,
+				"total_episodes": 13,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "JOJO的奇妙冒险"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "乔乔冒险奇遇"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "13"
+					}
+				]
+			}
+		}
+	]
+}

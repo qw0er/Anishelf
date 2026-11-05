@@ -1,0 +1,1442 @@
+{
+	"schemaVersion": 1,
+	"id": "one-piece",
+	"anilist": {
+		"sourceUrl": "https://anilist.co/anime/21",
+		"requestUrl": "https://graphql.anilist.co",
+		"fetchedAt": "2026-11-05T15:43:13.167Z",
+		"responseSha256": "f24ee3e6c60d5d95776671b04f90fbe570f4d7f997f10fe8e9ed8aa34e9fbabe",
+		"data": {
+			"id": 21,
+			"type": "ANIME",
+			"title": {
+				"native": "ONE PIECE",
+				"romaji": "ONE PIECE",
+				"english": "ONE PIECE"
+			},
+			"synonyms": [
+				"ワンピース",
+				"海贼王",
+				"וואן פיס",
+				"ون بيس",
+				"วันพีซ",
+				"Vua Hải Tặc",
+				"All'arrembaggio!",
+				"Tutti all'arrembaggio!",
+				"Ντρέηκ, το Κυνήγι του Θησαυρού",
+				"OP",
+				"Ван-Пис"
+			],
+			"format": "TV",
+			"status": "RELEASING",
+			"episodes": null,
+			"duration": 24,
+			"seasonYear": 1999,
+			"startDate": {
+				"year": 1999,
+				"month": 10,
+				"day": 20
+			},
+			"endDate": {
+				"year": null,
+				"month": null,
+				"day": null
+			},
+			"siteUrl": "https://anilist.co/anime/21",
+			"relations": {
+				"edges": [
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 466,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 倒せ!海賊ギャンザック",
+								"romaji": "ONE PIECE: Taose! Kaizoku Ganzack",
+								"english": "One Piece: Defeat the Pirate Ganzack!"
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 1998,
+								"month": 7,
+								"day": 26
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 1094,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE TVスペシャル 海のヘソの大冒険篇",
+								"romaji": "ONE PIECE TV Special: Umi no Heso no Daibouken-hen",
+								"english": "One Piece: Umi no Heso no Daibouken-hen"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2000,
+								"month": 12,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 1237,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE: 大海原にひらけ! でっかいでっカイ父の夢",
+								"romaji": "ONE PIECE: Oounabara ni Hirake! Dekkai Dekkai Chichi no Yume!",
+								"english": "One Piece Special: Open Upon the Great Sea! A Father's Huge, HUGE Dream!"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2003,
+								"month": 4,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 1238,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 守れ! 最後の大舞台",
+								"romaji": "ONE PIECE: Mamore! Saigo no Oobutai",
+								"english": "One Piece Special: Protect! The Last Great Performance"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2003,
+								"month": 12,
+								"day": 14
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 2020,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 年末特別企画！麦わらのルフィ親分捕物帖",
+								"romaji": "ONE PIECE: Nenmatsu Tokubetsu Kikaku! Mugiwara no Luffy Oyabun Torimonochou",
+								"english": "One Piece Special: The Detective Memoirs of Chief Straw Hat Luffy"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2005,
+								"month": 12,
+								"day": 18
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 2386,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 夢のサッカー王!",
+								"romaji": "ONE PIECE: Yume no Soccer Ou!",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2002,
+								"month": 3,
+								"day": 2
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 2490,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE めざせ! 海賊野球王",
+								"romaji": "ONE PIECE: Mezase! Kaizoku Yakyuu Ou",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2004,
+								"month": 3,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 12001,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 3D 激走! トラップコースター",
+								"romaji": "ONE PIECE 3D: Gekisou! Trap Coaster",
+								"english": null
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2011,
+								"month": 12,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 16239,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE エピソードオブルフィ 〜ハンドアイランドの冒険〜",
+								"romaji": "ONE PIECE: Episode of Luffy - Hand Island no Bouken",
+								"english": "One Piece: Episode of Luffy - Hand Island Adventure"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2012,
+								"month": 12,
+								"day": 15
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 16468,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM Z『GLORIOUS ISLAND』",
+								"romaji": "ONE PIECE FILM: Z - GLORIOUS ISLAND",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 2,
+							"startDate": {
+								"year": 2012,
+								"month": 12,
+								"day": 23
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 15323,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE エピソードオブナミ 〜航海士の涙と仲間の絆〜",
+								"romaji": "ONE PIECE: Episode of Nami - Koukaishi no Namida to Nakama no Kizuna",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2012,
+								"month": 8,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 19123,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE エピソードオブメリー 〜もうひとりの仲間の物語〜",
+								"romaji": "ONE PIECE: Episode of Merry - Mou Hitori no Nakama no Monogatari",
+								"english": "One Piece: Episode of Merry - The Tale of One More Friend"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2013,
+								"month": 8,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 20835,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE “3D2Y” エースの死を越えて! ルフィ仲間との誓い",
+								"romaji": "ONE PIECE \"3D2Y\": Ace no shi wo Koete! Luffy Nakama to no Chikai",
+								"english": "One Piece 3D2Y: Overcome Ace’s Death! Luffy’s Vow to his Friends"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2014,
+								"month": 8,
+								"day": 30
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 21230,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE エピソードオブサボ ~3兄弟の絆 奇跡の再会と受け継がれる意志~",
+								"romaji": "ONE PIECE: Episode of Sabo - 3-Kyoudai no Kizuna Kiseki no Saikai to Uketsugareru Ishi",
+								"english": "One Piece - Episode of Sabo: Bond of Three Brothers - A Miraculous Reunion and an Inherited Will"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2015,
+								"month": 8,
+								"day": 22
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 21485,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 〜アドベンチャー オブ ネブランディア〜",
+								"romaji": "ONE PIECE: Adventure of Nebulandia",
+								"english": "One Piece: Adventure of Nebulandia"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2015,
+								"month": 12,
+								"day": 19
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 21831,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 〜ハートオブゴールド〜",
+								"romaji": "ONE PIECE: Heart of Gold",
+								"english": "One Piece: Heart of Gold"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2016,
+								"month": 7,
+								"day": 16
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 99302,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE エピソードオブ東の海〜ルフィと4人の仲間の大冒険!!〜",
+								"romaji": "ONE PIECE: Episode of East Blue - Luffy to 4-nin no Nakama no Daibouken",
+								"english": "One Piece: Episode of East Blue"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2017,
+								"month": 8,
+								"day": 26
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 459,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE (Movie)",
+								"romaji": "ONE PIECE (Movie)",
+								"english": "ONE PIECE: The Movie"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2000,
+								"month": 3,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 460,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE ねじまき島の冒険",
+								"romaji": "ONE PIECE: Nejimaki-jima no Bouken",
+								"english": "One Piece: Clockwork Island Adventure"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2001,
+								"month": 3,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 461,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 珍獣島のチョッパー王国",
+								"romaji": "ONE PIECE: Chinjuu-jima no Chopper Oukoku",
+								"english": "One Piece: Chopper’s Kingdom on the Island of Strange Animals"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2002,
+								"month": 3,
+								"day": 2
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 462,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE THE MOVIE デッドエンドの冒険",
+								"romaji": "ONE PIECE THE MOVIE: Dead End no Bouken",
+								"english": "One Piece The Movie: The Dead End Adventure"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2003,
+								"month": 3,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 463,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 呪われた聖剣",
+								"romaji": "ONE PIECE: Norowareta Seiken",
+								"english": "One Piece: The Curse of the Sacred Sword"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2004,
+								"month": 3,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 464,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE THE MOVIE オマツリ男爵と秘密の島",
+								"romaji": "ONE PIECE THE MOVIE: Omatsuri Danshaku to Himitsu no Shima",
+								"english": "One Piece: Baron Omatsuri and the Secret Island"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2005,
+								"month": 3,
+								"day": 5
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 465,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE THE MOVIE カラクリ城のメカ巨兵",
+								"romaji": "ONE PIECE THE MOVIE: Karakuri-jou no Mecha Kyohei",
+								"english": "One Piece: Mega Mecha Soldier of Karakuri Castle"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2006,
+								"month": 3,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 2107,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE エピソードオブアラバスタ 砂漠の王女と海賊たち",
+								"romaji": "ONE PIECE: Episode of Alabasta - Sabaku no Oujo to Kaizoku-tachi",
+								"english": "One Piece: The Desert Princess and the Pirates, Adventures in Alabasta"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2007,
+								"month": 3,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 3848,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE THE MOVIE エピソードオブチョッパー+ 冬に咲く、奇跡の桜",
+								"romaji": "ONE PIECE THE MOVIE: Episode of Chopper Plus - Fuyu ni Saku, Kiseki no Sakura",
+								"english": "One Piece: Episode Of Chopper +: The Miracle Winter Cherry Blossom"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2008,
+								"month": 3,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 4155,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM STRONG WORLD",
+								"romaji": "ONE PIECE FILM: STRONG WORLD",
+								"english": "One Piece Film: Strong World"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2009,
+								"month": 12,
+								"day": 12
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 9999,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE 3D 麦わらチェイス",
+								"romaji": "ONE PIECE 3D: Mugiwara Chase",
+								"english": "One Piece 3D: Mugiwara Chase"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2011,
+								"month": 3,
+								"day": 19
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 12859,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM Z",
+								"romaji": "ONE PIECE FILM: Z",
+								"english": "One Piece Film: Z"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2012,
+								"month": 12,
+								"day": 15
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 21335,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM GOLD",
+								"romaji": "ONE PIECE FILM: GOLD",
+								"english": "One Piece Film: Gold"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2016,
+								"month": 7,
+								"day": 23
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 96427,
+							"type": "MANGA",
+							"title": {
+								"native": "ONE PIECE ローグタウン編",
+								"romaji": "ONE PIECE: Loguetown-hen",
+								"english": null
+							},
+							"format": "NOVEL",
+							"episodes": null,
+							"startDate": {
+								"year": 2000,
+								"month": 7,
+								"day": 17
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 30013,
+							"type": "MANGA",
+							"title": {
+								"native": "ONE PIECE",
+								"romaji": "ONE PIECE",
+								"english": "One Piece"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 1997,
+								"month": 7,
+								"day": 22
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 101918,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE エピソードオブ空島",
+								"romaji": "ONE PIECE: Episode of Sorajima",
+								"english": "One Piece: Episode of Skypiea"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2018,
+								"month": 8,
+								"day": 25
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 8740,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM STRONG WORLD EPISODE:0",
+								"romaji": "ONE PIECE FILM: STRONG WORLD - EPISODE:0",
+								"english": null
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2010,
+								"month": 4,
+								"day": 16
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 105143,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE STAMPEDE",
+								"romaji": "ONE PIECE STAMPEDE",
+								"english": "One Piece: Stampede"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2019,
+								"month": 8,
+								"day": 9
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 102639,
+							"type": "ANIME",
+							"title": {
+								"native": "日産SERENA×ワンピース 潜入サウザンド・サニー号",
+								"romaji": "Nissan SERENA × One Piece: Sennyuu Sauzando Sanii-gou",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2011,
+								"month": 3,
+								"day": 5
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 106492,
+							"type": "ANIME",
+							"title": {
+								"native": "球体パニックアドベンチャー!",
+								"romaji": "Kyutai Panic Adventure!",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2003,
+								"month": null,
+								"day": null
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 106572,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE エピソードオブアラバスタ 砂漠の王女と海賊たち",
+								"romaji": "ONE PIECE: Episode of Alabasta - Sabaku no Oujo to Kaizoku-tachi",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2011,
+								"month": 8,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 107110,
+							"type": "ANIME",
+							"title": {
+								"native": "ワンピース Cry heart",
+								"romaji": "ONE PIECE: Cry heart",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 3,
+							"startDate": {
+								"year": 2014,
+								"month": 1,
+								"day": 19
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 107256,
+							"type": "ANIME",
+							"title": {
+								"native": "球体パニックアドベンチャーリターンズ!!!",
+								"romaji": "Kyutai Panic Adventure Returns!!!",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2004,
+								"month": null,
+								"day": null
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 2385,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE ねじまき島の冒険 ジャンゴのダンスカーニバル",
+								"romaji": "ONE PIECE: Nejimaki-jima no Bouken - Jango no Dance Carnival",
+								"english": "One Piece: Django's Dance Carnival"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2001,
+								"month": 3,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 101099,
+							"type": "ANIME",
+							"title": {
+								"native": "HUNGRY DAYS　アオハルかよ。",
+								"romaji": "HUNGRY DAYS: Aoharu ka yo.",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 11,
+							"startDate": {
+								"year": 2017,
+								"month": 6,
+								"day": 7
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 21880,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM GOLD 〜episode 0〜 711ver.",
+								"romaji": "ONE PIECE FILM: GOLD - episode 0 711ver.",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2016,
+								"month": 7,
+								"day": 2
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 5252,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE ロマンス ドーン ストーリー",
+								"romaji": "ONE PIECE: ROMANCE DAWN STORY",
+								"english": "One Piece: Romance Dawn Story"
+							},
+							"format": "OVA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2008,
+								"month": 11,
+								"day": 24
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 30793,
+							"type": "MANGA",
+							"title": {
+								"native": "WANTED！ 尾田栄一郎短編集",
+								"romaji": "WANTED! Oda Eiichiro Tanpenshuu",
+								"english": "Wanted! Eiichiro Oda Before One Piece"
+							},
+							"format": "MANGA",
+							"episodes": null,
+							"startDate": {
+								"year": 1998,
+								"month": 11,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 113308,
+							"type": "ANIME",
+							"title": {
+								"native": "記念撮影",
+								"romaji": "Kinen Satsuei",
+								"english": null
+							},
+							"format": "MUSIC",
+							"episodes": 1,
+							"startDate": {
+								"year": 2019,
+								"month": 11,
+								"day": 2
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 114761,
+							"type": "ANIME",
+							"title": {
+								"native": "A-RA-SHI : Reborn",
+								"romaji": "A-RA-SHI : Reborn",
+								"english": null
+							},
+							"format": "MUSIC",
+							"episodes": 1,
+							"startDate": {
+								"year": 2020,
+								"month": 1,
+								"day": 4
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 10033,
+							"type": "ANIME",
+							"title": {
+								"native": "トリコ",
+								"romaji": "Toriko",
+								"english": null
+							},
+							"format": "TV",
+							"episodes": 147,
+							"startDate": {
+								"year": 2011,
+								"month": 4,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 813,
+							"type": "ANIME",
+							"title": {
+								"native": "ドラゴンボールZ",
+								"romaji": "Dragon Ball Z",
+								"english": "Dragon Ball Z"
+							},
+							"format": "TV",
+							"episodes": 291,
+							"startDate": {
+								"year": 1989,
+								"month": 4,
+								"day": 26
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 126649,
+							"type": "ANIME",
+							"title": {
+								"native": "東京ワンピースタワー トンガリ島の大秘宝",
+								"romaji": "Tokyo One Piece Tower: Tongari Shima no Dai Hihou",
+								"english": "The Great Tongari Island Treasure Hunting Adventure"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2016,
+								"month": 11,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "ADAPTATION",
+						"node": {
+							"id": 134184,
+							"type": "MANGA",
+							"title": {
+								"native": "ロマンスドーン",
+								"romaji": "Romance Dawn",
+								"english": "Romance Dawn"
+							},
+							"format": "ONE_SHOT",
+							"episodes": null,
+							"startDate": {
+								"year": 1996,
+								"month": 9,
+								"day": 23
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 141902,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM RED",
+								"romaji": "ONE PIECE FILM: RED",
+								"english": "One Piece Film: Red"
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2022,
+								"month": 8,
+								"day": 6
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 143293,
+							"type": "ANIME",
+							"title": {
+								"native": "One Piece: Annecy Festival 60th Anniversary",
+								"romaji": "One Piece: Annecy Festival 60th Anniversary",
+								"english": "One Piece: Annecy Festival 60th Anniversary"
+							},
+							"format": "ONA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2021,
+								"month": 6,
+								"day": 16
+							}
+						}
+					},
+					{
+						"relationType": "PREQUEL",
+						"node": {
+							"id": 167404,
+							"type": "ANIME",
+							"title": {
+								"native": "MONSTERS 一百三情飛龍侍極",
+								"romaji": "MONSTERS: Ippaku Sanjou Hiryuu Jigoku",
+								"english": "MONSTERS: 103 Mercies Dragon Damnation"
+							},
+							"format": "ONA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2024,
+								"month": 1,
+								"day": 21
+							}
+						}
+					},
+					{
+						"relationType": "ALTERNATIVE",
+						"node": {
+							"id": 171630,
+							"type": "ANIME",
+							"title": {
+								"native": "THE ONE PIECE",
+								"romaji": "THE ONE PIECE",
+								"english": "THE ONE PIECE"
+							},
+							"format": null,
+							"episodes": 7,
+							"startDate": {
+								"year": 2027,
+								"month": 2,
+								"day": null
+							}
+						}
+					},
+					{
+						"relationType": "OTHER",
+						"node": {
+							"id": 177475,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE×可哀想に！～この帽子を お前に預ける～",
+								"romaji": "ONE PIECE×KAWAISOUNI! Kono Boushi wo Omae ni Azukeru",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 1,
+							"startDate": {
+								"year": 2024,
+								"month": 3,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 182469,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FAN LETTER",
+								"romaji": "ONE PIECE FAN LETTER",
+								"english": "ONE PIECE FAN LETTER"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2024,
+								"month": 10,
+								"day": 20
+							}
+						}
+					},
+					{
+						"relationType": "SUMMARY",
+						"node": {
+							"id": 183423,
+							"type": "ANIME",
+							"title": {
+								"native": "SPECIAL EDITED VERSION『ONE PIECE』魚人島編",
+								"romaji": "ONE PIECE: Gyojin Tou-hen",
+								"english": "One Piece Log: Fish-Man Island Saga"
+							},
+							"format": "TV",
+							"episodes": 21,
+							"startDate": {
+								"year": 2024,
+								"month": 11,
+								"day": 3
+							}
+						}
+					},
+					{
+						"relationType": "CHARACTER",
+						"node": {
+							"id": 187225,
+							"type": "ANIME",
+							"title": {
+								"native": "LOS ANGELES LAKERS x ONE PIECE",
+								"romaji": "LOS ANGELES LAKERS x ONE PIECE",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2025,
+								"month": 2,
+								"day": 28
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 188668,
+							"type": "ANIME",
+							"title": {
+								"native": "恋するワンピース",
+								"romaji": "Koisuru ONE PIECE",
+								"english": null
+							},
+							"format": "ONA",
+							"episodes": 5,
+							"startDate": {
+								"year": 2025,
+								"month": 4,
+								"day": 1
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 197178,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE HEROINES",
+								"romaji": "ONE PIECE HEROINES",
+								"english": "ONE PIECE HEROINES"
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2026,
+								"month": 7,
+								"day": 5
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 187380,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE オリジナルエピソード／ルフィ、ロー",
+								"romaji": "ONE PIECE: Original Episode/Luffy, Law",
+								"english": null
+							},
+							"format": "SPECIAL",
+							"episodes": 1,
+							"startDate": {
+								"year": 2025,
+								"month": 1,
+								"day": 19
+							}
+						}
+					},
+					{
+						"relationType": "SPIN_OFF",
+						"node": {
+							"id": 204432,
+							"type": "ANIME",
+							"title": {
+								"native": "CHOPPER's",
+								"romaji": "CHOPPER's",
+								"english": null
+							},
+							"format": "TV_SHORT",
+							"episodes": 12,
+							"startDate": {
+								"year": 2026,
+								"month": 1,
+								"day": 5
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 215855,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM GOD VALLEY",
+								"romaji": "ONE PIECE FILM: GOD VALLEY",
+								"english": null
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2027,
+								"month": null,
+								"day": null
+							}
+						}
+					},
+					{
+						"relationType": "SIDE_STORY",
+						"node": {
+							"id": 215856,
+							"type": "ANIME",
+							"title": {
+								"native": "ONE PIECE FILM BAAD",
+								"romaji": "ONE PIECE FILM: BAAD",
+								"english": null
+							},
+							"format": "MOVIE",
+							"episodes": 1,
+							"startDate": {
+								"year": 2029,
+								"month": null,
+								"day": null
+							}
+						}
+					}
+				]
+			}
+		}
+	},
+	"bangumiSearch": {
+		"query": "ONE PIECE",
+		"requestUrl": "https://api.bgm.tv/v0/search/subjects?limit=20&offset=0",
+		"fetchedAt": "2026-11-05T15:43:14.050Z",
+		"responseSha256": "c19ebd571be989978de2dcae7b174ecfe88a6c8c82510e5e3eb40b2742b77be6",
+		"total": 139,
+		"limit": 20,
+		"offset": 0,
+		"ids": [
+			975, 1867, 1869, 1871, 1901, 1904, 1990, 1991, 1995, 1999, 2000, 2462,
+			5393, 20523, 50513, 90390, 90391, 90789, 90792, 90799
+		]
+	},
+	"bangumiCandidates": [
+		{
+			"sourceUrl": "https://bgm.tv/subject/975",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/975",
+			"fetchedAt": "2026-11-05T15:43:14.453Z",
+			"responseSha256": "f7742bf21a484bf4ea8ff29e2ceb67dd49e87d62f5c6e186f34784eaa0159f2c",
+			"data": {
+				"id": 975,
+				"type": 2,
+				"name": "ONE PIECE",
+				"name_cn": "航海王",
+				"date": "1999-10-20",
+				"platform": "TV",
+				"eps": 1155,
+				"total_episodes": 1191,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "航海王"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "ワンピース"
+							},
+							{
+								"v": "海贼王"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1155"
+					},
+					{
+						"key": "放送开始",
+						"value": "1999年10月20日"
+					},
+					{
+						"key": "放送星期",
+						"value": "星期三→星期日（64话起）"
+					},
+					{
+						"key": "播放电视台",
+						"value": "フジテレビ"
+					},
+					{
+						"key": "播放结束",
+						"value": "2025年12月28日"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/1867",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/1867",
+			"fetchedAt": "2026-11-05T15:43:15.755Z",
+			"responseSha256": "afbd999868238e38b323e24e1b12ce3e0ec7924cf0ed9eaafad0e5eb7613ca0f",
+			"data": {
+				"id": 1867,
+				"type": 2,
+				"name": "ONE PIECE 倒せ!海賊ギャンザック",
+				"name_cn": "航海王：打倒！海贼强萨克！",
+				"date": "1998-07-26",
+				"platform": "OVA",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "航海王：打倒！海贼强萨克！"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "One Piece: Defeat Him! The Pirate Ganzack!"
+							},
+							{
+								"v": "One Piece: Taose! Kaizoku Gyanzakku"
+							},
+							{
+								"v": "海贼王 打倒海贼强萨克！"
+							}
+						]
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		},
+		{
+			"sourceUrl": "https://bgm.tv/subject/1869",
+			"requestUrl": "https://api.bgm.tv/v0/subjects/1869",
+			"fetchedAt": "2026-11-05T15:43:16.875Z",
+			"responseSha256": "7da47a6d5bfafc41739180b9810edc7aa9e4ab9921dd34460d9605aa8333cd9b",
+			"data": {
+				"id": 1869,
+				"type": 2,
+				"name": "ONE PIECE the movie",
+				"name_cn": "航海王：黄金岛大冒险",
+				"date": "2000-03-04",
+				"platform": "剧场版",
+				"eps": 1,
+				"total_episodes": 1,
+				"infobox": [
+					{
+						"key": "中文名",
+						"value": "航海王：黄金岛大冒险"
+					},
+					{
+						"key": "别名",
+						"value": [
+							{
+								"v": "ワンピース"
+							},
+							{
+								"v": "ONE PIECE（劇場版）"
+							},
+							{
+								"v": "航海王剧场版：黄金岛大冒险"
+							},
+							{
+								"v": "海贼王 黄金岛大冒险"
+							}
+						]
+					},
+					{
+						"key": "上映年度",
+						"value": "2000年3月4日"
+					},
+					{
+						"key": "话数",
+						"value": "1"
+					}
+				]
+			}
+		}
+	]
+}
