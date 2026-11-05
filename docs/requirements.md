@@ -340,6 +340,13 @@ Details and acceptance criteria may be refined as decisions are made.
 | L16 | Improve matching using representative real-world failure cases | Not started | Later | — | — |
 | M09 | Improve Chinese title availability using Bangumi | Not started | Unassigned | [Chinese title fallback](#chinese-title-fallback-m09) | — |
 | P26 | Improve transcoding progress display | Not started | Unassigned | [Transcoding progress](#transcoding-progress-p26) | — |
+| P27 | Improve prepared-media file management | Not started | Unassigned | [Prepared-media file management](#prepared-media-file-management-p27) | — |
+| WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
+| WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
+| WI05 | Redesign automatic subscription management interaction | Complete | Completed | Review the existing interaction and define the desired workflow. | — |
+| WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
+| WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
+| WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
 
 #### Matching Improvements from Real Failures (L16)
 
@@ -363,16 +370,20 @@ unavailable rather than presenting a misleading value. Keep progress current, sh
 failure and recovery information, and retain access to applicable task actions.
 The display must remain usable on desktop and narrow screens.
 
-### Proposed improvement work
+#### Prepared-media File Management (P27)
 
-| ID | Item | Delivery | Status | Details | First release |
-| --- | --- | --- | --- | --- | --- |
-| WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
-| WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
-| WI05 | Redesign automatic subscription management interaction | — | Unassigned | Review the existing interaction and define the desired workflow. | — |
-| WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
-| WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
-| WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
+Provide a central view of generated media copies so users can understand and manage
+their disk usage. Show total usage and the configured cache budget, and identify
+each copy by its source media, size and availability. Provide useful search or
+filtering and allow users to select and explicitly delete individual copies or
+multiple copies together. Show the expected impact before deletion and report
+successes and failures, including partial failures.
+
+Account for copies in use or involved in active preparation, and explain when a
+copy cannot yet be removed. Keep the view and storage totals current after cleanup.
+Deleting a prepared copy must preserve the original media, playback history and
+settings; automatic preparation may make the source eligible for preparation again.
+Do not silently delete valid copies when the cache budget is lowered.
 
 #### Resource Search Improvements (WI12)
 
