@@ -283,6 +283,21 @@ Subscription commands invalidate the affected work rather than every detail.
 Account changes cancel and remove both detail and status queries; ordinary page
 refresh preserves playback sessions and versioned compatibility caches.
 
+### Resource publication and interface continuity
+
+Resource query scopes include the configured roots and the global index revision.
+Revision changes retain separate cache entries and request results. Library and
+local/provider-key detail observers may display previous data as placeholder content
+while a new revision loads, but only when the resource roots and work identity match.
+Library additionally checks tracking account/generation and filters; its existing
+page-only placeholder reuse remains supported. This presentation reuse does not
+seed the new revision's cache or suppress its fetch.
+
+Local detail component identity uses resource roots and work ID rather than the
+publication revision, so background updates preserve local interaction state.
+Artwork follows its URL rather than work-update or metadata-fetch timestamps.
+See [WI10 delivery and validation](../implemented-requirements.md#library-and-detail-refresh-continuity-wi10).
+
 ## Core collaboration
 
 The [playback asset design](playback.md) separates source identity, actual media

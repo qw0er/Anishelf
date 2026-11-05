@@ -168,3 +168,24 @@ test("cards expose positive unwatched local availability", () => {
 	show([{ ...work, availableUnwatchedEpisodes: 2 }]);
 	expect(screen.getByText("2 unwatched available")).toBeTruthy();
 });
+
+test("card updates retain the image element and update its versioned URL", () => {
+	const card = { ...work, coverUrl: "/cover?v=1" };
+	const { rerender } = show([card]);
+	const image = screen.getByRole("img", { name: "Example" });
+	const update = (coverUrl: string) =>
+		rerender(
+			<MemoryRouter>
+				<LibraryResults
+					items={[{ ...card, updatedAt: 2, coverUrl }]}
+					librarySearch="?scope=all"
+					viewingKnown
+				/>
+			</MemoryRouter>,
+		);
+	update("/cover?v=1");
+	expect(screen.getByRole("img", { name: "Example" })).toBe(image);
+	update("/cover?v=2");
+	expect(screen.getByRole("img", { name: "Example" })).toBe(image);
+	expect(image.getAttribute("src")).toBe("/cover?v=2");
+});

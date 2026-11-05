@@ -345,7 +345,7 @@ Details and acceptance criteria may be refined as decisions are made.
 | WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
 | WI05 | Redesign automatic subscription management interaction | Complete | Completed | Review the existing interaction and define the desired workflow. | — |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
-| WI10 | Prevent interface flicker when adding a work | — | Unassigned | Adding a work causes the interface to refresh and visibly flicker; investigate and make the update smooth. | — |
+| WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](implemented-requirements.md#library-and-detail-refresh-continuity-wi10) | — |
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
 
 #### Matching Improvements from Real Failures (L16)
