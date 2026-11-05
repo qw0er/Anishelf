@@ -1263,7 +1263,40 @@
 				"active": "正在获取发布"
 			},
 			"progressDescription": "新订阅从 AniList 观看进度的下一集开始。例如，进度为 3 时从第 4 集开始。",
-			"beginningDescription": "新订阅从第 1 集开始，包含之前的集数。已在本地可用的剧集会直接复用。"
+			"beginningDescription": "新订阅从第 1 集开始，包含之前的集数。已在本地可用的剧集会直接复用。",
+			"shortReasons": {
+				"disabled": "已禁用",
+				"ready": "已启用",
+				"managed": "运行中",
+				"pending": "等待中",
+				"search_pending": "搜索中",
+				"no_eligible_source": "等待更新",
+				"discovery_unavailable": "来源不可用",
+				"tracking_unavailable": "等待同步",
+				"tracking_account_changed": "账户已更改",
+				"source_changed": "来源已更改",
+				"profile_changed": "配置已更改",
+				"destination_changed": "目标已更改",
+				"authorization_required": "待确认",
+				"excluded": "已排除",
+				"manually_paused": "已暂停",
+				"manual_subscription_present": "手动管理",
+				"tracking_entry_removed": "已移除",
+				"tracking_paused": "已暂停",
+				"tracking_dropped": "已弃番",
+				"tracking_completed": "已完成",
+				"tracking_planned": "计划中",
+				"tracking_rewatching": "重看未启用",
+				"not_watching": "已停止",
+				"completed": "已完成",
+				"paused": "已暂停",
+				"active": "运行中",
+				"invalid_progress": "进度无效",
+				"source_reselection_required": "待选择来源",
+				"different_account_owner": "账户不匹配",
+				"subscription_limit": "已达上限",
+				"work_limit": "已达上限"
+			}
 		},
 		"episode": {
 			"actions": "第 {{episode}} 集的更多操作",
@@ -1301,7 +1334,13 @@
 			"noSubscriptions": "还没有订阅",
 			"emptyHelp": "在作品详情页添加订阅，自动追踪后续更新。",
 			"browse": "浏览作品",
-			"excluded": "已排除的作品（{{count}}）"
+			"excluded": "已排除的作品（{{count}}）",
+			"restore": "恢复",
+			"exclude": "排除",
+			"cooldown": "冷却中",
+			"waiting": "等待更新",
+			"searching": "搜索中",
+			"active": "运行中"
 		}
 	},
 	"profileIssue": {

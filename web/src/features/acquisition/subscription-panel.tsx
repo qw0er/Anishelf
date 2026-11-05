@@ -112,6 +112,25 @@ export function SubscriptionPanel({
 			sub.runState && sub.runState !== "active"
 				? watchingReason(sub.runState)
 				: t("acquisition.subscription.automaticManaged");
+	let rowSummary = summary;
+	if (compact) {
+		if (cooling) rowSummary = t("acquisition.manager.cooldown");
+		else if (!needsAttention && sub?.enabled && sub.runState !== "completed") {
+			if (
+				sub.management === "watching" &&
+				sub.runState &&
+				sub.runState !== "active"
+			)
+				rowSummary = watchingReason(sub.runState, true);
+			else if (sub.sourceKind === "automatic")
+				rowSummary = t(
+					sub.error === "no_eligible_source"
+						? "acquisition.manager.waiting"
+						: "acquisition.manager.searching",
+				);
+			else rowSummary = t("acquisition.manager.active");
+		}
+	}
 	const updated = async (result?: SubscriptionView) => {
 		await client.cancelQueries({
 			queryKey: ["anime-status"],
@@ -200,7 +219,7 @@ export function SubscriptionPanel({
 							? t("acquisition.subscription.loading")
 							: query.isError && !view
 								? t("acquisition.subscription.unavailable")
-								: summary}
+								: rowSummary}
 					</span>
 					{(sub || needsAttention) && (
 						<ChevronRight
