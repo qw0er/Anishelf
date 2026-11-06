@@ -3,6 +3,7 @@ import type { WorkDetails } from "./source-model.js";
 
 export type ArtworkEvidence = Partial<Record<"cover" | "banner", WorkDetails>>;
 export interface NameEvidence {
+	verificationVersion?: string;
 	originSnapshotId: string;
 	peerSnapshotId: string;
 	peer: WorkDetails["reference"];

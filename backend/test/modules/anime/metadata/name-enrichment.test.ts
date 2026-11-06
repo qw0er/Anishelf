@@ -118,27 +118,22 @@ test("exact, mutually unique evidence supplements only names in both directions"
 		language: null,
 	});
 });
-test.each([
-	"native",
-	"date",
-	"format",
-	"episodes",
-	"missing-date",
-	"missing-count",
-])("%s disagreement never supplements names", async (field) => {
-	const f = fixture();
-	if (field === "native")
-		f.two.titles[0] = { value: "Similar 原名", kind: "native", language: null };
-	if (field === "date") f.two.startDate = { year: 2023, month: 9, day: 30 };
-	if (field === "format") f.two.format = "ONA";
-	if (field === "episodes") f.two.episodeCount = 13;
-	if (field === "missing-date")
-		f.two.startDate = { year: 2023, month: 9, day: null };
-	if (field === "missing-count") f.two.episodeCount = null;
-	expect((await f.names.enrich(envelope(f.one))).data.titles).toEqual(
-		f.one.titles,
-	);
-});
+test.each(["native", "format"])(
+	"%s conflict never supplements names",
+	async (field) => {
+		const f = fixture();
+		if (field === "native")
+			f.two.titles[0] = {
+				value: "Similar 原名",
+				kind: "native",
+				language: null,
+			};
+		if (field === "format") f.two.format = "ONA";
+		expect((await f.names.enrich(envelope(f.one))).data.titles).toEqual(
+			f.one.titles,
+		);
+	},
+);
 test.each(["one", "two"])(
 	"multiple exact candidates on %s reject supplementation",
 	async (provider) => {
@@ -353,6 +348,7 @@ test("an incomplete alternate-title competitor cannot be silently excluded", asy
 	competitor.format = "ONA";
 	competitor.episodeCount = 10;
 	competitor.startDate = null;
+	competitor.year = 2026;
 	f.items.push(competitor);
 	expect((await f.names.enrich(envelope(f.one))).data.titles).toEqual(
 		f.one.titles,
@@ -498,3 +494,27 @@ test("cached upstream refresh errors reject background verification without bypa
 		expect.objectContaining({ refresh: true }),
 	);
 });
+
+test.each([
+	"date",
+	"episodes",
+	"missing-date",
+	"missing-count",
+	"format-family",
+])(
+	"%s is auxiliary evidence rather than an unconditional rejection",
+	async (field) => {
+		const f = fixture();
+		if (field === "date") f.two.startDate = { year: 2023, month: 9, day: 30 };
+		if (field === "episodes") f.two.episodeCount = 13;
+		if (field === "missing-date")
+			f.two.startDate = { year: 2023, month: 9, day: null };
+		if (field === "missing-count") f.two.episodeCount = null;
+		if (field === "format-family") f.two.format = "TV_SHORT";
+		expect((await f.names.enrich(envelope(f.one))).data.titles).toContainEqual({
+			value: "two alias",
+			kind: "alias",
+			language: null,
+		});
+	},
+);

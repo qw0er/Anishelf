@@ -275,13 +275,15 @@ test("assembled content methods keep their service receivers when passed directl
 	release(details.snapshotId, "detached-consumer");
 });
 
-test("search queries exactly one source and never merges equal titles or missing fields", async () => {
+test("search keeps identities source-specific while allowing optional name verification", async () => {
 	const f = await fixture();
 	f.second.data.titles = f.first.data.titles;
 	const first = await f.metadata.search({ query: "Same title" });
 	expect(first.data.items).toHaveLength(1);
 	expect(first.data.items[0]?.provider).toBe("anilist");
-	expect(f.second.search).not.toHaveBeenCalled();
+	expect(
+		f.second.search.mock.calls.every(([, , perPage]) => perPage === 50),
+	).toBe(true);
 	const second = await f.metadata.search({
 		query: "Same title",
 		provider: "bangumi",
@@ -570,6 +572,10 @@ test("cached search and retained detail apply title preference without refetchin
 	});
 	expect(original.data.displayTitle).toBe("Original");
 	const stored = structuredClone(f.database.metadata.get(original.snapshotId));
+	const requestCounts = {
+		get: f.second.get.mock.calls.length,
+		search: f.second.search.mock.calls.length,
+	};
 	preference = "chinese";
 	const cached = await f.metadata.get(reference, { cachedOnly: true });
 	expect(cached.data.displayTitle).toBe("中文名");
@@ -585,8 +591,8 @@ test("cached search and retained detail apply title preference without refetchin
 	);
 	expect(cachedSearch.data.items[0]?.displayTitle).toBe("中文名");
 	expect(cachedSearch.snapshotId).toBe(search.snapshotId);
-	expect(f.second.get).toHaveBeenCalledTimes(1);
-	expect(f.second.search).toHaveBeenCalledTimes(1);
+	expect(f.second.get).toHaveBeenCalledTimes(requestCounts.get);
+	expect(f.second.search).toHaveBeenCalledTimes(requestCounts.search);
 	expect(f.database.metadata.get(original.snapshotId)?.data).toEqual(
 		stored?.data,
 	);

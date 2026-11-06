@@ -422,23 +422,46 @@ queries instead of the first four arbitrary aliases. All known titles and aliase
 available for release-identity assessment. When no Chinese title is available, query
 selection retains the existing non-Chinese behavior.
 
-Names are also merged across the supported metadata providers. Optional verification
-uses shared explicit original, English or romaji names, full premiere date, format and
-positive episode count, and accepts only a unique match from each provider. A shared
-arbitrary alias alone is insufficient. Verified supplemental names are retained as
-aliases with an optional explicit `searchKind`; they can contribute romaji, English or
-Chinese queries and can be selected for presentation by the title preference. They
-never change project IDs, original source-title roles, other metadata fields, episode
-mappings or Tracking. The merge is names-only evidence, not cross-source identity
-association. It uses bounded search/detail limits, a five-second foreground deadline,
-a 20-second background-enrichment budget and a short-lived in-process correspondence
-cache; stale, incomplete, ambiguous or failed
-evidence leaves the source names unchanged. Successful merged names also persist in
-the project cache. Cached-only reads never initiate verification.
+Names are also merged across the supported metadata providers. Verification requires
+source-declared primary-name agreement and corroborating release evidence, with
+unique forward and reverse resolution. Unicode, punctuation, numeric ordinals,
+season labels and movie prefixes are normalized without dropping meaningful
+numbers. Explicit season, part, stage, promotional and finale conflicts prevent
+merging; word-order changes require matching scope and two shared names. Original
+aliases can corroborate primary names but cannot establish a match alone, and
+supplemented search titles cannot become verification evidence.
+
+Missing dates and counts no longer veto an otherwise corroborated pair. Full dates
+may differ by one day; larger differences need additional evidence, and differences
+over 31 days require two shared names. Known release-year conflicts reject the
+pair, except the one-day year-boundary case. TV_SHORT is compatible with TV; TV
+versus ONA requires matching explicit scope and two names. Episode-count differences
+are auxiliary evidence. Insufficient competing candidates continue to block
+uniqueness. Candidate debug logs distinguish conflicts and missing evidence;
+multiple confirmed candidates remain ambiguous.
+
+Verified supplemental names remain aliases with an optional explicit `searchKind`;
+they can contribute romaji, English or Chinese queries and presentation titles.
+They never change project IDs, original source-title roles, other metadata fields,
+episode mappings or Tracking. The merge is names-only evidence, not cross-source
+identity association. Bounded search/detail limits, a five-second foreground
+deadline, a 20-second background budget and a short-lived process cache remain.
+Stale, truncated, ambiguous or failed evidence leaves source names unchanged.
+Persisted names carry a policy version plus both source snapshot IDs; current
+reads require current policy and unchanged source evidence. Reverification can
+reuse cached source facts. Historical snapshots are preserved, and cached-only
+reads never initiate verification.
+
+The opt-in offline production-verifier corpus passes 49/49 positive pairs, rejects
+all 38 negative pairs and accepts neither of two unresolved scope pairs. The
+family-separated holdout passes 16/16 positives and rejects all 13 negatives and
+one unresolved pair. These figures measure verification within controlled frozen
+candidate pools, not live provider retrieval recall. Evaluation is manual and is
+not part of default tests or CI.
 
 Existing subscriptions retain their captured search keywords. Creating a subscription
 or rediscovering and confirming a source applies the current title-selection rules.
-**Release record:** 1.4.2.
+**Release record:** 1.4.2; name-verification policy updated in 1.4.3.
 
 #### AniList Watching to Automatic Acquisition (S05, S10–S12)
 

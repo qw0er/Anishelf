@@ -65,6 +65,20 @@ export class MetadataSnapshots {
 			proof.originSnapshotId !== value.snapshotId
 		)
 			return null;
+		if (
+			proof.verificationVersion !== metadataDefaults.nameVerificationVersion
+		) {
+			this.logger?.debug(
+				{
+					event: "metadata.persisted_names_invalidated",
+					reason: "verification-policy-changed",
+					verificationVersion: proof.verificationVersion ?? null,
+					expectedVersion: metadataDefaults.nameVerificationVersion,
+				},
+				"Persisted supplemental titles require verification under the current policy.",
+			);
+			return null;
+		}
 		const peer = this.source.current(proof.peer);
 		if (!peer || peer.snapshotId !== proof.peerSnapshotId) {
 			this.logger?.debug(

@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.3
+
+### Changed
+
+- Improve names-only cross-source verification with corroborating evidence instead
+  of requiring complete equal dates and episode counts. Normalize title variants
+  while guarding season, part, stage, promotional and finale scope; keep unique
+  forward/reverse resolution and block insufficient competing candidates.
+- Version persisted name proofs and log candidate decisions with evidence reasons.
+  Reverify obsolete proofs using existing source caches where possible, preserving
+  work identities, historical evidence and episode mappings.
+- Add optional `anime:titles -- test --split development|regression|holdout`
+  evaluation and candidate diagnostics. Frozen candidate verification now passes
+  all 49 positive, 38 negative and two unresolved cases; live retrieval is outside
+  this measurement. Keep corpus evaluation manual.
+
 ## 1.4.2
 
 ### Added

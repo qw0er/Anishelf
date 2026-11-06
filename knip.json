@@ -2,6 +2,9 @@
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"ignoreBinaries": ["podman"],
 	"workspaces": {
+		".": {
+			"entry": ["scripts/collect-title-enrichment.mjs"]
+		},
 		"backend": {
 			"ignoreIssues": {
 				"src/modules/anime/external-works/bangumi/openapi.gen.ts": ["types"]
