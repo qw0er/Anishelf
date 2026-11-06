@@ -81,6 +81,7 @@ Preserve each rule's source confirmations and applicable context, explain its ef
 | --- | --- | --- | --- | --- | --- |
 | M06 | Multiple independently selectable metadata providers | Complete | — | Default source, per-search selection and source-isolated identities; no cross-source mapping | 1.0.6 |
 | M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Later | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08); no active iteration assigned | — |
+| M10 | Discover anime beyond the user's library | Not started | Later | [Anime discovery](#anime-discovery-m10) | — |
 
 #### Delivery Notes (M)
 
@@ -110,6 +111,30 @@ identity or numbering solely from similar titles. Cache available episode metada
 and expose refresh status. Provider outages and refresh failures must preserve
 cached browsing and local playback, and metadata refresh must not overwrite manual
 associations or corrections.
+
+#### Anime Discovery (M10)
+
+Provide a dedicated discovery page for browsing anime beyond the user's local
+library and tracking list. Offer ways to explore newly airing or upcoming works,
+popular works and categories, and to search and filter by available attributes
+such as season, year, format and genre. Show the selected metadata source and make
+available ordering, filters and data reflect that source's actual capabilities;
+do not invent rankings, release dates or missing fields. Support pagination or
+incremental loading and retain the browsing context when returning from a work.
+
+Show enough information to evaluate each work and open its detail page. Where
+available, indicate existing local or tracking status and offer explicit actions
+to manage tracking or acquisition through their existing workflows. Browsing or
+opening a work must not add it to a list, create a subscription or start a download.
+Keep source identities distinct and do not merge works across providers based on
+similar titles. The local poster library remains a separate view.
+
+Provide usable loading, empty, unavailable and retry states, including partial
+source results and refresh failures. Preserve any available cached content without
+misrepresenting its freshness. The page must be usable on desktop and narrow screens
+and with keyboard navigation. Validate discovery, filtering, pagination, source
+capability differences, navigation and explicit-action boundaries, including source
+failures and works already present in the user's library or tracking list.
 
 ### 2.3 Web Playback and Subtitles
 
@@ -219,6 +244,32 @@ Later/Unassigned. See the [implemented provider boundary](implemented-requiremen
 | D11 | Configure seeding policies | Not started | Optional | — | — |
 | D12 | Configure download bandwidth schedules | Not started | Optional | — | — |
 | D13 | Configure download storage policies | Not started | Optional | — | — |
+| D14 | Reuse verified acquisition targets during ingestion | Not started | Later | [Acquisition target reuse](#acquisition-target-reuse-d14) | — |
+
+#### Acquisition Target Reuse (D14)
+
+For downloads initiated by Anishelf, preserve the accepted work, episode, release
+and download-task identity through completion and ingestion. When task ownership,
+the completed file and its source version are verified and the file-to-episode
+relationship is unambiguous, associate the file with that accepted target without
+requiring another metadata search or a filename match. Reuse the confirmed target
+instead of independently identifying the same file during routine scanning.
+
+Treat a filename as supporting evidence rather than a mandatory match; a clear
+contradiction must remain visible for review. Do not infer an individual episode
+from task ownership alone when multiple video files, season packs or other layouts
+make their correspondence ambiguous. Unverified ownership, changed or missing files,
+conflicting targets and existing incompatible associations require review or retry;
+never overwrite a manual decision. Preserve existing completion, path, source
+version and ingestion verification, and keep transfer completion distinct from file
+availability and playability.
+
+Retain provenance and explain the accepted target and any conflict in diagnostics.
+Ensure retries and restarts are idempotent and concurrent scans cannot replace a
+confirmed association. Validate single-episode downloads with incomplete filenames,
+contradictory names, multi-file layouts, changed files, ownership failures, manual
+associations and restart or scan races. Coordinate with evidence-based decision
+evaluation (WI15) and media identification during scanning (WI16).
 
 ### 2.7 Desktop and Other Clients
 
@@ -346,6 +397,8 @@ Details and acceptance criteria may be refined as decisions are made.
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
 | WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](implemented-requirements.md#library-and-detail-refresh-continuity-wi10) | — |
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
+| WI15 | Improve evidence-based decisions and their evaluation | Not started | Unassigned | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
+| WI16 | Identify media by its actual contents | Not started | Unassigned | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
 
 #### Matching Improvements from Real Failures (L16)
 
@@ -382,6 +435,86 @@ Do not silently delete valid copies when the cache budget is lowered.
   Explain whether results matched or were rejected and provide useful reasons for
   uncertain or unsuccessful searches. Preserve the distinction between a candidate
   and a confirmed match; do not accept uncertain results solely to increase matches.
+
+#### Evidence-based Decision Quality (WI15)
+
+Improve decisions that depend on incomplete observations, naming conventions,
+similarity, ranking or thresholds. Coordinate filename and resource matching with
+L16 and WI03/WI12 rather than treating the same failure as separate acceptance
+work. Review and improve, as applicable:
+
+- Filename and directory parsing, title normalization, season and part evidence,
+  candidate retrieval and ranking, automatic admission, episode mapping and
+  directory-based numbering conversions.
+- Cross-provider name correspondence and candidate retrieval; release-title
+  identity, episode and attribute extraction; and acquisition filtering and version
+  selection with missing, stale or unreliable source observations.
+- Download-completion observations, video discovery by filename, external subtitle
+  association and language labels, browser playback compatibility, media acceptance
+  and preparation, playback completion and near-end decisions, and processing
+  progress estimates.
+
+For each decision, document its evidence, assumptions, unknown and conflicting
+states, consequences and limits. Improve accuracy and useful coverage while
+measuring false positive and false negative outcomes separately. Keep uncertainty
+visible or require review where evidence cannot justify an automatic action; do not
+weaken identity, episode, download authorization or original-file safeguards merely
+to increase coverage. A ranking score is not a probability unless independently
+calibrated and presented as such. A reported download completion does not prove
+successful ingestion, and a browser capability report does not guarantee playback.
+Preserve the existing names-only boundary for cross-provider enrichment.
+
+Maintain versioned evaluation datasets with independently reviewed expected results,
+source and capture provenance, rationale, and explicit unknown or unresolved labels.
+Extend the existing identification and title-enrichment corpora; add representative
+fixtures or datasets for the remaining decisions, including authentic failures,
+hard negatives, missing and contradictory data, boundary values, and relevant
+device/media observations. Preserve privacy and permissions when collecting cases.
+Use family-separated development and holdout cases where tuning can leak related
+examples, and record known sampling and ground-truth limitations. Include separately
+captured search and pagination cases to assess retrieval as well as candidate
+verification; do not describe a controlled candidate pool as end-to-end recall.
+
+Provide reproducible offline evaluations and reports per decision and relevant
+case category, including denominators, false admissions or unsafe actions, missed
+matches and unresolved outcomes where applicable. Establish reviewed baselines and
+explicit regression criteria before making them gates; include deterministic,
+maintainable checks in the normal test or CI workflow, and document any separately
+run real-device, network or media validation and its results. Compare changes with
+the baseline and holdout set, investigate regressions, and update expectations only
+with evidence rather than to make a test pass. Log decision reasons and evidence
+needed for diagnosis without exposing sensitive information or excessive per-item
+output. Report limitations instead of claiming universal accuracy or compatibility.
+
+#### Media Identification During Scanning (WI16)
+
+Improve resource discovery to identify video from actual media evidence rather than
+relying solely on its filename extension. Discover valid video with misleading,
+unrecognized or missing extensions, and distinguish it from non-video files using
+video extensions. Identify the container and streams when evidence is available;
+do not treat an extension or a successful container identification alone as proof
+that a video stream exists or that the file is playable.
+
+Keep unexamined, confirmed-video, confirmed-non-video and inconclusive results
+distinct. An unavailable tool, unreadable or still-changing file, timeout, malformed
+file or incomplete inspection must not be presented as a conclusive non-video
+result. Preserve previously indexed resources and their associations when inspection
+is inconclusive, provide useful diagnostics and allow a later retry. Confirmed
+non-video results must not be automatically admitted as videos. Preserve root access
+and symbolic-link boundaries, and never modify source files during inspection.
+
+Make initial and incremental scans usable for large libraries: bound inspection
+resources, support cancellation, reuse results only while tied to the same file
+version, and re-evaluate changed files. Define candidate discovery so that supported
+videos without conventional extensions can be found without claiming that every
+file was fully verified when inspection is limited. Surface scan progress and
+incomplete results without blocking access to existing library data. Format
+identification is separate from playback compatibility and complete-file integrity.
+
+Validate the behavior with representative real or synthetic media and non-media
+fixtures, including misleading and absent extensions, audio-only containers,
+damaged and incomplete files, unavailable inspection, changed files, and large
+directory scans. Record coverage and limitations alongside WI15 evaluation work.
 
 ## 5. Bugs
 
