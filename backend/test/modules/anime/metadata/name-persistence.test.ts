@@ -5,6 +5,8 @@ import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { createMetadataModule } from "../../../../src/modules/anime/external-works/metadata/create.js";
+import { metadataDefaults } from "../../../../src/modules/anime/external-works/metadata/defaults.js";
+import type { ProjectDocument } from "../../../../src/modules/anime/external-works/metadata/domain/project-document.js";
 import type { WorkDetails } from "../../../../src/modules/anime/external-works/metadata/domain/source-model.js";
 import type { MetadataProvider } from "../../../../src/modules/anime/external-works/metadata/ports.js";
 
@@ -172,7 +174,7 @@ test("changed origin source evidence invalidates persisted names", async () => {
 	await f.restart();
 	const origin = f.data[0];
 	if (!origin) throw new Error("Missing source fixture");
-	origin.startDate = { year: 2026, month: 2, day: 1 };
+	origin.startDate = { year: 2027, month: 2, day: 1 };
 	const changed = await f.metadata.get(reference, { refresh: true });
 	expect(changed.data.displayTitle).toBe("Original");
 	expect(changed.snapshotId).not.toBe(before.snapshotId);
@@ -189,7 +191,7 @@ test("changed peer source evidence invalidates persisted names without an extra 
 	await f.restart();
 	const data = f.data[1];
 	if (!data) throw new Error("Missing peer fixture");
-	data.startDate = { year: 2026, month: 2, day: 1 };
+	data.startDate = { year: 2027, month: 2, day: 1 };
 	await f.metadata.get(peer, { refresh: true });
 	const calls = f.get.mock.calls.length;
 	expect(f.metadata.current(reference)?.data.displayTitle).toBe("Original");
@@ -201,3 +203,39 @@ test("changed peer source evidence invalidates persisted names without an extra 
 		expect.objectContaining({ value: "中文标题" }),
 	);
 });
+
+test.each([undefined, "older-policy"])(
+	"persisted names require the current verification policy: %s",
+	async (version) => {
+		const f = await fixture();
+		const reference = f.metadata.resolveReference("one:anime:1");
+		const before = await f.metadata.get(reference);
+		const entry = f.database.metadata.get(before.snapshotId);
+		if (!entry) throw new Error("Missing project fixture");
+		const document = structuredClone(entry.data) as ProjectDocument;
+		if (!document.nameEvidence) throw new Error("Missing name evidence");
+		if (version === undefined) delete document.nameEvidence.verificationVersion;
+		else document.nameEvidence.verificationVersion = version;
+		f.database.metadata.save({ ...entry, data: document });
+		await f.restart();
+		const calls = f.search.mock.calls.length;
+		expect(
+			f.database.metadata
+				.titles([{ provider: "one", mediaType: "anime", id: "1" }])
+				.get("one:anime:1"),
+		).not.toContainEqual(expect.objectContaining({ value: "中文标题" }));
+		expect(
+			(await f.metadata.get(reference, { cachedOnly: true })).data.displayTitle,
+		).toBe("Original");
+		expect(f.search).toHaveBeenCalledTimes(calls);
+		expect((await f.metadata.get(reference)).data.displayTitle).toBe(
+			"中文标题",
+		);
+		const restored = await f.metadata.get(reference, { cachedOnly: true });
+		const restoredDocument = f.database.metadata.get(restored.snapshotId)
+			?.data as ProjectDocument;
+		expect(restoredDocument.nameEvidence?.verificationVersion).toBe(
+			metadataDefaults.nameVerificationVersion,
+		);
+	},
+);

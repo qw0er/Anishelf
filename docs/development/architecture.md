@@ -241,16 +241,39 @@ confirmation and invalidates captured playback targets through the existing mapp
 revision checks.
 
 Descriptions, artwork, relations and airing schedules come from the work's source.
-Names are the sole exception: optional verification searches both providers using
-shared explicit native, English or romaji names (Unicode/whitespace normalization
-only), full premiere date, format and positive episode count. An arbitrary alias
-cannot establish the match. Each provider must return exactly one matching entry,
-including the original entry. Missing fields, incomplete/truncated searches,
-ambiguous results, stale data and provider failures leave the source names unchanged.
-Verification uses bounded search/detail limits, with a five-second foreground
-deadline and a 20-second background-enrichment budget. Verified names-only correspondence is held in a bounded 10-minute process cache, lost on
-restart and invalidated by changed source evidence. Successful merged titles also
-persist in the existing project Metadata cache for later presentation reads.
+Names are the sole exception: optional verification uses source-declared native,
+English or romaji names with corroborating release facts. The domain name
+correspondence policy normalizes Unicode, punctuation, numeric ordinals, season
+labels and movie prefixes; it preserves meaningful numbers and guards explicit
+season, part, stage, promotional and finale scope. Numbered seasons may omit a
+bracketed descriptive arc subtitle, but not a finale or part marker. Two explicitly
+different arc subtitles conflict. An arbitrary
+alias cannot establish correspondence alone. Original aliases can corroborate a
+primary name; previously supplemented search titles cannot become new evidence.
+Word-order variants require matching explicit release scope and two independently
+shared names. There is no fuzzy similarity threshold.
+
+Missing dates, formats and counts remain unknown. Known different release years
+conflict, except a full premiere-date difference of at most one day, including a
+year boundary. TV and TV_SHORT are compatible. TV versus ONA additionally requires
+matching explicit release scope and two shared names; film versus TV remains a
+conflict. Episode-count disagreements do not define identity or episode mappings.
+A primary name needs corroborating dates, year/format, or explicit scope; full
+date differences over 31 days require two shared names. Invalid dates are
+insufficient evidence. Each source must resolve uniquely, including a reverse
+check back to the origin. A title-related candidate with insufficient evidence
+blocks uniqueness rather than being silently discarded. Decisions are confirmed,
+conflict or insufficient; multiple confirmed candidates are ambiguous. Debug
+`metadata.name_candidate_assessed` events expose reasons and matched-name counts.
+Truncated searches, stale data and provider failures leave source names unchanged.
+
+Verification uses bounded search/detail limits, a five-second foreground deadline
+and a 20-second background-enrichment budget. Verified names-only correspondence
+uses a bounded 10-minute process cache. Successful merged titles also persist in
+the project Metadata cache with the `names-evidence-v2` policy version and both
+immutable source detail snapshot IDs. Current reads reject obsolete policy proofs
+or changed source evidence; historical snapshots remain intact. Cached provider
+facts can be reverified without external requests, and no migration is required.
 Supplemental names remain aliases, retaining an optional explicit `searchKind` for
 romanized/English query selection. They never change project IDs, original source
 title roles, other metadata fields, episode mappings or Tracking. Presentation can

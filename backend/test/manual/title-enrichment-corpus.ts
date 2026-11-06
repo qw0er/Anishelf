@@ -59,10 +59,14 @@ interface Snapshot {
 }
 interface Diagnostic {
 	event: string;
+	state?: "confirmed" | "conflict" | "insufficient";
+	reasons?: string[];
+	matchedNames?: number;
 	reason?: string;
 	candidateCounts?: (number | null)[];
 }
 interface Outcome {
+	candidateAssessments: Diagnostic[];
 	snapshot: string;
 	selectedBangumiId: number | null;
 	rejectionReasons: string[];
@@ -187,7 +191,7 @@ function metrics(
 }
 
 /** Manual-only candidate-verification test. Does not replay unrecorded live searches. */
-export async function testTitleEnrichmentCorpus() {
+export async function testTitleEnrichmentCorpus(split?: string) {
 	const { cases } = JSON.parse(
 		await readFile(new URL("cases.json", directory), "utf8"),
 	) as { cases: CorpusCase[] };
@@ -202,8 +206,12 @@ export async function testTitleEnrichmentCorpus() {
 	const projected = new Map<string, Awaited<ReturnType<typeof project>>>();
 	for (const [key, snapshot] of snapshots)
 		projected.set(key, await project(snapshot));
+	const selectedCases = cases.filter((item) => !split || item.split === split);
+	if (!selectedCases.length) throw new Error(`No cases for split: ${split}`);
+	const selectedSnapshots = new Set(selectedCases.map((item) => item.snapshot));
 	const outcomes = new Map<string, Outcome>();
 	for (const [key, snapshot] of snapshots) {
+		if (!selectedSnapshots.has(key)) continue;
 		const own = projected.get(key);
 		if (!own) throw new Error(`Missing projection: ${key}`);
 		const diagnostics: Diagnostic[] = [];
@@ -277,6 +285,9 @@ export async function testTitleEnrichmentCorpus() {
 			error = cause instanceof Error ? cause.message : String(cause);
 		}
 		outcomes.set(key, {
+			candidateAssessments: diagnostics.filter(
+				(item) => item.event === "metadata.name_candidate_assessed",
+			),
 			snapshot: key,
 			selectedBangumiId,
 			rejectionReasons: diagnostics
@@ -296,7 +307,7 @@ export async function testTitleEnrichmentCorpus() {
 				.map((item) => item.data.id),
 		});
 	}
-	const rows = cases.map((item) => {
+	const rows = selectedCases.map((item) => {
 		const outcome = outcomes.get(item.snapshot);
 		if (!outcome) throw new Error(`Missing outcome: ${item.snapshot}`);
 		const accepted = outcome.selectedBangumiId === item.bangumiId;
@@ -323,7 +334,7 @@ export async function testTitleEnrichmentCorpus() {
 		Object.fromEntries(
 			[
 				...new Set(
-					cases.flatMap((item) =>
+					selectedCases.flatMap((item) =>
 						field === "tags" ? item.tags : [item.split],
 					),
 				),

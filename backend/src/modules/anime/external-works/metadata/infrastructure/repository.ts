@@ -4,6 +4,7 @@ import { alias } from "drizzle-orm/sqlite-core";
 import type { Store } from "../../../../../platform/database/store.js";
 import type { ExternalWorkReference } from "../../../../../shared/external-reference.js";
 import { workKey } from "../../../../../shared/external-reference.js";
+import { metadataDefaults } from "../defaults.js";
 import type { MetadataTitle } from "../domain/model.js";
 import type { NameEvidence } from "../domain/project-document.js";
 import type {
@@ -93,7 +94,9 @@ export class MetadataRepository implements MetadataStore {
 			for (const { source, project, evidence } of documents) {
 				const valid =
 					!evidence ||
-					(evidence.originSnapshotId === source.detailSnapshotId &&
+					(evidence.verificationVersion ===
+						metadataDefaults.nameVerificationVersion &&
+						evidence.originSnapshotId === source.detailSnapshotId &&
 						peers.get(workKey(evidence.peer)) === evidence.peerSnapshotId);
 				result.set(
 					source.key,

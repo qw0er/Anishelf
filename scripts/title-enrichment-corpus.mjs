@@ -30,7 +30,7 @@ async function summary() {
 	);
 }
 
-async function test() {
+async function test(split) {
 	// Loaded only for an explicit test command; summary never starts the verifier.
 	const { testTitleEnrichmentCorpus } = await import(
 		"../backend/test/manual/title-enrichment-corpus.js"
@@ -41,25 +41,36 @@ async function test() {
 			offline: true,
 		}),
 	);
-	const report = await testTitleEnrichmentCorpus();
+	const report = await testTitleEnrichmentCorpus(split);
 	console.log(JSON.stringify(report, null, 2));
 	if (report.failed) process.exitCode = 1;
 }
 
 const [command = "summary", ...arguments_] = process.argv.slice(2);
-if (arguments_.length || !["summary", "test"].includes(command)) {
+const split =
+	arguments_[0] === "--split" && arguments_.length === 2
+		? arguments_[1]
+		: undefined;
+if (
+	(!split && arguments_.length) ||
+	(split &&
+		(command !== "test" ||
+			!["development", "regression", "holdout"].includes(split))) ||
+	!["summary", "test"].includes(command)
+) {
 	console.error(
 		JSON.stringify({
 			event: "title_corpus.command_rejected",
 			command,
-			usage: "npm run anime:titles -- <summary|test>",
+			usage:
+				"npm run anime:titles -- <summary|test> [--split development|regression|holdout]",
 		}),
 	);
 	process.exitCode = 2;
 } else {
 	try {
 		if (command === "summary") await summary();
-		else await test();
+		else await test(split);
 	} catch (error) {
 		console.error(
 			JSON.stringify({

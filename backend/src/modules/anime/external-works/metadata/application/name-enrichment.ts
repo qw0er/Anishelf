@@ -7,6 +7,11 @@ import {
 	MetadataError,
 	type ReadOptions,
 } from "../domain/model.js";
+import {
+	nameCorrespondence,
+	nameFingerprint,
+	relatedNames,
+} from "../domain/name-correspondence.js";
 import type { NameEvidence } from "../domain/project-document.js";
 import type { WorkDetails, WorkSummary } from "../domain/source-model.js";
 import type { SourceMetadataApi } from "../ports.js";
@@ -32,42 +37,6 @@ function explicitNames(work: WorkSummary): string[] {
 				.filter(Boolean),
 		),
 	];
-}
-function sharedNames(left: WorkSummary, right: WorkSummary): boolean {
-	const names = new Set(explicitNames(left));
-	return explicitNames(right).some((name) => names.has(name));
-}
-function signature(work: WorkDetails): string | null {
-	const date = work.startDate;
-	if (
-		!explicitNames(work).length ||
-		!work.format ||
-		!Number.isSafeInteger(work.episodeCount) ||
-		(work.episodeCount ?? 0) < 1 ||
-		!date?.year ||
-		!date.month ||
-		!date.day
-	)
-		return null;
-	const actual = new Date(Date.UTC(date.year, date.month - 1, date.day));
-	if (
-		actual.getUTCFullYear() !== date.year ||
-		actual.getUTCMonth() + 1 !== date.month ||
-		actual.getUTCDate() !== date.day
-	)
-		return null;
-	return JSON.stringify([
-		date.year,
-		date.month,
-		date.day,
-		work.format,
-		work.episodeCount,
-	]);
-}
-/** Each source keeps its own title fingerprint; primary languages may differ. */
-function evidenceSignature(work: WorkDetails): string | null {
-	const basis = signature(work);
-	return basis ? JSON.stringify([basis, explicitNames(work).toSorted()]) : null;
 }
 const fresh = (value: CachedMetadata<unknown>) =>
 	!value.stale && !value.refreshing && !value.refreshError;
@@ -102,8 +71,8 @@ export class MetadataNameEnrichment {
 			!peer ||
 			!fresh(own) ||
 			!fresh(peer) ||
-			evidenceSignature(own.data) !== entry.ownSignature ||
-			evidenceSignature(peer.data) !== entry.peerSignature ||
+			nameFingerprint(own.data) !== entry.ownSignature ||
+			nameFingerprint(peer.data) !== entry.peerSignature ||
 			native(value.data) !== native(own.data) ||
 			value.data.format !== own.data.format ||
 			value.data.episodeCount !== own.data.episodeCount
@@ -140,6 +109,7 @@ export class MetadataNameEnrichment {
 			peer = this.source.current(entry.peer);
 		if (!own || !peer) return undefined;
 		return {
+			verificationVersion: metadataDefaults.nameVerificationVersion,
 			originSnapshotId: own.snapshotId,
 			peerSnapshotId: peer.snapshotId,
 			peer: entry.peer,
@@ -216,12 +186,7 @@ export class MetadataNameEnrichment {
 		const unique = new Map(
 			results
 				.flatMap((result) => result.data.items)
-				.filter(
-					(work) =>
-						sharedNames(work, origin) &&
-						work.format === origin.format &&
-						work.episodeCount === origin.episodeCount,
-				)
+				.filter((work) => relatedNames(work, origin))
 				.map((work) => [workKey(work.reference), work]),
 		);
 		if (unique.size > 5) return null;
@@ -238,20 +203,33 @@ export class MetadataNameEnrichment {
 		)?.refreshError;
 		if (detailFailure) throw new MetadataError(detailFailure);
 		// An unreadable/incomplete candidate cannot be ruled out as another match.
-		if (details.some((detail) => !fresh(detail) || !signature(detail.data)))
+		if (details.some((detail) => !fresh(detail))) return null;
+		const decisions = details.map((detail) => ({
+			detail,
+			decision: nameCorrespondence(origin, detail.data),
+		}));
+		for (const { detail, decision } of decisions)
+			this.logger?.debug(
+				{
+					event: "metadata.name_candidate_assessed",
+					originId: origin.reference.id,
+					provider,
+					providerId: detail.data.reference.id,
+					...decision,
+				},
+				"Names-only candidate evidence assessed.",
+			);
+		// Insufficient evidence is still a plausible competitor, not evidence of uniqueness.
+		if (decisions.some(({ decision }) => decision.state === "insufficient"))
 			return null;
-		return details
-			.filter(
-				(detail) =>
-					sharedNames(detail.data, origin) &&
-					signature(detail.data) === signature(origin),
-			)
-			.map((detail) => detail.data);
+		return decisions
+			.filter(({ decision }) => decision.state === "confirmed")
+			.map(({ detail }) => detail.data);
 	}
 	private async verify(work: WorkSummary, options: ReadOptions): Promise<void> {
 		const origin = await this.source.get(work.reference, options);
 		if (origin.refreshError) throw new MetadataError(origin.refreshError);
-		const basis = evidenceSignature(origin.data);
+		const basis = nameFingerprint(origin.data);
 		if (
 			!fresh(origin) ||
 			!basis ||
@@ -265,7 +243,7 @@ export class MetadataNameEnrichment {
 					provider: work.reference.provider,
 					reason: "origin-evidence-incomplete-or-changed",
 				},
-				"Name verification requires complete, current source evidence.",
+				"Name verification requires current source identity evidence.",
 			);
 			return;
 		}
@@ -315,6 +293,9 @@ export class MetadataNameEnrichment {
 					event: "metadata.name_enrichment_rejected",
 					provider: work.reference.provider,
 					reason: "candidate-evidence-incomplete-or-ambiguous",
+					state: matches.some((items) => items && items.length > 1)
+						? "ambiguous"
+						: "insufficient",
 					candidateCounts: matches.map((items) => items?.length ?? null),
 				},
 				"Name evidence is incomplete or not unique in both sources.",
@@ -346,6 +327,9 @@ export class MetadataNameEnrichment {
 					event: "metadata.name_enrichment_rejected",
 					provider: work.reference.provider,
 					reason: "reverse-evidence-incomplete-or-ambiguous",
+					state: reverse.some((items) => items && items.length > 1)
+						? "ambiguous"
+						: "insufficient",
 					candidateCounts: reverse.map((items) => items?.length ?? null),
 				},
 				"Name evidence must uniquely resolve back to the originating work.",
@@ -353,7 +337,7 @@ export class MetadataNameEnrichment {
 			return;
 		}
 
-		const otherBasis = evidenceSignature(other);
+		const otherBasis = nameFingerprint(other);
 		if (!otherBasis) return;
 		if (this.evidence.size >= 500) this.evidence.clear();
 		this.evidence.set(workKey(work.reference), {
@@ -377,7 +361,7 @@ export class MetadataNameEnrichment {
 					explicitNames(other).includes(name),
 				).length,
 			},
-			"Unique names-only correspondence verified using shared explicit title roles, full date, format and episode count.",
+			"Unique names-only correspondence verified with corroborated titles and release-scope safeguards.",
 		);
 	}
 }

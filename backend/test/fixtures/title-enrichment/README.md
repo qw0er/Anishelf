@@ -62,8 +62,8 @@ npm run anime:titles -- summary
 npm run test --workspace @anishelf/backend -- test/modules/anime/metadata/title-corpus.test.ts
 ```
 
-Normal tests never contact either website. No production matching behavior changes
-are included with this dataset.
+Normal tests never contact either website. Dataset labels remain independent of
+the production matching policy.
 
 ## Explicit collection
 
@@ -84,6 +84,9 @@ explicit maintenance action, not part of CI or ordinary tests.
 
 ```sh
 npm run --silent anime:titles -- test > /tmp/anishelf-title-matcher-report.json
+npm run --silent anime:titles -- test --split development
+npm run --silent anime:titles -- test --split regression
+npm run --silent anime:titles -- test --split holdout
 ```
 
 This command runs the current `MetadataNameEnrichment` implementation against the
@@ -107,7 +110,7 @@ being evaluated. The `search-pagination` tag describes the captured source evide
 a result in this manual test cannot establish that production retrieval succeeds.
 
 The JSON report includes per-case accepted peer ID, pass/fail, actual rejection
-logs and candidate counts; positive recall, false-positive rate, unresolved accepted
+logs, per-candidate decision states/reasons and candidate counts; positive recall, false-positive rate, unresolved accepted
 cases, wrong-counterpart selections and runtime errors; and breakdowns by split and
 coverage tag. A positive must select its labelled counterpart. Negatives and
 unresolved pairs must not be accepted. Any failed case, unsafe counterpart selection,
@@ -117,3 +120,27 @@ The evaluator lives under `test/manual/` without a `.test.ts` suffix. It is not
 included in default `npm test`, `npm run check`, builds, collection, summary commands
 or CI. It performs no live requests and writes no snapshots, labels or application
 data. Execute it explicitly when ready to evaluate or optimize the algorithm.
+
+
+## Verification-policy evaluation (2026-11-06)
+
+The previous strict date/format/count policy accepted 16/49 positive pairs (32.7%)
+and accepted none of the 38 negative or two unresolved pairs. The
+`names-evidence-v2` policy was developed on the development and regression families;
+holdout results were measured separately and were not used to tune the matcher. All split runs and the final combined
+run passed:
+
+| Split | Positive recall | Negatives accepted | Unresolved accepted |
+| --- | --- | --- | --- |
+| Development | 24/24 | 0/19 | 0/1 |
+| Regression | 9/9 | 0/6 | 0/0 |
+| Holdout | 16/16 | 0/13 | 0/1 |
+| Combined | 49/49 | 0/38 | 0/2 |
+
+No wrong-counterpart selections or runtime errors occurred. This is a small,
+reviewed, controlled-pool verification benchmark, not a production success rate.
+It does not cover live query recall, first-page truncation, network freshness or
+rate limits. Expanding replay coverage and independent negative families remains
+necessary before claiming broader production recall. `--split` changes assertions
+and evaluated anchors, not candidate membership; it never uses expected labels to
+construct the pool. Manual evaluation remains outside default tests and CI.

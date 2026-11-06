@@ -1,4 +1,5 @@
 export const metadataDefaults = {
+	nameVerificationVersion: "names-evidence-v2",
 	nameVerificationTimeoutMs: 20_000,
 	titleMaximumPending: 50,
 	titleRequestTimeoutMs: 30_000,
