@@ -44,6 +44,13 @@
 		"architecture:test": "node --test scripts/architecture.test.mjs scripts/release-notes.test.mjs",
 		"unused:check": "knip --no-progress",
 		"anime:corpus": "node --import tsx scripts/anime-corpus.mts",
+		"anime:retrieval": "node --import tsx scripts/anime-retrieval-corpus.mts",
+		"anime:releases": "node --import tsx scripts/anime-release-corpus.mts",
+		"acquisition:discovery": "node --import tsx scripts/acquisition-discovery-corpus.mts",
+		"anime:identification": "node --import tsx scripts/anime-identification-corpus.mts",
+		"anime:parsing": "node --import tsx scripts/anime-parsing-corpus.mts",
+		"anime:ranking": "node --import tsx scripts/anime-ranking-corpus.mts",
+		"anime:numbering": "node --import tsx scripts/anime-numbering-corpus.mts",
 		"anime:titles": "node --import tsx scripts/title-enrichment-corpus.mjs"
 	},
 	"overrides": {

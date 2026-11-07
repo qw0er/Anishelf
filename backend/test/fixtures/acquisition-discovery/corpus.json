@@ -1,0 +1,228 @@
+{
+	"schemaVersion": 1,
+	"version": "2026-11-07.1",
+	"provenance": "Constructed Torznab protocol layouts using three exact publication titles from identification corpus 2026-10-11.2. These are NOT captured live search responses. Download URLs use reserved example.org and are never fetched.",
+	"entries": [
+		{
+			"id": "frieren",
+			"title": "[SubsPlease] Sousou no Frieren (01-28) (1080p) [V2] [Batch]",
+			"url": "https://nyaa.si/view/2114808",
+			"sourceCaseId": "nyaa-2114808-title"
+		},
+		{
+			"id": "frieren-2",
+			"title": "[SubsPlease] Sousou no Frieren S2 (01-10) (1080p) [Batch]",
+			"url": "https://nyaa.si/view/2115493",
+			"sourceCaseId": "nyaa-2115493-title"
+		},
+		{
+			"id": "unrelated",
+			"title": "[MTBB] Dungeon Meshi S1 (BD 1080p) | Delicious in Dungeon",
+			"url": "https://nyaa.si/view/1925045",
+			"sourceCaseId": "nyaa-1925045-title"
+		}
+	],
+	"cases": [
+		{
+			"id": "multilingual-fallback",
+			"titles": [
+				{
+					"value": "Sousou no Frieren",
+					"kind": "romaji",
+					"language": null
+				},
+				{
+					"value": "Frieren: Beyond Journey’s End",
+					"kind": "english",
+					"language": null
+				},
+				{
+					"value": "generic ignored alias",
+					"kind": "alias",
+					"language": null
+				}
+			],
+			"limit": 2,
+			"pages": [
+				{
+					"query": "Sousou no Frieren",
+					"offset": 0,
+					"entries": ["unrelated"],
+					"total": 1
+				},
+				{
+					"query": "Frieren: Beyond Journey’s End",
+					"offset": 0,
+					"entries": ["frieren"],
+					"total": 1
+				}
+			],
+			"expectedEntries": ["unrelated", "frieren"],
+			"expectedCoverage": {
+				"limited": false,
+				"reason": null,
+				"pages": 2,
+				"queries": 2
+			},
+			"expectedOutcome": "matches"
+		},
+		{
+			"id": "later-page",
+			"titles": [
+				{
+					"value": "Sousou no Frieren Season 2",
+					"kind": "romaji",
+					"language": null
+				}
+			],
+			"limit": 1,
+			"pages": [
+				{
+					"query": "Sousou no Frieren Season 2",
+					"offset": 0,
+					"entries": ["unrelated"],
+					"total": 2
+				},
+				{
+					"query": "Sousou no Frieren Season 2",
+					"offset": 1,
+					"entries": ["frieren-2"],
+					"total": 2
+				}
+			],
+			"expectedEntries": ["unrelated", "frieren-2"],
+			"expectedCoverage": {
+				"limited": false,
+				"reason": null,
+				"pages": 2,
+				"queries": 1
+			},
+			"expectedOutcome": "matches"
+		},
+		{
+			"id": "deduplicate-aliases",
+			"titles": [
+				{
+					"value": "Sousou no Frieren",
+					"kind": "romaji",
+					"language": null
+				},
+				{
+					"value": "Frieren: Beyond Journey’s End",
+					"kind": "english",
+					"language": null
+				}
+			],
+			"limit": 2,
+			"pages": [
+				{
+					"query": "Sousou no Frieren",
+					"offset": 0,
+					"entries": ["frieren"],
+					"total": 1
+				},
+				{
+					"query": "Frieren: Beyond Journey’s End",
+					"offset": 0,
+					"entries": ["frieren"],
+					"total": 1
+				}
+			],
+			"expectedEntries": ["frieren"],
+			"expectedCoverage": {
+				"limited": false,
+				"reason": null,
+				"pages": 2,
+				"queries": 2
+			},
+			"expectedOutcome": "matches"
+		},
+		{
+			"id": "empty",
+			"titles": [
+				{
+					"value": "Absent fixture work",
+					"kind": "romaji",
+					"language": null
+				}
+			],
+			"limit": 2,
+			"pages": [
+				{
+					"query": "Absent fixture work",
+					"offset": 0,
+					"entries": [],
+					"total": 0
+				}
+			],
+			"expectedEntries": [],
+			"expectedCoverage": {
+				"limited": false,
+				"reason": null,
+				"pages": 1,
+				"queries": 1
+			},
+			"expectedOutcome": "no_match"
+		},
+		{
+			"id": "repeated-page",
+			"titles": [
+				{
+					"value": "Sousou no Frieren",
+					"kind": "romaji",
+					"language": null
+				}
+			],
+			"limit": 1,
+			"pages": [
+				{
+					"query": "Sousou no Frieren",
+					"offset": 0,
+					"entries": ["frieren"],
+					"total": 4
+				},
+				{
+					"query": "Sousou no Frieren",
+					"offset": 1,
+					"entries": ["frieren"],
+					"total": 4
+				}
+			],
+			"expectedEntries": ["frieren"],
+			"expectedCoverage": {
+				"limited": true,
+				"reason": "repeated_page",
+				"pages": 2,
+				"queries": 1
+			},
+			"expectedOutcome": "matches"
+		},
+		{
+			"id": "missing-pagination",
+			"titles": [
+				{
+					"value": "Sousou no Frieren",
+					"kind": "romaji",
+					"language": null
+				}
+			],
+			"limit": 2,
+			"pages": [
+				{
+					"query": "Sousou no Frieren",
+					"offset": 0,
+					"entries": ["frieren"],
+					"total": null
+				}
+			],
+			"expectedEntries": ["frieren"],
+			"expectedCoverage": {
+				"limited": true,
+				"reason": "missing_pagination",
+				"pages": 1,
+				"queries": 1
+			},
+			"expectedOutcome": "matches"
+		}
+	]
+}

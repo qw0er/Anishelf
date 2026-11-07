@@ -24,6 +24,14 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | `npm run start:backend` | Run built Backend; frontend hosting requires `ANISHELF_FRONTEND_DIR` |
 | `npm run check` | Biome, lint, architecture, type checks and tests |
 | `npm run build` | Build both workspaces |
+| `npm run anime:corpus -- summary` / `generate <new-directory>` | Inspect integration fixtures or generate an exclusive placeholder directory |
+| `npm run anime:identification -- test` | Audit the complete offline path-to-admission pipeline; unsafe admissions, comparable episode errors and reported regressions return nonzero |
+| `npm run anime:parsing -- summary` / `test` | Inspect or evaluate the offline [filename/directory parsing corpus](../../backend/test/fixtures/anime-parsing/README.md); strict benchmark failures return nonzero |
+| `npm run anime:retrieval -- summary` / `test` | Run the small [first-page candidate search replay](../../backend/test/fixtures/anime-retrieval/README.md) for common query cases |
+| `npm run anime:releases -- summary` / `test` | Evaluate [subscription release identity/episode eligibility and declared attributes](../../backend/test/fixtures/anime-releases/README.md) using real publication titles and explicit boundary cases |
+| `npm run acquisition:discovery -- summary` / `test` | Run the small offline [subscription resource discovery corpus](../../backend/test/fixtures/acquisition-discovery/README.md) for Jackett query planning, pagination, deduplication, and coverage limits |
+| `npm run anime:ranking -- summary` / `test` | Inspect or evaluate [work identification and candidate ranking](../../backend/test/fixtures/anime-ranking/README.md) over frozen evidence and candidate pools; strict Top-1 misses return nonzero |
+| `npm run anime:numbering -- summary` / `test` | Inspect or evaluate [known-work episode numbering and directory conversion](../../backend/test/fixtures/anime-numbering/README.md) with independently comparable target labels |
 
 ## Development proxy and hosting
 
@@ -160,7 +168,7 @@ Normal status reads do not emit business events.
 | Web suite | `npm run test --workspace @anishelf/web` |
 | One backend file | `npm run test --workspace @anishelf/backend -- test/app/anime-detail.test.ts` |
 | Deployment fixtures | `npm run test:deployment` |
-| Identification corpus | `npm run --silent anime:corpus -- match`; [corpus usage](../../backend/test/fixtures/anime-identification/README.md) |
+| Complete identification audit | `npm run --silent anime:identification -- test`; [corpus usage](../../backend/test/fixtures/anime-identification/README.md) |
 
 Both Vitest workspaces default to four workers; use `--maxWorkers` when needed.
 Tests exercising media tools, architecture fixtures or real HTTP need permission

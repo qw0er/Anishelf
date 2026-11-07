@@ -1,0 +1,4180 @@
+[
+	{
+		"id": "rule:bounded-range:0",
+		"group": "rules",
+		"batch": "bounded-range",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "fb9e2651057e991be15108ef02e39ca6cac98a4d75b485484a97c072e649b0c4",
+			"originalName": "Ocean - 01-02.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 01-02.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 01-02.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 8
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 11
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 14
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 01-02.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 23
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 26
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 29
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 01-02.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 23
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 26
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 29
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["01", "02"],
+			"selectedEpisodes": ["01", "02"],
+			"numbering": "range",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "bounded-range"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing bounded-range numbering regression.",
+		"expected": {
+			"targets": [
+				{
+					"kind": "regular",
+					"number": "1"
+				},
+				{
+					"kind": "regular",
+					"number": "2"
+				}
+			],
+			"resolved": true
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:explicit-local:0",
+		"group": "rules",
+		"batch": "explicit-local",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "6a0170bacb2ada2431755b81d9a4b9aa20ab315ad7d09409fd54102b51df8dcc",
+			"originalName": "Ocean - 13 (S02E01).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["13", "01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "explicit-local"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing explicit-local numbering regression.",
+		"expected": {
+			"targets": [
+				{
+					"kind": "regular",
+					"number": "1"
+				}
+			],
+			"resolved": true
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:agreed-anchors:0",
+		"group": "rules",
+		"batch": "agreed-anchors",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "b759606a0d8e3808f082cb8870f91393920fd9109d5639a1c606728f0c0a8ea9",
+			"originalName": "Ocean - 13 (S02E01).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["13", "01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "agreed-anchors"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing agreed-anchors numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:agreed-anchors:1",
+		"group": "rules",
+		"batch": "agreed-anchors",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "b759606a0d8e3808f082cb8870f91393920fd9109d5639a1c606728f0c0a8ea9",
+			"originalName": "Ocean - 14 (S02E02).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["14", "02"],
+			"selectedEpisodes": ["02"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "agreed-anchors"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing agreed-anchors numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:agreed-anchors:2",
+		"group": "rules",
+		"batch": "agreed-anchors",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "b759606a0d8e3808f082cb8870f91393920fd9109d5639a1c606728f0c0a8ea9",
+			"originalName": "Ocean - 15.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 15.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 8
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 11
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["15"],
+			"selectedEpisodes": ["15"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [
+				"Release numbering exceeds the known episode count; an explicit correction may be needed."
+			],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "agreed-anchors"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing agreed-anchors numbering regression.",
+		"expected": {
+			"targets": [
+				{
+					"kind": "regular",
+					"number": "3"
+				}
+			],
+			"resolved": true,
+			"offset": -12
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:conflicting-anchors:0",
+		"group": "rules",
+		"batch": "conflicting-anchors",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "29433cb6c237606837fefd62cf307e560a5b87c3b10667cdb3131d2dc541aa50",
+			"originalName": "Ocean - 13 (S02E01).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["13", "01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "conflicting-anchors"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing conflicting-anchors numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:conflicting-anchors:1",
+		"group": "rules",
+		"batch": "conflicting-anchors",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "29433cb6c237606837fefd62cf307e560a5b87c3b10667cdb3131d2dc541aa50",
+			"originalName": "Ocean - 15 (S02E02).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 15 (S02E02).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 15 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 15 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 15 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["15", "02"],
+			"selectedEpisodes": ["02"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "conflicting-anchors"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing conflicting-anchors numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:conflicting-anchors:2",
+		"group": "rules",
+		"batch": "conflicting-anchors",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "29433cb6c237606837fefd62cf307e560a5b87c3b10667cdb3131d2dc541aa50",
+			"originalName": "Ocean - 16.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 16.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 16.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "16",
+							"position": 8
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 11
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 16.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "16",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 16.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "16",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["16"],
+			"selectedEpisodes": ["16"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [
+				"Release numbering exceeds the known episode count; an explicit correction may be needed."
+			],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "conflicting-anchors"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing conflicting-anchors numbering regression.",
+		"expected": {
+			"targets": [],
+			"resolved": false,
+			"offset": null
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:cross-directory:0",
+		"group": "rules",
+		"batch": "cross-directory",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "5bb343c13a63412612d7cb462d5413a0952d22f4f4d872bafd7eef648c279647",
+			"originalName": "Ocean - 13 (S02E01).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["13", "01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "cross-directory"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing cross-directory numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:cross-directory:1",
+		"group": "rules",
+		"batch": "cross-directory",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "3a8e8da683c245380074fbcff088497c7b9326096917450e65211e6c2b6f6698",
+			"originalName": "Ocean Season 2 - 14 (S02E02).mkv",
+			"relativePath": "Other/Ocean Season 2 - 14 (S02E02).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean Season 2 - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 17
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 25
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 29
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Other",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Other",
+							"position": 0
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Other/Ocean Season 2 - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Other/Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 19
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 23
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Other/Ocean Season 2 - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Other/Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 19
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 23
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean", "Other", "Other/Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Other",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Other/Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Other/Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["14", "02"],
+			"selectedEpisodes": ["02"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 112,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "cross-directory"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing cross-directory numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:cross-directory:2",
+		"group": "rules",
+		"batch": "cross-directory",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "5bb343c13a63412612d7cb462d5413a0952d22f4f4d872bafd7eef648c279647",
+			"originalName": "Ocean - 15.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 15.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 8
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 11
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["15"],
+			"selectedEpisodes": ["15"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [
+				"Release numbering exceeds the known episode count; an explicit correction may be needed."
+			],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "cross-directory"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing cross-directory numbering regression.",
+		"expected": {
+			"targets": [],
+			"resolved": false,
+			"offset": null
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:unrelated-leaf:0",
+		"group": "rules",
+		"batch": "unrelated-leaf",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "0c7e0ced93bd9a46c22ec302ab241b2aac6209fd12dcd145bceab209ba7b90e5",
+			"originalName": "Ocean - 13 (S02E01).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["13", "01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "unrelated-leaf"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing unrelated-leaf numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:unrelated-leaf:1",
+		"group": "rules",
+		"batch": "unrelated-leaf",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "0c7e0ced93bd9a46c22ec302ab241b2aac6209fd12dcd145bceab209ba7b90e5",
+			"originalName": "Ocean - 14 (S02E02).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["14", "02"],
+			"selectedEpisodes": ["02"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "unrelated-leaf"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing unrelated-leaf numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:unrelated-leaf:2",
+		"group": "rules",
+		"batch": "unrelated-leaf",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "0c7e0ced93bd9a46c22ec302ab241b2aac6209fd12dcd145bceab209ba7b90e5",
+			"originalName": "Other - 15.mkv",
+			"relativePath": "Ocean Season 2/Other - 15.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Other - 15.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Other",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 8
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 11
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Other - 15.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean Season 2/Other",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Other - 15.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean Season 2/Other",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				}
+			],
+			"titles": ["Other", "Ocean", "Ocean Season 2/Other"],
+			"titleSources": [
+				{
+					"title": "Other",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean Season 2/Other",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean Season 2/Other",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["15"],
+			"selectedEpisodes": ["15"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 110,
+			"reasons": [
+				"Strongest title evidence comes from ancestor; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [
+				"Release numbering exceeds the known episode count; an explicit correction may be needed."
+			],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "unrelated-leaf"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing unrelated-leaf numbering regression.",
+		"expected": {
+			"targets": [],
+			"resolved": false,
+			"offset": null
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:duplicate-anchor:0",
+		"group": "rules",
+		"batch": "duplicate-anchor",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "f6ca8fb988f0c81fe998a35abff30d49aa0b2bc41511703ee5d0d8ecc930dfd6",
+			"originalName": "Ocean - 13 (S02E01) v1.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 13 (S02E01) v1.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 13 (S02E01) v1.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 16
+						},
+						{
+							"kind": "release_version",
+							"value": "1",
+							"position": 20
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 23
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01) v1.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "release_version",
+							"value": "1",
+							"position": 35
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 38
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01) v1.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "release_version",
+							"value": "1",
+							"position": 35
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 38
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["13", "01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "duplicate-anchor"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing duplicate-anchor numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:duplicate-anchor:1",
+		"group": "rules",
+		"batch": "duplicate-anchor",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "f6ca8fb988f0c81fe998a35abff30d49aa0b2bc41511703ee5d0d8ecc930dfd6",
+			"originalName": "Ocean - 13 (S02E01) v2.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 13 (S02E01) v2.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 13 (S02E01) v2.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 16
+						},
+						{
+							"kind": "release_version",
+							"value": "2",
+							"position": 20
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 23
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01) v2.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "release_version",
+							"value": "2",
+							"position": 35
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 38
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01) v2.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "release_version",
+							"value": "2",
+							"position": 35
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 38
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["13", "01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "duplicate-anchor"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing duplicate-anchor numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:duplicate-anchor:2",
+		"group": "rules",
+		"batch": "duplicate-anchor",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "f6ca8fb988f0c81fe998a35abff30d49aa0b2bc41511703ee5d0d8ecc930dfd6",
+			"originalName": "Ocean - 15.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 15.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 8
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 11
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["15"],
+			"selectedEpisodes": ["15"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [
+				"Release numbering exceeds the known episode count; an explicit correction may be needed."
+			],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "duplicate-anchor"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing duplicate-anchor numbering regression.",
+		"expected": {
+			"targets": [],
+			"resolved": false,
+			"offset": null
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:in-scope-alternative:0",
+		"group": "rules",
+		"batch": "in-scope-alternative",
+		"workId": "rule-ocean-24",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "b759606a0d8e3808f082cb8870f91393920fd9109d5639a1c606728f0c0a8ea9",
+			"originalName": "Ocean - 13 (S02E01).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 13 (S02E01).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "13",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["13", "01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "in-scope-alternative"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing in-scope-alternative numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:in-scope-alternative:1",
+		"group": "rules",
+		"batch": "in-scope-alternative",
+		"workId": "rule-ocean-24",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "b759606a0d8e3808f082cb8870f91393920fd9109d5639a1c606728f0c0a8ea9",
+			"originalName": "Ocean - 14 (S02E02).mkv",
+			"relativePath": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 13
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 16
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 20
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 14 (S02E02).mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "14",
+							"position": 23
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 28
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 31
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 35
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["14", "02"],
+			"selectedEpisodes": ["02"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "in-scope-alternative"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing in-scope-alternative numbering regression.",
+		"expected": null,
+		"basis": "anchor-context-only"
+	},
+	{
+		"id": "rule:in-scope-alternative:2",
+		"group": "rules",
+		"batch": "in-scope-alternative",
+		"workId": "rule-ocean-24",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "b759606a0d8e3808f082cb8870f91393920fd9109d5639a1c606728f0c0a8ea9",
+			"originalName": "Ocean - 15.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 15.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 8
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 11
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 15.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "15",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["15"],
+			"selectedEpisodes": ["15"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "in-scope-alternative"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing in-scope-alternative numbering regression.",
+		"expected": {
+			"targets": [
+				{
+					"kind": "regular",
+					"number": "3"
+				}
+			],
+			"resolved": false,
+			"offset": -12
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:zero-manual:0",
+		"group": "rules",
+		"batch": "zero-manual",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "4c63c6ee362f5e66c57f9d9fe7104dff956421b50e87adf0ed27d3fac3741106",
+			"originalName": "Ocean - 00.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 00.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 00.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "00",
+							"position": 8
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 11
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 00.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "00",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 00.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "00",
+							"position": 23
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 26
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["00"],
+			"selectedEpisodes": ["00"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "zero-manual"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing zero-manual numbering regression.",
+		"expected": {
+			"targets": [
+				{
+					"kind": "special",
+					"number": "0"
+				}
+			],
+			"resolved": false
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:missing-number:0",
+		"group": "rules",
+		"batch": "missing-number",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "9f3f93cdab71254ed4cb59e5be254bf538684396685b967e58a16c18404c52cc",
+			"originalName": "Ocean.mkv",
+			"relativePath": "Ocean Season 2/Ocean.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 6
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 21
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 21
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": [],
+			"selectedEpisodes": [],
+			"numbering": "unknown",
+			"contentKind": "unknown"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "missing-number"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing missing-number numbering regression.",
+		"expected": {
+			"targets": [],
+			"resolved": false
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:descending-range:0",
+		"group": "rules",
+		"batch": "descending-range",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "5dafad89f05baf976c6133e00c561d1c4ad31acc07590420a5fd540d0bc9f7dc",
+			"originalName": "Ocean - 03-01.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 03-01.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 03-01.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean - 03",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 11
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 14
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 03-01.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean Season 2/Ocean - 03",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 26
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 29
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 03-01.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean Season 2/Ocean - 03",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 26
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 29
+						}
+					]
+				}
+			],
+			"titles": ["Ocean - 03", "Ocean", "Ocean Season 2/Ocean - 03"],
+			"titleSources": [
+				{
+					"title": "Ocean - 03",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean Season 2/Ocean - 03",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean Season 2/Ocean - 03",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "ambiguous",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 110,
+			"reasons": [
+				"Strongest title evidence comes from ancestor; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "descending-range"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing descending-range numbering regression.",
+		"expected": {
+			"targets": [],
+			"resolved": false
+		},
+		"basis": "existing-rule-regression"
+	},
+	{
+		"id": "rule:oversized-range:0",
+		"group": "rules",
+		"batch": "oversized-range",
+		"workId": "rule-ocean",
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "9b15b8484b9b2dfa0299efe98bf36708501ce2cbf7bb7679ccda9cd6d8d8746c",
+			"originalName": "Ocean - 01-999.mkv",
+			"relativePath": "Ocean Season 2/Ocean - 01-999.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "Ocean - 01-999.mkv",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 8
+						},
+						{
+							"kind": "episode",
+							"value": "999",
+							"position": 11
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 15
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "Ocean Season 2",
+					"elements": [
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 0
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "Ocean Season 2/Ocean - 01-999.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 23
+						},
+						{
+							"kind": "episode",
+							"value": "999",
+							"position": 26
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 30
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "Ocean Season 2/Ocean - 01-999.mkv",
+					"elements": [
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 13
+						},
+						{
+							"kind": "title",
+							"value": "Ocean",
+							"position": 15
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 23
+						},
+						{
+							"kind": "episode",
+							"value": "999",
+							"position": 26
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 30
+						}
+					]
+				}
+			],
+			"titles": ["Ocean"],
+			"titleSources": [
+				{
+					"title": "Ocean",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Ocean",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["01", "999"],
+			"selectedEpisodes": ["01", "999"],
+			"numbering": "range",
+			"contentKind": "regular"
+		},
+		"rankingEvidence": {
+			"score": 124,
+			"reasons": [
+				"Strongest title evidence comes from basename; provider primary titles have priority over aliases.",
+				"A complete contextual title matches a title or alias.",
+				"Series season matches explicit title or metadata evidence.",
+				"An extracted title matches a title or alias after explicit season normalization.",
+				"An extracted title matches a title or alias."
+			],
+			"conflicts": [
+				"Release numbering exceeds the known episode count; an explicit correction may be needed."
+			],
+			"identityConflicts": [],
+			"identityUnresolved": [],
+			"assumptions": [],
+			"matcherVersion": "anitomy-metadata-title-v7"
+		},
+		"tags": ["existing-rule", "oversized-range"],
+		"provenance": {
+			"kind": "synthetic",
+			"sourceId": null,
+			"note": "Extracted from existing identification-general-rules.test.ts and anitomy-adapter.test.ts cases; only the original assertions are labelled."
+		},
+		"rationale": "Preserve the existing oversized-range numbering regression.",
+		"expected": {
+			"targets": [],
+			"resolved": false
+		},
+		"basis": "existing-rule-regression"
+	}
+]

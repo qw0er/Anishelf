@@ -24,7 +24,6 @@ import { createIdentificationModule } from "../../../../src/modules/anime/workfl
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import type { SourceIdentity } from "../../../../src/modules/resources/resource-access/public.js";
-import { loadCorpus } from "../../../support/anime-corpus.js";
 import { createHttpApp } from "../../../support/http.js";
 import { createLibraryModule } from "../../../support/library.js";
 import { updateResourceSettings } from "../../../support/settings.js";
@@ -298,26 +297,6 @@ test("identification rejects duplicate or nonconfined inputs and oversized batch
 		),
 	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
 	expect(await engine.identify([])).toEqual([]);
-});
-
-test("every corpus filename preserves independent local evidence", async () => {
-	const corpus = await loadCorpus();
-	const paths = corpus.cases.flatMap((entry) =>
-		entry.input.kind === "file" ? [entry.input.relativePath] : [],
-	);
-	const results = await new IdentificationApplication({ parser }).identify(
-		paths.map(source),
-	);
-	expect(results).toHaveLength(369);
-	for (const [index, result] of results.entries()) {
-		expect(result.evidence.relativePath).toBe(paths[index]);
-		expect(result.evidence.inputs.map((input) => input.mode)).toEqual(
-			expect.arrayContaining(["basename", "path", "together"]),
-		);
-		for (const input of result.evidence.inputs)
-			for (const element of input.elements)
-				expect(Number.isInteger(element.position)).toBe(true);
-	}
 });
 
 test("completed scans trigger automatic identification and unchanged scans reuse results", async () => {

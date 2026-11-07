@@ -1,0 +1,520 @@
+{
+	"schemaVersion": 1,
+	"version": "2026-11-07.1",
+	"provider": "anilist",
+	"endpoint": "https://graphql.anilist.co",
+	"requestQuery": "query($search:String!,$page:Int!,$perPage:Int!){Page(page:$page,perPage:$perPage){pageInfo{currentPage perPage hasNextPage total}media(type:ANIME,search:$search){id title{native romaji english}}}}",
+	"cases": [
+		{
+			"id": "full-title",
+			"input": {
+				"titles": ["Sousou no Frieren"],
+				"seasons": [],
+				"parts": []
+			},
+			"expectedQueries": ["Sousou no Frieren"],
+			"expectedId": 154587,
+			"expectedEmpty": false,
+			"labelSource": "https://anilist.co/anime/154587",
+			"rationale": "Controlled title evidence and independently reviewed provider identity; exact empty-query observation is not a claim that an anime is globally absent."
+		},
+		{
+			"id": "short-title",
+			"input": {
+				"titles": ["Frieren"],
+				"seasons": [],
+				"parts": []
+			},
+			"expectedQueries": ["Frieren"],
+			"expectedId": 154587,
+			"expectedEmpty": false,
+			"labelSource": "https://anilist.co/anime/154587",
+			"rationale": "Controlled title evidence and independently reviewed provider identity; exact empty-query observation is not a claim that an anime is globally absent."
+		},
+		{
+			"id": "multilingual",
+			"input": {
+				"titles": ["葬送のフリーレン", "Sousou no Frieren"],
+				"seasons": [],
+				"parts": []
+			},
+			"expectedQueries": ["葬送のフリーレン", "Sousou no Frieren"],
+			"expectedId": 154587,
+			"expectedEmpty": false,
+			"labelSource": "https://anilist.co/anime/154587",
+			"rationale": "Controlled title evidence and independently reviewed provider identity; exact empty-query observation is not a claim that an anime is globally absent."
+		},
+		{
+			"id": "season",
+			"input": {
+				"titles": ["Spy x Family"],
+				"seasons": ["2"],
+				"parts": []
+			},
+			"expectedQueries": ["Spy x Family", "Spy x Family Season 2"],
+			"expectedId": 158927,
+			"expectedEmpty": false,
+			"labelSource": "https://anilist.co/anime/158927",
+			"rationale": "Controlled title evidence and independently reviewed provider identity; exact empty-query observation is not a claim that an anime is globally absent."
+		},
+		{
+			"id": "part",
+			"input": {
+				"titles": ["Mushoku Tensei"],
+				"seasons": [],
+				"parts": ["2"]
+			},
+			"expectedQueries": ["Mushoku Tensei", "Mushoku Tensei Part 2"],
+			"expectedId": 127720,
+			"expectedEmpty": false,
+			"labelSource": "https://anilist.co/anime/127720",
+			"rationale": "Controlled title evidence and independently reviewed provider identity; exact empty-query observation is not a claim that an anime is globally absent."
+		},
+		{
+			"id": "empty",
+			"input": {
+				"titles": ["zzqv-anishelf-no-such-title-935714"],
+				"seasons": [],
+				"parts": []
+			},
+			"expectedQueries": ["zzqv-anishelf-no-such-title-935714"],
+			"expectedId": null,
+			"expectedEmpty": true,
+			"labelSource": null,
+			"rationale": "Controlled title evidence and independently reviewed provider identity; exact empty-query observation is not a claim that an anime is globally absent."
+		}
+	],
+	"records": [
+		{
+			"query": "Sousou no Frieren",
+			"page": 1,
+			"perPage": 10,
+			"fetchedAt": "2026-11-07T13:26:01.517003+00:00",
+			"responseSha256": "d3ebd759c66832b611b520e8116832f3eebdf0bf4ad82778efc77fb7a46b25d7",
+			"response": {
+				"pageInfo": {
+					"currentPage": 1,
+					"perPage": 10,
+					"hasNextPage": false,
+					"total": 6
+				},
+				"media": [
+					{
+						"id": 154587,
+						"title": {
+							"native": "葬送のフリーレン",
+							"romaji": "Sousou no Frieren",
+							"english": "Frieren: Beyond Journey’s End"
+						}
+					},
+					{
+						"id": 209939,
+						"title": {
+							"native": "葬送のフリーレン 第3期",
+							"romaji": "Sousou no Frieren 3rd Season",
+							"english": null
+						}
+					},
+					{
+						"id": 182255,
+						"title": {
+							"native": "葬送のフリーレン 第2期",
+							"romaji": "Sousou no Frieren 2nd Season",
+							"english": "Frieren: Beyond Journey’s End Season 2"
+						}
+					},
+					{
+						"id": 170068,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～",
+							"romaji": "Sousou no Frieren: ●● no Mahou",
+							"english": null
+						}
+					},
+					{
+						"id": 189513,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～ 2クール",
+							"romaji": "Sousou no Frieren: ●● no Mahou Part 2",
+							"english": null
+						}
+					},
+					{
+						"id": 206425,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～ 3クール",
+							"romaji": "Sousou no Frieren: ●● no Mahou Part 3",
+							"english": null
+						}
+					}
+				]
+			}
+		},
+		{
+			"query": "Frieren",
+			"page": 1,
+			"perPage": 10,
+			"fetchedAt": "2026-11-07T13:26:03.623656+00:00",
+			"responseSha256": "d3ebd759c66832b611b520e8116832f3eebdf0bf4ad82778efc77fb7a46b25d7",
+			"response": {
+				"pageInfo": {
+					"currentPage": 1,
+					"perPage": 10,
+					"hasNextPage": false,
+					"total": 6
+				},
+				"media": [
+					{
+						"id": 154587,
+						"title": {
+							"native": "葬送のフリーレン",
+							"romaji": "Sousou no Frieren",
+							"english": "Frieren: Beyond Journey’s End"
+						}
+					},
+					{
+						"id": 209939,
+						"title": {
+							"native": "葬送のフリーレン 第3期",
+							"romaji": "Sousou no Frieren 3rd Season",
+							"english": null
+						}
+					},
+					{
+						"id": 182255,
+						"title": {
+							"native": "葬送のフリーレン 第2期",
+							"romaji": "Sousou no Frieren 2nd Season",
+							"english": "Frieren: Beyond Journey’s End Season 2"
+						}
+					},
+					{
+						"id": 170068,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～",
+							"romaji": "Sousou no Frieren: ●● no Mahou",
+							"english": null
+						}
+					},
+					{
+						"id": 189513,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～ 2クール",
+							"romaji": "Sousou no Frieren: ●● no Mahou Part 2",
+							"english": null
+						}
+					},
+					{
+						"id": 206425,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～ 3クール",
+							"romaji": "Sousou no Frieren: ●● no Mahou Part 3",
+							"english": null
+						}
+					}
+				]
+			}
+		},
+		{
+			"query": "葬送のフリーレン",
+			"page": 1,
+			"perPage": 10,
+			"fetchedAt": "2026-11-07T13:26:05.532742+00:00",
+			"responseSha256": "ecb139e436419ac5c3475bfb1b42709e45093afc12eb974c40f3a57accae5d20",
+			"response": {
+				"pageInfo": {
+					"currentPage": 1,
+					"perPage": 10,
+					"hasNextPage": false,
+					"total": 6
+				},
+				"media": [
+					{
+						"id": 154587,
+						"title": {
+							"native": "葬送のフリーレン",
+							"romaji": "Sousou no Frieren",
+							"english": "Frieren: Beyond Journey’s End"
+						}
+					},
+					{
+						"id": 170068,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～",
+							"romaji": "Sousou no Frieren: ●● no Mahou",
+							"english": null
+						}
+					},
+					{
+						"id": 189513,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～ 2クール",
+							"romaji": "Sousou no Frieren: ●● no Mahou Part 2",
+							"english": null
+						}
+					},
+					{
+						"id": 182255,
+						"title": {
+							"native": "葬送のフリーレン 第2期",
+							"romaji": "Sousou no Frieren 2nd Season",
+							"english": "Frieren: Beyond Journey’s End Season 2"
+						}
+					},
+					{
+						"id": 209939,
+						"title": {
+							"native": "葬送のフリーレン 第3期",
+							"romaji": "Sousou no Frieren 3rd Season",
+							"english": null
+						}
+					},
+					{
+						"id": 206425,
+						"title": {
+							"native": "葬送のフリーレン ～●●の魔法～ 3クール",
+							"romaji": "Sousou no Frieren: ●● no Mahou Part 3",
+							"english": null
+						}
+					}
+				]
+			}
+		},
+		{
+			"query": "Spy x Family",
+			"page": 1,
+			"perPage": 10,
+			"fetchedAt": "2026-11-07T13:26:07.623042+00:00",
+			"responseSha256": "3eed37263758a092a81611600c9dfa928ceb8ebc3252a5b16856f2489ec3bae0",
+			"response": {
+				"pageInfo": {
+					"currentPage": 1,
+					"perPage": 10,
+					"hasNextPage": false,
+					"total": 6
+				},
+				"media": [
+					{
+						"id": 140960,
+						"title": {
+							"native": "SPY×FAMILY",
+							"romaji": "SPY×FAMILY",
+							"english": "SPY x FAMILY"
+						}
+					},
+					{
+						"id": 158927,
+						"title": {
+							"native": "SPY×FAMILY Season 2",
+							"romaji": "SPY×FAMILY Season 2",
+							"english": "SPY x FAMILY Season 2"
+						}
+					},
+					{
+						"id": 177937,
+						"title": {
+							"native": "SPY×FAMILY Season 3",
+							"romaji": "SPY×FAMILY Season 3",
+							"english": "SPY x FAMILY Season 3"
+						}
+					},
+					{
+						"id": 142838,
+						"title": {
+							"native": "SPY×FAMILY 第2クール",
+							"romaji": "SPY×FAMILY Part 2",
+							"english": "SPY x FAMILY Cour 2"
+						}
+					},
+					{
+						"id": 158928,
+						"title": {
+							"native": "SPY×FAMILY CODE: White",
+							"romaji": "SPY×FAMILY CODE: White",
+							"english": "SPY x FAMILY CODE: White"
+						}
+					},
+					{
+						"id": 177098,
+						"title": {
+							"native": "ストリートファイター6 × SPY×FAMILY CODE: White",
+							"romaji": "Street Fighter 6 × SPY×FAMILY CODE: White",
+							"english": "Street Fighter 6 VS SPY×FAMILY CODE: White"
+						}
+					}
+				]
+			}
+		},
+		{
+			"query": "Spy x Family Season 2",
+			"page": 1,
+			"perPage": 10,
+			"fetchedAt": "2026-11-07T13:26:09.568678+00:00",
+			"responseSha256": "6b166e96b79d71d6962caf0a8030c30b9d29554f8f63d1e6e66ea67d0e53a70e",
+			"response": {
+				"pageInfo": {
+					"currentPage": 1,
+					"perPage": 10,
+					"hasNextPage": false,
+					"total": 2
+				},
+				"media": [
+					{
+						"id": 158927,
+						"title": {
+							"native": "SPY×FAMILY Season 2",
+							"romaji": "SPY×FAMILY Season 2",
+							"english": "SPY x FAMILY Season 2"
+						}
+					},
+					{
+						"id": 142838,
+						"title": {
+							"native": "SPY×FAMILY 第2クール",
+							"romaji": "SPY×FAMILY Part 2",
+							"english": "SPY x FAMILY Cour 2"
+						}
+					}
+				]
+			}
+		},
+		{
+			"query": "Mushoku Tensei",
+			"page": 1,
+			"perPage": 10,
+			"fetchedAt": "2026-11-07T13:26:11.593174+00:00",
+			"responseSha256": "f711b2201231bf2facf30b0a0dc0ad7fe3419a62dd9adab20bec63c00825e927",
+			"response": {
+				"pageInfo": {
+					"currentPage": 1,
+					"perPage": 10,
+					"hasNextPage": false,
+					"total": 7
+				},
+				"media": [
+					{
+						"id": 108465,
+						"title": {
+							"native": "無職転生 ～異世界行ったら本気だす～",
+							"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+							"english": "Mushoku Tensei: Jobless Reincarnation"
+						}
+					},
+					{
+						"id": 146065,
+						"title": {
+							"native": "無職転生Ⅱ ～異世界行ったら本気だす～",
+							"romaji": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+							"english": "Mushoku Tensei: Jobless Reincarnation Season 2"
+						}
+					},
+					{
+						"id": 178789,
+						"title": {
+							"native": "無職転生Ⅲ ～異世界行ったら本気だす～",
+							"romaji": "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+							"english": "Mushoku Tensei: Jobless Reincarnation Season 3"
+						}
+					},
+					{
+						"id": 127720,
+						"title": {
+							"native": "無職転生 ～異世界行ったら本気だす～ 第2クール",
+							"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+							"english": "Mushoku Tensei: Jobless Reincarnation Cour 2"
+						}
+					},
+					{
+						"id": 166873,
+						"title": {
+							"native": "無職転生Ⅱ ～異世界行ったら本気だす～ 第2クール",
+							"romaji": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+							"english": "Mushoku Tensei: Jobless Reincarnation Season 2 Part 2"
+						}
+					},
+					{
+						"id": 141534,
+						"title": {
+							"native": "無職転生 ～異世界行ったら本気だす～ 第2クール エリスのゴブリン討伐",
+							"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2 - Eris no Goblin Toubatsu",
+							"english": "Mushoku Tensei: Jobless Reincarnation Cour 2 - Eris the Goblin Slayer"
+						}
+					},
+					{
+						"id": 217434,
+						"title": {
+							"native": "無職転生Ⅲ ～異世界行ったら本気だす～ 第2クール",
+							"romaji": "Mushoku Tensei III: Isekai Ittara Honki Dasu Part 2",
+							"english": null
+						}
+					}
+				]
+			}
+		},
+		{
+			"query": "Mushoku Tensei Part 2",
+			"page": 1,
+			"perPage": 10,
+			"fetchedAt": "2026-11-07T13:26:13.557222+00:00",
+			"responseSha256": "e8478c1d1ed32850a19758300fa7ce481f5f29d0e3498bd660f02275238b3f88",
+			"response": {
+				"pageInfo": {
+					"currentPage": 1,
+					"perPage": 10,
+					"hasNextPage": false,
+					"total": 4
+				},
+				"media": [
+					{
+						"id": 127720,
+						"title": {
+							"native": "無職転生 ～異世界行ったら本気だす～ 第2クール",
+							"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+							"english": "Mushoku Tensei: Jobless Reincarnation Cour 2"
+						}
+					},
+					{
+						"id": 166873,
+						"title": {
+							"native": "無職転生Ⅱ ～異世界行ったら本気だす～ 第2クール",
+							"romaji": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+							"english": "Mushoku Tensei: Jobless Reincarnation Season 2 Part 2"
+						}
+					},
+					{
+						"id": 141534,
+						"title": {
+							"native": "無職転生 ～異世界行ったら本気だす～ 第2クール エリスのゴブリン討伐",
+							"romaji": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2 - Eris no Goblin Toubatsu",
+							"english": "Mushoku Tensei: Jobless Reincarnation Cour 2 - Eris the Goblin Slayer"
+						}
+					},
+					{
+						"id": 217434,
+						"title": {
+							"native": "無職転生Ⅲ ～異世界行ったら本気だす～ 第2クール",
+							"romaji": "Mushoku Tensei III: Isekai Ittara Honki Dasu Part 2",
+							"english": null
+						}
+					}
+				]
+			}
+		},
+		{
+			"query": "zzqv-anishelf-no-such-title-935714",
+			"page": 1,
+			"perPage": 10,
+			"fetchedAt": "2026-11-07T13:26:15.616889+00:00",
+			"responseSha256": "0642301940e0b4da0e787a032f742cd130886db69392a6950f2962f4afec39d8",
+			"response": {
+				"pageInfo": {
+					"currentPage": 1,
+					"perPage": 10,
+					"hasNextPage": false,
+					"total": 0
+				},
+				"media": []
+			}
+		}
+	]
+}

@@ -81,16 +81,17 @@ The five new recipes are `nyaa-frieren-local-and-continuous`,
 `nyaa-spy-mixed-batch`, `nyaa-dungeon-extras`,
 `nyaa-movie-versions-and-trailers` and `nyaa-publication-path-conflict`.
 The test suite checks provenance, local/continuous offsets, mixed-work boundaries,
-ancillary exclusion, scanner extension policy and evaluator detection of wrong
-or unsafe confirmations. It also rejects invented capture paths or hashes.
+ancillary exclusion, scanner extension policy and integration safety-gate handling
+of wrong or unsafe confirmations. It also rejects invented capture paths or hashes.
 
-These checks validate the corpus, scanner and evaluator. They do not run a real
-anime parser/matcher or establish identification accuracy. Application acceptance
+Data integrity and command tests validate the fixtures and generation contracts.
+The explicit `anime:identification` command runs the production parser/matcher
+against controlled frozen candidates; it does not establish live search accuracy. Application acceptance
 assertions remain pending; generated `.mkv`/`.mp4` files are text placeholders.
 
 Run from the repository root:
 
 ```sh
 npm run anime:corpus -- summary
-npm run --silent anime:corpus -- match
+npm run --silent anime:identification -- test
 ```

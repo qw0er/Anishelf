@@ -1,8 +1,25 @@
-# Anime Identification Corpus
+# Anime Identification Integration Corpus
 
 An offline, versioned resource corpus for evaluating filename parsing, work
 matching and episode associations against the implemented anime-library workflow.
 Version `2026-10-11.2` was collected and reviewed on **2026-10-11**.
+
+Filename/directory parsing has a separate [parsing-only corpus and evaluator](../anime-parsing/README.md).
+Run `npm run anime:parsing -- test` to compare the existing parser directly with
+independent parsing labels, without metadata search, matching or admission.
+`anime:corpus` now owns data inventory and placeholder generation only. The
+complete path-to-admission audit runs through `anime:identification`.
+
+Work identification and candidate ordering also have a standalone
+[ranking corpus and evaluator](../anime-ranking/README.md).
+Run `npm run anime:ranking -- test` for production ranking over frozen extraction
+evidence and complete candidate pools, without parsing files, converting episode
+numbering or applying admission policy.
+
+Known-work episode mapping and directory-anchor conversions have a separate
+[numbering corpus and evaluator](../anime-numbering/README.md).
+Run `npm run anime:numbering -- test` with frozen selected-work and extraction
+inputs, independently comparable local-number labels and explicit context batches.
 
 ## Use the corpus
 
@@ -11,7 +28,7 @@ From the repository root:
 ```sh
 npm run anime:corpus -- summary
 npm run anime:corpus -- generate /tmp/anishelf-anime-corpus
-npm run --silent anime:corpus -- match
+npm run --silent anime:identification -- test
 ```
 
 The destination's parent directory must already exist. Generation creates a new
@@ -36,13 +53,13 @@ in the Nyaa capture without being materialized as fake videos.
 not FFprobe, subtitles or playback. No anime media was downloaded. Playback
 acceptance needs separate original synthetic video fixtures.
 
-## Production matching audit
+## Complete identification integration audit
 
 Run the actual Identification application, candidate ranking, episode proposal and
 Catalog automatic-admission predicate against the frozen AniList projections:
 
 ```sh
-npm run --silent anime:corpus -- match > /tmp/anishelf-matching-report.json
+npm run --silent anime:identification -- test > /tmp/anishelf-matching-report.json
 ```
 
 The audit covers all 369 filename cases and 50 directory-scenario resources (419
@@ -60,26 +77,29 @@ The report also includes a separate `reported` section for the versioned
 [user-reported reproductions](reported-cases.json). These run the same production
 parser, ranking, mapping and admission logic with the candidate metadata captured
 in each report. They are not included in the 419 provider-verified inputs above.
-The command fails if a reported reproduction no longer meets its expectations.
+The command fails if a reported reproduction no longer meets its expectations,
+if an unsafe admission is reported, or if a comparable episode mapping is wrong.
+The JSON report includes `failed`. Unresolved expected matches remain diagnostic
+and do not fail the safety gate; exit status 0 does not mean every case matched.
 
 The report includes ranked candidates, scores, conflicts, mapping targets,
 admission blockers, missed matches and unexpected admissions. Bangumi continuous
-sort values are not converted into season-local numbering. Episode accuracy is
-only compared for unchanged positive integer release numbers or whole movies;
+sort values are not converted into season-local numbering. Episode accuracy uses independently corroborated season-local labels,
+unchanged positive integer release numbers or whole-movie slots;
 other mappings are explicitly `not-comparable`. Corpus `match` means resolvable,
 not necessarily safe for automatic admission; a missed admission is an audit gap,
 not automatically a defect.
 
-This audit runs only when explicitly invoked through `anime:corpus -- match`;
+This audit runs only when explicitly invoked through `anime:identification -- test`;
 `npm test`, `npm run check` and CI do not run it. The automatic identification
-tests still check filename parsing evidence from the corpus, without running
-the production matching audit. There is no frozen outcome baseline: inspect the report
+tests cover the stage corpora and command contracts without running
+the complete integration audit. There is no approved all-case outcome baseline: inspect the report
 against the original corpus expectations when assessing a matcher change.
-The first audit observed 186 admissions, 166 consistent with the corpus
-work/decision expectation, 20 unexpected admissions and 140 unresolved expected
-matches. These counts describe that run, not approved outcomes or passing
-criteria. Unexpected admissions included ancillary files and conflicting-season
-evidence and need investigation.
+The 2026-11-07 integration run observed 254 correct admissions, no unsafe
+admissions or comparable episode mismatches, and 52 unresolved expected matches.
+The separate user-reported regressions passed 10/10. These are observations for
+this controlled candidate universe, not approved outcomes for every input or
+production search-recall measurements.
 
 ## Contents and provenance
 
@@ -138,7 +158,7 @@ contradictions are retained instead of silently rewritten.
 ## Expectation contract
 
 The corpus is a test-only interface, independent of future application HTTP or
-persistence schemas. A parser/matcher adapter translates its output to this shape.
+persistence schemas. These records retain source evidence and expected final behavior for integration.
 
 | Field | Contract |
 | --- | --- |
@@ -148,7 +168,7 @@ persistence schemas. A parser/matcher adapter translates its output to this shap
 | `expected.workId` | Curated local work key, separate from provider IDs; null when no association should be established |
 | `expected.episodes` | Ordered **Bangumi episode `sort` values** within that work's frozen snapshot; null when unresolved or ignored |
 | `expected.parsed.rawEpisodes` | Numbers expressed by the filename, before any offset; decimal values are retained |
-| Other parsed fields | Optional assertions for season, release revision and content type; omitted fields are not scored |
+| Other parsed fields | Historical season, release revision and content annotations; stage-specific corpora own current accuracy scoring |
 | `rationale` | Why the identity/mapping is resolvable or requires review; offsets must be explicit |
 
 `match` describes the corpus answer, **not a confidence threshold or permission
@@ -170,49 +190,34 @@ and start year establish the curated provider pair; date differences of one day
 are preserved. Season/part boundaries and unknown special identities require
 manual review when the captured evidence does not resolve them.
 
-## Evaluate a parser or matcher
+## Evaluation responsibilities and data ownership
 
-Write one result per case to JSON. The version fields identify the actual parser
-and matcher dependency/build versions, not the fixture generator. For example:
+| Command | Owns |
+| --- | --- |
+| `anime:corpus -- summary` / `generate` | Integration data inventory and exclusive placeholder directory creation |
+| `anime:identification -- test` | Full production extraction, search adapter, ranking, numbering and automatic-admission audit |
+| `anime:parsing -- test` | Independent parsing field scores |
+| `anime:ranking -- test` | Candidate order over frozen parsing inputs |
+| `anime:numbering -- test` | Known-work target/resolution/offset scores |
 
-```json
-{
-  "corpusVersion": "2026-10-11.2",
-  "parserVersion": "your-parser-version",
-  "matcherVersion": "your-matcher-version",
-  "results": [
-    {
-      "id": "directory-only-cn",
-      "decision": "match",
-      "workId": "frieren",
-      "episodes": [1],
-      "parsed": { "rawEpisodes": [1] },
-      "candidateWorkIds": ["frieren", "frieren-2"]
-    }
-  ]
-}
-```
+The former `anime:corpus -- match` entry moved to `anime:identification -- test`.
+The unused generic `evaluate <predictions.json>` command and its combined
+prediction schema/scorer were removed. Invalid or retired arguments return status
+2 with the appropriate command usage; no compatibility alias runs an algorithm
+from the data-management tool. JSON results use stdout and structured logs use
+stderr.
 
-```sh
-npm run --silent anime:corpus -- evaluate /tmp/predictions.json > /tmp/anime-report.json
-```
+This directory owns integration source provenance, exact original paths, scenario
+relationships, provider snapshots and final association expectations. Its historic
+`expected.parsed` annotations remain evidence for existing numbering checks; they
+are not a second active parser accuracy scorer. Each stage-specific directory
+owns its versioned stage inputs and labels. Stage corrections and source snapshot
+refreshes require explicit review, version updates and original case IDs; there is
+no automatic synchronization that would overwrite independent expected answers.
+When a shared source fact is corrected, review affected integration and stage
+fixtures together and record the change in each affected fixture's provenance.
 
-The command exits with status 1 if any case fails or is missing. The example above
-is deliberately incomplete and cannot pass the corpus. A stale corpus version,
-duplicate result IDs, unknown result IDs or invalid schema is rejected.
-
-The report records versions, snapshot date, per-case expected/actual values,
-field failures, unsafe confirmations and per-tag totals. Decision, work identity,
-episode mapping and parsed-field accuracy have separate denominators. Candidate
-Top-1/Top-5 counts are evaluated only when `candidateWorkIds` is supplied; omitted
-candidate output is reported separately, never counted as a successful search.
-An incorrect work or episode confirmation, including forcing a review case into
-a match, counts as unsafe. Missing results fail instead of reducing the denominator.
-
-The generic evaluator tests use intentionally incorrect and missing predictions
-to verify reporting; they do not claim identification success.
-
-### Production matcher with frozen candidates
+### Integration audit with frozen candidates
 
 Frozen provider projections preserve primary-title/alias provenance. Reports separate
 `recognizedMatches` (correct work identity) from `correctAdmissions` (a complete,
@@ -226,7 +231,7 @@ calculating the admission margin. No corpus answer is used by production ranking
 Run the production parser, ranking, mapping and admission rules offline:
 
 ```sh
-npm run --silent anime:corpus -- match > /tmp/anime-matching-report.json
+npm run --silent anime:identification -- test > /tmp/anime-matching-report.json
 ```
 
 Every search returns all 20 frozen AniList work projections. This measures local
@@ -282,8 +287,8 @@ Acceptance assertions are not executed automatically by directory generation.
 
 Current automated checks validate the corpus and snapshots, actual scanner
 traversal of generated paths under the existing video-extension policy, repeated scans, unchanged placeholder bytes,
-path/reference constraints, captured Nyaa path/title/URL/hash agreement, refusal to overwrite existing roots and evaluator
-failure accounting. **CAT01–CAT08 remain pending** for the anime-library feature,
+path/reference constraints, captured Nyaa path/title/URL/hash agreement, refusal to overwrite existing roots and integration
+safety-gate accounting. **CAT01–CAT08 remain pending** for the anime-library feature,
 including confirmation, rescan/refresh/restart persistence, provider failure,
 source replacement and version playback. Existing scanning passing is not proof
 of these workflows.

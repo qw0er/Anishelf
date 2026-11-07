@@ -5,10 +5,8 @@ import { IdentificationApplication } from "../../../../src/modules/anime/identif
 import { titleEvidence } from "../../../../src/modules/anime/identification/domain/title-evidence.js";
 import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import type { WorkCandidate } from "../../../../src/modules/anime/identification/public.js";
-import {
-	evaluateReportedCorpus,
-	loadReportedCorpus,
-} from "../../../support/anime-reported-corpus.js";
+import { loadReportedCorpus } from "../../../support/anime-reported-cases.js";
+import { evaluateReportedCorpus } from "../../../support/anime-reported-corpus.js";
 
 const candidate = (id: string, titles: string[]): WorkCandidate => ({
 	reference: { id },
