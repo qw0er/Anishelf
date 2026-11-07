@@ -10,6 +10,7 @@ import type {
 	WorkCandidate,
 } from "../domain/model.js";
 import { applyNumberingContext } from "../domain/numbering-context.js";
+import { identificationSearchQueries } from "../domain/search-queries.js";
 import type { IdentificationMetadata, IdentificationParser } from "../ports.js";
 import type { IdentificationApi } from "../public.js";
 
@@ -130,26 +131,7 @@ export class IdentificationApplication implements IdentificationApi {
 			if (metadata) {
 				const works: WorkCandidate[] = [];
 				let failed = false;
-				const searchTitles = [...evidence.titles];
-				if (evidence.seasons.length === 1 && Number(evidence.seasons[0]) > 1) {
-					const title = evidence.titles[0];
-					if (title)
-						searchTitles.splice(
-							1,
-							0,
-							`${title} Season ${Number(evidence.seasons[0])}`,
-						);
-				}
-				if (evidence.parts.length === 1 && evidence.titles[0])
-					searchTitles.splice(
-						2,
-						0,
-						`${evidence.titles[0]} Part ${Number(evidence.parts[0])}`,
-					);
-				for (const title of [...new Set(searchTitles)].slice(
-					0,
-					policy.maximumQueries,
-				)) {
+				for (const title of identificationSearchQueries(evidence)) {
 					signal.throwIfAborted();
 					let query = queries.get(title);
 					if (!query) {

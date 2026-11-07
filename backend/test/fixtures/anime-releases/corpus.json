@@ -1,0 +1,1851 @@
+{
+	"schemaVersion": 1,
+	"version": "2026-11-07.1",
+	"sourceCorpusVersion": "2026-10-11.2",
+	"works": [
+		{
+			"workId": "frieren",
+			"candidate": {
+				"reference": {
+					"id": "154587"
+				},
+				"snapshotId": "provider-snapshots/frieren.json",
+				"titles": [
+					"Sousou no Frieren",
+					"Frieren: Beyond Journey’s End",
+					"葬送のフリーレン",
+					"Frieren at the Funeral",
+					"장송의 프리렌",
+					"Frieren - Oltre la Fine del Viaggio",
+					"คำอธิษฐานในวันที่จากลา Frieren",
+					"Frieren e a Jornada para o Além",
+					"Frieren – Nach dem Ende der Reise",
+					"葬送的芙莉蓮",
+					"Frieren: Más allá del final del viaje",
+					"Frieren en el funeral",
+					"Sōsō no Furīren",
+					"Frieren. U kresu drogi",
+					"Frieren - Pháp sư tiễn táng",
+					"Фрирен, провожающая в последний путь",
+					"فريرن: ما وراء نهاية الرحلة",
+					"Frieren: Tras finalizar el viaje"
+				],
+				"titleVariants": [
+					{
+						"value": "Sousou no Frieren",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "Frieren: Beyond Journey’s End",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "葬送のフリーレン",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "Frieren at the Funeral",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "장송의 프리렌",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Frieren - Oltre la Fine del Viaggio",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "คำอธิษฐานในวันที่จากลา Frieren",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Frieren e a Jornada para o Além",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Frieren – Nach dem Ende der Reise",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "葬送的芙莉蓮",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Frieren: Más allá del final del viaje",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Frieren en el funeral",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Sōsō no Furīren",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Frieren. U kresu drogi",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Frieren - Pháp sư tiễn táng",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Фрирен, провожающая в последний путь",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "فريرن: ما وراء نهاية الرحلة",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Frieren: Tras finalizar el viaje",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2023,
+				"format": "TV",
+				"episodeCount": 28,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "frieren-2",
+			"candidate": {
+				"reference": {
+					"id": "182255"
+				},
+				"snapshotId": "provider-snapshots/frieren-2.json",
+				"titles": [
+					"Sousou no Frieren 2nd Season",
+					"Frieren: Beyond Journey’s End Season 2",
+					"葬送のフリーレン 第2期",
+					"Провожающая в последний путь Фрирен 2",
+					"장송의 프리렌 2기"
+				],
+				"titleVariants": [
+					{
+						"value": "Sousou no Frieren 2nd Season",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "Frieren: Beyond Journey’s End Season 2",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "葬送のフリーレン 第2期",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "Провожающая в последний путь Фрирен 2",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "장송의 프리렌 2기",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2026,
+				"format": "TV",
+				"episodeCount": 10,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "bocchi",
+			"candidate": {
+				"reference": {
+					"id": "130003"
+				},
+				"snapshotId": "provider-snapshots/bocchi.json",
+				"titles": [
+					"Bocchi the Rock!",
+					"BOCCHI THE ROCK!",
+					"ぼっち・ざ・ろっく！",
+					"РОК-ТИХОНЯ!",
+					"บจจิเดอะร็อก!",
+					"孤獨搖滾！",
+					"孤独摇滚！",
+					"외톨이 THE ROCK!",
+					"봇치 더 록!",
+					"BTR"
+				],
+				"titleVariants": [
+					{
+						"value": "Bocchi the Rock!",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "BOCCHI THE ROCK!",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "ぼっち・ざ・ろっく！",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "РОК-ТИХОНЯ!",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "บจจิเดอะร็อก!",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "孤獨搖滾！",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "孤独摇滚！",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "외톨이 THE ROCK!",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "봇치 더 록!",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "BTR",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2022,
+				"format": "TV",
+				"episodeCount": 12,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "dungeon",
+			"candidate": {
+				"reference": {
+					"id": "153518"
+				},
+				"snapshotId": "provider-snapshots/dungeon.json",
+				"titles": [
+					"Dungeon Meshi",
+					"Delicious in Dungeon",
+					"ダンジョン飯",
+					"Dungeon Food",
+					"Dungeon Meal",
+					"Tragones y Mazmorras",
+					"Gloutons et Dragons",
+					"Подземелье вкусностей",
+					"던전밥",
+					"สูตรลับตำรับดันเจียน",
+					"Mỹ vị hầm ngục",
+					"Підземелля смакоти",
+					"迷宫饭",
+					"מבוכים ומטעמים",
+					"Dunmeshi",
+					"Labužníci v kobce",
+					"طعام الدهليز اللذيذ"
+				],
+				"titleVariants": [
+					{
+						"value": "Dungeon Meshi",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "Delicious in Dungeon",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "ダンジョン飯",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "Dungeon Food",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Dungeon Meal",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Tragones y Mazmorras",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Gloutons et Dragons",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Подземелье вкусностей",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "던전밥",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "สูตรลับตำรับดันเจียน",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Mỹ vị hầm ngục",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Підземелля смакоти",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "迷宫饭",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "מבוכים ומטעמים",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Dunmeshi",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Labužníci v kobce",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "طعام الدهليز اللذيذ",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2024,
+				"format": "TV",
+				"episodeCount": 24,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "spy",
+			"candidate": {
+				"reference": {
+					"id": "140960"
+				},
+				"snapshotId": "provider-snapshots/spy.json",
+				"titles": [
+					"SPY×FAMILY",
+					"SPY x FAMILY",
+					"SPY×FAMILY",
+					"SxF",
+					"스파이 패밀리",
+					"间谍过家家",
+					"Семья шпиона",
+					"سباي إكس فاميلي",
+					"Gia Đình Điệp Viên"
+				],
+				"titleVariants": [
+					{
+						"value": "SPY×FAMILY",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "SPY x FAMILY",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "SPY×FAMILY",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "SxF",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "스파이 패밀리",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "间谍过家家",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Семья шпиона",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "سباي إكس فاميلي",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Gia Đình Điệp Viên",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2022,
+				"format": "TV",
+				"episodeCount": 12,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "spy-2",
+			"candidate": {
+				"reference": {
+					"id": "158927"
+				},
+				"snapshotId": "provider-snapshots/spy-2.json",
+				"titles": [
+					"SPY×FAMILY Season 2",
+					"SPY x FAMILY Season 2",
+					"SPY×FAMILY Season 2",
+					"SxF 2",
+					"스파이 패밀리",
+					"Семья шпиона",
+					"スパイファミリー 2",
+					"Spy x Family – Sezon 2"
+				],
+				"titleVariants": [
+					{
+						"value": "SPY×FAMILY Season 2",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "SPY x FAMILY Season 2",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "SPY×FAMILY Season 2",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "SxF 2",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "스파이 패밀리",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Семья шпиона",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "スパイファミリー 2",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Spy x Family – Sezon 2",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2023,
+				"format": "TV",
+				"episodeCount": 12,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "your-name",
+			"candidate": {
+				"reference": {
+					"id": "21519"
+				},
+				"snapshotId": "provider-snapshots/your-name.json",
+				"titles": [
+					"Kimi no Na wa.",
+					"Your Name.",
+					"君の名は。",
+					"Your Name. - Gestern, heute und für immer",
+					"Mi a Neved?",
+					"你的名字。",
+					"너의 이름은.",
+					"Tu nombre",
+					"Твоё имя",
+					"หลับตาฝันถึงชื่อเธอ",
+					"Il tuo nome",
+					"השם שלך.",
+					"Twoje imię",
+					"Tên cậu là gì",
+					"Tvoje meno.",
+					"Tvoje jméno."
+				],
+				"titleVariants": [
+					{
+						"value": "Kimi no Na wa.",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "Your Name.",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "君の名は。",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "Your Name. - Gestern, heute und für immer",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Mi a Neved?",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "你的名字。",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "너의 이름은.",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Tu nombre",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Твоё имя",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "หลับตาฝันถึงชื่อเธอ",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Il tuo nome",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "השם שלך.",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Twoje imię",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Tên cậu là gì",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Tvoje meno.",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Tvoje jméno.",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2016,
+				"format": "MOVIE",
+				"episodeCount": 1,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "suzume",
+			"candidate": {
+				"reference": {
+					"id": "142770"
+				},
+				"snapshotId": "provider-snapshots/suzume.json",
+				"titles": [
+					"Suzume no Tojimari",
+					"Suzume",
+					"すずめの戸締まり",
+					"铃芽之旅",
+					"Khóa Chặt Cửa Nào Suzume",
+					"การผนึกประตูของซุซุเมะ",
+					"Судзуме зачиняє двері",
+					"Судзумэ"
+				],
+				"titleVariants": [
+					{
+						"value": "Suzume no Tojimari",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "Suzume",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "すずめの戸締まり",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "铃芽之旅",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Khóa Chặt Cửa Nào Suzume",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "การผนึกประตูของซุซุเมะ",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Судзуме зачиняє двері",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "Судзумэ",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2022,
+				"format": "MOVIE",
+				"episodeCount": 1,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "steins-zero",
+			"candidate": {
+				"reference": {
+					"id": "21127"
+				},
+				"snapshotId": "provider-snapshots/steins-zero.json",
+				"titles": [
+					"Steins;Gate 0",
+					"Steins;Gate 0",
+					"シュタインズ・ゲート ゼロ",
+					"s;g0",
+					"命运石之门0"
+				],
+				"titleVariants": [
+					{
+						"value": "Steins;Gate 0",
+						"kind": "primary",
+						"language": "romaji"
+					},
+					{
+						"value": "Steins;Gate 0",
+						"kind": "primary",
+						"language": "english"
+					},
+					{
+						"value": "シュタインズ・ゲート ゼロ",
+						"kind": "primary",
+						"language": "native"
+					},
+					{
+						"value": "s;g0",
+						"kind": "alias",
+						"language": null
+					},
+					{
+						"value": "命运石之门0",
+						"kind": "alias",
+						"language": null
+					}
+				],
+				"year": 2018,
+				"format": "TV",
+				"episodeCount": 23,
+				"season": null,
+				"part": null
+			}
+		},
+		{
+			"workId": "rule-frieren",
+			"candidate": {
+				"reference": {
+					"id": "rule-frieren"
+				},
+				"snapshotId": "authored-target",
+				"titles": ["Frieren"],
+				"year": null,
+				"format": "TV",
+				"episodeCount": 28,
+				"season": "1",
+				"part": null
+			}
+		}
+	],
+	"cases": [
+		{
+			"id": "dmhy-frieren-1-title",
+			"kind": "authentic",
+			"title": "[7³ACG] 葬送的芙莉莲/Sousou no Frieren S01 | 01-28+SPx11 [简繁字幕] BDrip 1080p x265 OPUS 2.0",
+			"targetId": "frieren",
+			"provenance": {
+				"url": "https://dmhy.org/topics/view/725809_7_ACG_Sousou_no_Frieren_S01_01-28_SPx11_BDrip_1080p_x265_OPUS_2_0.html",
+				"site": "dmhy",
+				"sourceId": "dmhy-frieren-1",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["zh-Hans", "zh-Hant"],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["7³ACG"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "dmhy-frieren-2-title",
+			"kind": "authentic",
+			"title": "[Shiniori-Raws]葬送的芙莉莲 第二季/Sousou no Frieren S2 4k 2160p x265 10bit",
+			"targetId": "frieren-2",
+			"provenance": {
+				"url": "https://dmhy.org/topics/view/725446_Shiniori-Raws_Sousou_no_Frieren_S2_4k_2160p_x265_10bit.html",
+				"site": "dmhy",
+				"sourceId": "dmhy-frieren-2",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [2160],
+					"videoCodecs": ["hevc"],
+					"sources": [],
+					"releaseGroups": ["Shiniori-Raws"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "dmhy-frieren-3-title",
+			"kind": "authentic",
+			"title": "[Xspitfire911] 葬送的芙莉莲/Sousou No Frieren S01 + S02 BDRIP 1080p X265 10bit VOSTFR",
+			"targetId": "frieren",
+			"provenance": {
+				"url": "https://dmhy.org/topics/view/725445_Xspitfire911_Sousou_No_Frieren_S01_S02_BDRIP_1080p_X265_10bit_VOSTFR.html",
+				"site": "dmhy",
+				"sourceId": "dmhy-frieren-3",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["fr"],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["Xspitfire911"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "dmhy-frieren-4-title",
+			"kind": "authentic",
+			"title": "[Shiniori-Raws] 葬送的芙莉莲 第二季/Sousou no Frieren S2 (BD 1920x1080 x265 10bit FLAC)",
+			"targetId": "frieren-2",
+			"provenance": {
+				"url": "https://dmhy.org/topics/view/724949_Shiniori-Raws_Sousou_no_Frieren_S2_BD_1920x1080_x265_10bit_FLAC.html",
+				"site": "dmhy",
+				"sourceId": "dmhy-frieren-4",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["Shiniori-Raws"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "dmhy-frieren-5-title",
+			"kind": "authentic",
+			"title": "[7³ACG] 葬送的芙莉莲/Sousou no Frieren S01 | 01-28+SPx11 [简繁字幕] BDrip 1080p AV1 OPUS 2.0",
+			"targetId": "frieren",
+			"provenance": {
+				"url": "https://dmhy.org/topics/view/724797_7_ACG_Sousou_no_Frieren_S01_01-28_SPx11_BDrip_1080p_AV1_OPUS_2_0.html",
+				"site": "dmhy",
+				"sourceId": "dmhy-frieren-5",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["zh-Hans", "zh-Hant"],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["av1"],
+					"sources": ["bluray"],
+					"releaseGroups": ["7³ACG"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2114808-title",
+			"kind": "authentic",
+			"title": "[SubsPlease] Sousou no Frieren (01-28) (1080p) [V2] [Batch]",
+			"targetId": "frieren",
+			"provenance": {
+				"url": "https://nyaa.si/view/2114808",
+				"site": "nyaa",
+				"sourceId": "nyaa-2114808",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": [],
+					"sources": [],
+					"releaseGroups": ["SubsPlease"],
+					"revision": 2
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2115493-title",
+			"kind": "authentic",
+			"title": "[SubsPlease] Sousou no Frieren S2 (01-10) (1080p) [Batch]",
+			"targetId": "frieren-2",
+			"provenance": {
+				"url": "https://nyaa.si/view/2115493",
+				"site": "nyaa",
+				"sourceId": "nyaa-2115493",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": [],
+					"sources": [],
+					"releaseGroups": ["SubsPlease"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2106580-title",
+			"kind": "authentic",
+			"title": "[9volt] Sousou no Frieren - Season 2 (WEB 1080p HEVC EAC-3 Dual Audio) | Frieren: Beyond Journey's End (2026) (Batch S02 S2)",
+			"targetId": "frieren-2",
+			"provenance": {
+				"url": "https://nyaa.si/view/2106580",
+				"site": "nyaa",
+				"sourceId": "nyaa-2106580",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["web"],
+					"releaseGroups": ["9volt"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2097365-title",
+			"kind": "authentic",
+			"title": "[Judas] Sousou no Frieren (Frieren Beyond Journey`s End) (Season 02) [1080p][HEVC x265 10bit][Dual-Audio][Multi-Subs] (Batch)",
+			"targetId": "frieren-2",
+			"provenance": {
+				"url": "https://nyaa.si/view/2097365",
+				"site": "nyaa",
+				"sourceId": "nyaa-2097365",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": [],
+					"releaseGroups": ["Judas"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2145124-title",
+			"kind": "authentic",
+			"title": "[LinRip] Sousou no Frieren 葬送のフリーレン 2nd Season [BDRip 1080p HEVC-10bit FLAC AAC ASSx3]",
+			"targetId": "frieren-2",
+			"provenance": {
+				"url": "https://nyaa.si/view/2145124",
+				"site": "nyaa",
+				"sourceId": "nyaa-2145124",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["LinRip"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2108704-title",
+			"kind": "authentic",
+			"title": "[千夏字幕组][葬送的芙莉莲_Sousou no Frieren][第39-38话][1080p_AVC][简体][合集]",
+			"targetId": "frieren-2",
+			"provenance": {
+				"url": "https://nyaa.si/view/2108704",
+				"site": "nyaa",
+				"sourceId": "nyaa-2108704",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["zh-Hans"],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["avc"],
+					"sources": [],
+					"releaseGroups": ["千夏字幕组"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2151321-title",
+			"kind": "authentic",
+			"title": "[7³ACG​] Sousou no Frieren 葬送のフリーレン 2nd Season [BDRip 1080p x265 OPUS]",
+			"targetId": "frieren-2",
+			"provenance": {
+				"url": "https://nyaa.si/view/2151321",
+				"site": "nyaa",
+				"sourceId": "nyaa-2151321",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["7³ACG​"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2025242-title",
+			"kind": "authentic",
+			"title": "[Judas] Sousou no Frieren (Frieren Beyond Journey`s End) (Season 01) [BD 1080p][HEVC x265 10bit][Dual-Audio][Eng-Subs] (Batch)",
+			"targetId": "frieren",
+			"provenance": {
+				"url": "https://nyaa.si/view/2025242",
+				"site": "nyaa",
+				"sourceId": "nyaa-2025242",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["en"],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["Judas"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-1925045-title",
+			"kind": "authentic",
+			"title": "[MTBB] Dungeon Meshi S1 (BD 1080p) | Delicious in Dungeon",
+			"targetId": "dungeon",
+			"provenance": {
+				"url": "https://nyaa.si/view/1925045",
+				"site": "nyaa",
+				"sourceId": "nyaa-1925045",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": [],
+					"sources": ["bluray"],
+					"releaseGroups": ["MTBB"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2011714-title",
+			"kind": "authentic",
+			"title": "[Ironclad] Dungeon Meshi - S01 [BD.1080p.AV1] | Delicious in Dungeon (Multi-Audio, Multi-Subs)",
+			"targetId": "dungeon",
+			"provenance": {
+				"url": "https://nyaa.si/view/2011714",
+				"site": "nyaa",
+				"sourceId": "nyaa-2011714",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["av1"],
+					"sources": ["bluray"],
+					"releaseGroups": ["Ironclad"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2140417-title",
+			"kind": "authentic",
+			"title": "Delicious.in.Dungeon.S01.1080p.BluRay.Multi-Audio.Opus.5.1.AV1-FALIN (Dungeon Meshi)",
+			"targetId": "dungeon",
+			"provenance": {
+				"url": "https://nyaa.si/view/2140417",
+				"site": "nyaa",
+				"sourceId": "nyaa-2140417",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["av1"],
+					"sources": ["bluray"],
+					"releaseGroups": ["FALIN"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2144666-title",
+			"kind": "authentic",
+			"title": "[SubsMix] Bocchi the Rock! - Season 01 (S01) V4 (BD 1080p HEVC Opus 2.0)",
+			"targetId": "bocchi",
+			"provenance": {
+				"url": "https://nyaa.si/view/2144666",
+				"site": "nyaa",
+				"sourceId": "nyaa-2144666",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["SubsMix"],
+					"revision": 4
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2073539-title",
+			"kind": "authentic",
+			"title": "[realpinkgirl321] Bocchi the Rock! Season 1 v3 (BD Remux 1080p x264 8-bit FLAC)",
+			"targetId": "bocchi",
+			"provenance": {
+				"url": "https://nyaa.si/view/2073539",
+				"site": "nyaa",
+				"sourceId": "nyaa-2073539",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["avc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["realpinkgirl321"],
+					"revision": 3
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2141457-title",
+			"kind": "authentic",
+			"title": "BOCCHI THE ROCK! - S01 [BD 1080p HEVC Opus] [ThanksBB]",
+			"targetId": "bocchi",
+			"provenance": {
+				"url": "https://nyaa.si/view/2141457",
+				"site": "nyaa",
+				"sourceId": "nyaa-2141457",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["ThanksBB"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2059571-title",
+			"kind": "authentic",
+			"title": "[SubsPlease] Spy x Family (26-37) (1080p) [Batch]",
+			"targetId": "spy-2",
+			"provenance": {
+				"url": "https://nyaa.si/view/2059571",
+				"site": "nyaa",
+				"sourceId": "nyaa-2059571",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": [],
+					"sources": [],
+					"releaseGroups": ["SubsPlease"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-1869969-title",
+			"kind": "authentic",
+			"title": "[EMBER] Spy x Family (2022-2023) (Season 1 + 2 + Movie) [BDRip] [1080p Dual Audio HEVC 10 bits DDP] (Batch)",
+			"targetId": "spy",
+			"provenance": {
+				"url": "https://nyaa.si/view/1869969",
+				"site": "nyaa",
+				"sourceId": "nyaa-1869969",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["EMBER"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2070674-title",
+			"kind": "authentic",
+			"title": "Suzume 2022 2160p iQY WEB-DL DTS-HD MA 5 1 DV H 265-DRX",
+			"targetId": "suzume",
+			"provenance": {
+				"url": "https://nyaa.si/view/2070674",
+				"site": "nyaa",
+				"sourceId": "nyaa-2070674",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [2160],
+					"videoCodecs": ["hevc"],
+					"sources": ["web"],
+					"releaseGroups": ["DRX"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-1953704-title",
+			"kind": "authentic",
+			"title": "[Sokudo] Suzume no Tojimari 2022 v2 [1080p BD AV1][dual audio]",
+			"targetId": "suzume",
+			"provenance": {
+				"url": "https://nyaa.si/view/1953704",
+				"site": "nyaa",
+				"sourceId": "nyaa-1953704",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["av1"],
+					"sources": ["bluray"],
+					"releaseGroups": ["Sokudo"],
+					"revision": 2
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2152370-title",
+			"kind": "authentic",
+			"title": "[Beatrice-Raws] Kimi no Na wa (Your Name) [DCPrip 1922x1080 HEVC TrueHD]_rev3",
+			"targetId": "your-name",
+			"provenance": {
+				"url": "https://nyaa.si/view/2152370",
+				"site": "nyaa",
+				"sourceId": "nyaa-2152370",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": [],
+					"releaseGroups": ["Beatrice-Raws"]
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2151649-title",
+			"kind": "authentic",
+			"title": "Your Name (2016) MULTi 1080p DSNP WEB-DL DDP5.1 H.264-Tsundere-Raws (VF, FRENCH, SUBFRENCH, VOSTFR, Kimi no Na wa)",
+			"targetId": "your-name",
+			"provenance": {
+				"url": "https://nyaa.si/view/2151649",
+				"site": "nyaa",
+				"sourceId": "nyaa-2151649",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["fr"],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["avc"],
+					"sources": ["web"],
+					"releaseGroups": ["Tsundere-Raws"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2107875-title",
+			"kind": "authentic",
+			"title": "[Judas] Kimi no Na wa (Your Name) [BD 1080p][HEVC x265 10bit][Dual-Audio][Multi-Subs] (Movie)",
+			"targetId": "your-name",
+			"provenance": {
+				"url": "https://nyaa.si/view/2107875",
+				"site": "nyaa",
+				"sourceId": "nyaa-2107875",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["Judas"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-1922198-title",
+			"kind": "authentic",
+			"title": "[ReinForce] Suzume no Tojimari (BDRip 1920x804 x264 FLAC)",
+			"targetId": "suzume",
+			"provenance": {
+				"url": "https://nyaa.si/view/1922198",
+				"site": "nyaa",
+				"sourceId": "nyaa-1922198",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [804],
+					"videoCodecs": ["avc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["ReinForce"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2060020-title",
+			"kind": "authentic",
+			"title": "Suzume.2022.MULTI.BDMV.1080p.AVC-MaitreAnonyme",
+			"targetId": "suzume",
+			"provenance": {
+				"url": "https://nyaa.si/view/2060020",
+				"site": "nyaa",
+				"sourceId": "nyaa-2060020",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["avc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["MaitreAnonyme"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2080114-title",
+			"kind": "authentic",
+			"title": "your name. (2016) English, Arabic, French, Portuguese subs from JFF [Multi-Subs only] | Kimi no Na wa",
+			"targetId": "your-name",
+			"provenance": {
+				"url": "https://nyaa.si/view/2080114",
+				"site": "nyaa",
+				"sourceId": "nyaa-2080114",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["en", "ar", "fr", "pt"],
+					"subtitleFormats": [],
+					"resolutions": [],
+					"videoCodecs": [],
+					"sources": [],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2052866-title",
+			"kind": "authentic",
+			"title": "[JacobSwaggedUp] Steins;Gate 0 (BD 1280x720) [MP4 Batch]",
+			"targetId": "steins-zero",
+			"provenance": {
+				"url": "https://nyaa.si/view/2052866",
+				"site": "nyaa",
+				"sourceId": "nyaa-2052866",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [720],
+					"videoCodecs": [],
+					"sources": ["bluray"],
+					"releaseGroups": ["JacobSwaggedUp"],
+					"revision": 1
+				},
+				"eligible": false
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2172195-title",
+			"kind": "authentic",
+			"title": "[SubsPlease] Detective Conan - 1216 (1080p) [1821A337].mkv",
+			"targetId": null,
+			"provenance": {
+				"url": "https://nyaa.si/view/2172195",
+				"site": "nyaa",
+				"sourceId": "nyaa-2172195",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": [],
+					"sources": [],
+					"releaseGroups": ["SubsPlease"],
+					"revision": 1
+				}
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2170413-title",
+			"kind": "authentic",
+			"title": "[shincaps] Akazukin Chacha - 01-02 (KIDS 1440x1080 MPEG2 AAC).ts",
+			"targetId": null,
+			"provenance": {
+				"url": "https://nyaa.si/view/2170413",
+				"site": "nyaa",
+				"sourceId": "nyaa-2170413",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["mpeg2"],
+					"sources": [],
+					"releaseGroups": ["shincaps"],
+					"revision": 1
+				}
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2169271-title",
+			"kind": "authentic",
+			"title": "[shincaps] Magical Explorer - 01-02 (ANIPLUS 1920x1080 H264 AAC).ts",
+			"targetId": null,
+			"provenance": {
+				"url": "https://nyaa.si/view/2169271",
+				"site": "nyaa",
+				"sourceId": "nyaa-2169271",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["avc"],
+					"sources": [],
+					"releaseGroups": ["shincaps"],
+					"revision": 1
+				}
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-1328618-title",
+			"kind": "authentic",
+			"title": "[Judas] Clannad (Seasons 1-2 + OVAs) [BD 1080p][HEVC x265 10bit][Dual-Audio][Eng-Subs] (Batch)",
+			"targetId": null,
+			"provenance": {
+				"url": "https://nyaa.si/view/1328618",
+				"site": "nyaa",
+				"sourceId": "nyaa-1328618",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["en"],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["Judas"],
+					"revision": 1
+				}
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-1893152-title",
+			"kind": "authentic",
+			"title": "[DB] 86 | 86 Eighty-Six (Season 1-2+Specials) [Dual Audio 10bit BD1080p][HEVC-x265]",
+			"targetId": null,
+			"provenance": {
+				"url": "https://nyaa.si/view/1893152",
+				"site": "nyaa",
+				"sourceId": "nyaa-1893152",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["DB"],
+					"revision": 1
+				}
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2118174-title",
+			"kind": "authentic",
+			"title": "[7³ACG] Bocchi the Rock! Re:Re: ぼっち・ざ・ろっく! Re:Re: 2024 [BDRip 1080p x265 OPUS]",
+			"targetId": null,
+			"provenance": {
+				"url": "https://nyaa.si/view/2118174",
+				"site": "nyaa",
+				"sourceId": "nyaa-2118174",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["7³ACG"],
+					"revision": 1
+				}
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2118172-title",
+			"kind": "authentic",
+			"title": "[7³ACG] Bocchi the Rock! Re: ぼっち・ざ・ろっく! Re: 2024 [BDRip 1080p x265 OPUS]",
+			"targetId": null,
+			"provenance": {
+				"url": "https://nyaa.si/view/2118172",
+				"site": "nyaa",
+				"sourceId": "nyaa-2118172",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": [],
+					"subtitleFormats": [],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["7³ACG"],
+					"revision": 1
+				}
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "nyaa-2168853-title",
+			"kind": "authentic",
+			"title": "[Kashikoi] Tanaka-kun wa Itsumo Kedaruge - NCOP+NCEDs [BDRip 1280x720 x264 AAC][Sub_Esp][MP4]",
+			"targetId": null,
+			"provenance": {
+				"url": "https://nyaa.si/view/2168853",
+				"site": "nyaa",
+				"sourceId": "nyaa-2168853",
+				"note": "Exact existing public publication title; no media download or claim of single-episode content."
+			},
+			"expected": {
+				"attributes": {
+					"subtitleLanguages": ["es"],
+					"subtitleFormats": [],
+					"resolutions": [720],
+					"videoCodecs": ["avc"],
+					"sources": ["bluray"],
+					"releaseGroups": ["Kashikoi"],
+					"revision": 1
+				}
+			},
+			"review": "Literal publication declaration review on 2026-11-07. Subscription admission requires one regular episode. Source corpus decisions concern local association and are not copied as subscription eligibility."
+		},
+		{
+			"id": "rule-single",
+			"kind": "synthetic",
+			"title": "[G] Frieren - 03 [1080p]",
+			"targetId": "rule-frieren",
+			"provenance": {
+				"url": null,
+				"site": "authored",
+				"sourceId": null,
+				"note": "Explicit constructed subscription boundary; not an authentic website publication."
+			},
+			"expected": {
+				"eligible": true,
+				"attributes": {},
+				"episode": 3
+			},
+			"review": "Expected behavior independently retained from existing RSS/parser and acquisition-profile tests."
+		},
+		{
+			"id": "rule-wrong-work",
+			"kind": "synthetic",
+			"title": "[G] Other Anime - 03 [1080p]",
+			"targetId": "rule-frieren",
+			"provenance": {
+				"url": null,
+				"site": "authored",
+				"sourceId": null,
+				"note": "Explicit constructed subscription boundary; not an authentic website publication."
+			},
+			"expected": {
+				"eligible": false,
+				"attributes": {}
+			},
+			"review": "Expected behavior independently retained from existing RSS/parser and acquisition-profile tests."
+		},
+		{
+			"id": "rule-wrong-season",
+			"kind": "synthetic",
+			"title": "[G] Frieren S02 - 03 [1080p]",
+			"targetId": "rule-frieren",
+			"provenance": {
+				"url": null,
+				"site": "authored",
+				"sourceId": null,
+				"note": "Explicit constructed subscription boundary; not an authentic website publication."
+			},
+			"expected": {
+				"eligible": false,
+				"attributes": {}
+			},
+			"review": "Expected behavior independently retained from existing RSS/parser and acquisition-profile tests."
+		},
+		{
+			"id": "rule-range",
+			"kind": "synthetic",
+			"title": "[G] Frieren - 01-12 [1080p]",
+			"targetId": "rule-frieren",
+			"provenance": {
+				"url": null,
+				"site": "authored",
+				"sourceId": null,
+				"note": "Explicit constructed subscription boundary; not an authentic website publication."
+			},
+			"expected": {
+				"eligible": false,
+				"attributes": {}
+			},
+			"review": "Expected behavior independently retained from existing RSS/parser and acquisition-profile tests."
+		},
+		{
+			"id": "rule-ova",
+			"kind": "synthetic",
+			"title": "[G] Frieren OVA - 01 [1080p]",
+			"targetId": "rule-frieren",
+			"provenance": {
+				"url": null,
+				"site": "authored",
+				"sourceId": null,
+				"note": "Explicit constructed subscription boundary; not an authentic website publication."
+			},
+			"expected": {
+				"eligible": false,
+				"attributes": {}
+			},
+			"review": "Expected behavior independently retained from existing RSS/parser and acquisition-profile tests."
+		},
+		{
+			"id": "rule-zero",
+			"kind": "synthetic",
+			"title": "[G] Frieren - 00 [1080p]",
+			"targetId": "rule-frieren",
+			"provenance": {
+				"url": null,
+				"site": "authored",
+				"sourceId": null,
+				"note": "Explicit constructed subscription boundary; not an authentic website publication."
+			},
+			"expected": {
+				"eligible": false,
+				"attributes": {}
+			},
+			"review": "Expected behavior independently retained from existing RSS/parser and acquisition-profile tests."
+		},
+		{
+			"id": "rule-dub-not-subtitle",
+			"kind": "synthetic",
+			"title": "[G] Frieren - 03 [1080p][Japanese Dub]",
+			"targetId": "rule-frieren",
+			"provenance": {
+				"url": null,
+				"site": "authored",
+				"sourceId": null,
+				"note": "Explicit constructed subscription boundary; not an authentic website publication."
+			},
+			"expected": {
+				"eligible": true,
+				"attributes": {
+					"subtitleLanguages": []
+				},
+				"episode": 3
+			},
+			"review": "Expected behavior independently retained from existing RSS/parser and acquisition-profile tests."
+		},
+		{
+			"id": "rule-joint-group",
+			"kind": "synthetic",
+			"title": "[桜都字幕组&LoliHouse] Frieren - 03v2 [WebRip 1920x1080 HEVC-10bit AAC][简繁日内封字幕]",
+			"targetId": "rule-frieren",
+			"provenance": {
+				"url": null,
+				"site": "authored",
+				"sourceId": null,
+				"note": "Explicit constructed subscription boundary; not an authentic website publication."
+			},
+			"expected": {
+				"eligible": true,
+				"attributes": {
+					"subtitleLanguages": ["zh-Hans", "zh-Hant", "ja"],
+					"subtitleFormats": ["soft"],
+					"resolutions": [1080],
+					"videoCodecs": ["hevc"],
+					"sources": ["web"],
+					"releaseGroups": ["桜都字幕组&LoliHouse", "桜都字幕组", "LoliHouse"],
+					"revision": 2
+				},
+				"episode": 3
+			},
+			"review": "Expected behavior independently retained from existing RSS/parser and acquisition-profile tests."
+		}
+	]
+}

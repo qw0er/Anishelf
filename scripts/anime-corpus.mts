@@ -1,74 +1,66 @@
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
-	evaluateCorpus,
 	loadCorpus,
 	materializeCorpus,
 	summarizeCorpus,
 } from "../backend/test/support/anime-corpus.js";
-import { evaluateMatchingCorpus } from "../backend/test/support/anime-matching-corpus.js";
 import {
-	evaluateReportedCorpus,
 	loadReportedCorpus,
 	reportedResources,
-} from "../backend/test/support/anime-reported-corpus.js";
+} from "../backend/test/support/anime-reported-cases.js";
 
-const [command = "summary", argument] = process.argv.slice(2);
-const corpus = await loadCorpus();
-const reported = await loadReportedCorpus();
-switch (command) {
-	case "match": {
-		const [matching, reproduction] = await Promise.all([
-			evaluateMatchingCorpus(),
-			evaluateReportedCorpus(reported),
+const [command = "summary", ...arguments_] = process.argv.slice(2);
+if (
+	!(
+		(command === "summary" && arguments_.length === 0) ||
+		(command === "generate" && arguments_.length === 1 && arguments_[0])
+	)
+) {
+	console.error(
+		JSON.stringify({
+			event: "anime_corpus.command_rejected",
+			usage:
+				"npm run anime:corpus -- <summary|generate <new-directory>>; run anime:identification for the complete identification audit.",
+		}),
+	);
+	process.exitCode = 2;
+} else {
+	try {
+		console.error(
+			JSON.stringify({ event: "anime_corpus.started", command, offline: true }),
+		);
+		const [corpus, reported] = await Promise.all([
+			loadCorpus(),
+			loadReportedCorpus(),
 		]);
-		console.log(
-			JSON.stringify({ ...matching, reported: reproduction }, null, 2),
+		const result =
+			command === "summary"
+				? {
+						event: "anime_corpus.summary",
+						...summarizeCorpus(corpus),
+						reported: {
+							version: reported.version,
+							scenarios: reported.scenarios.length,
+							files: reportedResources(reported).length,
+						},
+					}
+				: {
+						event: "anime_corpus.generated",
+						...(await materializeCorpus(corpus, resolve(arguments_[0] ?? ""), {
+							version: reported.version,
+							resources: reportedResources(reported),
+						})),
+					};
+		console.log(JSON.stringify(result, null, 2));
+		console.error(JSON.stringify({ event: "anime_corpus.completed", command }));
+	} catch (error) {
+		console.error(
+			JSON.stringify({
+				event: "anime_corpus.failed",
+				command,
+				message: error instanceof Error ? error.message : String(error),
+			}),
 		);
-		if (reproduction.passed !== reproduction.total) process.exitCode = 1;
-		break;
+		process.exitCode = 1;
 	}
-	case "summary":
-		console.log(
-			JSON.stringify(
-				{
-					...summarizeCorpus(corpus),
-					reported: {
-						version: reported.version,
-						scenarios: reported.scenarios.length,
-						files: reportedResources(reported).length,
-					},
-				},
-				null,
-				2,
-			),
-		);
-		break;
-	case "generate":
-		if (!argument)
-			throw new Error("Usage: anime:corpus generate <new-directory>");
-		console.log(
-			JSON.stringify(
-				await materializeCorpus(corpus, resolve(argument), {
-					version: reported.version,
-					resources: reportedResources(reported),
-				}),
-				null,
-				2,
-			),
-		);
-		break;
-	case "evaluate": {
-		if (!argument)
-			throw new Error("Usage: anime:corpus evaluate <predictions.json>");
-		const report = evaluateCorpus(
-			corpus,
-			JSON.parse(await readFile(resolve(argument), "utf8")),
-		);
-		console.log(JSON.stringify(report, null, 2));
-		if (report.passed !== report.total) process.exitCode = 1;
-		break;
-	}
-	default:
-		throw new Error(`Unknown anime corpus command: ${command}`);
 }

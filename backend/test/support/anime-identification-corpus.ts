@@ -16,6 +16,21 @@ import type {
 import { type AnimeCase, corpusDirectory, loadCorpus } from "./anime-corpus.js";
 import { productionNumbering } from "./production-numbering.js";
 
+/** Safety failures gate the integration audit; unresolved expected matches remain diagnostic. */
+export function identificationAuditFailed(report: {
+	summary: {
+		unsafeAdmissions: readonly string[];
+		episodeMismatches: readonly string[];
+	};
+	reported: { total: number; passed: number };
+}): boolean {
+	return (
+		report.summary.unsafeAdmissions.length > 0 ||
+		report.summary.episodeMismatches.length > 0 ||
+		report.reported.passed !== report.reported.total
+	);
+}
+
 interface Snapshot {
 	anilist: {
 		id: number;
@@ -52,7 +67,7 @@ function groupSummary(
 		missedMatches: rows.filter((row) => row.missed).map((row) => row.id),
 	};
 }
-export async function matchingCorpusCandidates() {
+async function matchingCorpusCandidates() {
 	const corpus = await loadCorpus();
 	const candidates = await Promise.all(
 		corpus.works.map(async (work) => {
@@ -107,7 +122,7 @@ function review(result: IdentificationResult): ReviewRecord {
 		reason: null,
 	};
 }
-export async function evaluateMatchingCorpus() {
+export async function evaluateIdentificationCorpus() {
 	const { corpus, candidates } = await matchingCorpusCandidates();
 	const production = await productionNumbering(corpus);
 	const ids = new Map(

@@ -1,0 +1,1625 @@
+{
+	"schemaVersion": 1,
+	"version": "2026-11-07.1",
+	"extractedFrom": {
+		"identification": "2026-10-11.2",
+		"reported": "2026-11-02.1"
+	},
+	"evidenceOrigin": {
+		"kind": "parser-snapshot",
+		"parserVersion": "anitomy-ng@1.0.10:anitomy-title-sources-v6",
+		"note": "Frozen production extraction, not independently verified parsing truth. Standalone files were extracted separately; reported siblings were extracted together. No expected labels were supplied to extraction."
+	},
+	"pools": [
+		{
+			"id": "anilist-frozen",
+			"provenance": "All 20 frozen AniList projections from identification corpus 2026-10-11.2; complete shared pool independent of case labels.",
+			"works": [
+				{
+					"workId": "frieren",
+					"candidate": {
+						"reference": {
+							"id": "154587"
+						},
+						"snapshotId": "provider-snapshots/frieren.json",
+						"titles": [
+							"Sousou no Frieren",
+							"Frieren: Beyond Journey’s End",
+							"葬送のフリーレン",
+							"Frieren at the Funeral",
+							"장송의 프리렌",
+							"Frieren - Oltre la Fine del Viaggio",
+							"คำอธิษฐานในวันที่จากลา Frieren",
+							"Frieren e a Jornada para o Além",
+							"Frieren – Nach dem Ende der Reise",
+							"葬送的芙莉蓮",
+							"Frieren: Más allá del final del viaje",
+							"Frieren en el funeral",
+							"Sōsō no Furīren",
+							"Frieren. U kresu drogi",
+							"Frieren - Pháp sư tiễn táng",
+							"Фрирен, провожающая в последний путь",
+							"فريرن: ما وراء نهاية الرحلة",
+							"Frieren: Tras finalizar el viaje"
+						],
+						"titleVariants": [
+							{
+								"value": "Sousou no Frieren",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Frieren: Beyond Journey’s End",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "葬送のフリーレン",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Frieren at the Funeral",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "장송의 프리렌",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Frieren - Oltre la Fine del Viaggio",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "คำอธิษฐานในวันที่จากลา Frieren",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Frieren e a Jornada para o Além",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Frieren – Nach dem Ende der Reise",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "葬送的芙莉蓮",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Frieren: Más allá del final del viaje",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Frieren en el funeral",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Sōsō no Furīren",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Frieren. U kresu drogi",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Frieren - Pháp sư tiễn táng",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Фрирен, провожающая в последний путь",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "فريرن: ما وراء نهاية الرحلة",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Frieren: Tras finalizar el viaje",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2023,
+						"format": "TV",
+						"episodeCount": 28,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "frieren-2",
+					"candidate": {
+						"reference": {
+							"id": "182255"
+						},
+						"snapshotId": "provider-snapshots/frieren-2.json",
+						"titles": [
+							"Sousou no Frieren 2nd Season",
+							"Frieren: Beyond Journey’s End Season 2",
+							"葬送のフリーレン 第2期",
+							"Провожающая в последний путь Фрирен 2",
+							"장송의 프리렌 2기"
+						],
+						"titleVariants": [
+							{
+								"value": "Sousou no Frieren 2nd Season",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Frieren: Beyond Journey’s End Season 2",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "葬送のフリーレン 第2期",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Провожающая в последний путь Фрирен 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "장송의 프리렌 2기",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2026,
+						"format": "TV",
+						"episodeCount": 10,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "apothecary",
+					"candidate": {
+						"reference": {
+							"id": "161645"
+						},
+						"snapshotId": "provider-snapshots/apothecary.json",
+						"titles": [
+							"Kusuriya no Hitorigoto",
+							"The Apothecary Diaries",
+							"薬屋のひとりごと",
+							"Drugstore Soliloquy",
+							"Les Carnets de l'Apothicaire",
+							"Zapiski zielarki",
+							"Diários de uma Apotecária",
+							"Il monologo della Speziale",
+							"Los diarios de la boticaria",
+							"สืบคดีปริศนา หมอยาตำรับโคมแดง",
+							"Записки аптекаря",
+							"Die Tagebücher der Apothekerin",
+							"يوميات الصيدلانيّة",
+							"藥師少女的獨語",
+							"药屋少女的呢喃",
+							"Монолог фармацевта",
+							"약사의 혼잣말",
+							"Dược sư tự sự"
+						],
+						"titleVariants": [
+							{
+								"value": "Kusuriya no Hitorigoto",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "The Apothecary Diaries",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "薬屋のひとりごと",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Drugstore Soliloquy",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Les Carnets de l'Apothicaire",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Zapiski zielarki",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Diários de uma Apotecária",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Il monologo della Speziale",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Los diarios de la boticaria",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "สืบคดีปริศนา หมอยาตำรับโคมแดง",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Записки аптекаря",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Die Tagebücher der Apothekerin",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "يوميات الصيدلانيّة",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "藥師少女的獨語",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "药屋少女的呢喃",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Монолог фармацевта",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "약사의 혼잣말",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Dược sư tự sự",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2023,
+						"format": "TV",
+						"episodeCount": 24,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "apothecary-2",
+					"candidate": {
+						"reference": {
+							"id": "176301"
+						},
+						"snapshotId": "provider-snapshots/apothecary-2.json",
+						"titles": [
+							"Kusuriya no Hitorigoto 2nd Season",
+							"The Apothecary Diaries Season 2",
+							"薬屋のひとりごと 第2期",
+							"Die Tagebücher der Apothekerin Season 2",
+							"Diários de uma Apotecária 2ª Temporada",
+							"Монолог фармацевта 2",
+							"Les Carnets de l'apothicaire Saison 2",
+							"Los diarios de la boticaria temporada 2",
+							"Dược sư tự sự"
+						],
+						"titleVariants": [
+							{
+								"value": "Kusuriya no Hitorigoto 2nd Season",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "The Apothecary Diaries Season 2",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "薬屋のひとりごと 第2期",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Die Tagebücher der Apothekerin Season 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Diários de uma Apotecária 2ª Temporada",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Монолог фармацевта 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Les Carnets de l'apothicaire Saison 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Los diarios de la boticaria temporada 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Dược sư tự sự",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2025,
+						"format": "TV",
+						"episodeCount": 24,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "bocchi",
+					"candidate": {
+						"reference": {
+							"id": "130003"
+						},
+						"snapshotId": "provider-snapshots/bocchi.json",
+						"titles": [
+							"Bocchi the Rock!",
+							"BOCCHI THE ROCK!",
+							"ぼっち・ざ・ろっく！",
+							"РОК-ТИХОНЯ!",
+							"บจจิเดอะร็อก!",
+							"孤獨搖滾！",
+							"孤独摇滚！",
+							"외톨이 THE ROCK!",
+							"봇치 더 록!",
+							"BTR"
+						],
+						"titleVariants": [
+							{
+								"value": "Bocchi the Rock!",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "BOCCHI THE ROCK!",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "ぼっち・ざ・ろっく！",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "РОК-ТИХОНЯ!",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "บจจิเดอะร็อก!",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "孤獨搖滾！",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "孤独摇滚！",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "외톨이 THE ROCK!",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "봇치 더 록!",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "BTR",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2022,
+						"format": "TV",
+						"episodeCount": 12,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "dungeon",
+					"candidate": {
+						"reference": {
+							"id": "153518"
+						},
+						"snapshotId": "provider-snapshots/dungeon.json",
+						"titles": [
+							"Dungeon Meshi",
+							"Delicious in Dungeon",
+							"ダンジョン飯",
+							"Dungeon Food",
+							"Dungeon Meal",
+							"Tragones y Mazmorras",
+							"Gloutons et Dragons",
+							"Подземелье вкусностей",
+							"던전밥",
+							"สูตรลับตำรับดันเจียน",
+							"Mỹ vị hầm ngục",
+							"Підземелля смакоти",
+							"迷宫饭",
+							"מבוכים ומטעמים",
+							"Dunmeshi",
+							"Labužníci v kobce",
+							"طعام الدهليز اللذيذ"
+						],
+						"titleVariants": [
+							{
+								"value": "Dungeon Meshi",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Delicious in Dungeon",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "ダンジョン飯",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Dungeon Food",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Dungeon Meal",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Tragones y Mazmorras",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Gloutons et Dragons",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Подземелье вкусностей",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "던전밥",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "สูตรลับตำรับดันเจียน",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Mỹ vị hầm ngục",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Підземелля смакоти",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "迷宫饭",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "מבוכים ומטעמים",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Dunmeshi",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Labužníci v kobce",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "طعام الدهليز اللذيذ",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2024,
+						"format": "TV",
+						"episodeCount": 24,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "spy",
+					"candidate": {
+						"reference": {
+							"id": "140960"
+						},
+						"snapshotId": "provider-snapshots/spy.json",
+						"titles": [
+							"SPY×FAMILY",
+							"SPY x FAMILY",
+							"SPY×FAMILY",
+							"SxF",
+							"스파이 패밀리",
+							"间谍过家家",
+							"Семья шпиона",
+							"سباي إكس فاميلي",
+							"Gia Đình Điệp Viên"
+						],
+						"titleVariants": [
+							{
+								"value": "SPY×FAMILY",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "SPY x FAMILY",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "SPY×FAMILY",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "SxF",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "스파이 패밀리",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "间谍过家家",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Семья шпиона",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "سباي إكس فاميلي",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Gia Đình Điệp Viên",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2022,
+						"format": "TV",
+						"episodeCount": 12,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "spy-2",
+					"candidate": {
+						"reference": {
+							"id": "158927"
+						},
+						"snapshotId": "provider-snapshots/spy-2.json",
+						"titles": [
+							"SPY×FAMILY Season 2",
+							"SPY x FAMILY Season 2",
+							"SPY×FAMILY Season 2",
+							"SxF 2",
+							"스파이 패밀리",
+							"Семья шпиона",
+							"スパイファミリー 2",
+							"Spy x Family – Sezon 2"
+						],
+						"titleVariants": [
+							{
+								"value": "SPY×FAMILY Season 2",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "SPY x FAMILY Season 2",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "SPY×FAMILY Season 2",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "SxF 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "스파이 패밀리",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Семья шпиона",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "スパイファミリー 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Spy x Family – Sezon 2",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2023,
+						"format": "TV",
+						"episodeCount": 12,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "oshi",
+					"candidate": {
+						"reference": {
+							"id": "150672"
+						},
+						"snapshotId": "provider-snapshots/oshi.json",
+						"titles": [
+							"[Oshi no Ko]",
+							"OSHI NO KO",
+							"【推しの子】",
+							"Favorite Girl",
+							"My Idol's Child",
+							"[Mein*Star]",
+							"เกิดใหม่เป็นลูกโอชิ",
+							"Anak Idola",
+							"【OSHI NO KO】",
+							"【推しの子】Mother and Children",
+							"[Oshi no Ko] Mother and Children",
+							"我推的孩子",
+							"【최애의 아이】",
+							"Đứa Con Của Thần Tượng",
+							"[OSHI NO KO]"
+						],
+						"titleVariants": [
+							{
+								"value": "[Oshi no Ko]",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "OSHI NO KO",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "【推しの子】",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Favorite Girl",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "My Idol's Child",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "[Mein*Star]",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "เกิดใหม่เป็นลูกโอชิ",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Anak Idola",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "【OSHI NO KO】",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "【推しの子】Mother and Children",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "[Oshi no Ko] Mother and Children",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "我推的孩子",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "【최애의 아이】",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Đứa Con Của Thần Tượng",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "[OSHI NO KO]",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2023,
+						"format": "TV",
+						"episodeCount": 11,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "oshi-2",
+					"candidate": {
+						"reference": {
+							"id": "166531"
+						},
+						"snapshotId": "provider-snapshots/oshi-2.json",
+						"titles": [
+							"[Oshi no Ko] 2nd Season",
+							"OSHI NO KO Season 2",
+							"【推しの子】第2期",
+							"我推的孩子",
+							"[OSHI NO KO] Season 2",
+							"【OSHI NO KO】Season 2"
+						],
+						"titleVariants": [
+							{
+								"value": "[Oshi no Ko] 2nd Season",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "OSHI NO KO Season 2",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "【推しの子】第2期",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "我推的孩子",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "[OSHI NO KO] Season 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "【OSHI NO KO】Season 2",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2024,
+						"format": "TV",
+						"episodeCount": 13,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "your-name",
+					"candidate": {
+						"reference": {
+							"id": "21519"
+						},
+						"snapshotId": "provider-snapshots/your-name.json",
+						"titles": [
+							"Kimi no Na wa.",
+							"Your Name.",
+							"君の名は。",
+							"Your Name. - Gestern, heute und für immer",
+							"Mi a Neved?",
+							"你的名字。",
+							"너의 이름은.",
+							"Tu nombre",
+							"Твоё имя",
+							"หลับตาฝันถึงชื่อเธอ",
+							"Il tuo nome",
+							"השם שלך.",
+							"Twoje imię",
+							"Tên cậu là gì",
+							"Tvoje meno.",
+							"Tvoje jméno."
+						],
+						"titleVariants": [
+							{
+								"value": "Kimi no Na wa.",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Your Name.",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "君の名は。",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Your Name. - Gestern, heute und für immer",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Mi a Neved?",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "你的名字。",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "너의 이름은.",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Tu nombre",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Твоё имя",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "หลับตาฝันถึงชื่อเธอ",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Il tuo nome",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "השם שלך.",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Twoje imię",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Tên cậu là gì",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Tvoje meno.",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Tvoje jméno.",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2016,
+						"format": "MOVIE",
+						"episodeCount": 1,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "suzume",
+					"candidate": {
+						"reference": {
+							"id": "142770"
+						},
+						"snapshotId": "provider-snapshots/suzume.json",
+						"titles": [
+							"Suzume no Tojimari",
+							"Suzume",
+							"すずめの戸締まり",
+							"铃芽之旅",
+							"Khóa Chặt Cửa Nào Suzume",
+							"การผนึกประตูของซุซุเมะ",
+							"Судзуме зачиняє двері",
+							"Судзумэ"
+						],
+						"titleVariants": [
+							{
+								"value": "Suzume no Tojimari",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Suzume",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "すずめの戸締まり",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "铃芽之旅",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Khóa Chặt Cửa Nào Suzume",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "การผนึกประตูของซุซุเมะ",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Судзуме зачиняє двері",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Судзумэ",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2022,
+						"format": "MOVIE",
+						"episodeCount": 1,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "rezero",
+					"candidate": {
+						"reference": {
+							"id": "21355"
+						},
+						"snapshotId": "provider-snapshots/rezero.json",
+						"titles": [
+							"Re:Zero kara Hajimeru Isekai Seikatsu",
+							"Re:ZERO -Starting Life in Another World-",
+							"Re:ゼロから始める異世界生活",
+							"Re: Life in a different world from zero",
+							"ReZero",
+							"Re Zero",
+							"Re：从零开始的异世界生活",
+							"Re:Zero รีเซทชีวิต ฝ่าวิกฤตต่างโลก",
+							"Re:Zero — жизнь с нуля в другом мире",
+							"Re:Zero Empezar de cero en un mundo diferente",
+							"Re:Zero – Bắt đầu lại ở thế giới khác"
+						],
+						"titleVariants": [
+							{
+								"value": "Re:Zero kara Hajimeru Isekai Seikatsu",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Re:ZERO -Starting Life in Another World-",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "Re:ゼロから始める異世界生活",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Re: Life in a different world from zero",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "ReZero",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re Zero",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re：从零开始的异世界生活",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re:Zero รีเซทชีวิต ฝ่าวิกฤตต่างโลก",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re:Zero — жизнь с нуля в другом мире",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re:Zero Empezar de cero en un mundo diferente",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re:Zero – Bắt đầu lại ở thế giới khác",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2016,
+						"format": "TV",
+						"episodeCount": 25,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "rezero-2",
+					"candidate": {
+						"reference": {
+							"id": "108632"
+						},
+						"snapshotId": "provider-snapshots/rezero-2.json",
+						"titles": [
+							"Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+							"Re:ZERO -Starting Life in Another World- Season 2",
+							"Re:ゼロから始める異世界生活 2nd Season",
+							"Re:Zero kara Hajimeru Isekai Seikatsu (2020)",
+							"Re: 제로부터 시작하는 이세계 생활 2기",
+							"Re:从零开始的异世界生活第二季（上半）",
+							"Re:从零开始的异世界生活 2 上半",
+							"Re:Zero รีเซทชีวิต ฝ่าวิกฤตต่างโลก ภาค 2",
+							"Re:Zero — жизнь с нуля в другом мире. Второй сезон"
+						],
+						"titleVariants": [
+							{
+								"value": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Re:ZERO -Starting Life in Another World- Season 2",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "Re:ゼロから始める異世界生活 2nd Season",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Re:Zero kara Hajimeru Isekai Seikatsu (2020)",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re: 제로부터 시작하는 이세계 생활 2기",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re:从零开始的异世界生活第二季（上半）",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re:从零开始的异世界生活 2 上半",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re:Zero รีเซทชีวิต ฝ่าวิกฤตต่างโลก ภาค 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Re:Zero — жизнь с нуля в другом мире. Второй сезон",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2020,
+						"format": "TV",
+						"episodeCount": 13,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "violet",
+					"candidate": {
+						"reference": {
+							"id": "21827"
+						},
+						"snapshotId": "provider-snapshots/violet.json",
+						"titles": [
+							"Violet Evergarden",
+							"Violet Evergarden",
+							"ヴァイオレット・エヴァーガーデン",
+							"ויולט אברגרדן",
+							"فيوليت",
+							"紫罗兰永恒花园"
+						],
+						"titleVariants": [
+							{
+								"value": "Violet Evergarden",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Violet Evergarden",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "ヴァイオレット・エヴァーガーデン",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "ויולט אברגרדן",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "فيوليت",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "紫罗兰永恒花园",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2018,
+						"format": "TV",
+						"episodeCount": 13,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "mushoku-part-2",
+					"candidate": {
+						"reference": {
+							"id": "127720"
+						},
+						"snapshotId": "provider-snapshots/mushoku-part-2.json",
+						"titles": [
+							"Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+							"Mushoku Tensei: Jobless Reincarnation Cour 2",
+							"無職転生 ～異世界行ったら本気だす～ 第2クール",
+							"Mushoku Tensei: Jobless Reincarnation Part 2",
+							"เกิดชาตินี้พี่ต้องเทพ พาร์ท 2"
+						],
+						"titleVariants": [
+							{
+								"value": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Mushoku Tensei: Jobless Reincarnation Cour 2",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "無職転生 ～異世界行ったら本気だす～ 第2クール",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Mushoku Tensei: Jobless Reincarnation Part 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "เกิดชาตินี้พี่ต้องเทพ พาร์ท 2",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2021,
+						"format": "TV",
+						"episodeCount": 12,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "mushoku-2",
+					"candidate": {
+						"reference": {
+							"id": "146065"
+						},
+						"snapshotId": "provider-snapshots/mushoku-2.json",
+						"titles": [
+							"Mushoku Tensei II: Isekai Ittara Honki Dasu",
+							"Mushoku Tensei: Jobless Reincarnation Season 2",
+							"無職転生Ⅱ ～異世界行ったら本気だす～",
+							"เกิดชาตินี้พี่ต้องเทพ ซีซั่น 2",
+							"Mushoku Tensei: Isekai Ittara Honki Dasu 2nd Season",
+							"Mushoku Tensei II: Jobless Reincarnation",
+							"Mushoku Tensei II: Reencarnación desde cero",
+							"无职转生～到了异世界就拿出真本事～第2季"
+						],
+						"titleVariants": [
+							{
+								"value": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Mushoku Tensei: Jobless Reincarnation Season 2",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "無職転生Ⅱ ～異世界行ったら本気だす～",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "เกิดชาตินี้พี่ต้องเทพ ซีซั่น 2",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Mushoku Tensei: Isekai Ittara Honki Dasu 2nd Season",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Mushoku Tensei II: Jobless Reincarnation",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Mushoku Tensei II: Reencarnación desde cero",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "无职转生～到了异世界就拿出真本事～第2季",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2023,
+						"format": "TV",
+						"episodeCount": 13,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "magia-record",
+					"candidate": {
+						"reference": {
+							"id": "104051"
+						},
+						"snapshotId": "provider-snapshots/magia-record.json",
+						"titles": [
+							"Magia Record: Mahou Shoujo Madoka☆Magica Gaiden",
+							"Magia Record: Puella Magi Madoka Magica Side Story",
+							"マギアレコード 魔法少女まどか☆マギカ外伝",
+							"MagiReco",
+							"Magia Record",
+							"สาวน้อยเวทมนตร์ มาโดกะ",
+							"สาวน้อยเวทมนตร์ มาโดกะ [บันทึกมากิอา]",
+							"Записи о магии: Другая история девочки-волшебницы Мадоки"
+						],
+						"titleVariants": [
+							{
+								"value": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Magia Record: Puella Magi Madoka Magica Side Story",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "マギアレコード 魔法少女まどか☆マギカ外伝",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "MagiReco",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Magia Record",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "สาวน้อยเวทมนตร์ มาโดกะ",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "สาวน้อยเวทมนตร์ มาโดกะ [บันทึกมากิอา]",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Записи о магии: Другая история девочки-волшебницы Мадоки",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2020,
+						"format": "TV",
+						"episodeCount": 13,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "steins-zero",
+					"candidate": {
+						"reference": {
+							"id": "21127"
+						},
+						"snapshotId": "provider-snapshots/steins-zero.json",
+						"titles": [
+							"Steins;Gate 0",
+							"Steins;Gate 0",
+							"シュタインズ・ゲート ゼロ",
+							"s;g0",
+							"命运石之门0"
+						],
+						"titleVariants": [
+							{
+								"value": "Steins;Gate 0",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Steins;Gate 0",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "シュタインズ・ゲート ゼロ",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "s;g0",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "命运石之门0",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2018,
+						"format": "TV",
+						"episodeCount": 23,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "violet-movie",
+					"candidate": {
+						"reference": {
+							"id": "103047"
+						},
+						"snapshotId": "provider-snapshots/violet-movie.json",
+						"titles": [
+							"Violet Evergarden Movie",
+							"Violet Evergarden: the Movie",
+							"劇場版 ヴァイオレット・エヴァーガーデン",
+							"Виолетта Эвергарден",
+							"Вайоллет Эвергарден",
+							"薇尔莉特·伊芙加登",
+							"Violet Evergarden : Le film"
+						],
+						"titleVariants": [
+							{
+								"value": "Violet Evergarden Movie",
+								"kind": "primary",
+								"language": "romaji"
+							},
+							{
+								"value": "Violet Evergarden: the Movie",
+								"kind": "primary",
+								"language": "english"
+							},
+							{
+								"value": "劇場版 ヴァイオレット・エヴァーガーデン",
+								"kind": "primary",
+								"language": "native"
+							},
+							{
+								"value": "Виолетта Эвергарден",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Вайоллет Эвергарден",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "薇尔莉特·伊芙加登",
+								"kind": "alias",
+								"language": null
+							},
+							{
+								"value": "Violet Evergarden : Le film",
+								"kind": "alias",
+								"language": null
+							}
+						],
+						"year": 2020,
+						"format": "MOVIE",
+						"episodeCount": 1,
+						"season": null,
+						"part": null
+					}
+				}
+			]
+		},
+		{
+			"id": "reported:cyberpunk-edgerunners-season-2",
+			"provenance": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"works": [
+				{
+					"workId": "cyberpunk-edgerunners",
+					"candidate": {
+						"reference": {
+							"id": "cyberpunk-edgerunners"
+						},
+						"snapshotId": "reported:2026-11-02.1:cyberpunk-edgerunners-season-2",
+						"titles": ["Cyberpunk: Edgerunners"],
+						"titleVariants": [
+							{
+								"value": "Cyberpunk: Edgerunners",
+								"kind": "primary",
+								"language": null
+							}
+						],
+						"year": 2022,
+						"format": "ONA",
+						"episodeCount": null,
+						"season": null,
+						"part": null
+					}
+				},
+				{
+					"workId": "cyberpunk-edgerunners-2",
+					"candidate": {
+						"reference": {
+							"id": "cyberpunk-edgerunners-2"
+						},
+						"snapshotId": "reported:2026-11-02.1:cyberpunk-edgerunners-season-2",
+						"titles": ["Cyberpunk: Edgerunners 2"],
+						"titleVariants": [
+							{
+								"value": "Cyberpunk: Edgerunners 2",
+								"kind": "primary",
+								"language": null
+							}
+						],
+						"year": 2026,
+						"format": "ONA",
+						"episodeCount": null,
+						"season": null,
+						"part": null
+					}
+				}
+			]
+		}
+	],
+	"caseFiles": [
+		"cases-base-1.json",
+		"cases-base-2.json",
+		"cases-base-3.json",
+		"cases-reported.json"
+	]
+}

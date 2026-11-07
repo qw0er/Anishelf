@@ -1,0 +1,2052 @@
+[
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-01",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E01.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E01.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E01.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E01.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E01.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "01",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["01"],
+			"selectedEpisodes": ["01"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-02",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E02.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E02.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E02.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E02.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E02.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "02",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["02"],
+			"selectedEpisodes": ["02"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-03",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E03.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E03.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E03.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "03",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E03.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "03",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E03.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "03",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["03"],
+			"selectedEpisodes": ["03"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-04",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E04.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E04.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E04.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "04",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E04.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "04",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E04.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "04",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["04"],
+			"selectedEpisodes": ["04"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-05",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E05.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E05.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E05.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "05",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E05.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "05",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E05.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "05",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["05"],
+			"selectedEpisodes": ["05"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-06",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E06..mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E06..mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E06..mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "06",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 28
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E06..mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "06",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 122
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E06..mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "06",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 122
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["06"],
+			"selectedEpisodes": ["06"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-07",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E07.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E07.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E07.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "07",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E07.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "07",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E07.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "07",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["07"],
+			"selectedEpisodes": ["07"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-08",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E08.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E08.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E08.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "08",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E08.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "08",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E08.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "08",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["08"],
+			"selectedEpisodes": ["08"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-09",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E09.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E09.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E09.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "09",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E09.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "09",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E09.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "09",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["09"],
+			"selectedEpisodes": ["09"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	},
+	{
+		"id": "cyberpunk-edgerunners-season-2:episode-10",
+		"group": "reported",
+		"poolId": "reported:cyberpunk-edgerunners-season-2",
+		"tags": ["user-report", "explicit-season"],
+		"provenance": {
+			"kind": "user-report",
+			"note": "Exact directory and filenames transcribed from the user-provided terminal listing. Candidate titles, formats and years are transcribed from the accompanying Review screenshot. Candidate IDs are fixture-local keys, not provider IDs. Same-title screenshot entries are collapsed for this title-matching reproduction; no cross-provider identity association is inferred. Episode counts remain unknown. Expected episode numbers describe filename-local slots, not a verified provider episode catalog or inspected media content.",
+			"sourceId": null
+		},
+		"evidence": {
+			"parser": "anitomy-ng",
+			"parserVersion": "1.0.10",
+			"normalizationVersion": "anitomy-title-sources-v6",
+			"contextFingerprint": "2307acbc1671b6859360fca522d255d35e8a07dd7e1b87872b7969ef92242d0d",
+			"originalName": "[Judas] Cyberpunk - S02E10.mkv",
+			"relativePath": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E10.mkv",
+			"inputs": [
+				{
+					"mode": "basename",
+					"input": "[Judas] Cyberpunk - S02E10.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 21
+						},
+						{
+							"kind": "episode",
+							"value": "10",
+							"position": 24
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 27
+						}
+					]
+				},
+				{
+					"mode": "ancestor",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 1
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk Edgerunners",
+							"position": 8
+						},
+						{
+							"kind": "season",
+							"value": "2",
+							"position": 38
+						},
+						{
+							"kind": "video_resolution",
+							"value": "1080p",
+							"position": 42
+						},
+						{
+							"kind": "video_term",
+							"value": "HDR",
+							"position": 48
+						},
+						{
+							"kind": "video_term",
+							"value": "HEVC",
+							"position": 53
+						},
+						{
+							"kind": "video_term",
+							"value": "x265",
+							"position": 58
+						},
+						{
+							"kind": "video_term",
+							"value": "10bit",
+							"position": 63
+						},
+						{
+							"kind": "audio_term",
+							"value": "Dual-Audio",
+							"position": 70
+						},
+						{
+							"kind": "subtitles",
+							"value": "Multi-Subs",
+							"position": 82
+						}
+					]
+				},
+				{
+					"mode": "path",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E10.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "10",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				},
+				{
+					"mode": "together",
+					"input": "[Judas] Cyberpunk Edgerunners (Season 2) [1080p HDR][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Cyberpunk - S02E10.mkv",
+					"elements": [
+						{
+							"kind": "release_group",
+							"value": "Judas",
+							"position": 95
+						},
+						{
+							"kind": "title",
+							"value": "Cyberpunk",
+							"position": 102
+						},
+						{
+							"kind": "season",
+							"value": "02",
+							"position": 115
+						},
+						{
+							"kind": "episode",
+							"value": "10",
+							"position": 118
+						},
+						{
+							"kind": "file_extension",
+							"value": "mkv",
+							"position": 121
+						}
+					]
+				}
+			],
+			"titles": ["Cyberpunk", "Cyberpunk Edgerunners"],
+			"titleSources": [
+				{
+					"title": "Cyberpunk",
+					"mode": "basename",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk Edgerunners",
+					"mode": "ancestor",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "path",
+					"distance": 0
+				},
+				{
+					"title": "Cyberpunk",
+					"mode": "together",
+					"distance": 0
+				}
+			],
+			"years": [],
+			"seasons": ["2"],
+			"parts": [],
+			"rawEpisodes": ["10"],
+			"selectedEpisodes": ["10"],
+			"numbering": "single",
+			"contentKind": "regular"
+		},
+		"expected": {
+			"workId": "cyberpunk-edgerunners-2"
+		},
+		"sourceDecision": "match",
+		"rationale": "Work identity from the reported screenshot; fixture-local keys and incomplete provider provenance remain explicit."
+	}
+]
