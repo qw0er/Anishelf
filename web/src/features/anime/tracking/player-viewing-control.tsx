@@ -17,6 +17,7 @@ import {
 	CollapsibleTrigger,
 } from "../../../shared/components/ui/collapsible.js";
 import { RadioOptions } from "../../../shared/components/ui/radio-options.js";
+import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import {
 	appliesToEpisode,
 	isResultState,
@@ -160,21 +161,30 @@ function TargetControl({
 			className="flex min-w-0 max-w-full flex-wrap items-center gap-2"
 			aria-label={t("playbackCompletion.label")}
 		>
-			<Button
-				variant={known ? "secondary" : "outline"}
-				aria-label={t(
+			<Tooltip
+				content={t(
 					known ? "playbackCompletion.watched" : "playbackCompletion.mark",
 				)}
-				disabled={busy || Boolean(operations.error)}
-				onClick={() => mutation.mutate("mark")}
 			>
-				{known ? (
-					<CheckCheck className="size-4 shrink-0" aria-hidden="true" />
-				) : (
-					<Check className="size-4 shrink-0" aria-hidden="true" />
-				)}
-				{t(known ? "player.watched" : "playbackCompletion.mark")}
-			</Button>
+				<Button
+					variant={known ? "secondary" : "outline"}
+					className="player-action"
+					aria-label={t(
+						known ? "playbackCompletion.watched" : "playbackCompletion.mark",
+					)}
+					disabled={busy || Boolean(operations.error)}
+					onClick={() => mutation.mutate("mark")}
+				>
+					{known ? (
+						<CheckCheck className="size-4 shrink-0" aria-hidden="true" />
+					) : (
+						<Check className="size-4 shrink-0" aria-hidden="true" />
+					)}
+					<span className="player-action-label">
+						{t(known ? "player.watched" : "playbackCompletion.mark")}
+					</span>
+				</Button>
+			</Tooltip>
 			{current &&
 				!isResultState(current.state) &&
 				current.state !== "pending" &&

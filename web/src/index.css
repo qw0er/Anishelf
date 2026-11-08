@@ -206,12 +206,14 @@
 	.form-select,
 	.form-control,
 	.responsive-action,
+	.player-action,
 	.header-nav-link {
 		min-height: 2.75rem;
 	}
 	.touch-control,
 	.icon-control,
 	.responsive-action,
+	.player-action,
 	.header-nav-link {
 		min-width: 2.75rem;
 	}
@@ -264,6 +266,39 @@
 		padding-inline: 0;
 	}
 	.responsive-action-label {
+		display: none;
+	}
+}
+
+/* Keep player actions on one compact line; collapse labels to icons when narrow. */
+.player-action-bar {
+	display: flex;
+	width: 100%;
+	min-width: 0;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	container-type: inline-size;
+	container-name: player-actions;
+}
+.player-action-group {
+	display: flex;
+	min-width: 0;
+	max-width: 100%;
+	margin-left: auto;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+.player-action {
+	padding-inline: 0.75rem;
+}
+@container player-actions (max-width: 36rem) {
+	.player-action {
+		width: 2.25rem;
+		padding-inline: 0;
+	}
+	.player-action-label {
 		display: none;
 	}
 }

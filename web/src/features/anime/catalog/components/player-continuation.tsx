@@ -12,6 +12,7 @@ import {
 	DialogDescription,
 	DialogTitle,
 } from "../../../../shared/components/ui/dialog.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import {
 	animePlayerPath,
 	libraryReturnPath,
@@ -112,6 +113,7 @@ function ContinuationControls({
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [params] = useSearchParams();
+	const nextLabel = t("player.continuation.next", { number });
 	const { enabled: automatic } = useAutomaticContinuation();
 	const [endAutomatic, setEndAutomatic] = useState(automatic);
 	const [choosing, setChoosing] = useState(false);
@@ -199,20 +201,24 @@ function ContinuationControls({
 			aria-label={t("player.continuation.label")}
 			className="flex min-w-0 max-w-full flex-wrap items-center gap-2"
 		>
-			<Button
-				variant={versions.length ? "default" : "outline"}
-				disabled={versions.length === 0}
-				onClick={() => {
-					if (versions.length === 1 && only) play(only, "manual");
-					else {
-						setCancelled(true);
-						setChoosing(true);
-					}
-				}}
-			>
-				<SkipForward className="size-4" aria-hidden="true" />
-				{t("player.continuation.next", { number })}
-			</Button>
+			<Tooltip content={nextLabel}>
+				<Button
+					variant={versions.length ? "default" : "outline"}
+					className="player-action"
+					aria-label={nextLabel}
+					disabled={versions.length === 0}
+					onClick={() => {
+						if (versions.length === 1 && only) play(only, "manual");
+						else {
+							setCancelled(true);
+							setChoosing(true);
+						}
+					}}
+				>
+					<SkipForward className="size-4" aria-hidden="true" />
+					<span className="player-action-label">{nextLabel}</span>
+				</Button>
+			</Tooltip>
 
 			{ended && versions.length > 1 && (
 				<p role="status" className="text-sm text-muted-foreground">

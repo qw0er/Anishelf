@@ -4,6 +4,7 @@ import {
 	Ellipsis,
 	ExternalLink,
 	Info,
+	Link2,
 	RefreshCw,
 	Settings,
 } from "lucide-react";
@@ -136,13 +137,13 @@ export function PlaybackActionsMenu({
 					render={
 						<Button
 							variant="outline"
-							className="responsive-action"
+							className="player-action"
 							aria-label={t("externalPlayers.moreActions")}
 						/>
 					}
 				>
 					<Ellipsis size={16} className="shrink-0" aria-hidden="true" />
-					<span className="responsive-action-label">{t("player.more")}</span>
+					<span className="player-action-label">{t("player.more")}</span>
 				</DropdownMenuTrigger>
 			</Tooltip>
 			<DropdownMenuContent>
@@ -171,12 +172,20 @@ export function PlaybackActionsMenu({
 }
 
 export function FileLinkMenuItems({ fileId }: { fileId: string }) {
+	const { t } = useTranslation();
 	return (
-		<>
-			<ExternalPlayerSubmenu fileId={fileId} />
-			<MediaLink fileId={fileId} menuItem />
-			<MediaLink fileId={fileId} menuItem download />
-			<MediaLink fileId={fileId} menuItem playlist />
-		</>
+		<DropdownMenuSub>
+			<DropdownMenuSubTrigger>
+				<Link2 size={16} aria-hidden="true" />
+				{t("player.mediaLinkLabel")}
+				<ChevronRight className="ml-auto size-4" aria-hidden="true" />
+			</DropdownMenuSubTrigger>
+			<DropdownMenuContent submenu>
+				<ExternalPlayerSubmenu fileId={fileId} />
+				<MediaLink fileId={fileId} menuItem />
+				<MediaLink fileId={fileId} menuItem download />
+				<MediaLink fileId={fileId} menuItem playlist />
+			</DropdownMenuContent>
+		</DropdownMenuSub>
 	);
 }

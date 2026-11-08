@@ -224,6 +224,7 @@ test("every playback menu item carries a leading icon", async () => {
 	fireEvent.click(
 		screen.getByRole("button", { name: "More playback options" }),
 	);
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
 	fireEvent.click(
 		await screen.findByRole("menuitem", { name: "Open in external player" }),
 	);
@@ -246,6 +247,7 @@ test("menu prepares native anchors for detected presets and custom players witho
 	fireEvent.click(
 		screen.getByRole("button", { name: "More playback options" }),
 	);
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
 	fireEvent.click(
 		await screen.findByRole("menuitem", { name: "Open in external player" }),
 	);
@@ -274,6 +276,7 @@ test("failed media validation disables handoff and retry rechecks access", async
 	fireEvent.click(
 		screen.getByRole("button", { name: "More playback options" }),
 	);
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
 	fireEvent.click(
 		await screen.findByRole("menuitem", { name: "Open in external player" }),
 	);

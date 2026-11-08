@@ -445,10 +445,49 @@ test("an older or unavailable copy does not mark the current file prepared", asy
 	).toBeNull();
 });
 
+test.each([
+	{ name: "known compatibility", result: unsupported },
+	{ name: "unavailable compatibility", result: null },
+])(
+	"file menu switches from pre-transcode to cancel after starting with $name",
+	async ({ result }) => {
+		const activeTask = { ...task, mode: "transcode" as const };
+		let started = false;
+		vi.mocked(preparationApi.getFilePreparations).mockImplementation(async () =>
+			preparationList(started ? [activeTask] : []),
+		);
+		vi.mocked(preparationApi.createPreparation).mockImplementation(async () => {
+			started = true;
+			return { kind: "task", task: activeTask };
+		});
+		const view = render(
+			<Wrapper>
+				<FileActions
+					fileId="file"
+					loading={false}
+					result={result}
+					error={null}
+					onRecheck={vi.fn()}
+				/>
+			</Wrapper>,
+		);
+		fireEvent.click(view.getByRole("button", { name: "File actions" }));
+		fireEvent.click(
+			await view.findByRole("menuitem", { name: "Pre-transcode" }),
+		);
+		await view.findByRole("menuitem", { name: "Cancel preparation" });
+		await waitFor(() =>
+			expect(
+				view.queryByRole("menuitem", { name: "Pre-transcode" }),
+			).toBeNull(),
+		);
+	},
+);
+
 test.each(
 	[task, ready].map((entry) => ({ ...entry, mode: "transcode" as const })),
 )(
-	"file menu contains operations without $status status entries",
+	"file menu exposes one preparation action for $status without status entries",
 	async (entry) => {
 		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
 			preparationList([entry]),
@@ -465,17 +504,30 @@ test.each(
 			</Wrapper>,
 		);
 		fireEvent.click(view.getByRole("button", { name: "File actions" }));
-		await view.findByRole("menuitem", {
-			name:
-				entry.status === "ready"
-					? "Delete prepared copy"
-					: "Cancel preparation",
-		});
-		expect(
-			(
-				await view.findByRole("menuitem", { name: "Pre-transcode" })
-			).getAttribute("aria-disabled"),
-		).toBe("true");
+		if (entry.status === "queued") {
+			const cancel = await view.findByRole("menuitem", {
+				name: "Cancel preparation",
+			});
+			expect(
+				view.queryByRole("menuitem", { name: "Pre-transcode" }),
+			).toBeNull();
+			fireEvent.click(cancel);
+			await waitFor(() =>
+				expect(preparationApi.cancelPreparation).toHaveBeenCalledWith(
+					entry.id,
+					expect.anything(),
+				),
+			);
+		} else {
+			await view.findByRole("menuitem", {
+				name: "Delete prepared copy",
+			});
+			expect(
+				(
+					await view.findByRole("menuitem", { name: "Pre-transcode" })
+				).getAttribute("aria-disabled"),
+			).toBe("true");
+		}
 		for (const name of [
 			"Queued",
 			"Preparing",

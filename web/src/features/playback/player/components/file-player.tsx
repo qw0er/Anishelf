@@ -168,30 +168,32 @@ export default function FilePlayer({
 					</QueryScope>
 				</div>
 			)}
-			<div className="action-row min-w-0">
+			<div className="player-action-bar">
 				<AudioSelection active={active} selectAudio={selectAudio} />
-				{playback.session &&
-					slots?.renderViewing?.({
-						fileId: data.file.id,
-						sourceVersion: playback.session.sourceVersion,
-					})}
-				{source &&
-					slots?.renderContinuation?.({
-						fileId: data.file.id,
-						sourceVersion: source.sourceVersion,
-						ended: Boolean(activeKey && endedAsset === activeKey),
-						overlayTarget: fullscreen ? continuationOverlay : null,
-					})}
-				<PlaybackActionsMenu
-					key={`actions:${data.file.id}`}
-					fileId={data.file.id}
-					onOptions={() => setOptionsOpen(true)}
-					onCompatibility={() => setCompatibilityOpen(true)}
-					onRetry={() => {
-						console.info("[playback] Manual playback retry requested.");
-						onRetry();
-					}}
-				/>
+				<div className="player-action-group">
+					{playback.session &&
+						slots?.renderViewing?.({
+							fileId: data.file.id,
+							sourceVersion: playback.session.sourceVersion,
+						})}
+					{source &&
+						slots?.renderContinuation?.({
+							fileId: data.file.id,
+							sourceVersion: source.sourceVersion,
+							ended: Boolean(activeKey && endedAsset === activeKey),
+							overlayTarget: fullscreen ? continuationOverlay : null,
+						})}
+					<PlaybackActionsMenu
+						key={`actions:${data.file.id}`}
+						fileId={data.file.id}
+						onOptions={() => setOptionsOpen(true)}
+						onCompatibility={() => setCompatibilityOpen(true)}
+						onRetry={() => {
+							console.info("[playback] Manual playback retry requested.");
+							onRetry();
+						}}
+					/>
+				</div>
 			</div>
 			<Dialog open={optionsOpen} onOpenChange={setOptionsOpen}>
 				<DialogContent>

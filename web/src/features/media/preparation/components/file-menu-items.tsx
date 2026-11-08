@@ -1,8 +1,8 @@
-import { RefreshCw, Trash2, X } from "lucide-react";
+import { RefreshCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { CompatibilityResult } from "../../../../shared/api/contracts.js";
 import { DropdownMenuItem } from "../../../../shared/components/ui/dropdown-menu.js";
-import { cancelPreparation, deletePreparedMedia } from "../api.js";
+import { deletePreparedMedia } from "../api.js";
 import { usePreparationContext } from "../context.js";
 import { usePreparationAction } from "../use-preparations.js";
 import { PreparationButton } from "./preparation-button.js";
@@ -56,28 +56,6 @@ export function PreparationFileMenuItems({
 					{t("preparation.refresh")}
 				</DropdownMenuItem>
 			)}
-			{tasks
-				.filter(
-					(task) =>
-						task.status === "queued" ||
-						task.status === "processing" ||
-						task.status === "cancelling",
-				)
-				.map((task) => (
-					<DropdownMenuItem
-						closeOnClick={false}
-						key={task.id}
-						disabled={action.busy}
-						onClick={() =>
-							void action.run(async (signal) => {
-								await cancelPreparation(task.id, { signal });
-							})
-						}
-					>
-						<X className="size-4" aria-hidden="true" />
-						{t("preparation.cancel")}
-					</DropdownMenuItem>
-				))}
 			{artifacts.map((task) => (
 				<DropdownMenuItem
 					closeOnClick={false}

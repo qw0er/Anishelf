@@ -19,6 +19,7 @@ test("file rows offer a dropdown menu for copying without opening playback", asy
 	});
 	const trigger = await screen.findByRole("button", { name: "File actions" });
 	fireEvent.click(trigger);
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
 	const button = await screen.findByRole("menuitem", {
 		name: "Copy media link",
 	});
@@ -42,6 +43,7 @@ test("file menu preserves manual copy fallback after closing", async () => {
 	);
 	renderApp("/directories/season-1");
 	fireEvent.click(await screen.findByRole("button", { name: "File actions" }));
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
 	fireEvent.click(
 		await screen.findByRole("menuitem", { name: "Copy media link" }),
 	);

@@ -31,6 +31,7 @@ test("single-version anime rows reuse Files commands without leaving detail or o
 		name: "This browser reports support for this file.",
 	});
 	fireEvent.click(screen.getByRole("button", { name: "File actions" }));
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
 	for (const name of [
 		"Copy media link",
 		"Download video",
@@ -126,6 +127,7 @@ test("multi-version menus act on the chosen file and omit unavailable file actio
 			await screen.findByRole("menuitem", { name: "Show in Files" })
 		).getAttribute("href"),
 	).toBe("/files/file-2/locate");
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
 	fireEvent.click(
 		await screen.findByRole("menuitem", { name: "Copy media link" }),
 	);

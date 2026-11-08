@@ -44,7 +44,7 @@ export function AudioSelection({
 			)
 		: t("audioTracks.none");
 	return (
-		<div className="mr-auto flex min-h-9 min-w-0 max-w-full items-center gap-2 sm:max-w-80">
+		<div className="flex min-h-9 min-w-0 max-w-full flex-1 basis-0 items-center gap-2 sm:max-w-80">
 			<Headphones
 				className="size-4 shrink-0 text-muted-foreground"
 				aria-hidden="true"

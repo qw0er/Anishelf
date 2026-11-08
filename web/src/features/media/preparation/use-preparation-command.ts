@@ -1,7 +1,11 @@
 import { useTranslation } from "react-i18next";
 import type { PreparationTaskResponse } from "../../../shared/api/contracts.js";
 import { toast } from "../../../shared/components/ui/toast.js";
-import { createPreparation, retryPreparation } from "./api.js";
+import {
+	cancelPreparation,
+	createPreparation,
+	retryPreparation,
+} from "./api.js";
 import {
 	matchesAudioSelection,
 	type PreparationSource,
@@ -36,20 +40,33 @@ export function usePreparationCommand({
 	const profile = preparation.catalog?.selectionAvailable
 		? preparation.catalog.selectedProfileId
 		: null;
-	const task = (tasks ?? preparation.tasks).find(
-		(task) =>
-			task.fileId === fileId &&
-			sourceVersion !== undefined &&
-			task.sourceVersion === sourceVersion &&
-			task.profileId === profile &&
+	const sourceKnown = sourceVersion !== undefined;
+	const isPending = (candidate: PreparationTaskResponse) =>
+		candidate.status === "queued" ||
+		candidate.status === "processing" ||
+		candidate.status === "cancelling";
+	const scoped = (tasks ?? preparation.tasks).filter(
+		(candidate) =>
+			candidate.fileId === fileId &&
+			(!sourceKnown || candidate.sourceVersion === sourceVersion) &&
+			candidate.profileId === profile &&
 			(preparation.catalog?.preparationMode !== "compatible" ||
-				task.mode === "transcode") &&
-			matchesAudioSelection(task, audioStreamIndices, allTracks),
+				candidate.mode === "transcode"),
 	);
-	const pending =
-		task?.status === "queued" ||
-		task?.status === "processing" ||
-		task?.status === "cancelling";
+	const activeTask = scoped.find(isPending);
+	const candidates = scoped.filter(
+		(candidate) =>
+			!sourceKnown ||
+			matchesAudioSelection(candidate, audioStreamIndices, allTracks),
+	);
+	const task = candidates.find(isPending) ?? candidates[0] ?? activeTask;
+	const pending = activeTask !== undefined;
+	function cancel() {
+		if (!activeTask || activeTask.status === "cancelling") return;
+		void action.run(async (signal) => {
+			await cancelPreparation(activeTask.id, { signal });
+		});
+	}
 	function start() {
 		if (!profile || pending || task?.status === "ready") return;
 		void action.run(async (signal) => {
@@ -82,5 +99,13 @@ export function usePreparationCommand({
 				});
 		});
 	}
-	return { profileLoading, profile, task, pending, busy: action.busy, start };
+	return {
+		profileLoading,
+		profile,
+		task,
+		pending,
+		busy: action.busy,
+		start,
+		cancel,
+	};
 }

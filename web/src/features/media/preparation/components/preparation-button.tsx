@@ -1,4 +1,4 @@
-import { Check, Film, Settings2 } from "lucide-react";
+import { Check, Film, Settings2, X } from "lucide-react";
 import { type ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
@@ -54,7 +54,7 @@ export function PreparationButton({
 			<Tooltip content={label}>{element}</Tooltip>
 		);
 	}
-	const { profileLoading, profile, task, pending, busy, start } =
+	const { profileLoading, profile, task, pending, busy, start, cancel } =
 		usePreparationCommand({
 			fileId,
 			source,
@@ -81,16 +81,19 @@ export function PreparationButton({
 			</Link>,
 		);
 	const label = t(
-		menuItem
-			? "preparation.pretranscode"
-			: busy
-				? "preparation.checking"
-				: pending
-					? `preparation.status.${task?.status}`
+		pending
+			? "preparation.cancel"
+			: menuItem
+				? "preparation.pretranscode"
+				: busy
+					? "preparation.checking"
 					: task?.status === "ready"
 						? "preparation.status.ready"
 						: "preparation.pretranscode",
 	);
+	const disabled = pending
+		? busy || task?.status === "cancelling"
+		: profileLoading || busy || task?.status === "ready";
 
 	const button = control(
 		label,
@@ -105,20 +108,22 @@ export function PreparationButton({
 			}
 			aria-label={label}
 			focusableWhenDisabled
-			disabled={
-				profileLoading ||
-				busy ||
-				(!chooseTracks && (pending || task?.status === "ready"))
-			}
+			disabled={disabled}
 			onClick={() => {
+				if (pending) {
+					cancel();
+					return;
+				}
 				if (chooseTracks) {
 					setDialogSelection(undefined);
 					setDialogOpen(true);
 				} else start();
 			}}
 		>
-			{profileLoading || busy || pending ? (
+			{profileLoading || busy ? (
 				<Spinner />
+			) : pending ? (
+				<X className="size-4" aria-hidden="true" />
 			) : task?.status === "ready" ? (
 				<Check className="size-4" aria-hidden="true" />
 			) : (
@@ -126,9 +131,7 @@ export function PreparationButton({
 			)}
 			{(menuItem || showLabel) && label}
 		</Button>,
-		profileLoading ||
-			busy ||
-			(!chooseTracks && (pending || task?.status === "ready")),
+		disabled,
 	);
 
 	return (
