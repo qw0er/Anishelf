@@ -106,6 +106,27 @@ consequences of re-identification before it starts. Keep background operations
 nonblocking, prevent conflicting changes and report meaningful outcomes without
 replacing the user's current context.
 
+Files keeps original browsing and prepared-copy storage management in adjacent
+views with a shared navigation context. Keep storage usage as subdued supporting text
+beside page identity. Use compact search/filter controls consistent with original
+file browsing. Distinguish no copies from no matching copies: provide a route to
+original files for the former and a filter-reset action for the latter. Empty results
+should not show selection commands or pagination. Manage actual copies independently of the
+background task monitor. Show unfiltered storage totals and make unverified
+availability explicit; a listing must not silently invalidate or clean up copies.
+
+Use compact prepared-copy rows with filename and supporting size, configuration
+and availability; reveal the full source path and generation time on demand. Keep
+common actions compact and accessible. Hide checkboxes and batch commands until
+users enter selection mode, and clear selection when they leave it. Selection
+is limited to the current page and resets when search, filters or pagination change.
+Before cleanup, show the selected count and estimated space, preserve originals,
+and explain possible automatic regeneration. Report deletion outcomes through a
+single toast per operation, without inline result summaries. Success messages expire;
+failure toasts retain per-copy reasons and a retry action until dismissed. Close
+page-specific notifications when leaving the resource scope. Active preparation and
+readers must explain why removal is blocked.
+
 ### Settings
 
 Organize settings by user intent, with readable explanations and clear relationships

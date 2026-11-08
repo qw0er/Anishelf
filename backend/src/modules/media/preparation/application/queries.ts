@@ -1,3 +1,9 @@
+import PQueue from "p-queue";
+import type {
+	PreparedMediaItem,
+	PreparedMediaList,
+	PreparedMediaQuery,
+} from "../../../../contracts/http.js";
 import { transcodeProfileFingerprint } from "../../../system/public.js";
 import type { PreparationView } from "../domain/model.js";
 import type { PreparedMediaInventory } from "../public.js";
@@ -79,6 +85,74 @@ export class PreparationQueries {
 			tasks: await Promise.all(tasks.map((task) => artifacts.inspect(task.id))),
 		};
 	}
+	async inventory(input: PreparedMediaQuery): Promise<PreparedMediaList> {
+		const { context, artifacts } = this.services;
+		const epoch = context.sources.accessRevision;
+		const scope = await context.sources.getScope();
+		const copies = context.repository.artifacts().filter((artifact) => {
+			const task = context.repository.get(artifact.taskId);
+			return task && scope.ids.includes(task.spec.source.scopeId);
+		});
+		const queue = new PQueue({ concurrency: 8 });
+		const inspected = await Promise.all(
+			copies.map((artifact) =>
+				queue.add(async (): Promise<PreparedMediaItem | null> => {
+					const state = await artifacts.managementState(artifact);
+					if (!state) return null;
+					const task = context.required(artifact.taskId);
+					return {
+						id: artifact.id,
+						fileId: task.spec.source.fileId,
+						sourceVersion: task.spec.source.sourceVersion,
+						filename: task.filename,
+						sourcePath: task.spec.source.relativePath,
+						profileName:
+							context.profiles.find((profile) => profile.id === task.profileId)
+								?.name ?? task.profileId,
+						audioStreamIndices: [...task.spec.settings.audioStreamIndices],
+						sizeBytes: artifact.sizeBytes,
+						createdAtMs: task.state.updatedAtMs,
+						...state,
+					};
+				}),
+			),
+		);
+		context.sources.assertAccessRevision(epoch);
+		const items = inspected.filter(
+			(item): item is PreparedMediaItem => item != null,
+		);
+		const usage = {
+			count: items.length,
+			copyBytes: items.reduce((total, item) => total + item.sizeBytes, 0),
+			retainedBytes: artifacts.retainedBytes(),
+			budgetBytes: context.maximumCacheBytes(),
+		};
+		const search = input.search?.trim().toLowerCase() ?? "";
+		const filtered = items.filter(
+			(item) =>
+				(!input.status || item.status === input.status) &&
+				(!search ||
+					`${item.filename} ${item.sourcePath}`.toLowerCase().includes(search)),
+		);
+		filtered.sort(
+			(a, b) =>
+				(input.sort === "size"
+					? b.sizeBytes - a.sizeBytes
+					: b.createdAtMs - a.createdAtMs) || a.id.localeCompare(b.id),
+		);
+		const page = Math.min(
+			Number(input.page ?? 1),
+			Math.max(1, Math.ceil(filtered.length / 50)),
+		);
+		return {
+			items: filtered.slice((page - 1) * 50, page * 50),
+			total: filtered.length,
+			page,
+			pageSize: 50,
+			usage,
+		};
+	}
+
 	/** A cheap directory projection. Validate playable resources only through detail/selection. */
 	async summaries(fileIds: string[]) {
 		const { context } = this.services;

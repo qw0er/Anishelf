@@ -7,7 +7,7 @@ import {
 	Settings,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, useLocation } from "react-router";
+import { Link, useLocation } from "react-router";
 import LanguageToggle from "../../shared/components/language-toggle.js";
 import ThemeToggle from "../../shared/components/theme-toggle.js";
 import { buttonStyles } from "../../shared/components/ui/button.js";
@@ -30,7 +30,8 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 			to: "/directories/root",
 			label: t("app.files"),
 			icon: FolderOpen,
-			active: pathname.startsWith("/directories/"),
+			active:
+				pathname.startsWith("/directories/") || pathname === "/prepared-media",
 		},
 		{
 			to: "/review",
@@ -85,9 +86,8 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 						entries[4],
 					].map(({ to, label, icon: Icon, active }, index) => (
 						<Tooltip key={to} content={label}>
-							<NavLink
+							<Link
 								to={to}
-								end={to === "/"}
 								aria-label={label}
 								aria-current={active ? "page" : undefined}
 								className={`${buttonStyles("ghost")} header-nav-link app-nav-item ${active ? "app-nav-active" : ""} ${index === 2 ? "app-nav-management" : ""} ${index === 5 ? "app-nav-settings" : ""}`}
@@ -98,7 +98,7 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 									className="header-nav-icon"
 								/>
 								<span className="header-nav-label">{label}</span>
-							</NavLink>
+							</Link>
 						</Tooltip>
 					))}
 				</div>

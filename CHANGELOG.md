@@ -2,6 +2,14 @@
 
 ## 1.4.3
 
+### Added
+
+- Manage prepared copies under Files with filename/path search, availability filters,
+  sorting, pagination, storage usage, playback and original-file location links.
+- Delete individual or selected prepared copies with a space estimate, in-use
+  protection, partial-failure reporting and retry. Preserve originals, viewing
+  history and retryable metadata when a filesystem deletion fails.
+
 ### Changed
 
 - Improve names-only cross-source verification with corroborating evidence instead

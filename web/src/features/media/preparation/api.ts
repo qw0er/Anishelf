@@ -5,6 +5,9 @@ import type {
 	PreparationStartResponse,
 	PreparationSummaryResponse,
 	PreparationTaskResponse,
+	PreparedMediaDeleteResponse,
+	PreparedMediaList,
+	PreparedMediaQuery,
 } from "../../../shared/api/contracts.js";
 
 export function getPreparations(
@@ -79,4 +82,20 @@ export function getPreparationSummaries(
 	options?: RequestOptions,
 ): Promise<PreparationSummaryResponse> {
 	return request("/api/preparations/summaries", "POST", options, { fileIds });
+}
+
+export function getPreparedMedia(
+	input: PreparedMediaQuery,
+	options?: RequestOptions,
+): Promise<PreparedMediaList> {
+	const query = new URLSearchParams();
+	for (const [key, value] of Object.entries(input))
+		if (value !== undefined && value !== "") query.set(key, String(value));
+	return request(`/api/prepared-media?${query}`, "GET", options);
+}
+export function deletePreparedMediaBatch(
+	ids: string[],
+	options?: RequestOptions,
+): Promise<PreparedMediaDeleteResponse> {
+	return request("/api/prepared-media/delete", "POST", options, { ids });
 }

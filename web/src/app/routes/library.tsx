@@ -6,6 +6,7 @@ import {
 import { ReviewPage, TrackedAnimeDetail } from "../../features/anime/ui.js";
 import { HistoryPage } from "../../features/playback/ui.js";
 import App from "../App.js";
+import { FilesLayout, PreparedMediaRoute } from "../components/files-layout.js";
 import InitialLoading from "../components/initial-loading.js";
 import { WorkAcquisitionPanel } from "../components/work-acquisition-panel.js";
 import { animeLoader } from "./anime-data.js";
@@ -78,10 +79,16 @@ export const libraryRoute: RouteObject = {
 			errorElement: <RouteError kind="directory" />,
 		},
 		{
-			path: "directories/:id",
-			loader: directoryLoader,
-			element: <DirectoryPage />,
-			errorElement: <RouteError kind="directory" />,
+			element: <FilesLayout />,
+			children: [
+				{
+					path: "directories/:id",
+					loader: directoryLoader,
+					element: <DirectoryPage />,
+					errorElement: <RouteError kind="directory" />,
+				},
+				{ path: "prepared-media", element: <PreparedMediaRoute /> },
+			],
 		},
 		{
 			path: "files/:id/locate",

@@ -20,3 +20,5 @@ interface FileActionState {
 	onRecheck(): void;
 }
 export type FileActionSlot = (state: FileActionState) => ReactNode;
+
+export { formatFileSize } from "./library/format-file-size.js";

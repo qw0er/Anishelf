@@ -57,3 +57,14 @@ export const summariesQuery = (scope: string, ids: string[]) =>
 				? preparationInteractionDefaults.preparationPollIntervalMs
 				: false,
 	});
+
+export const preparedMediaQuery = (
+	scope: string,
+	input: import("../../../shared/api/contracts.js").PreparedMediaQuery,
+) =>
+	queryOptions({
+		queryKey: ["preparations", scope, "inventory", input],
+		queryFn: ({ signal }) =>
+			api.getPreparedMedia(input, { signal: boundedSignal(signal) }),
+		refetchInterval: preparationInteractionDefaults.inventoryPollIntervalMs,
+	});

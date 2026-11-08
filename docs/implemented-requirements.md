@@ -219,6 +219,7 @@ Available episode versions expose Show in Files through their file action menu. 
 | P23 | Adjust subtitle timing | Complete | — | — | 0.2.0 |
 | P24 | Change playback speed | Complete | — | — | 0.2.0 |
 | P25 | Use playback keyboard shortcuts | Complete | — | — | 0.2.0 |
+| P27 | Improve prepared-media file management | Complete | — | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | — |
 | P11 | Next-episode navigation and automatic continuation | Complete | — | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
 | P13 | Chapter navigation | Complete | — | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
 
@@ -241,6 +242,29 @@ See the [player layout conventions](development/design-system.md#player-layout).
 #### Full-file Preparation (P05–P07)
 
 See the [archived V2 requirements and design](history.md#v2-requirements).
+
+#### Prepared-media File Management (P27)
+
+Files provides Original files and Prepared copies views. The copy inventory lists
+persisted artifacts independently of task-history limits, with source paths,
+profiles, retained audio-track counts, sizes, publication times and availability.
+Filename/path search, availability filters, newest/largest sorting and 50-copy
+pages support cleanup. Totals remain independent of filters; cache accounting also
+includes invalidated files retained by active readers.
+
+Users can play available copies, locate originals and explicitly delete one copy
+or selected copies on the current page. Confirmation states the count, estimated
+space and preservation of originals, history and settings. Active preparation and
+readers block deletion, with checks repeated under the artifact lock. Batch results
+use toasts; success notifications expire, while failures retain individual reasons
+and a retry action until dismissed. Filesystem deletion failures preserve metadata
+so cleanup can be retried. Listing never probes media or invalidates copies; playback
+continues to validate source identity and output through the existing access path.
+
+The visible inventory refreshes periodically and after cleanup. Automatic preparation
+can recreate deleted copies; valid copies are not evicted when the budget is lowered.
+Untracked disk files, temporary processing output and task-history management are
+outside this inventory.
 
 #### Automatic Background Pre-transcoding (P17)
 

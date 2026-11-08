@@ -271,3 +271,12 @@ export type ResourceCommandResult = Static<
 export type AutoPreparationCatalog = Static<
 	typeof import("./schemas/auto-preparation.js").AutoPreparationCatalogSchema
 >;
+
+export type PreparedMediaQuery = Static<
+	typeof schemas.PreparedMediaQuerySchema
+>;
+export type PreparedMediaItem = Static<typeof schemas.PreparedMediaItemSchema>;
+export type PreparedMediaList = Static<typeof schemas.PreparedMediaListSchema>;
+export type PreparedMediaDeleteResponse = Static<
+	typeof schemas.PreparedMediaDeleteResponseSchema
+>;

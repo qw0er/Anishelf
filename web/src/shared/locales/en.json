@@ -1446,5 +1446,52 @@
 			"romaji": "Romaji"
 		},
 		"titleFallback": "Uses the original title, then an available title when the preferred title is missing."
+	},
+	"preparedMedia": {
+		"title": "Prepared copies",
+		"originals": "Original files",
+		"usage": "{{count}} copies · {{used}} / {{budget}} budget",
+		"retained": "Total budget usage: {{size}}, including other retained copies and files still in use.",
+		"search": "Search filename or path",
+		"status": "Availability",
+		"all": "All states",
+		"sort": "Sort by",
+		"newest": "Newest first",
+		"largest": "Largest first",
+		"loading": "Loading prepared copies…",
+		"result": "Deleted: {{deleted}} · Failed: {{failed}}",
+		"empty": "Pre-transcode a file from its menu to create a reusable copy.",
+		"noMatches": "Try another filename or path, or clear the availability filter.",
+		"selectPage": "Select this page",
+		"deleteSelected": "Delete selected ({{count}})",
+		"select": "Select {{name}}",
+		"locate": "Show original",
+		"confirmTitle": "Delete prepared copies?",
+		"confirm": "Delete {{count}} copies and free approximately {{size}}. Original files, playback history and settings will be kept.",
+		"regeneration": "Automatic preparation may create these copies again if their sources remain eligible.",
+		"deleting": "Deleting…",
+		"states": {
+			"ready": "Available",
+			"unknown": "Availability unverified",
+			"unavailable": "Unavailable"
+		},
+		"blocked": {
+			"in-use": "In use; stop playback before deleting",
+			"active": "Preparation active; wait until it finishes"
+		},
+		"refresh": "Refresh",
+		"watch": "Play",
+		"delete": "Delete copy",
+		"emptyTitle": "No prepared copies yet",
+		"noMatchesTitle": "No matching copies",
+		"browseFiles": "Browse files",
+		"resetFilters": "Clear filters",
+		"multiSelect": "Select",
+		"doneSelecting": "Done",
+		"audio": "Audio: {{count}}",
+		"deleted_one": "Deleted {{count}} copy",
+		"deleted_other": "Deleted {{count}} copies",
+		"deleteFailed_one": "Could not delete {{count}} copy",
+		"deleteFailed_other": "Could not delete {{count}} copies"
 	}
 }

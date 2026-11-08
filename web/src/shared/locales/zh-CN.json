@@ -1425,5 +1425,50 @@
 			"romaji": "罗马字"
 		},
 		"titleFallback": "没有目标标题时，优先使用原文，再使用其他可用标题。"
+	},
+	"preparedMedia": {
+		"title": "转码副本",
+		"originals": "原始文件",
+		"usage": "{{count}} 个副本 · {{used}} / {{budget}} 预算",
+		"retained": "预算总占用：{{size}}，包括其他保留副本及仍在使用中的文件。",
+		"search": "搜索文件名或路径",
+		"status": "可用状态",
+		"all": "全部状态",
+		"sort": "排序",
+		"newest": "最新生成",
+		"largest": "体积最大",
+		"loading": "正在加载转码副本…",
+		"result": "已删除：{{deleted}} · 失败：{{failed}}",
+		"empty": "前往原始文件，在文件菜单中选择预转码，即可生成可重复播放的副本。",
+		"noMatches": "请尝试其他文件名或路径，或清除可用状态筛选。",
+		"selectPage": "选择当前页",
+		"deleteSelected": "删除所选（{{count}}）",
+		"select": "选择 {{name}}",
+		"locate": "定位原文件",
+		"confirmTitle": "删除转码副本？",
+		"confirm": "删除 {{count}} 个副本，预计释放 {{size}}。原始文件、播放历史和设置将保留。",
+		"regeneration": "如果原文件仍符合自动转码条件，这些副本可能再次生成。",
+		"deleting": "正在删除…",
+		"states": {
+			"ready": "可用",
+			"unknown": "可用性未确认",
+			"unavailable": "不可用"
+		},
+		"blocked": {
+			"in-use": "正在使用，请停止播放后删除",
+			"active": "正在转码，请等待完成"
+		},
+		"refresh": "刷新",
+		"watch": "播放",
+		"delete": "删除副本",
+		"emptyTitle": "暂无转码副本",
+		"noMatchesTitle": "没有匹配的副本",
+		"browseFiles": "浏览文件",
+		"resetFilters": "清除筛选",
+		"multiSelect": "多选",
+		"doneSelecting": "完成",
+		"audio": "音轨 {{count}}",
+		"deleted_other": "已删除 {{count}} 个副本",
+		"deleteFailed_other": "未能删除 {{count}} 个副本"
 	}
 }

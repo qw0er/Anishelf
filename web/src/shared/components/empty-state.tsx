@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
 	Empty,
 	EmptyContent,
+	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
 	EmptyTitle,
@@ -9,10 +10,12 @@ import {
 export function EmptyState({
 	icon,
 	title,
+	description,
 	actions,
 }: {
 	icon: ReactNode;
 	title: string;
+	description?: string;
 	actions?: ReactNode;
 }) {
 	return (
@@ -28,6 +31,7 @@ export function EmptyState({
 					<EmptyTitle>
 						<h2>{title}</h2>
 					</EmptyTitle>
+					{description && <EmptyDescription>{description}</EmptyDescription>}
 				</EmptyHeader>
 				{actions && (
 					<EmptyContent>

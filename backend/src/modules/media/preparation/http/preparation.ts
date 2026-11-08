@@ -10,6 +10,10 @@ import {
 	PreparationTaskParamsSchema,
 	PreparationTaskSchema,
 	PreparedArtifactParamsSchema,
+	PreparedMediaDeleteRequestSchema,
+	PreparedMediaDeleteResponseSchema,
+	PreparedMediaListSchema,
+	PreparedMediaQuerySchema,
 	ResourceIdSchema,
 	ResourceParamsSchema,
 } from "../../../../contracts/schemas/index.js";
@@ -113,6 +117,27 @@ export function registerPreparationRoutes(
 					await preparation.retryRequest(request.params.id, request.body),
 				),
 		);
+		scope.get(
+			"/api/prepared-media",
+			{
+				schema: {
+					querystring: PreparedMediaQuerySchema,
+					response: { 200: PreparedMediaListSchema },
+				},
+			},
+			(request) => preparation.inventory(request.query),
+		);
+		scope.post(
+			"/api/prepared-media/delete",
+			{
+				schema: {
+					body: PreparedMediaDeleteRequestSchema,
+					response: { 200: PreparedMediaDeleteResponseSchema },
+				},
+			},
+			(request) => preparation.deleteArtifacts(request.body.ids),
+		);
+
 		scope.delete(
 			"/api/prepared-media/:id",
 			{ schema: { params: PreparedArtifactParamsSchema } },

@@ -94,3 +94,31 @@ finish and retains completed copies. User cancellation or artifact deletion does
 not suppress future automation: a subsequent eligible check can recreate it.
 Incomplete automatic work is reevaluated after restart; completed output survives.
 Cache and disk budgets remain enforced, with no automatic eviction of valid copies.
+
+## Managing prepared copies
+
+Open **Files → Prepared copies** to see generated copies, their source paths,
+profiles, retained audio-track counts, sizes, generation times and availability.
+Search filenames or paths, filter availability, and sort newest or largest first.
+Click a filename to see its full source path and generation time. Use **Select**
+to show checkboxes and batch commands; **Done** hides them and clears selection.
+The list shows 50 copies per page; selection applies only to the current page and
+clears when you change search, filtering, sorting or page.
+
+The summary shows all copies in the current resource scope and the configured
+cache budget, regardless of filters. When total budget usage differs, an additional
+line includes other retained artifacts and invalidated files still held by readers.
+Temporary conversion output is not part of the inventory.
+
+Use **Play** for an available copy or **Show original** to open its location in
+Files. Unknown availability requires playback/source inspection before it can be
+confirmed; opening this management view does not probe or delete media.
+
+Use **Delete copy** or **Delete selected** and review the count and estimated space.
+Original media, history and settings are preserved. Copies in use or involved in
+active preparation cannot be removed until that work finishes. A batch can partially
+succeed: a toast reports the result and space totals refresh after cleanup. Success
+notifications expire; failure notifications show per-copy reasons and a retry action
+until dismissed. Filesystem failures retain the copy record for another attempt. Lowering
+the budget never silently removes valid copies. Automatic preparation may recreate
+a deleted copy if its source remains eligible.

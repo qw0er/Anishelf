@@ -18,7 +18,7 @@ afterEach(async () => {
 function command(script: string, args: string[]) {
 	const result = spawnSync(
 		process.execPath,
-		["--import", "tsx", join(root, "scripts", script), ...args],
+		["--import", "tsx", join(root, "scripts", "manual-tests", script), ...args],
 		{ cwd: root, encoding: "utf8", timeout: 15000 },
 	);
 	if (result.error) throw result.error;

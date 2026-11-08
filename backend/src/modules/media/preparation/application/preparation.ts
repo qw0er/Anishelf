@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import type {
+	PreparedMediaDeleteResponse,
+	PreparedMediaQuery,
+} from "../../../../contracts/http.js";
 import type { MediaProcessingPlan } from "../../../../platform/media/specification.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
@@ -464,6 +468,38 @@ export class PreparationApplication implements PreparationApi {
 			return { task: current, artifact: null, availability: "unavailable" };
 		});
 	}
+	inventory(input: PreparedMediaQuery) {
+		return this.track(async () =>
+			(await this.ensure()).queries.inventory(input),
+		);
+	}
+	deleteArtifacts(ids: string[]): Promise<PreparedMediaDeleteResponse> {
+		return this.track(async () => {
+			const { artifacts, context } = await this.ensure();
+			const results: PreparedMediaDeleteResponse["results"] = [];
+			for (const id of ids) {
+				try {
+					await artifacts.delete(id);
+					results.push({ id, error: null });
+				} catch (error) {
+					results.push({
+						id,
+						error: error instanceof DomainError ? error.code : "INTERNAL_ERROR",
+					});
+				}
+			}
+			context.logger.info(
+				{
+					event: "preparation.batch_deleted",
+					requested: ids.length,
+					deleted: results.filter((result) => result.error === null).length,
+				},
+				"Prepared copy batch deletion completed.",
+			);
+			return { results };
+		});
+	}
+
 	deleteArtifact(id: string): Promise<void> {
 		return this.track(async () => {
 			const { artifacts } = await this.ensure();

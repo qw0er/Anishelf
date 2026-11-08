@@ -388,7 +388,6 @@ Details and acceptance criteria may be refined as decisions are made.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| P27 | Improve prepared-media file management | Not started | Unassigned | [Prepared-media file management](#prepared-media-file-management-p27) | — |
 | WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
 | WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
 | WI05 | Redesign automatic subscription management interaction | Complete | Completed | Review the existing interaction and define the desired workflow. | — |
@@ -401,21 +400,6 @@ Details and acceptance criteria may be refined as decisions are made.
 #### Matching Improvements from Real Failures (L16)
 
 Collect representative local failure cases with user-confirmed expected works and episode mappings, preserving filename, directory and release provenance. Diagnose extraction, candidate retrieval, ranking, numbering and admission separately. Prioritize recurring failures such as shortened titles, season/part ambiguity, continuous numbering and end-of-series markers; do not lower admission thresholds solely to improve corpus coverage.
-
-#### Prepared-media File Management (P27)
-
-Provide a central view of generated media copies so users can understand and manage
-their disk usage. Show total usage and the configured cache budget, and identify
-each copy by its source media, size and availability. Provide useful search or
-filtering and allow users to select and explicitly delete individual copies or
-multiple copies together. Show the expected impact before deletion and report
-successes and failures, including partial failures.
-
-Account for copies in use or involved in active preparation, and explain when a
-copy cannot yet be removed. Keep the view and storage totals current after cleanup.
-Deleting a prepared copy must preserve the original media, playback history and
-settings; automatic preparation may make the source eligible for preparation again.
-Do not silently delete valid copies when the cache budget is lowered.
 
 #### Resource Search Improvements (WI12)
 

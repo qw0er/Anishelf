@@ -1,4 +1,5 @@
 import PQueue from "p-queue";
+import type { PreparedMediaItem } from "../../../../contracts/http.js";
 import { MediaToolError } from "../../../../platform/media/errors.js";
 import type { MediaExecutionProgress } from "../../../../platform/media/events.js";
 import { DomainError } from "../../../../shared/errors.js";
@@ -8,6 +9,7 @@ import type {
 	PreparationFailureReason,
 	PreparationTask,
 	PreparationView,
+	PreparedArtifact,
 } from "../domain/model.js";
 import { InvalidPreparedMediaError } from "../infrastructure/files.js";
 import {
@@ -277,6 +279,47 @@ export class PreparationArtifacts {
 			};
 		});
 	}
+	/** Read-only inventory inspection: never probe, invalidate or remove a copy. */
+	managementState(
+		artifact: PreparedArtifact,
+	): Promise<Pick<PreparedMediaItem, "status" | "deleteBlockedReason"> | null> {
+		return this.exclusive(artifact.id, async () => {
+			if (!this.context.repository.artifact(artifact.id)) return null;
+			const task = this.context.required(artifact.taskId);
+			const deleteBlockedReason = this.borrowers.has(artifact.id)
+				? ("in-use" as const)
+				: ["queued", "processing", "cancelling"].includes(task.state.status)
+					? ("active" as const)
+					: null;
+			let status: PreparedMediaItem["status"] = "unknown";
+			try {
+				const handle = await this.context.files.open(artifact);
+				await handle.close();
+				if (this.context.sources.hasSnapshot) {
+					await this.context.source(task);
+					status =
+						artifact.info && task.state.status === "ready"
+							? "ready"
+							: "unknown";
+				}
+			} catch (error) {
+				status =
+					error instanceof InvalidPreparedMediaError ||
+					(error instanceof Error &&
+						"code" in error &&
+						error.code === "ENOENT") ||
+					(error instanceof DomainError &&
+						[
+							"RESOURCE_NOT_FOUND",
+							"RESOURCE_MISSING",
+							"PLAYBACK_CONFLICT",
+						].includes(error.code))
+						? "unavailable"
+						: "unknown";
+			}
+			return { status, deleteBlockedReason };
+		});
+	}
 	delete(id: string): Promise<void> {
 		return this.exclusive(id, async () => {
 			this.context.assertOpen();
@@ -286,12 +329,39 @@ export class PreparationArtifacts {
 					"RESOURCE_NOT_FOUND",
 					"Prepared media not found.",
 				);
-			if (this.borrowers.has(id))
+			const task = this.context.required(artifact.taskId);
+			const epoch = this.context.sources.accessRevision;
+			const scope = await this.context.sources.getScope();
+			this.context.sources.assertAccessRevision(epoch);
+			if (!scope.ids.includes(task.spec.source.scopeId))
+				throw new DomainError(
+					"RESOURCE_NOT_FOUND",
+					"Prepared media not found.",
+				);
+			if (
+				this.borrowers.has(id) ||
+				["queued", "processing", "cancelling"].includes(task.state.status)
+			)
 				throw new DomainError(
 					"PREPARATION_BUSY",
-					"This prepared media is in use.",
+					"This prepared media is in use or processing.",
 				);
-			const task = this.context.required(artifact.taskId);
+			try {
+				await this.context.files.remove(id);
+			} catch (error) {
+				this.context.logger.warn(
+					{
+						event: "preparation.delete_failed",
+						artifactId: id,
+						errorName: error instanceof Error ? error.name : "unknown",
+					},
+					"Prepared copy deletion failed; its record was retained.",
+				);
+				throw new DomainError(
+					"RESOURCE_WRITE_FAILED",
+					"The prepared copy could not be removed.",
+				);
+			}
 			task.state = {
 				status: "cancelled",
 				failureReason: "cache-deleted",
@@ -299,9 +369,18 @@ export class PreparationArtifacts {
 				updatedAtMs: Date.now(),
 			};
 			this.context.repository.removeArtifact(task);
-			await this.context.files.remove(id);
+			this.context.logger.info(
+				{
+					event: "preparation.deleted",
+					artifactId: id,
+					taskId: task.id,
+					sizeBytes: artifact.sizeBytes,
+				},
+				"Prepared copy deleted.",
+			);
 		});
 	}
+
 	publish(
 		task: PreparationTask,
 		processed: ProcessedMedia,
