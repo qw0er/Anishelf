@@ -112,7 +112,7 @@ export function PreparationTaskCard({
 			<span
 				role="status"
 				aria-label={status}
-				className="shrink-0 text-xs text-muted-foreground"
+				className="w-16 shrink-0 text-right text-xs whitespace-nowrap text-muted-foreground tabular-nums"
 			>
 				{pending &&
 				task.status !== "cancelling" &&

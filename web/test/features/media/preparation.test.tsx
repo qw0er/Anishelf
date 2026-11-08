@@ -640,14 +640,15 @@ test("cancelling shows a pending state and disables duplicate cancellation", () 
 	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
 });
 
-test("monitor requests a larger task window only after More is clicked", async () => {
+test("monitor shows active tasks and pages other statuses through More", async () => {
+	const finished = Array.from({ length: 25 }, (_, index) => ({
+		...ready,
+		id: `finished-${index}`,
+		filename: `Finished-${index}.mkv`,
+	}));
 	vi.mocked(preparationApi.getPreparations).mockImplementation(
 		async (_options, more) => ({
-			tasks: Array.from({ length: more ? 100 : 10 }, (_, index) => ({
-				...task,
-				id: `task-${index}`,
-				filename: `Episode-${index}.mkv`,
-			})),
+			tasks: [task, ...finished.slice(0, more ? 25 : 9)],
 		}),
 	);
 	const view = render(
@@ -655,18 +656,29 @@ test("monitor requests a larger task window only after More is clicked", async (
 			<PreparationMonitor />
 		</Wrapper>,
 	);
-	const more = await view.findByRole("button", { name: "More" });
-	expect(view.queryByText("Episode-10.mkv")).toBeNull();
+	await view.findByText("Episode.mkv");
+	expect(view.queryByRole("button", { name: /Other statuses/ })).toBeNull();
+	expect(view.queryByText("Finished-0.mkv")).toBeNull();
+	expect(view.queryByText("Finished-9.mkv")).toBeNull();
+	const more = view.getByRole("button", { name: "More" });
 	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
 		expect.anything(),
 		false,
 	);
 	fireEvent.click(more);
-	await view.findByText("Episode-99.mkv");
+	await view.findByText("Finished-9.mkv");
+	expect(view.queryByText("Finished-10.mkv")).toBeNull();
 	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
 		expect.anything(),
 		true,
 	);
+
+	fireEvent.click(view.getByRole("button", { name: "More" }));
+	await view.findByText("Finished-19.mkv");
+	expect(view.queryByText("Finished-20.mkv")).toBeNull();
+
+	fireEvent.click(view.getByRole("button", { name: "More" }));
+	await view.findByText("Finished-24.mkv");
 	await waitFor(() =>
 		expect(view.queryByRole("button", { name: "More" })).toBeNull(),
 	);
@@ -691,6 +703,8 @@ test("narrow monitor starts collapsed and exposes failed tasks on demand", async
 	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
 	fireEvent.click(toggle);
 	expect(toggle.getAttribute("aria-expanded")).toBe("true");
+	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
+	fireEvent.click(view.getByRole("button", { name: "More" }));
 	expect(view.getByRole("button", { name: "Retry preparation" })).toBeTruthy();
 });
 
@@ -734,6 +748,7 @@ test("task monitor retains the last failed task and its recovery action", async 
 		tasks: [{ ...task, status: "failed", failureReason: "interrupted" }],
 	});
 	fireEvent.click(view.getByRole("button", { name: "Refresh tasks" }));
+	fireEvent.click(await view.findByRole("button", { name: "More" }));
 	await waitFor(() =>
 		expect(
 			view.getByRole("button", { name: "Retry preparation" }),

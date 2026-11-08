@@ -1,13 +1,23 @@
+import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
 import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import type { PreparationTaskResponse } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { preparedWatchPath } from "../audio-tracks.js";
 import { usePreparationContext } from "../context.js";
 import { PreparationTaskCard } from "./task-card.js";
+
+function isActive(task: PreparationTaskResponse): boolean {
+	return (
+		task.status === "queued" ||
+		task.status === "processing" ||
+		task.status === "cancelling"
+	);
+}
 export function PreparationMonitor() {
 	const { t } = useTranslation();
 	const preparation = usePreparationContext();
@@ -17,16 +27,44 @@ export function PreparationMonitor() {
 			typeof window !== "undefined" &&
 			window.matchMedia?.("(max-width: 639px)").matches,
 	);
+	const [visibleMoreCount, setVisibleMoreCount] = useState(0);
 
-	const active = preparation.tasks.filter(
-		(task) =>
-			task.status === "queued" ||
-			task.status === "processing" ||
-			task.status === "cancelling",
-	).length;
+	const activeTasks = preparation.tasks.filter(isActive);
+	const primaryTasks = activeTasks.slice(
+		0,
+		preparationConstraints.initialListLimit,
+	);
+	const primaryIds = new Set(primaryTasks.map((task) => task.id));
+	const moreTasks = preparation.tasks.filter(
+		(task) => !primaryIds.has(task.id),
+	);
+	const visibleMoreTasks = moreTasks.slice(0, visibleMoreCount);
 	const failed = preparation.tasks.filter(
 		(task) => task.status === "failed",
 	).length;
+	const active = activeTasks.length;
+	const canShowMore =
+		visibleMoreTasks.length < moreTasks.length ||
+		preparation.canLoadMore ||
+		preparation.loadingMore;
+	const profileName = (task: PreparationTaskResponse) =>
+		preparation.catalog?.profiles.find(
+			(profile) => profile.id === task.profileId,
+		)?.name;
+	function revealMore() {
+		if (preparation.loadingMore) return;
+		setVisibleMoreCount(
+			(count) => count + preparationConstraints.initialListLimit,
+		);
+		if (preparation.canLoadMore) preparation.loadMore();
+		console.debug("[PreparationMonitor] More tasks revealed.", {
+			remaining: moreTasks.length,
+			visible: Math.min(
+				visibleMoreCount + preparationConstraints.initialListLimit,
+				moreTasks.length,
+			),
+		});
+	}
 	if (active === 0 && failed === 0 && !preparation.error) return null;
 	return (
 		<aside
@@ -72,7 +110,7 @@ export function PreparationMonitor() {
 				<div
 					hidden={collapsed}
 					id="preparation-monitor-tasks"
-					className="max-h-[35dvh] divide-y overflow-y-auto border-t sm:max-h-[min(26rem,60dvh)]"
+					className="max-h-[35dvh] divide-y overflow-y-auto border-t [scrollbar-gutter:stable] sm:max-h-[min(26rem,60dvh)]"
 				>
 					{preparation.error !== null && (
 						<p role="alert">
@@ -82,25 +120,21 @@ export function PreparationMonitor() {
 							)}
 						</p>
 					)}
-					{preparation.tasks.map((task) => (
+					{[...primaryTasks, ...visibleMoreTasks].map((task) => (
 						<PreparationTaskCard
 							key={task.id}
 							task={task}
-							profileName={
-								preparation.catalog?.profiles.find(
-									(profile) => profile.id === task.profileId,
-								)?.name
-							}
+							profileName={profileName(task)}
 							onWatch={(task) => navigate(preparedWatchPath(task))}
 						/>
 					))}
-					{(preparation.canLoadMore || preparation.loadingMore) && (
+					{canShowMore && (
 						<div className="p-2">
 							<Button
 								variant="ghost"
 								className="w-full"
 								disabled={preparation.loadingMore}
-								onClick={preparation.loadMore}
+								onClick={revealMore}
 							>
 								{t("preparation.more")}
 							</Button>
