@@ -71,22 +71,28 @@ export function registerPreparationRoutes(
 						{
 							fileId: Type.Optional(ResourceIdSchema),
 							summary: Type.Optional(Type.Literal("true")),
-							more: Type.Optional(Type.Literal("true")),
+							inactiveLimit: Type.Optional(
+								Type.String({
+									pattern: "^(0|[1-9][0-9]{0,14})$",
+								}),
+							),
 						},
 						{ additionalProperties: false },
 					),
 					response: { 200: PreparationListResponseSchema },
 				},
 			},
-			async (request) => ({
-				tasks: (
-					await preparation.list(
-						request.query.fileId,
-						request.query.summary === "true",
-						request.query.more === "true",
-					)
-				).tasks.map(preparationTaskResponse),
-			}),
+			async (request) => {
+				const result = await preparation.list(
+					request.query.fileId,
+					request.query.summary === "true",
+					Number(request.query.inactiveLimit ?? 0),
+				);
+				return {
+					tasks: result.tasks.map(preparationTaskResponse),
+					hasMore: result.hasMore,
+				};
+			},
 		);
 		scope.post(
 			"/api/preparations/:id/cancel",

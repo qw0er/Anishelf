@@ -12,10 +12,13 @@ import type {
 
 export function getPreparations(
 	options?: RequestOptions,
-	more = false,
+	inactiveLimit = 0,
 ): Promise<PreparationListResponse> {
 	return request(
-		`/api/preparations?summary=true${more ? "&more=true" : ""}`,
+		`/api/preparations?${new URLSearchParams({
+			summary: "true",
+			inactiveLimit: String(inactiveLimit),
+		})}`,
 		"GET",
 		options,
 	);

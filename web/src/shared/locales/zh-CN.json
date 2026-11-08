@@ -621,6 +621,9 @@
 		"waitForCopy": "副本尚未准备好，准备完成后将开始播放。",
 		"copyUnsupported": "无法确认任何可用副本适用于此浏览器。请检查任务或在设置中选择其他配置。",
 		"more": "更多",
+		"errors": {
+			"PLAYBACK_CONFLICT": "源文件或准备设置已更改，请刷新文件后重试。"
+		},
 		"status": {
 			"queued": "排队中",
 			"processing": "准备中",

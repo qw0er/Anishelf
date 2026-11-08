@@ -349,10 +349,10 @@ export class PreparationApplication implements PreparationApi {
 	list(
 		fileId?: string,
 		summary = false,
-		more = false,
-	): Promise<{ tasks: PreparationView[] }> {
+		inactiveLimit = 0,
+	): Promise<{ tasks: PreparationView[]; hasMore: boolean }> {
 		return this.track(async () =>
-			(await this.ensure()).queries.list(fileId, summary, more),
+			(await this.ensure()).queries.list(fileId, summary, inactiveLimit),
 		);
 	}
 	summaries(fileIds: string[]) {
@@ -419,13 +419,30 @@ export class PreparationApplication implements PreparationApi {
 			if (
 				planned.kind !== "processing-required" ||
 				planned.identity.sourceVersion !== task.spec.source.sourceVersion ||
-				planned.identity.rootId !== task.spec.source.scopeId ||
-				planned.identity.profileFingerprint !== task.spec.profileFingerprint
+				planned.identity.rootId !== task.spec.source.scopeId
 			)
 				throw new DomainError(
 					"PLAYBACK_CONFLICT",
-					"The source or processing profile changed. Create a new preparation.",
+					"The source changed. Create a new preparation.",
 				);
+			if (
+				planned.identity.profileFingerprint !== task.spec.profileFingerprint
+			) {
+				context.logger.info(
+					{
+						event: "preparation.retry_profile_changed",
+						taskId: task.id,
+						profileId: input.output.profileId,
+					},
+					"Preparation profile changed; creating a replacement task.",
+				);
+				return this.enqueue(
+					{ ...input, fileId: task.spec.source.fileId },
+					input.output.profileId,
+					planned,
+					true,
+				);
+			}
 			// Re-read after negotiation; another retry/cancel may have completed while it was awaited.
 			const current = context.required(id);
 			if (

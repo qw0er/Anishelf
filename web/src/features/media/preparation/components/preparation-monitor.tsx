@@ -1,4 +1,3 @@
-import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
 import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,43 +26,22 @@ export function PreparationMonitor() {
 			typeof window !== "undefined" &&
 			window.matchMedia?.("(max-width: 639px)").matches,
 	);
-	const [visibleMoreCount, setVisibleMoreCount] = useState(0);
-
 	const activeTasks = preparation.tasks.filter(isActive);
-	const primaryTasks = activeTasks.slice(
-		0,
-		preparationConstraints.initialListLimit,
-	);
-	const primaryIds = new Set(primaryTasks.map((task) => task.id));
-	const moreTasks = preparation.tasks.filter(
-		(task) => !primaryIds.has(task.id),
-	);
-	const visibleMoreTasks = moreTasks.slice(0, visibleMoreCount);
 	const failed = preparation.tasks.filter(
 		(task) => task.status === "failed",
 	).length;
 	const active = activeTasks.length;
-	const canShowMore =
-		visibleMoreTasks.length < moreTasks.length ||
-		preparation.canLoadMore ||
-		preparation.loadingMore;
 	const profileName = (task: PreparationTaskResponse) =>
 		preparation.catalog?.profiles.find(
 			(profile) => profile.id === task.profileId,
 		)?.name;
 	function revealMore() {
 		if (preparation.loadingMore) return;
-		setVisibleMoreCount(
-			(count) => count + preparationConstraints.initialListLimit,
-		);
-		if (preparation.canLoadMore) preparation.loadMore();
-		console.debug("[PreparationMonitor] More tasks revealed.", {
-			remaining: moreTasks.length,
-			visible: Math.min(
-				visibleMoreCount + preparationConstraints.initialListLimit,
-				moreTasks.length,
-			),
+		console.debug("[PreparationMonitor] More tasks requested.", {
+			loaded: preparation.tasks.length,
+			hasMore: preparation.hasMore,
 		});
+		preparation.loadMore();
 	}
 	if (active === 0 && failed === 0 && !preparation.error) return null;
 	return (
@@ -120,7 +98,7 @@ export function PreparationMonitor() {
 							)}
 						</p>
 					)}
-					{[...primaryTasks, ...visibleMoreTasks].map((task) => (
+					{preparation.tasks.map((task) => (
 						<PreparationTaskCard
 							key={task.id}
 							task={task}
@@ -128,7 +106,7 @@ export function PreparationMonitor() {
 							onWatch={(task) => navigate(preparedWatchPath(task))}
 						/>
 					))}
-					{canShowMore && (
+					{preparation.hasMore && (
 						<div className="p-2">
 							<Button
 								variant="ghost"

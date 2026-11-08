@@ -102,6 +102,30 @@ test("retry replaces a legacy execution plan without changing the old task", asy
 	expect(f.database.preparation.get(legacy.id)).toEqual(original);
 });
 
+test("retry creates a replacement task when the profile changed", async () => {
+	let fail = true;
+	const f = await fixture({
+		beforeOutput: async () => {
+			if (fail)
+				throw new MediaToolError(
+					"TOOL_UNAVAILABLE",
+					"Unavailable fixture tool",
+				);
+		},
+	});
+	const id = await taskId(f.preparation.create(await f.input()));
+	expect((await completed(f, id)).failureReason).toBe("tool-unavailable");
+	fail = false;
+	required(f.profiles[0]).video.maxHeight = 720;
+	await f.restart();
+	expect((await f.preparation.get(id)).failureReason).toBe("profile-changed");
+	const { fileId: _fileId, ...input } = await f.input();
+	const replacement = await f.preparation.retry(id, input);
+	expect(replacement.id).not.toBe(id);
+	expect((await f.preparation.get(id)).failureReason).toBe("profile-changed");
+	expect((await completed(f, replacement.id)).status).toBe("ready");
+});
+
 test("retry does not replace a task when the source version changed", async () => {
 	const f = await fixture();
 	const task = await completed(

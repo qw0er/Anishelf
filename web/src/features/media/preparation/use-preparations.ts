@@ -16,10 +16,13 @@ import { preparationKeys, tasksQuery } from "./queries.js";
 export function usePreparations(fileId?: string, enabled = true) {
 	const scope = useQueryScope();
 	const client = useQueryClient();
-	const [expandedScope, setExpandedScope] = useState<string | null>(null);
-	const more = expandedScope === scope;
+	const [expanded, setExpanded] = useState<{
+		scope: string;
+		inactiveLimit: number;
+	} | null>(null);
+	const inactiveLimit = expanded?.scope === scope ? expanded.inactiveLimit : 0;
 	const query = useQuery({
-		...tasksQuery(scope, fileId, more),
+		...tasksQuery(scope, fileId, inactiveLimit),
 		enabled,
 		placeholderData: (previous, previousQuery) =>
 			previousQuery?.queryKey[1] === scope &&
@@ -30,16 +33,13 @@ export function usePreparations(fileId?: string, enabled = true) {
 	return {
 		tasks: enabled ? (query.data?.tasks ?? []) : [],
 		loading: enabled && query.isPending,
-		loadingMore: more && query.isFetching,
-		canLoadMore:
-			(!more &&
-				(query.data?.tasks.length ?? 0) >=
-					preparationConstraints.initialListLimit) ||
-			(more && query.isError),
-		loadMore: () => {
-			if (more) void query.refetch();
-			else setExpandedScope(scope);
-		},
+		loadingMore: inactiveLimit > 0 && query.isFetching,
+		hasMore: enabled && (query.data?.hasMore ?? false),
+		loadMore: () =>
+			setExpanded({
+				scope,
+				inactiveLimit: inactiveLimit + preparationConstraints.moreBatchSize,
+			}),
 		error: query.error,
 		refresh: useCallback(() => {
 			void client.invalidateQueries({
@@ -87,13 +87,19 @@ export function usePreparationAction() {
 				),
 			);
 		} catch (cause) {
-			if (!controller.signal.aborted && mounted.current)
+			if (!controller.signal.aborted && mounted.current) {
+				const key = getErrorTranslationKey(cause);
 				toast.add({
 					id: notificationId,
 					type: "error",
 					priority: "high",
-					title: t(getErrorTranslationKey(cause) ?? "errors.requestFailed"),
+					title: t(
+						key === "errors.api.PLAYBACK_CONFLICT"
+							? "preparation.errors.PLAYBACK_CONFLICT"
+							: (key ?? "errors.requestFailed"),
+					),
 				});
+			}
 		} finally {
 			if (active.current === controller) active.current = null;
 		}

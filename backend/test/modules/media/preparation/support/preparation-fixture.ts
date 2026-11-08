@@ -54,7 +54,6 @@ export async function fixture(
 		cacheBudget?: () => number;
 		minimumFreeBytes?: number;
 		maximumQueuedTasks?: number;
-		listLimit?: number;
 	} = {},
 ) {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-preparation-"));
@@ -195,7 +194,6 @@ export async function fixture(
 				: {}),
 			policy: {
 				...preparationPolicy,
-				listLimit: options.listLimit ?? preparationPolicy.listLimit,
 				maximumCacheBytes:
 					options.maximumCacheBytes ?? preparationPolicy.maximumCacheBytes,
 				minimumFreeBytes:

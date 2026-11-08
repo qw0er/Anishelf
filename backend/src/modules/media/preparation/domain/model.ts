@@ -43,6 +43,11 @@ export type PreparationState = { updatedAtMs: number } & (
 			failureReason: "cancelled" | "cache-deleted";
 	  }
 );
+export const activePreparationStatuses = [
+	"queued",
+	"processing",
+	"cancelling",
+] as const;
 export interface PreparationTask {
 	readonly id: string;
 	readonly spec: DeepReadonly<PreparationSpecification>;

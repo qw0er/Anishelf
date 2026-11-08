@@ -59,6 +59,9 @@ const ready: PreparationTaskResponse = {
 	},
 	sizeBytes: 100,
 };
+function preparationList(tasks: PreparationTaskResponse[], hasMore = false) {
+	return { tasks, hasMore };
+}
 const description = {
 	sourceVersion: "version",
 	descriptionId: "description",
@@ -104,7 +107,9 @@ function Wrapper({ children }: { children: ReactNode }) {
 }
 beforeEach(() => {
 	vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue(catalog);
-	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({ tasks: [] });
+	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue(
+		preparationList([]),
+	);
 	vi.spyOn(preparationApi, "getFilePreparations").mockImplementation(async () =>
 		preparationApi.getPreparations(),
 	);
@@ -196,9 +201,9 @@ test("directory icon action exposes its tooltip on keyboard focus", async () => 
 });
 test("explicit directory preparation negotiates fresh evidence and opens the global collapsible monitor", async () => {
 	vi.mocked(preparationApi.createPreparation).mockImplementation(async () => {
-		vi.mocked(preparationApi.getPreparations).mockResolvedValue({
-			tasks: [task],
-		});
+		vi.mocked(preparationApi.getPreparations).mockResolvedValue(
+			preparationList([task]),
+		);
 		return { kind: "task", task };
 	});
 	const view = button();
@@ -326,9 +331,9 @@ test("metadata watch intent requires server selection and deleting never cancels
 	expect(preparationApi.cancelPreparation).not.toHaveBeenCalled();
 });
 test("file menu discovers older prepared copies and deletes them even for a supported original", async () => {
-	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
-		tasks: [ready],
-	});
+	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
+		preparationList([ready]),
+	);
 	const view = render(
 		<Wrapper>
 			<FileActions
@@ -372,9 +377,9 @@ test("file menu discovers older prepared copies and deletes them even for a supp
 });
 
 test("task monitor disappears when its last active task completes", async () => {
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
-		tasks: [task],
-	});
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue(
+		preparationList([task]),
+	);
 	const view = render(
 		<Wrapper>
 			<PreparationMonitor />
@@ -383,9 +388,9 @@ test("task monitor disappears when its last active task completes", async () => 
 	const monitor = await view.findByRole("complementary", {
 		name: "Transcoding tasks",
 	});
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
-		tasks: [ready],
-	});
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue(
+		preparationList([ready]),
+	);
 	fireEvent.click(view.getByRole("button", { name: "Refresh tasks" }));
 	await waitFor(() => expect(monitor.isConnected).toBe(false));
 });
@@ -415,12 +420,12 @@ test("preparation keeps its file menu mounted while the command runs", async () 
 });
 
 test("an older or unavailable copy does not mark the current file prepared", async () => {
-	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
-		tasks: [
+	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
+		preparationList([
 			{ ...ready, sourceVersion: "old-version" },
 			{ ...ready, id: "unavailable", playbackAvailability: "unavailable" },
-		],
-	});
+		]),
+	);
 	const view = render(
 		<Wrapper>
 			<FileActions
@@ -445,9 +450,9 @@ test.each(
 )(
 	"file menu contains operations without $status status entries",
 	async (entry) => {
-		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
-			tasks: [entry],
-		});
+		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
+			preparationList([entry]),
+		);
 		const view = render(
 			<Wrapper>
 				<FileActions
@@ -563,9 +568,9 @@ test.each(["all", "subset", "none"])(
 );
 
 test("an existing all-audio copy does not disable preparing a selected audio track", async () => {
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
-		tasks: [{ ...ready, audioStreamIndices: [4, 7] }],
-	});
+	vi.mocked(preparationApi.getPreparations).mockResolvedValue(
+		preparationList([{ ...ready, audioStreamIndices: [4, 7] }]),
+	);
 	const view = render(
 		<PreparationButton
 			fileId="file"
@@ -640,15 +645,16 @@ test("cancelling shows a pending state and disables duplicate cancellation", () 
 	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
 });
 
-test("monitor shows active tasks and pages other statuses through More", async () => {
+test("monitor shows active tasks and loads ten more per click", async () => {
 	const finished = Array.from({ length: 25 }, (_, index) => ({
 		...ready,
 		id: `finished-${index}`,
 		filename: `Finished-${index}.mkv`,
 	}));
 	vi.mocked(preparationApi.getPreparations).mockImplementation(
-		async (_options, more) => ({
-			tasks: [task, ...finished.slice(0, more ? 25 : 9)],
+		async (_options, inactiveLimit = 0) => ({
+			tasks: [task, ...finished.slice(0, inactiveLimit)],
+			hasMore: inactiveLimit < finished.length,
 		}),
 	);
 	const view = render(
@@ -657,25 +663,27 @@ test("monitor shows active tasks and pages other statuses through More", async (
 		</Wrapper>,
 	);
 	await view.findByText("Episode.mkv");
-	expect(view.queryByRole("button", { name: /Other statuses/ })).toBeNull();
 	expect(view.queryByText("Finished-0.mkv")).toBeNull();
-	expect(view.queryByText("Finished-9.mkv")).toBeNull();
-	const more = view.getByRole("button", { name: "More" });
 	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
 		expect.anything(),
-		false,
+		0,
 	);
+	const more = view.getByRole("button", { name: "More" });
 	fireEvent.click(more);
 	await view.findByText("Finished-9.mkv");
 	expect(view.queryByText("Finished-10.mkv")).toBeNull();
 	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
 		expect.anything(),
-		true,
+		10,
 	);
 
 	fireEvent.click(view.getByRole("button", { name: "More" }));
 	await view.findByText("Finished-19.mkv");
 	expect(view.queryByText("Finished-20.mkv")).toBeNull();
+	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
+		expect.anything(),
+		20,
+	);
 
 	fireEvent.click(view.getByRole("button", { name: "More" }));
 	await view.findByText("Finished-24.mkv");
@@ -688,16 +696,25 @@ test("narrow monitor starts collapsed and exposes failed tasks on demand", async
 	vi.spyOn(window, "matchMedia").mockReturnValue({
 		matches: true,
 	} as MediaQueryList);
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
-		tasks: [task, { ...task, id: "failed", status: "failed" }],
-	});
+	const failedTask: PreparationTaskResponse = {
+		...task,
+		id: "failed",
+		status: "failed",
+		failureReason: "interrupted",
+	};
+	vi.mocked(preparationApi.getPreparations).mockImplementation(
+		async (_options, inactiveLimit = 0) => ({
+			tasks: inactiveLimit > 0 ? [task, failedTask] : [task],
+			hasMore: inactiveLimit === 0,
+		}),
+	);
 	const view = render(
 		<Wrapper>
 			<PreparationMonitor />
 		</Wrapper>,
 	);
 	const toggle = await view.findByRole("button", {
-		name: "Transcoding tasks · 1 active · 1 failed",
+		name: "Transcoding tasks · 1 active",
 	});
 	expect(toggle.getAttribute("aria-expanded")).toBe("false");
 	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
@@ -705,15 +722,17 @@ test("narrow monitor starts collapsed and exposes failed tasks on demand", async
 	expect(toggle.getAttribute("aria-expanded")).toBe("true");
 	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
 	fireEvent.click(view.getByRole("button", { name: "More" }));
-	expect(view.getByRole("button", { name: "Retry preparation" })).toBeTruthy();
+	expect(
+		await view.findByRole("button", { name: "Retry preparation" }),
+	).toBeTruthy();
 });
 
 test.each(["remux", "transcode-audio", "transcode-video"] as const)(
 	"compatibility preparation does not reuse a %s copy as a completed full transcode",
 	async (mode) => {
-		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue({
-			tasks: [{ ...ready, mode }],
-		});
+		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
+			preparationList([{ ...ready, mode }]),
+		);
 		const view = button({ tasks: [{ ...ready, mode }] });
 		const prepare = await view.findByRole("button", { name: "Pre-transcode" });
 		fireEvent.click(prepare);
@@ -732,21 +751,35 @@ function PreparationProfileSettings() {
 	);
 }
 
-test("task monitor retains the last failed task and its recovery action", async () => {
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
-		tasks: [task],
-	});
+test("task monitor loads a failed task after it leaves the active list", async () => {
+	const otherTask: PreparationTaskResponse = {
+		...task,
+		id: "other-task",
+		filename: "Other.mkv",
+	};
+	const failedTask: PreparationTaskResponse = {
+		...task,
+		id: "failed",
+		status: "failed",
+		failureReason: "interrupted",
+	};
+	let failedPhase = false;
+	vi.mocked(preparationApi.getPreparations).mockImplementation(
+		async (_options, inactiveLimit = 0) =>
+			failedPhase
+				? {
+						tasks: inactiveLimit > 0 ? [otherTask, failedTask] : [otherTask],
+						hasMore: inactiveLimit === 0,
+					}
+				: preparationList([task, otherTask]),
+	);
 	const view = render(
 		<Wrapper>
 			<PreparationMonitor />
 		</Wrapper>,
 	);
-	const monitor = await view.findByRole("complementary", {
-		name: "Transcoding tasks",
-	});
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue({
-		tasks: [{ ...task, status: "failed", failureReason: "interrupted" }],
-	});
+	await view.findByRole("complementary", { name: "Transcoding tasks" });
+	failedPhase = true;
 	fireEvent.click(view.getByRole("button", { name: "Refresh tasks" }));
 	fireEvent.click(await view.findByRole("button", { name: "More" }));
 	await waitFor(() =>
@@ -754,5 +787,5 @@ test("task monitor retains the last failed task and its recovery action", async 
 			view.getByRole("button", { name: "Retry preparation" }),
 		).toBeTruthy(),
 	);
-	expect(monitor.isConnected).toBe(true);
+	await view.findByRole("complementary", { name: "Transcoding tasks" });
 });

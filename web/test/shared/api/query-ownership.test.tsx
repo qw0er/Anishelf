@@ -56,8 +56,11 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 		}));
 	const files = vi
 		.spyOn(preparationApi, "getFilePreparations")
-		.mockResolvedValue({ tasks: [] });
-	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({ tasks: [] });
+		.mockResolvedValue({ tasks: [], hasMore: false });
+	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({
+		tasks: [],
+		hasMore: false,
+	});
 	vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue({
 		profiles: [],
 		selectedProfileId: "builtin:web",
@@ -116,7 +119,7 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 test("duplicate file observers share one request and preparation mutations invalidate their owner", async () => {
 	const files = vi
 		.spyOn(preparationApi, "getFilePreparations")
-		.mockResolvedValue({ tasks: [] });
+		.mockResolvedValue({ tasks: [], hasMore: false });
 	const first = renderHook(() => useFilePreparations("file"));
 	renderHook(() => useFilePreparations("file"));
 	await waitFor(() => expect(first.result.current.loading).toBe(false));

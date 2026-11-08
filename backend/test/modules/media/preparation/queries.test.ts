@@ -17,8 +17,8 @@ import {
 
 setupTestLifecycle();
 
-test("file-filtered task lookup finds an older copy outside the global recent-task limit", async () => {
-	const f = await fixture({ listLimit: 1 });
+test("file-filtered task lookup finds an older copy", async () => {
+	const f = await fixture();
 	const result = await f.preparation.create(await f.input());
 	if (result.kind !== "task") throw new Error("Expected task");
 	await vi.waitFor(async () =>
@@ -100,7 +100,7 @@ test("query telemetry is projected and immutable specifications are not rewritte
 });
 
 test("directory summaries include old publications without validating source or artifact bytes", async () => {
-	const f = await fixture({ listLimit: 1 });
+	const f = await fixture();
 	const id = await taskId(f.preparation.create(await f.input()));
 	const ready = await completed(f, id);
 	const fileId = ready.fileId;
@@ -135,7 +135,7 @@ test("directory summaries include old publications without validating source or 
 		join(f.dataDir, "cache", "prepared-media", `${ready.artifactId}.media`),
 	);
 	const summary = await f.app.inject({
-		url: "/api/preparations?summary=true",
+		url: "/api/preparations?summary=true&inactiveLimit=10",
 		headers,
 	});
 	expect(summary.statusCode).toBe(200);

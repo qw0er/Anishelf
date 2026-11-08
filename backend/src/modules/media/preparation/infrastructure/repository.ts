@@ -1,13 +1,14 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { MediaInfo } from "../../../../platform/media/model.js";
 import { freeze } from "../../../../shared/policy.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";
-import type {
-	PreparationState,
-	PreparationTask,
-	PreparedArtifact,
+import {
+	activePreparationStatuses,
+	type PreparationState,
+	type PreparationTask,
+	type PreparedArtifact,
 } from "../domain/model.js";
 import type { PreparationStore, PreparationSummaryRow } from "../ports.js";
 import type { AutomaticDemandRecord } from "../snapshot.js";
@@ -94,6 +95,38 @@ export class PreparationRepository implements PreparationStore {
 		return (limit === undefined ? query.all() : query.limit(limit).all()).map(
 			(row) => this.task(row),
 		);
+	}
+	listMonitor(
+		scopeIds: readonly string[],
+		inactiveLimit: number,
+	): { tasks: PreparationTask[]; hasMore: boolean } {
+		if (scopeIds.length === 0) return { tasks: [], hasMore: false };
+		const inScope = inArray(mediaSources.rootId, [...scopeIds]);
+		const activeRows = this.query()
+			.where(
+				and(
+					inScope,
+					inArray(preparationTasks.status, [...activePreparationStatuses]),
+				),
+			)
+			.orderBy(desc(preparationTasks.createdAtMs), desc(preparationTasks.id))
+			.all();
+		const inactiveRows = this.query()
+			.where(
+				and(
+					inScope,
+					notInArray(preparationTasks.status, [...activePreparationStatuses]),
+				),
+			)
+			.orderBy(desc(preparationTasks.createdAtMs), desc(preparationTasks.id))
+			.limit(inactiveLimit + 1)
+			.all();
+		return {
+			tasks: [...activeRows, ...inactiveRows.slice(0, inactiveLimit)].map(
+				(row) => this.task(row),
+			),
+			hasMore: inactiveRows.length > inactiveLimit,
+		};
 	}
 	summaries(
 		scopeIds: readonly string[],

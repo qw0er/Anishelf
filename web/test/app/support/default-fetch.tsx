@@ -31,7 +31,7 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 		path === "/api/preparations?summary=true" ||
 		path.startsWith("/api/preparations?")
 	)
-		return json({ tasks: appFixture.preparationTasks });
+		return json({ tasks: appFixture.preparationTasks, hasMore: false });
 	if (path === "/api/catalog/file-reviews") return json([]);
 	if (path.startsWith("/api/catalog/reviews?"))
 		return json({ items: [], page: 1, perPage: 20, hasNextPage: false });

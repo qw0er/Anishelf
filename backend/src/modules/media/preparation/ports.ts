@@ -29,6 +29,11 @@ export interface PreparationStore {
 		fileId?: string,
 		activeFirst?: boolean,
 	): PreparationTask[];
+	/** All active tasks for the visible scope plus one bounded page of history. */
+	listMonitor(
+		scopeIds: readonly string[],
+		inactiveLimit: number,
+	): { tasks: PreparationTask[]; hasMore: boolean };
 	summaries(
 		scopeIds: readonly string[],
 		fileIds: string[],

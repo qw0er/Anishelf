@@ -434,7 +434,10 @@
 		"required": "This browser cannot play the original file. Pre-transcode it from its folder before watching.",
 		"waitForCopy": "The prepared copy is not ready yet. Playback will start when preparation finishes.",
 		"copyUnsupported": "No available prepared copy could be confirmed for this browser. Check the task or choose another profile in Settings.",
-		"more": "More"
+		"more": "More",
+		"errors": {
+			"PLAYBACK_CONFLICT": "The source file or preparation settings changed. Refresh the file and retry."
+		}
 	},
 	"anime": {
 		"library": "Anime library",

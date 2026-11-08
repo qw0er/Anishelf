@@ -1,13 +1,13 @@
 import { preparationInteractionDefaults } from "./defaults.js";
 export const preparationKeys = {
 	preparations: ["preparations"] as const,
-	tasks: (scope: string, fileId?: string, more?: boolean) =>
+	tasks: (scope: string, fileId?: string, inactiveLimit?: number) =>
 		[
 			"preparations",
 			scope,
 			"tasks",
 			fileId ?? null,
-			...(more === undefined ? [] : [more]),
+			...(inactiveLimit === undefined ? [] : [inactiveLimit]),
 		] as const,
 	summaries: (scope: string, ids: string[]) =>
 		["preparations", scope, "summaries", ids] as const,
@@ -17,13 +17,13 @@ import { queryOptions } from "@tanstack/react-query";
 import { boundedSignal } from "../../../shared/api/queries.js";
 import * as api from "./api.js";
 
-export const tasksQuery = (scope: string, fileId?: string, more = false) =>
+export const tasksQuery = (scope: string, fileId?: string, inactiveLimit = 0) =>
 	queryOptions({
-		queryKey: preparationKeys.tasks(scope, fileId, more),
+		queryKey: preparationKeys.tasks(scope, fileId, inactiveLimit),
 		queryFn: ({ signal }) =>
 			fileId
 				? api.getFilePreparations(fileId, { signal: boundedSignal(signal) })
-				: api.getPreparations({ signal: boundedSignal(signal) }, more),
+				: api.getPreparations({ signal: boundedSignal(signal) }, inactiveLimit),
 		refetchInterval: (query) =>
 			query.state.data?.tasks.some(
 				(task) =>

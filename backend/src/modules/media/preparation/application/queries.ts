@@ -55,21 +55,15 @@ export class PreparationQueries {
 	async list(
 		fileId?: string,
 		summary = false,
-		more = false,
-	): Promise<{ tasks: PreparationView[] }> {
+		inactiveLimit = 0,
+	): Promise<{ tasks: PreparationView[]; hasMore: boolean }> {
 		const { context, artifacts } = this.services;
-		let tasks = context.repository.list(
-			more || fileId
-				? context.policy.listLimit
-				: Math.min(context.policy.initialListLimit, context.policy.listLimit),
-			fileId,
-			summary && !fileId,
-		);
-		if (summary) {
+		if (!fileId && summary) {
 			const epoch = context.sources.accessRevision;
 			const scope = await context.sources.getScope();
-			tasks = tasks.filter((task) =>
-				scope.ids.includes(task.spec.source.scopeId),
+			const { tasks, hasMore } = context.repository.listMonitor(
+				scope.ids,
+				Math.max(0, Math.floor(inactiveLimit)),
 			);
 			context.sources.assertAccessRevision(epoch);
 			return {
@@ -79,10 +73,13 @@ export class PreparationQueries {
 						context.repository.artifact(task.spec.executionPlanId) ?? null,
 					availability: "unknown" as const,
 				})),
+				hasMore,
 			};
 		}
+		const tasks = context.repository.list(undefined, fileId);
 		return {
 			tasks: await Promise.all(tasks.map((task) => artifacts.inspect(task.id))),
+			hasMore: false,
 		};
 	}
 	async inventory(input: PreparedMediaQuery): Promise<PreparedMediaList> {

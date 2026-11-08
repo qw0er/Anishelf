@@ -101,9 +101,11 @@ beforeEach(() => {
 	});
 	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({
 		tasks: [task],
+		hasMore: false,
 	});
 	vi.spyOn(preparationApi, "getFilePreparations").mockResolvedValue({
 		tasks: [task],
+		hasMore: false,
 	});
 	vi.spyOn(preparationApi, "createPreparation");
 });
@@ -290,6 +292,7 @@ test("background preparation completion preserves the current player and intent"
 				updatedAtMs: 2,
 			},
 		],
+		hasMore: false,
 	});
 	await act(async () => {
 		await queryClient.invalidateQueries({ queryKey: ["preparations"] });

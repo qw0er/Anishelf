@@ -150,7 +150,7 @@ test("summary transport rejects duplicate or oversized file batches", async () =
 	}
 });
 
-test("task list defaults to ten records and More expands to one hundred", async () => {
+test("task list shows every active task and pages history without a cap", async () => {
 	const f = await fixture();
 	const id = await taskId(f.preparation.create(await f.input()));
 	await completed(f, id);
@@ -189,13 +189,30 @@ test("task list defaults to ten records and More expands to one hundred", async 
 		headers,
 	});
 	expect(initial.statusCode).toBe(200);
-	expect(initial.json().tasks).toHaveLength(10);
+	expect(initial.json()).toMatchObject({ hasMore: true });
+	expect(initial.json().tasks).toHaveLength(1);
 	expect(initial.json().tasks[0].id).toBe(activeId);
-	const expanded = await f.app.inject({
-		url: "/api/preparations?summary=true&more=true",
+
+	const firstPage = await f.app.inject({
+		url: "/api/preparations?summary=true&inactiveLimit=10",
 		headers,
 	});
-	expect(expanded.statusCode).toBe(200);
-	expect(expanded.json().tasks).toHaveLength(100);
-	expect(expanded.json().tasks.slice(0, 10)).toEqual(initial.json().tasks);
+	expect(firstPage.statusCode).toBe(200);
+	expect(firstPage.json()).toMatchObject({ hasMore: true });
+	expect(firstPage.json().tasks).toHaveLength(11);
+	expect(firstPage.json().tasks[0]).toEqual(initial.json().tasks[0]);
+
+	const complete = await f.app.inject({
+		url: "/api/preparations?summary=true&inactiveLimit=106",
+		headers,
+	});
+	expect(complete.statusCode).toBe(200);
+	expect(complete.json()).toMatchObject({ hasMore: false });
+	expect(complete.json().tasks).toHaveLength(107);
+
+	const invalid = await f.app.inject({
+		url: "/api/preparations?summary=true&inactiveLimit=-1",
+		headers,
+	});
+	expect(invalid.statusCode).toBe(400);
 });

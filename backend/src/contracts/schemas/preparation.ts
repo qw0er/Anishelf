@@ -114,7 +114,10 @@ export const PreparationStartResponseSchema = Type.Union([
 	),
 ]);
 export const PreparationListResponseSchema = Type.Object(
-	{ tasks: Type.Array(PreparationTaskSchema) },
+	{
+		tasks: Type.Array(PreparationTaskSchema),
+		hasMore: Type.Boolean(),
+	},
 	{ additionalProperties: false },
 );
 

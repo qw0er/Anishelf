@@ -19,7 +19,7 @@ import {
 setupTestLifecycle();
 
 async function ready() {
-	const f = await fixture({ listLimit: 1 });
+	const f = await fixture();
 	const task = await completed(
 		f,
 		await taskId(f.preparation.create(await f.input())),
