@@ -41,7 +41,7 @@ Original V1 delivered read-only originals, resource-root confinement, persistent
 | L13 | Move files or folders with preservation rules | Complete | — | [Confirmed same-filesystem moves; history retained](#delivery-notes-l) | 1.3.0 |
 | L19 | Delete files or folders with preservation rules | Complete | — | [Confirmed recursive deletion; history retained](#delivery-notes-l) | 1.3.0 |
 | L14 | Download an existing original media file from the Web interface to the user's device | Complete | — | — | 0.2.5 |
-| WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](#library-and-detail-refresh-continuity-wi10) | — |
+| WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](#library-and-detail-refresh-continuity-wi10) | 1.5.0 |
 
 #### Delivery Notes (L)
 
@@ -219,7 +219,7 @@ Available episode versions expose Show in Files through their file action menu. 
 | P23 | Adjust subtitle timing | Complete | — | — | 0.2.0 |
 | P24 | Change playback speed | Complete | — | — | 0.2.0 |
 | P25 | Use playback keyboard shortcuts | Complete | — | — | 0.2.0 |
-| P27 | Improve prepared-media file management | Complete | — | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | — |
+| P27 | Improve prepared-media file management | Complete | — | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | 1.5.0 |
 | P11 | Next-episode navigation and automatic continuation | Complete | — | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
 | P13 | Chapter navigation | Complete | — | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
 
@@ -237,6 +237,10 @@ The player prioritizes video and common playback controls on desktop and narrow 
 Secondary commands and routine technical explanations are available on demand through
 More and playback options; unavailable-playback recovery and consequential tracking
 decisions remain discoverable. Subtitle controls remain accessible within the player.
+Since 1.5.0, the player sizes itself from the source aspect ratio and reduces its width
+instead of cropping when viewport height is limiting. Media-link commands are grouped
+in a submenu, narrow layouts compact the action bar, and the file preparation action
+reflects active work and can cancel it. **Release record:** 1.5.0.
 See the [player layout conventions](development/design-system.md#player-layout).
 
 #### Full-file Preparation (P05–P07)
@@ -265,6 +269,15 @@ The visible inventory refreshes periodically and after cleanup. Automatic prepar
 can recreate deleted copies; valid copies are not evicted when the budget is lowered.
 Untracked disk files, temporary processing output and task-history management are
 outside this inventory.
+
+#### Preparation Monitor and Retry (P17, O08)
+
+The floating preparation monitor lists every queued, processing or cancelling task
+and loads inactive history in batches of ten. It reports active, failed and total
+counts, refreshes on demand and keeps completed tasks available for playback. Retrying
+a task whose preparation profile is no longer current creates a replacement task with
+the requested profile; a changed source still requires a new preparation. File actions
+reflect the active task and can cancel it. **Release record:** 1.5.0.
 
 #### Automatic Background Pre-transcoding (P17)
 
@@ -406,6 +419,7 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | [H.264/VP9 preferred with fallback](#delivery-notes-s) | 1.4.1 |
 | WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | 1.4.2 |
 | WI14 | Improve Chinese resource searches using available Chinese titles | Complete | Completed | [Chinese search titles and merged names](#chinese-search-titles-and-merged-names-wi14) | 1.4.2 |
+| WI05 | Redesign automatic subscription management interaction | Complete | Completed | [Dedicated Subscriptions page](#subscriptions-page-wi05) | 1.5.0 |
 
 #### Delivery Notes (S)
 
@@ -485,7 +499,18 @@ not part of default tests or CI.
 
 Existing subscriptions retain their captured search keywords. Creating a subscription
 or rediscovering and confirming a source applies the current title-selection rules.
-**Release record:** 1.4.2; name-verification policy updated in 1.4.3.
+**Release record:** 1.4.2; name-verification policy updated in 1.5.0.
+
+#### Subscriptions Page (WI05)
+
+The main navigation opens a Subscriptions page listing manual and automatic
+subscriptions together. Search and All, Automatic and Manual filters narrow the list;
+a needs-attention filter and status/last-check fields expose paused, waiting,
+searching, cooling-down, failed and excluded states. Automatic activation previews
+open in a dialog, and per-work include/exclude controls manage automatic-recreation
+exclusions without changing manual subscriptions. Empty and error states explain how
+to subscribe or recover, and the page remains usable on narrow screens.
+**Release record:** 1.5.0.
 
 #### AniList Watching to Automatic Acquisition (S05, S10–S12)
 
@@ -669,7 +694,7 @@ the web build and available offline. The existing update check discovers newer r
 
 #### Delivery Notes (O)
 
-- **O04:** Shared Settings sections for resource roots, playback/manual and automatic preparation, external players, acquisition services, tracking account, security and About. **Release record:** 1.0.3 (settings scope).
+- **O04:** Shared Settings sections for resource roots, playback/manual and automatic preparation, external players, acquisition services, tracking account, security and About. **Release record:** 1.0.3 (settings scope); 1.5.0 (immediate single-value saves).
 - **O05:** **Delivered:** Durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention. **Remaining:** Broader product history. **Release record:** 1.0.0 (acquisition; partial).
 - **O07:** Single-password access, persistent sign-in, protected mutations, login limits, local recovery and 24-hour file-specific media links; secure sessions through an HTTPS proxy. **Release record:** 0.3.3; 1.0.1 (secure proxy sessions).
 - **O12:** **Delivered:** stdout/file/both routing. **Excluded:** automatic log-output fallback and destination recovery after failure; these are outside the current scope, not planned remainder. **Release record:** 0.2.6; 1.0.0 (simplified).
@@ -678,6 +703,12 @@ the web build and available offline. The existing update check discovers newer r
 - **O19:** Edit and validate supported custom profile files, including acquisition and transcode profiles.
 - **O20:** Validate and activate acquisition-profiles.yaml changes without restarting Backend; retain the last valid configuration on reload failure.
 - **O21:** Non-interactive flag-driven Docker/Podman deployment, optional services and advanced settings, generated configuration and health feedback. **Release record:** 1.0.0; 1.1.0 (deployment refactor).
+
+#### Immediate Single-value Settings Saves (O04)
+
+Single-value settings save when changed and report success or failure through a toast.
+Failed drafts remain editable for correction and retry. Forms whose values must be
+saved together keep an explicit Save action. **Release record:** 1.5.0.
 
 #### User-editable Prepared-media Cache Budget (O18)
 

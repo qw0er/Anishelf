@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.3
+## 1.5.0
 
 ### Added
 
@@ -9,36 +9,48 @@
 - Delete individual or selected prepared copies with a space estimate, in-use
   protection, partial-failure reporting and retry. Preserve originals, viewing
   history and retryable metadata when a filesystem deletion fails.
+- Browse all manual and automatic subscriptions on a dedicated Subscriptions page with
+  search, management and attention filters, status, last check and per-work
+  include/exclude controls.
+- Add a [custom transcode profiles guide](https://github.com/qw0er/Anishelf/blob/main/docs/guide/transcode-profiles.md)
+  covering profile structure, codec and quality options, and selection.
 
 ### Changed
 
+- Show every active preparation task in the monitor and load inactive history in
+  batches of ten. Reflect the active task in the file preparation action and allow
+  cancelling it there.
+- Group media-link actions in a submenu and compact the player action bar on narrow
+  screens. Size the player from the source video's aspect ratio, reducing width
+  rather than cropping the frame when viewport height is limiting.
 - Save single-value settings immediately and report success or failure with a toast.
   Keep explicit Save actions for forms that submit several values together.
-- Improve names-only cross-source verification with corroborating evidence instead
-  of requiring complete equal dates and episode counts. Normalize title variants
-  while guarding season, part, stage, promotional and finale scope; keep unique
-  forward/reverse resolution and block insufficient competing candidates.
-- Version persisted name proofs and log candidate decisions with evidence reasons.
-  Reverify obsolete proofs using existing source caches where possible, preserving
-  work identities, historical evidence and episode mappings.
-- Add optional `node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs test --split development|regression|holdout`
-  evaluation and candidate diagnostics. Frozen candidate verification now passes
-  all 49 positive, 38 negative and two unresolved cases; live retrieval is outside
-  this measurement. Keep corpus evaluation manual.
+- Improve matching between AniList and Bangumi titles when a work's names differ
+  between sources, including title variants, season and part scope, and missing or
+  conflicting dates and episode counts. Ambiguous candidates remain unmatched.
+
+### Fixed
+
+- Replace a stale preparation task when retrying after its preparation profile
+  changed, instead of rejecting the retry while the matching task still exists.
+
+## 1.4.3
+
+### Added
+
+- Reuse saved installation choices when reconfiguring a deployment; explicitly
+  supplied flags still override them.
+- Add start, stop and update actions to the generated management helper. Updates pull
+  selected images before replacing running services, retain the configured image tag
+  and preserve volumes and media.
+
+### Changed
+
+- Shorten broadcast-plan status labels.
 
 ## 1.4.2
 
 ### Added
-
-- Add an opt-in offline title-corpus test using the production metadata adapters
-  and name verifier via `node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs test`, with per-case diagnostics and
-  matching metrics. Keep it out
-  of default tests and CI.
-
-- Add a frozen AniList/Bangumi title-enrichment corpus with 49 real-source anchors,
-  49 positive pairs, 38 negative pairs and two unresolved release-scope cases.
-  Include explicit collection and offline summary commands, independent labels,
-  source fingerprints and franchise-grouped evaluation splits.
 
 - Save a global title display preference in Settings: Chinese, original, English or
   romaji. Pages use the preferred available title and fall back to the original
@@ -62,10 +74,6 @@
   internal search evidence.
 
 ### Fixed
-
-- Record disconnected metadata requests and their cancelled AniList reads as debug
-  events instead of server errors and upstream warnings. Log routine visible-title enrichment
-  batch scheduling at debug level.
 
 - Resolve poster titles through the same Metadata cache for local and Tracking-only
   works. Visible works missing the preferred title trigger bounded background name

@@ -36,7 +36,7 @@ implementation choice as a new requirement. Future features specify outcomes and
 acceptance boundaries without selecting their technical solution in advance.
 Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-The repository is at version 1.4.1; 1.4.2 is the planned next release. Later and Optional items remain future work.
+The repository is at version 1.4.3; 1.5.0 is the planned next release. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
@@ -390,9 +390,9 @@ Details and acceptance criteria may be refined as decisions are made.
 | --- | --- | --- | --- | --- | --- |
 | WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
 | WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
-| WI05 | Redesign automatic subscription management interaction | Complete | Completed | Review the existing interaction and define the desired workflow. | — |
+| WI05 | Redesign automatic subscription management interaction | Complete | Completed | [Dedicated Subscriptions page](implemented-requirements.md#subscriptions-page-wi05) | 1.5.0 |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
-| WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](implemented-requirements.md#library-and-detail-refresh-continuity-wi10) | — |
+| WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](implemented-requirements.md#library-and-detail-refresh-continuity-wi10) | 1.5.0 |
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
 | WI15 | Improve evidence-based decisions and their evaluation | Not started | Unassigned | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
 | WI16 | Identify media by its actual contents | Not started | Unassigned | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
