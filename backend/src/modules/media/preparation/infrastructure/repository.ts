@@ -75,10 +75,22 @@ export class PreparationRepository implements PreparationStore {
 			}),
 		};
 	}
-	list(limit?: number, fileId?: string): PreparationTask[] {
+	list(
+		limit?: number,
+		fileId?: string,
+		activeFirst = false,
+	): PreparationTask[] {
 		const query = this.query()
 			.where(fileId ? eq(mediaSources.fileId, fileId) : undefined)
-			.orderBy(desc(preparationTasks.createdAtMs), desc(preparationTasks.id));
+			.orderBy(
+				...(activeFirst
+					? [
+							sql`CASE WHEN ${preparationTasks.status} IN ('queued', 'processing', 'cancelling') THEN 0 ELSE 1 END`,
+						]
+					: []),
+				desc(preparationTasks.createdAtMs),
+				desc(preparationTasks.id),
+			);
 		return (limit === undefined ? query.all() : query.limit(limit).all()).map(
 			(row) => this.task(row),
 		);

@@ -388,8 +388,6 @@ Details and acceptance criteria may be refined as decisions are made.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| L16 | Improve matching using representative real-world failure cases | Not started | Later | — | — |
-| P26 | Improve transcoding progress display | Not started | Unassigned | [Transcoding progress](#transcoding-progress-p26) | — |
 | P27 | Improve prepared-media file management | Not started | Unassigned | [Prepared-media file management](#prepared-media-file-management-p27) | — |
 | WI01 | Review tracking-service completion error feedback | — | Unassigned | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
 | WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
@@ -403,16 +401,6 @@ Details and acceptance criteria may be refined as decisions are made.
 #### Matching Improvements from Real Failures (L16)
 
 Collect representative local failure cases with user-confirmed expected works and episode mappings, preserving filename, directory and release provenance. Diagnose extraction, candidate retrieval, ranking, numbering and admission separately. Prioritize recurring failures such as shortened titles, season/part ambiguity, continuous numbering and end-of-series markers; do not lower admission thresholds solely to improve corpus coverage.
-
-#### Transcoding Progress (P26)
-
-Make manual and automatic transcoding progress easy to understand in the task
-monitor. Identify the affected media and show whether the task is queued, running,
-completed, failed or cancelled. While running, show available progress and estimated
-remaining time when reliable; otherwise indicate that progress or the estimate is
-unavailable rather than presenting a misleading value. Keep progress current, show
-failure and recovery information, and retain access to applicable task actions.
-The display must remain usable on desktop and narrow screens.
 
 #### Prepared-media File Management (P27)
 

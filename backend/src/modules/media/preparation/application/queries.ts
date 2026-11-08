@@ -57,6 +57,7 @@ export class PreparationQueries {
 				? context.policy.listLimit
 				: Math.min(context.policy.initialListLimit, context.policy.listLimit),
 			fileId,
+			summary && !fileId,
 		);
 		if (summary) {
 			const epoch = context.sources.accessRevision;

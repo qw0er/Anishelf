@@ -171,12 +171,26 @@ test("task list defaults to ten records and More expands to one hundred", async 
 			},
 			createdAtMs: original.createdAtMs + index,
 		});
+	const activeId = randomUUID();
+	f.database.preparation.insert({
+		...original,
+		id: activeId,
+		spec: { ...original.spec, executionPlanId: "f".repeat(64) },
+		state: {
+			status: "queued",
+			progress: null,
+			failureReason: null,
+			updatedAtMs: original.createdAtMs,
+		},
+		createdAtMs: original.createdAtMs - 1,
+	});
 	const initial = await f.app.inject({
 		url: "/api/preparations?summary=true",
 		headers,
 	});
 	expect(initial.statusCode).toBe(200);
 	expect(initial.json().tasks).toHaveLength(10);
+	expect(initial.json().tasks[0].id).toBe(activeId);
 	const expanded = await f.app.inject({
 		url: "/api/preparations?summary=true&more=true",
 		headers,

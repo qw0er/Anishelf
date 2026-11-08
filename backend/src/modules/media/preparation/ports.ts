@@ -24,7 +24,11 @@ export interface PreparationStore {
 	): PreparationTask[];
 	getAutomaticDemand?(id: string): AutomaticDemandRecord | undefined;
 	saveAutomaticDemand?(value: AutomaticDemandRecord): void;
-	list(limit?: number, fileId?: string): PreparationTask[];
+	list(
+		limit?: number,
+		fileId?: string,
+		activeFirst?: boolean,
+	): PreparationTask[];
 	summaries(
 		scopeIds: readonly string[],
 		fileIds: string[],
