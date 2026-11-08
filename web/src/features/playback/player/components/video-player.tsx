@@ -16,7 +16,7 @@ import {
 } from "@vidstack/react/player/layouts/default";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
@@ -29,6 +29,8 @@ import {
 	selectNativeAudio,
 } from "../runtime.js";
 import { ChapterTracks } from "./chapter-tracks.js";
+
+type SourceSize = { width: number; height: number };
 
 class DirectVideoLoader extends VideoProviderLoader {
 	canPlay(source: Src) {
@@ -68,6 +70,21 @@ export default function VideoPlayer({
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const detachAudio = useRef<(() => void) | null>(null);
 	const notified = useRef<string | null>(null);
+	const aspectReported = useRef(false);
+	const [decodedSize, setDecodedSize] = useState<SourceSize | null>(null);
+	const assetVideo = active.asset.video;
+	const assetSize: SourceSize | null =
+		assetVideo?.width && assetVideo.height
+			? { width: assetVideo.width, height: assetVideo.height }
+			: null;
+	const sourceSize = decodedSize ?? assetSize;
+	const sourceRatio = sourceSize
+		? sourceSize.width / sourceSize.height
+		: 16 / 9;
+	const aspectRatio = sourceSize
+		? `${sourceSize.width} / ${sourceSize.height}`
+		: "16 / 9";
+	const maxWidth = `min(100%, ${(75 * sourceRatio).toFixed(4)}vh)`;
 	const notificationId = `video-playback:${fileId}`;
 	useLayoutEffect(() => {
 		toast.close(notificationId);
@@ -126,6 +143,17 @@ export default function VideoPlayer({
 			failed({ kind: "decode", code: 3 });
 			return;
 		}
+		if (video.videoWidth > 0 && video.videoHeight > 0) {
+			setDecodedSize({ width: video.videoWidth, height: video.videoHeight });
+			if (!aspectReported.current) {
+				aspectReported.current = true;
+				console.info("[playback] Source video dimensions resolved.", {
+					fileId,
+					width: video.videoWidth,
+					height: video.videoHeight,
+				});
+			}
+		}
 		const audio = active.audio;
 		if (audio && active.asset.audioTracks.length > 1) {
 			if (
@@ -156,54 +184,57 @@ export default function VideoPlayer({
 		}
 	}
 	return (
-		<MediaPlayer
-			className="anishelf-player aspect-video max-h-[75vh] w-full bg-black"
-			title={displayTitle}
-			src={active.resource.url}
-			viewType="video"
-			load={playbackInteractionPolicy.playerLoad}
-			preload={playbackInteractionPolicy.playerPreload}
-			playsInline
-			storage={null}
-			logLevel="silent"
-			onProviderChange={(provider) => {
-				if (!provider) providerChanged(null);
-			}}
-			onProviderSetup={providerChanged}
-			onError={() => failed()}
-			onLoadedMetadata={metadataLoaded}
-			onFullscreenChange={onFullscreenChange}
-			onPlaying={() => {
-				played.current = true;
-			}}
-			onPlay={() => onEndedChange?.(false)}
-			onSeeking={() => onEndedChange?.(false)}
-			onEnded={() => {
-				const video = videoRef.current;
-				if (!video || video.error || !played.current) return;
-				const complete =
-					timeline.sourceDurationMs === null
-						? timeline.sourceOriginMs === 0 && timeline.mediaOriginMs === 0
-						: sourceTimeMs(video.currentTime * 1000, timeline) >=
-							timeline.sourceDurationMs - 1000;
-				onEndedChange?.(complete);
-			}}
-		>
-			<MediaProvider loaders={directVideoLoaders} />
-			<ChapterTracks
-				fileId={fileId}
-				sourceVersion={sourceVersion}
-				timeline={timeline}
-			/>
-			{renderSubtitles?.(fileId)}
-			<DefaultVideoLayout
-				icons={defaultLayoutIcons}
-				seekStep={playbackInteractionPolicy.seekStepSeconds}
-			/>
-			<div
-				ref={onContinuationOverlay}
-				className="absolute inset-x-4 top-4 z-30 rounded-lg border bg-background/95 p-3 text-foreground empty:hidden"
-			/>
-		</MediaPlayer>
+		<div className="mx-auto w-full" style={{ maxWidth }}>
+			<MediaPlayer
+				className="anishelf-player w-full bg-black"
+				style={{ aspectRatio }}
+				title={displayTitle}
+				src={active.resource.url}
+				viewType="video"
+				load={playbackInteractionPolicy.playerLoad}
+				preload={playbackInteractionPolicy.playerPreload}
+				playsInline
+				storage={null}
+				logLevel="silent"
+				onProviderChange={(provider) => {
+					if (!provider) providerChanged(null);
+				}}
+				onProviderSetup={providerChanged}
+				onError={() => failed()}
+				onLoadedMetadata={metadataLoaded}
+				onFullscreenChange={onFullscreenChange}
+				onPlaying={() => {
+					played.current = true;
+				}}
+				onPlay={() => onEndedChange?.(false)}
+				onSeeking={() => onEndedChange?.(false)}
+				onEnded={() => {
+					const video = videoRef.current;
+					if (!video || video.error || !played.current) return;
+					const complete =
+						timeline.sourceDurationMs === null
+							? timeline.sourceOriginMs === 0 && timeline.mediaOriginMs === 0
+							: sourceTimeMs(video.currentTime * 1000, timeline) >=
+								timeline.sourceDurationMs - 1000;
+					onEndedChange?.(complete);
+				}}
+			>
+				<MediaProvider loaders={directVideoLoaders} />
+				<ChapterTracks
+					fileId={fileId}
+					sourceVersion={sourceVersion}
+					timeline={timeline}
+				/>
+				{renderSubtitles?.(fileId)}
+				<DefaultVideoLayout
+					icons={defaultLayoutIcons}
+					seekStep={playbackInteractionPolicy.seekStepSeconds}
+				/>
+				<div
+					ref={onContinuationOverlay}
+					className="absolute inset-x-4 top-4 z-30 rounded-lg border bg-background/95 p-3 text-foreground empty:hidden"
+				/>
+			</MediaPlayer>
+		</div>
 	);
 }

@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import type { CSSProperties } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import VideoPlayer from "../../../src/features/playback/player/components/video-player.js";
 import * as resourcesApi from "../../../src/features/resources/resource-access/api.js";
@@ -26,17 +27,23 @@ vi.mock("@vidstack/react", () => ({
 		onError,
 		onProviderSetup,
 		onLoadedMetadata,
+		className,
+		style,
 	}: {
 		onError(): void;
 		onProviderSetup(provider: { video: HTMLVideoElement }): void;
 		onLoadedMetadata(): void;
+		className?: string;
+		style?: CSSProperties;
 	}) => {
 		playerEvents.setup = onProviderSetup;
 		playerEvents.metadata = onLoadedMetadata;
 		return (
-			<button type="button" onClick={onError}>
-				Fail playback
-			</button>
+			<div data-testid="player" className={className} style={style}>
+				<button type="button" onClick={onError}>
+					Fail playback
+				</button>
+			</div>
 		);
 	},
 	MediaProvider: () => null,
@@ -55,6 +62,7 @@ vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
 }));
 beforeEach(() => {
+	vi.spyOn(console, "info").mockImplementation(() => {});
 	vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -165,4 +173,72 @@ test("native audio selection uses output position and maps changes back to the s
 		tracks.dispatchEvent(new Event("change"));
 	});
 	expect(changed).toHaveBeenCalledWith(7);
+});
+
+test("the player shell follows the source aspect ratio and caps width by viewport height", () => {
+	const view = render(
+		<VideoPlayer
+			fileId="file"
+			displayTitle="Episode"
+			active={preparedActive}
+			sourceVersion="v1"
+		/>,
+	);
+	const player = view.getByTestId("player");
+	expect(player.style.aspectRatio).toBe("1920 / 1080");
+	expect(player.parentElement?.style.maxWidth).toBe("min(100%, 133.3333vh)");
+});
+
+test("decoded video dimensions replace inspection dimensions for rotated or anamorphic sources", () => {
+	const video = required(preparedActive.asset.video);
+	const view = render(
+		<VideoPlayer
+			fileId="file"
+			displayTitle="Episode"
+			active={{
+				...preparedActive,
+				asset: {
+					...preparedActive.asset,
+					video: { ...video, width: 1080, height: 1920 },
+				},
+			}}
+			sourceVersion="v1"
+		/>,
+	);
+	const player = view.getByTestId("player");
+	expect(player.style.aspectRatio).toBe("1080 / 1920");
+	expect(player.parentElement?.style.maxWidth).toBe("min(100%, 42.1875vh)");
+
+	const element = document.createElement("video");
+	Object.defineProperty(element, "videoWidth", {
+		value: 720,
+		configurable: true,
+	});
+	Object.defineProperty(element, "videoHeight", {
+		value: 1200,
+		configurable: true,
+	});
+	act(() => {
+		playerEvents.setup?.({ video: element });
+		playerEvents.metadata?.();
+	});
+	expect(player.style.aspectRatio).toBe("720 / 1200");
+	expect(player.parentElement?.style.maxWidth).toBe("min(100%, 45.0000vh)");
+});
+
+test("the player falls back to 16:9 when no source dimensions are available", () => {
+	const view = render(
+		<VideoPlayer
+			fileId="file"
+			displayTitle="Episode"
+			active={{
+				...preparedActive,
+				asset: { ...preparedActive.asset, video: null },
+			}}
+			sourceVersion="v1"
+		/>,
+	);
+	const player = view.getByTestId("player");
+	expect(player.style.aspectRatio).toBe("16 / 9");
+	expect(player.parentElement?.style.maxWidth).toBe("min(100%, 133.3333vh)");
 });

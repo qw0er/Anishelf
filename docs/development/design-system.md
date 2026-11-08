@@ -138,7 +138,9 @@ configuration from verified connectivity, and keep unresolved setup failures vis
 
 ## Player layout
 
-Keep the picture primary and playback interaction familiar. Make continuation to the
+Keep the picture primary and playback interaction familiar. Size the player from the
+source video's aspect ratio, and reduce its width when viewport height is the limiting
+dimension instead of cropping the frame. Make continuation to the
 next episode prominent when available. Expose common actions directly and reveal
 technical details when needed. Keep recovery visible without crowding normal viewing.
 
