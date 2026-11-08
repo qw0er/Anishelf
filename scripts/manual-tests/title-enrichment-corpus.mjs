@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 async function summary() {
 	const root = new URL(
-		"../backend/test/fixtures/title-enrichment/",
+		"../../backend/test/fixtures/title-enrichment/",
 		import.meta.url,
 	);
 	const { cases } = JSON.parse(
@@ -33,7 +33,7 @@ async function summary() {
 async function test(split) {
 	// Loaded only for an explicit test command; summary never starts the verifier.
 	const { testTitleEnrichmentCorpus } = await import(
-		"../backend/test/manual/title-enrichment-corpus.js"
+		"../../backend/test/manual/title-enrichment-corpus.js"
 	);
 	console.error(
 		JSON.stringify({
@@ -63,7 +63,7 @@ if (
 			event: "title_corpus.command_rejected",
 			command,
 			usage:
-				"npm run anime:titles -- <summary|test> [--split development|regression|holdout]",
+				"node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs <summary|test> [--split development|regression|holdout]",
 		}),
 	);
 	process.exitCode = 2;

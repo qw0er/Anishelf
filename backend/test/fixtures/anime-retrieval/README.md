@@ -5,8 +5,8 @@ queries, explicit season and Part hints, and an actual empty response. This is a
 small regression library, not an exhaustive provider database.
 
 ```sh
-npm run anime:retrieval -- summary
-npm run anime:retrieval -- test
+node --import tsx scripts/manual-tests/anime-retrieval-corpus.mts summary
+node --import tsx scripts/manual-tests/anime-retrieval-corpus.mts test
 npm run test --workspace @anishelf/backend -- test/modules/anime/identification/retrieval-corpus.test.ts
 ```
 

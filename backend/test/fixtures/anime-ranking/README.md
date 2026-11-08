@@ -12,8 +12,8 @@ ranking and recognition/admission policies are unchanged.
 From the repository root:
 
 ```sh
-npm run anime:ranking -- summary
-npm run --silent anime:ranking -- test > /tmp/anishelf-ranking-report.json
+node --import tsx scripts/manual-tests/anime-ranking-corpus.mts summary
+node --import tsx scripts/manual-tests/anime-ranking-corpus.mts test > /tmp/anishelf-ranking-report.json
 npm run test --workspace @anishelf/backend -- test/modules/anime/identification/ranking-corpus.test.ts
 ```
 
@@ -52,7 +52,7 @@ Reported work IDs remain fixture-local, with incomplete provider provenance.
 The 38 release-title inputs and 50 repeated/relocated application-scenario
 resources remain outside this benchmark. Neither their parsing-context labels nor
 additional independent work-identity labels are invented here. The existing
-`anime:identification -- test` retains the complete parser-to-admission workflow.
+`node --import tsx scripts/manual-tests/anime-identification-corpus.mts test` retains the complete parser-to-admission workflow.
 
 ## Input evidence and labels
 

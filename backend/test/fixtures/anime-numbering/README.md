@@ -11,8 +11,8 @@ Production algorithms and the existing complete identification audit are unchang
 From the repository root:
 
 ```sh
-npm run anime:numbering -- summary
-npm run --silent anime:numbering -- test > /tmp/anishelf-numbering-report.json
+node --import tsx scripts/manual-tests/anime-numbering-corpus.mts summary
+node --import tsx scripts/manual-tests/anime-numbering-corpus.mts test > /tmp/anishelf-numbering-report.json
 npm run test --workspace @anishelf/backend -- test/modules/anime/identification/numbering-corpus.test.ts
 ```
 

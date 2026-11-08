@@ -3,11 +3,11 @@ import {
 	loadCorpus,
 	materializeCorpus,
 	summarizeCorpus,
-} from "../backend/test/support/anime-corpus.js";
+} from "../../backend/test/support/anime-corpus.js";
 import {
 	loadReportedCorpus,
 	reportedResources,
-} from "../backend/test/support/anime-reported-cases.js";
+} from "../../backend/test/support/anime-reported-cases.js";
 
 const [command = "summary", ...arguments_] = process.argv.slice(2);
 if (
@@ -20,7 +20,7 @@ if (
 		JSON.stringify({
 			event: "anime_corpus.command_rejected",
 			usage:
-				"npm run anime:corpus -- <summary|generate <new-directory>>; run anime:identification for the complete identification audit.",
+				"node --import tsx scripts/manual-tests/anime-corpus.mts <summary|generate <new-directory>>; run node --import tsx scripts/manual-tests/anime-identification-corpus.mts for the complete identification audit.",
 		}),
 	);
 	process.exitCode = 2;

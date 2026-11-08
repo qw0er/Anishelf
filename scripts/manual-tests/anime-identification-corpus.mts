@@ -1,9 +1,9 @@
 import {
 	evaluateIdentificationCorpus,
 	identificationAuditFailed,
-} from "../backend/test/support/anime-identification-corpus.js";
-import { loadReportedCorpus } from "../backend/test/support/anime-reported-cases.js";
-import { evaluateReportedCorpus } from "../backend/test/support/anime-reported-corpus.js";
+} from "../../backend/test/support/anime-identification-corpus.js";
+import { loadReportedCorpus } from "../../backend/test/support/anime-reported-cases.js";
+import { evaluateReportedCorpus } from "../../backend/test/support/anime-reported-corpus.js";
 
 const [command = "test", ...arguments_] = process.argv.slice(2);
 if (command !== "test" || arguments_.length) {
@@ -11,7 +11,7 @@ if (command !== "test" || arguments_.length) {
 		JSON.stringify({
 			event: "anime_identification.command_rejected",
 			usage:
-				"npm run anime:identification [-- test]; run anime:corpus for summary or directory generation.",
+				"node --import tsx scripts/manual-tests/anime-identification-corpus.mts [test]; run node --import tsx scripts/manual-tests/anime-corpus.mts for summary or directory generation.",
 		}),
 	);
 	process.exitCode = 2;

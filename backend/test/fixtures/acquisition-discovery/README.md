@@ -4,8 +4,8 @@ This small offline corpus checks how subscription acquisition finds downloadable
 resource candidates through Jackett. Run it with:
 
 ```sh
-npm run acquisition:discovery -- summary
-npm run acquisition:discovery -- test
+node --import tsx scripts/manual-tests/acquisition-discovery-corpus.mts summary
+node --import tsx scripts/manual-tests/acquisition-discovery-corpus.mts test
 ```
 
 The six cases cover multilingual follow-up searches, finding a resource on a later

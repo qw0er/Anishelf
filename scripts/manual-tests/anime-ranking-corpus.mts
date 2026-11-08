@@ -1,14 +1,15 @@
 import {
 	evaluateRankingCorpus,
 	loadRankingCorpus,
-} from "../backend/test/support/anime-ranking-corpus.js";
+} from "../../backend/test/support/anime-ranking-corpus.js";
 
 const [command = "test", ...arguments_] = process.argv.slice(2);
 if (arguments_.length || !["test", "summary"].includes(command)) {
 	console.error(
 		JSON.stringify({
 			event: "anime_ranking.command_rejected",
-			usage: "npm run anime:ranking -- <test|summary>",
+			usage:
+				"node --import tsx scripts/manual-tests/anime-ranking-corpus.mts <test|summary>",
 		}),
 	);
 	process.exitCode = 2;

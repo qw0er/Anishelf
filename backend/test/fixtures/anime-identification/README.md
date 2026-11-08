@@ -5,20 +5,20 @@ matching and episode associations against the implemented anime-library workflow
 Version `2026-10-11.2` was collected and reviewed on **2026-10-11**.
 
 Filename/directory parsing has a separate [parsing-only corpus and evaluator](../anime-parsing/README.md).
-Run `npm run anime:parsing -- test` to compare the existing parser directly with
+Run `node --import tsx scripts/manual-tests/anime-parsing-corpus.mts test` to compare the existing parser directly with
 independent parsing labels, without metadata search, matching or admission.
-`anime:corpus` now owns data inventory and placeholder generation only. The
-complete path-to-admission audit runs through `anime:identification`.
+`node --import tsx scripts/manual-tests/anime-corpus.mts` now owns data inventory and placeholder generation only. The
+complete path-to-admission audit runs through `node --import tsx scripts/manual-tests/anime-identification-corpus.mts`.
 
 Work identification and candidate ordering also have a standalone
 [ranking corpus and evaluator](../anime-ranking/README.md).
-Run `npm run anime:ranking -- test` for production ranking over frozen extraction
+Run `node --import tsx scripts/manual-tests/anime-ranking-corpus.mts test` for production ranking over frozen extraction
 evidence and complete candidate pools, without parsing files, converting episode
 numbering or applying admission policy.
 
 Known-work episode mapping and directory-anchor conversions have a separate
 [numbering corpus and evaluator](../anime-numbering/README.md).
-Run `npm run anime:numbering -- test` with frozen selected-work and extraction
+Run `node --import tsx scripts/manual-tests/anime-numbering-corpus.mts test` with frozen selected-work and extraction
 inputs, independently comparable local-number labels and explicit context batches.
 
 ## Use the corpus
@@ -26,9 +26,9 @@ inputs, independently comparable local-number labels and explicit context batche
 From the repository root:
 
 ```sh
-npm run anime:corpus -- summary
-npm run anime:corpus -- generate /tmp/anishelf-anime-corpus
-npm run --silent anime:identification -- test
+node --import tsx scripts/manual-tests/anime-corpus.mts summary
+node --import tsx scripts/manual-tests/anime-corpus.mts generate /tmp/anishelf-anime-corpus
+node --import tsx scripts/manual-tests/anime-identification-corpus.mts test
 ```
 
 The destination's parent directory must already exist. Generation creates a new
@@ -59,7 +59,7 @@ Run the actual Identification application, candidate ranking, episode proposal a
 Catalog automatic-admission predicate against the frozen AniList projections:
 
 ```sh
-npm run --silent anime:identification -- test > /tmp/anishelf-matching-report.json
+node --import tsx scripts/manual-tests/anime-identification-corpus.mts test > /tmp/anishelf-matching-report.json
 ```
 
 The audit covers all 369 filename cases and 50 directory-scenario resources (419
@@ -90,7 +90,7 @@ other mappings are explicitly `not-comparable`. Corpus `match` means resolvable,
 not necessarily safe for automatic admission; a missed admission is an audit gap,
 not automatically a defect.
 
-This audit runs only when explicitly invoked through `anime:identification -- test`;
+This audit runs only when explicitly invoked through `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`;
 `npm test`, `npm run check` and CI do not run it. The automatic identification
 tests cover the stage corpora and command contracts without running
 the complete integration audit. There is no approved all-case outcome baseline: inspect the report
@@ -194,13 +194,13 @@ manual review when the captured evidence does not resolve them.
 
 | Command | Owns |
 | --- | --- |
-| `anime:corpus -- summary` / `generate` | Integration data inventory and exclusive placeholder directory creation |
-| `anime:identification -- test` | Full production extraction, search adapter, ranking, numbering and automatic-admission audit |
-| `anime:parsing -- test` | Independent parsing field scores |
-| `anime:ranking -- test` | Candidate order over frozen parsing inputs |
-| `anime:numbering -- test` | Known-work target/resolution/offset scores |
+| `node --import tsx scripts/manual-tests/anime-corpus.mts summary` / `generate` | Integration data inventory and exclusive placeholder directory creation |
+| `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test` | Full production extraction, search adapter, ranking, numbering and automatic-admission audit |
+| `node --import tsx scripts/manual-tests/anime-parsing-corpus.mts test` | Independent parsing field scores |
+| `node --import tsx scripts/manual-tests/anime-ranking-corpus.mts test` | Candidate order over frozen parsing inputs |
+| `node --import tsx scripts/manual-tests/anime-numbering-corpus.mts test` | Known-work target/resolution/offset scores |
 
-The former `anime:corpus -- match` entry moved to `anime:identification -- test`.
+The former `node --import tsx scripts/manual-tests/anime-corpus.mts match` entry moved to `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`.
 The unused generic `evaluate <predictions.json>` command and its combined
 prediction schema/scorer were removed. Invalid or retired arguments return status
 2 with the appropriate command usage; no compatibility alias runs an algorithm
@@ -231,7 +231,7 @@ calculating the admission margin. No corpus answer is used by production ranking
 Run the production parser, ranking, mapping and admission rules offline:
 
 ```sh
-npm run --silent anime:identification -- test > /tmp/anime-matching-report.json
+node --import tsx scripts/manual-tests/anime-identification-corpus.mts test > /tmp/anime-matching-report.json
 ```
 
 Every search returns all 20 frozen AniList work projections. This measures local

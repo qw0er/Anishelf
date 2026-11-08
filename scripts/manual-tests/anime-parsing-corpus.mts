@@ -2,14 +2,15 @@ import {
 	evaluateParsingCorpus,
 	loadParsingCorpus,
 	summarizeParsingCorpus,
-} from "../backend/test/support/anime-parsing-corpus.js";
+} from "../../backend/test/support/anime-parsing-corpus.js";
 
 const [command = "test", ...arguments_] = process.argv.slice(2);
 if (arguments_.length || !["test", "summary"].includes(command)) {
 	console.error(
 		JSON.stringify({
 			event: "anime_parsing.command_rejected",
-			usage: "npm run anime:parsing -- <test|summary>",
+			usage:
+				"node --import tsx scripts/manual-tests/anime-parsing-corpus.mts <test|summary>",
 		}),
 	);
 	process.exitCode = 2;

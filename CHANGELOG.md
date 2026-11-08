@@ -11,7 +11,7 @@
 - Version persisted name proofs and log candidate decisions with evidence reasons.
   Reverify obsolete proofs using existing source caches where possible, preserving
   work identities, historical evidence and episode mappings.
-- Add optional `anime:titles -- test --split development|regression|holdout`
+- Add optional `node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs test --split development|regression|holdout`
   evaluation and candidate diagnostics. Frozen candidate verification now passes
   all 49 positive, 38 negative and two unresolved cases; live retrieval is outside
   this measurement. Keep corpus evaluation manual.
@@ -21,7 +21,7 @@
 ### Added
 
 - Add an opt-in offline title-corpus test using the production metadata adapters
-  and name verifier via `anime:titles -- test`, with per-case diagnostics and
+  and name verifier via `node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs test`, with per-case diagnostics and
   matching metrics. Keep it out
   of default tests and CI.
 

@@ -10,8 +10,8 @@ provider search, episode conversion, Catalog admission or media inspection runs.
 From the repository root:
 
 ```sh
-npm run anime:parsing -- summary
-npm run --silent anime:parsing -- test > /tmp/anishelf-parsing-report.json
+node --import tsx scripts/manual-tests/anime-parsing-corpus.mts summary
+node --import tsx scripts/manual-tests/anime-parsing-corpus.mts test > /tmp/anishelf-parsing-report.json
 npm run test --workspace @anishelf/backend -- test/modules/anime/identification/parsing-corpus.test.ts test/modules/anime/identification/parsing-labels.test.ts
 ```
 

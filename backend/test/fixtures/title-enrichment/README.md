@@ -58,7 +58,7 @@ algorithm; preserve all known negatives and unresolved boundaries.
 ## Offline use
 
 ```sh
-npm run anime:titles -- summary
+node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs summary
 npm run test --workspace @anishelf/backend -- test/modules/anime/metadata/title-corpus.test.ts
 ```
 
@@ -83,10 +83,10 @@ explicit maintenance action, not part of CI or ordinary tests.
 ## Manual production-algorithm test (opt-in)
 
 ```sh
-npm run --silent anime:titles -- test > /tmp/anishelf-title-matcher-report.json
-npm run --silent anime:titles -- test --split development
-npm run --silent anime:titles -- test --split regression
-npm run --silent anime:titles -- test --split holdout
+node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs test > /tmp/anishelf-title-matcher-report.json
+node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs test --split development
+node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs test --split regression
+node --import tsx scripts/manual-tests/title-enrichment-corpus.mjs test --split holdout
 ```
 
 This command runs the current `MetadataNameEnrichment` implementation against the

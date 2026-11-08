@@ -1,14 +1,15 @@
 import {
 	evaluateReleaseCorpus,
 	loadReleaseCorpus,
-} from "../backend/test/support/anime-release-corpus.js";
+} from "../../backend/test/support/anime-release-corpus.js";
 
 const [command = "test", ...extra] = process.argv.slice(2);
 if (extra.length || !["summary", "test"].includes(command)) {
 	console.error(
 		JSON.stringify({
 			event: "anime_releases.command_rejected",
-			usage: "npm run anime:releases -- <summary|test>",
+			usage:
+				"node --import tsx scripts/manual-tests/anime-release-corpus.mts <summary|test>",
 		}),
 	);
 	process.exitCode = 2;

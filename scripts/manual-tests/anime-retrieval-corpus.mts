@@ -1,14 +1,15 @@
 import {
 	evaluateRetrievalCorpus,
 	loadRetrievalCorpus,
-} from "../backend/test/support/anime-retrieval-corpus.js";
+} from "../../backend/test/support/anime-retrieval-corpus.js";
 
 const [command = "test", ...extra] = process.argv.slice(2);
 if (extra.length || !["summary", "test"].includes(command)) {
 	console.error(
 		JSON.stringify({
 			event: "anime_retrieval.command_rejected",
-			usage: "npm run anime:retrieval -- <summary|test>",
+			usage:
+				"node --import tsx scripts/manual-tests/anime-retrieval-corpus.mts <summary|test>",
 		}),
 	);
 	process.exitCode = 2;

@@ -3,7 +3,10 @@
 	"ignoreBinaries": ["podman"],
 	"workspaces": {
 		".": {
-			"entry": ["scripts/collect-title-enrichment.mjs"]
+			"entry": [
+				"scripts/collect-title-enrichment.mjs",
+				"scripts/manual-tests/*"
+			]
 		},
 		"backend": {
 			"ignoreIssues": {

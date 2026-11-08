@@ -6,8 +6,8 @@ declarations. It does not fetch RSS/Jackett, choose sources, rank downloads, ins
 media or submit a torrent. Production algorithms are unchanged.
 
 ```sh
-npm run anime:releases -- summary
-npm run --silent anime:releases -- test > /tmp/anishelf-release-report.json
+node --import tsx scripts/manual-tests/anime-release-corpus.mts summary
+node --import tsx scripts/manual-tests/anime-release-corpus.mts test > /tmp/anishelf-release-report.json
 npm run test --workspace @anishelf/backend -- test/modules/anime/identification/release-corpus.test.ts
 ```
 

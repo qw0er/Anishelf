@@ -1,14 +1,15 @@
 import {
 	evaluateDiscoveryCorpus,
 	loadDiscoveryCorpus,
-} from "../backend/test/support/acquisition-discovery-corpus.js";
+} from "../../backend/test/support/acquisition-discovery-corpus.js";
 
 const [command = "test", ...extra] = process.argv.slice(2);
 if (extra.length || !["test", "summary"].includes(command)) {
 	console.error(
 		JSON.stringify({
 			event: "acquisition_discovery.command_rejected",
-			usage: "npm run acquisition:discovery -- <summary|test>",
+			usage:
+				"node --import tsx scripts/manual-tests/acquisition-discovery-corpus.mts <summary|test>",
 		}),
 	);
 	process.exitCode = 2;

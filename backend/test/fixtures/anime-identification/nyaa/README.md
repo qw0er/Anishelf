@@ -85,13 +85,13 @@ ancillary exclusion, scanner extension policy and integration safety-gate handli
 of wrong or unsafe confirmations. It also rejects invented capture paths or hashes.
 
 Data integrity and command tests validate the fixtures and generation contracts.
-The explicit `anime:identification` command runs the production parser/matcher
+The explicit `node --import tsx scripts/manual-tests/anime-identification-corpus.mts` command runs the production parser/matcher
 against controlled frozen candidates; it does not establish live search accuracy. Application acceptance
 assertions remain pending; generated `.mkv`/`.mp4` files are text placeholders.
 
 Run from the repository root:
 
 ```sh
-npm run anime:corpus -- summary
-npm run --silent anime:identification -- test
+node --import tsx scripts/manual-tests/anime-corpus.mts summary
+node --import tsx scripts/manual-tests/anime-identification-corpus.mts test
 ```

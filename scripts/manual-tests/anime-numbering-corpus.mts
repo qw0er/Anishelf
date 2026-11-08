@@ -1,14 +1,15 @@
 import {
 	evaluateNumberingCorpus,
 	loadNumberingCorpus,
-} from "../backend/test/support/anime-numbering-corpus.js";
+} from "../../backend/test/support/anime-numbering-corpus.js";
 
 const [command = "test", ...arguments_] = process.argv.slice(2);
 if (arguments_.length || !["test", "summary"].includes(command)) {
 	console.error(
 		JSON.stringify({
 			event: "anime_numbering.command_rejected",
-			usage: "npm run anime:numbering -- <test|summary>",
+			usage:
+				"node --import tsx scripts/manual-tests/anime-numbering-corpus.mts <test|summary>",
 		}),
 	);
 	process.exitCode = 2;
