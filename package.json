@@ -19,6 +19,7 @@
 		"typescript": "npm:@typescript/typescript6@^6.0.2"
 	},
 	"scripts": {
+		"deps:check": "npm-check-updates",
 		"typecheck": "npm run typecheck --workspaces",
 		"biome:check": "biome check .",
 		"biome:fix": "biome check --write .",
