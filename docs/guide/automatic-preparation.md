@@ -70,7 +70,7 @@ conventional 8-bit video is treated as SDR; untagged high-bit-depth video is unc
 
 ## Encoding, retention and recovery
 
-`transcodeProfileId` references [transcode-profiles.yaml](../examples/transcode-profiles-example.yaml).
+`transcodeProfileId` references [transcode-profiles.yaml](transcode-profiles.md).
 Acceptance never overrides encoding settings. Configure output transformations in
 the encoding profile. Video adds optional `maxWidth`, `maxFrameRate`, `profile`,
 `level`, and `maxBitrateKbps`; audio adds optional `channelCount`, `sampleRate`, and

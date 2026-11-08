@@ -7,7 +7,7 @@
 | Connect Jackett and order sites | [Jackett setup](jackett-setup.md) |
 | Subscribe, enable Watching or recover downloads | [Subscriptions and Watching](watching-automation.md) |
 | Set release preferences | [Acquisition profiles](acquisition-profiles.md) |
-| Customize preparation output | [Transcode YAML example](../examples/transcode-profiles-example.yaml) |
+| Customize preparation output | [Transcode profiles](transcode-profiles.md) |
 | Configure external players and custom URL handlers | [External players](external-players.md) |
 
 ## First use

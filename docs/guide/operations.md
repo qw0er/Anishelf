@@ -78,7 +78,7 @@ restart. Network filesystems need deployment-specific watcher checks. See
 | Compatibility (default) | Encode both video and audio using the selected profile |
 | Fast | Preserve browser-supported streams when the profile allows it |
 | Cache budget | Default 10 GiB; limits new output, without deleting existing copies when lowered |
-| Output profile | Built-in or [custom transcode YAML](../examples/transcode-profiles-example.yaml) |
+| Output profile | Built-in or [custom transcode profile](transcode-profiles.md) |
 
 Playable originals use direct playback. Mode/profile changes affect new requests;
 existing copies remain available and are checked against the playback device using their actual output descriptions. Automatic audio chooses one source track; it does not require a copy retaining every track. Playback options can select an existing version independently of the default preparation profile.
