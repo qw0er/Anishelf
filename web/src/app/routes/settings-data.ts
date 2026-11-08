@@ -1,4 +1,3 @@
-import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
 import { type ActionFunctionArgs, redirect } from "react-router";
 import { saveSettings } from "../../features/settings/public.js";
 import { isRequestCancelled } from "../../shared/api/client.js";
@@ -22,30 +21,9 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 		new Set(resourceRoots).size !== resourceRoots.length
 	)
 		return { error: "errors.resourcePathsInvalid" };
-
-	const cache = form.get("transcodeCacheBudgetGiB");
-	const transcodeCacheBudgetGiB = cache === null ? undefined : Number(cache);
-	if (
-		cache !== null &&
-		(typeof cache !== "string" ||
-			cache.trim() === "" ||
-			!Number.isSafeInteger(transcodeCacheBudgetGiB) ||
-			Number(transcodeCacheBudgetGiB) < 1 ||
-			Number(transcodeCacheBudgetGiB) >
-				preparationConstraints.maximumCacheBudgetGiB)
-	)
-		return { error: "settingsPage.invalidCacheBudget" };
 	try {
 		await executeMutation(() =>
-			saveSettings(
-				{
-					resourceRoots,
-					...(transcodeCacheBudgetGiB === undefined
-						? {}
-						: { transcodeCacheBudgetGiB }),
-				},
-				{ signal: request.signal },
-			),
+			saveSettings({ resourceRoots }, { signal: request.signal }),
 		);
 		await queryClient.invalidateQueries({
 			queryKey: ["settings"],

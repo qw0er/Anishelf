@@ -146,6 +146,8 @@
 		"transcodeCacheBudget": "转码缓存预算（GiB）",
 		"transcodeCacheBudgetHelp": "默认值：{{defaultGiB}} GiB。适用于新任务；降低预算不会删除已有副本。",
 		"invalidCacheBudget": "请输入正整数作为转码缓存预算。",
+		"cacheSaved": "转码缓存预算已保存。",
+		"cacheSaveFailed": "无法保存转码缓存预算。",
 		"pathsHelp": "使用互不重叠的服务器绝对路径。添加目录后保存即可开始扫描。移除所有目录将返回初始设置。",
 		"newPathLabel": "新资源目录路径",
 		"addPath": "添加目录",
@@ -484,6 +486,8 @@
 		"invalidTemplate": "请输入名称和包含 {url} 或 {urlEncoded} 的有效外部协议模板。",
 		"storageError": "无法读取自定义播放器设置。浏览器存储可能不可用或保存的数据无效。",
 		"saveError": "无法在此浏览器中保存自定义播放器设置。",
+		"added": "已添加自定义播放器。",
+		"removed": "已删除自定义播放器。",
 		"limit": "最多可保存 {{count}} 个自定义播放器。",
 		"templateHelpLabel": "URL 模板帮助"
 	},
@@ -615,6 +619,7 @@
 		"compatibleDescription": "使用所选配置编码视频和音频，以获得可预期的输出。",
 		"fastDescription": "允许时保留受支持的流。其他设备可能需要不同的副本。",
 		"profileSaved": "准备设置已保存。",
+		"profileSaveFailed": "无法保存准备设置。",
 		"saveProfile": "保存准备设置",
 		"loadingProfiles": "正在加载输出配置…",
 		"required": "此浏览器无法播放原始文件，请先从文件所在目录进行预转码。",
@@ -988,6 +993,7 @@
 			"loadFailed": "无法加载 RSS 设置。",
 			"refreshInterval": "刷新间隔（分钟）",
 			"refreshHelp": "适用于所有 RSS 订阅。默认 {{minutes}} 分钟，更改无需重启即可生效。",
+			"invalidInterval": "请输入 {{min}} 到 {{max}} 之间的整数分钟数。",
 			"saving": "正在保存…",
 			"save": "保存",
 			"customBadge": "自定义"
@@ -1033,6 +1039,7 @@
 			"keyHelp": "从 Jackett 复制 API 密钥。留空以保留已保存的密钥；更改 API URL 时需重新输入。",
 			"managementUrl": "浏览器 URL（可选）",
 			"managementHelp": "用于管理站点的浏览器地址。远程服务器请使用 SSH 隧道或受保护的服务地址。",
+			"invalidUrl": "请输入不含用户名和密码的 HTTP 或 HTTPS 绝对 URL。",
 			"saving": "正在保存来源…",
 			"save": "保存来源设置",
 			"useBundled": "使用内置 Jackett",
@@ -1395,6 +1402,7 @@
 	"playbackPreferences": {
 		"title": "播放偏好",
 		"storageError": "无法在此浏览器中读取或保存播放偏好。请检查浏览器存储权限后重试。",
+		"saved": "播放偏好已保存。",
 		"scope": "适用于当前浏览器中的所有动画。"
 	},
 	"automaticPreparation": {
@@ -1403,6 +1411,7 @@
 		"enabled": "启用自动准备",
 		"preset": "播放预设",
 		"saved": "自动准备设置已保存",
+		"saveFailed": "无法保存自动准备设置。",
 		"unavailable": "所选预设不可用",
 		"paused": "自动准备已暂停，请选择可用的预设。",
 		"configIssue": "无法从 {{file}} 加载自定义预设，内置预设仍然可用。",

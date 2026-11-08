@@ -60,7 +60,9 @@ import {
 import { StatusBadge } from "../../shared/components/ui/status-badge.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
+import { useAutoSave } from "../../shared/hooks/use-auto-save.js";
 import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
+import { isHttpUrl } from "../../shared/lib/url.js";
 import {
 	activateBundledSourceConnector,
 	clearSourceConnector,
@@ -162,7 +164,12 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		search.reset();
 		setUrl(value.url ?? "");
 		client.setQueryData(sourceSettingsKey, value);
-		toast.add({ type: "success", title: t("acquisition.sources.saved") });
+		console.info("[Settings] Jackett source settings saved.");
+		toast.add({
+			type: "success",
+			title: t("acquisition.sources.saved"),
+			id: "source-connection-save",
+		});
 	};
 	const save = useMutation({
 		mutationFn: () =>
@@ -178,6 +185,14 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				...(apiKey ? { apiKey } : {}),
 			}),
 		onSuccess: saved,
+		onError: () => {
+			console.warn("[Settings] Jackett source settings save failed.");
+			toast.add({
+				type: "error",
+				title: t("acquisition.sources.actionFailed"),
+				id: "source-connection-save",
+			});
+		},
 	});
 	const saveSites = useMutation({
 		mutationFn: () =>
@@ -197,16 +212,29 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			probe.reset();
 			search.reset();
 			client.setQueryData(sourceSettingsKey, value);
-			toast.add({ type: "success", title: t("acquisition.sources.saved") });
+			console.info("[Settings] Jackett source sites saved.");
+			toast.add({
+				type: "success",
+				title: t("acquisition.sources.saved"),
+				id: "source-sites-save",
+			});
+		},
+		onError: () => {
+			console.warn("[Settings] Jackett source sites save failed.");
+			toast.add({
+				type: "error",
+				title: t("acquisition.sources.actionFailed"),
+				id: "source-sites-save",
+			});
 		},
 	});
 
 	const saveWebui = useMutation({
-		mutationFn: () =>
+		mutationFn: (nextManagementUrl: string) =>
 			saveSourceConnector({
 				generation: settings.generation,
 				url: settings.url ?? "",
-				managementUrl: managementUrl.trim() || null,
+				managementUrl: nextManagementUrl.trim() || null,
 				origin: settings.origin ?? "external",
 				providers: settings.providers,
 			}),
@@ -215,7 +243,20 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			probe.reset();
 			search.reset();
 			client.setQueryData(sourceSettingsKey, value);
-			toast.add({ type: "success", title: t("acquisition.sources.saved") });
+			console.info("[Settings] Jackett management URL saved.");
+			toast.add({
+				type: "success",
+				title: t("acquisition.sources.saved"),
+				id: "source-management-save",
+			});
+		},
+		onError: () => {
+			console.warn("[Settings] Jackett management URL save failed.");
+			toast.add({
+				type: "error",
+				title: t("acquisition.sources.actionFailed"),
+				id: "source-management-save",
+			});
 		},
 	});
 
@@ -258,6 +299,14 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				titles: [title.trim()],
 			}),
 	});
+	const managementDraft = managementUrl.trim();
+	const managementValid = managementDraft === "" || isHttpUrl(managementDraft);
+	const flushManagementUrl = useAutoSave(
+		managementDraft,
+		(settings.managementUrl ?? "").trim(),
+		(value) => saveWebui.mutate(value),
+		Boolean(settings.url) && managementValid,
+	);
 	const busy =
 		saveWebui.isPending ||
 		save.isPending ||
@@ -268,9 +317,6 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		probe.isPending ||
 		search.isPending;
 	const error =
-		saveWebui.isError ||
-		save.isError ||
-		saveSites.isError ||
 		clear.isError ||
 		bundled.isError ||
 		list.isError ||
@@ -430,13 +476,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					{t("acquisition.webui.settings")}
 				</CollapsibleTrigger>
 				<CollapsibleContent keepMounted>
-					<form
-						className="flex flex-col gap-3 pt-4"
-						onSubmit={(event) => {
-							event.preventDefault();
-							saveWebui.mutate();
-						}}
-					>
+					<div className="flex flex-col gap-3 pt-4">
 						<div className="flex flex-col gap-2">
 							<div className="field-heading justify-between">
 								<label className="field-label" htmlFor="source-management-url">
@@ -457,21 +497,34 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 								maxLength={2048}
 								placeholder="http://localhost:9117/"
 								value={managementUrl}
-								disabled={busy}
+								aria-invalid={!managementValid || undefined}
+								aria-describedby={
+									!managementValid ? "source-management-url-error" : undefined
+								}
 								onChange={(event) => setManagementUrl(event.target.value)}
+								onBlur={() => {
+									if (!managementValid) {
+										toast.add({
+											type: "error",
+											title: t("acquisition.sources.invalidUrl"),
+											id: "source-management-save",
+										});
+										return;
+									}
+									flushManagementUrl();
+								}}
 							/>
+							{!managementValid && (
+								<p
+									id="source-management-url-error"
+									role="alert"
+									className="field-error"
+								>
+									{t("acquisition.sources.invalidUrl")}
+								</p>
+							)}
 						</div>
-						<ActionButton
-							icon={Save}
-							label={t("acquisition.webui.save")}
-							type="submit"
-							disabled={
-								busy ||
-								!settings.url ||
-								managementUrl === (settings.managementUrl ?? "")
-							}
-						/>
-					</form>
+					</div>
 				</CollapsibleContent>
 			</Collapsible>
 

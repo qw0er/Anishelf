@@ -316,10 +316,11 @@ test("WebUI settings save independently of API connection drafts", async () => {
 		target: { value: "http://draft:9117/" },
 	});
 	fireEvent.click(screen.getByRole("button", { name: "WebUI settings" }));
-	fireEvent.change(screen.getByLabelText("Browser URL (optional)"), {
+	const managementUrl = screen.getByLabelText("Browser URL (optional)");
+	fireEvent.change(managementUrl, {
 		target: { value: "https://jackett.example.com/" },
 	});
-	fireEvent.click(screen.getByRole("button", { name: "Save" }));
+	fireEvent.blur(managementUrl);
 	await waitFor(() =>
 		expect(request.mock.calls.find((call) => call[1] === "PUT")?.[3]).toEqual({
 			generation: "one",

@@ -45,7 +45,11 @@ test("the continuation shortcut lives in Playback options and shares the Setting
 		expect(localStorage.getItem("anishelf.autoContinue")).toBe("true");
 		expect(screen.getByLabelText("Video: Episode 01.mp4")).toBe(video);
 		fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await waitFor(() =>
+			expect(
+				screen.queryByRole("dialog", { name: "Playback options" }),
+			).toBeNull(),
+		);
 		expect(
 			screen.queryByRole("checkbox", { name: "Continue automatically" }),
 		).toBeNull();

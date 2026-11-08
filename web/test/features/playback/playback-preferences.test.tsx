@@ -4,12 +4,14 @@ import {
 	AutomaticContinuationSetting,
 	PlaybackPreferencesSettings,
 } from "../../../src/features/settings/components/playback-preferences.js";
+import { toast } from "../../../src/shared/components/ui/toast.js";
 import "../../../src/shared/i18n.js";
 import {
 	cleanup,
 	fireEvent,
 	render,
 	screen,
+	waitFor,
 } from "../../support/query-test-utils.js";
 
 const key = "anishelf.autoContinue";
@@ -64,7 +66,7 @@ test("changes from another browser tab and storage clearing update mounted contr
 	expect(control.getAttribute("aria-checked")).toBe("false");
 });
 
-test("a failed storage write retains the saved choice and offers visible recovery information", () => {
+test("a failed storage write retains the saved choice and reports a toast", async () => {
 	localStorage.setItem(key, "true");
 	const storage = window.localStorage;
 	vi.spyOn(window, "localStorage", "get").mockReturnValue({
@@ -78,12 +80,16 @@ test("a failed storage write retains the saved choice and offers visible recover
 		},
 	} as Storage);
 	vi.spyOn(console, "warn").mockImplementation(() => {});
+	const notice = vi.spyOn(toast, "add").mockReturnValue("preference-save");
 	render(<AutomaticContinuationSetting />);
 	const control = screen.getByRole("checkbox");
 	fireEvent.click(control);
 	expect(control.getAttribute("aria-checked")).toBe("true");
 	expect(localStorage.getItem(key)).toBe("true");
-	expect(screen.getByRole("alert").textContent).toContain(
-		"could not be read or saved",
-	);
+	await waitFor(() => {
+		expect(notice).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "error" }),
+		);
+	});
+	expect(screen.queryByRole("alert")).toBeNull();
 });

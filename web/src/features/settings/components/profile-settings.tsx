@@ -1,4 +1,5 @@
-import { RefreshCw, Save } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TranscodeProfileCatalog } from "../../../shared/api/contracts.js";
@@ -19,9 +20,10 @@ import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
 import { selectTranscodeProfile } from "../api.js";
 
+type PreparationMode = TranscodeProfileCatalog["preparationMode"];
+
 export function PreparationProfileSettings({
 	preparation,
-	action,
 }: {
 	preparation: {
 		catalog: TranscodeProfileCatalog | null;
@@ -29,14 +31,9 @@ export function PreparationProfileSettings({
 		updateCatalog(value: TranscodeProfileCatalog): void;
 		refreshCatalog(): void;
 	};
-	action: {
-		busy: boolean;
-		run(action: (signal: AbortSignal) => Promise<void>): Promise<void>;
-	};
 }) {
 	const { t } = useTranslation();
-	const [mode, setMode] =
-		useState<TranscodeProfileCatalog["preparationMode"]>("compatible");
+	const [mode, setMode] = useState<PreparationMode>("compatible");
 	const [profileId, setProfileId] = useState("");
 	useEffect(() => {
 		setMode(preparation.catalog?.preparationMode ?? "compatible");
@@ -46,6 +43,40 @@ export function PreparationProfileSettings({
 				: "",
 		);
 	}, [preparation.catalog]);
+	const revert = () => {
+		setMode(preparation.catalog?.preparationMode ?? "compatible");
+		setProfileId(
+			preparation.catalog?.selectionAvailable
+				? preparation.catalog.selectedProfileId
+				: "",
+		);
+	};
+	const save = useMutation({
+		mutationFn: (selection: { profileId: string; mode: PreparationMode }) =>
+			selectTranscodeProfile(selection.profileId, undefined, selection.mode),
+		onSuccess: (catalog) => {
+			preparation.updateCatalog(catalog);
+			console.info("[Settings] Preparation profile saved.");
+			toast.add({
+				id: "preparation-profile-save",
+				type: "success",
+				title: t("preparation.profileSaved"),
+			});
+		},
+		onError: () => {
+			console.warn("[Settings] Preparation profile save failed.");
+			revert();
+			toast.add({
+				id: "preparation-profile-save",
+				type: "error",
+				title: t("preparation.profileSaveFailed"),
+			});
+		},
+	});
+	const choose = (nextMode: PreparationMode, nextProfileId: string) => {
+		if (!nextProfileId) return;
+		save.mutate({ profileId: nextProfileId, mode: nextMode });
+	};
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
@@ -59,33 +90,18 @@ export function PreparationProfileSettings({
 					/>
 				)}
 				{preparation.catalog ? (
-					<form
-						className="space-y-4"
-						onSubmit={(event) => {
-							event.preventDefault();
-							void action.run(async (signal) => {
-								const catalog = await selectTranscodeProfile(
-									profileId,
-									{ signal },
-									mode,
-								);
-								if (!signal.aborted) {
-									preparation.updateCatalog(catalog);
-									toast.add({
-										type: "success",
-										title: t("preparation.profileSaved"),
-									});
-								}
-							});
-						}}
-					>
+					<div className="space-y-4">
 						<RadioCardGroup
 							name="preparation-mode"
 							value={mode}
-							onValueChange={(value) => setMode(value as "compatible" | "fast")}
+							onValueChange={(value) => {
+								const nextMode = value as PreparationMode;
+								setMode(nextMode);
+								choose(nextMode, profileId);
+							}}
 							legend={t("preparation.preparationMode")}
 							className="grid gap-2 space-y-0 sm:grid-cols-2"
-							disabled={action.busy}
+							disabled={save.isPending}
 						>
 							{(["compatible", "fast"] as const).map((value) => (
 								<RadioCard
@@ -99,10 +115,13 @@ export function PreparationProfileSettings({
 						<RadioCardGroup
 							name="transcode-profile"
 							value={profileId}
-							onValueChange={setProfileId}
+							onValueChange={(value) => {
+								setProfileId(value);
+								choose(mode, value);
+							}}
 							legend={t("preparation.chooseProfile")}
 							className="grid gap-2 space-y-0 sm:grid-cols-2"
-							disabled={action.busy}
+							disabled={save.isPending}
 						>
 							{preparation.catalog.profiles.map((profile) => (
 								<RadioCard
@@ -118,17 +137,7 @@ export function PreparationProfileSettings({
 								/>
 							))}
 						</RadioCardGroup>
-						<div className="action-row">
-							<ActionButton
-								icon={Save}
-								label={t("preparation.saveProfile")}
-								aria-busy={action.busy}
-								shortLabel={t("actions.save")}
-								type="submit"
-								disabled={!profileId || action.busy}
-							/>
-						</div>
-					</form>
+					</div>
 				) : preparation.catalogError ? (
 					<>
 						<p role="alert">

@@ -62,8 +62,6 @@ test("first-run setup saves the server directory and shows the automatic scan", 
 				init.body ===
 					JSON.stringify({
 						resourceRoots: ["/media/中文 videos"],
-						transcodeCacheBudgetGiB:
-							preparationConstraints.defaultCacheBudgetGiB,
 					}),
 		),
 	).toBe(true);
@@ -288,4 +286,60 @@ test("clearing the path list saves setup mode", async () => {
 		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
 			.disabled,
 	).toBe(true);
+});
+
+test("saves the transcode cache budget without resubmitting resource directories", async () => {
+	renderApp("/settings");
+	const budget = await screen.findByLabelText<HTMLInputElement>(
+		"Transcode cache budget (GiB)",
+	);
+	expect(budget.value).toBe(
+		String(preparationConstraints.defaultCacheBudgetGiB),
+	);
+	fireEvent.change(budget, { target: { value: "12" } });
+	await waitFor(
+		() =>
+			expect(
+				fetcher.mock.calls.some(
+					([path, init]) =>
+						path === "/api/settings" &&
+						init?.method === "PUT" &&
+						init.body === JSON.stringify({ transcodeCacheBudgetGiB: 12 }),
+				),
+			).toBe(true),
+		{ timeout: 2_000 },
+	);
+	await screen.findByText("Transcode cache budget saved.");
+	expect(appFixture.settings.transcodeCacheBudgetGiB).toBe(12);
+	expect(appFixture.settings.resourceRoots).toEqual(["/media"]);
+});
+
+test("a failed cache budget save retains the draft and reports an error", async () => {
+	const implementation = fetcher.getMockImplementation();
+	fetcher.mockImplementation((input, init) => {
+		if (input === "/api/settings" && init?.method === "PUT")
+			return Promise.resolve(
+				json(
+					{
+						error: {
+							code: "CONFIG_WRITE_FAILED",
+							message: "Settings could not be saved.",
+							requestId: "cache-error",
+						},
+					},
+					500,
+				),
+			);
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp("/settings");
+	const budget = await screen.findByLabelText<HTMLInputElement>(
+		"Transcode cache budget (GiB)",
+	);
+	fireEvent.change(budget, { target: { value: "12" } });
+	await screen.findByText("Could not save the transcode cache budget.", {
+		selector: "[data-slot=toast-title]",
+	});
+	expect(budget.value).toBe("12");
 });

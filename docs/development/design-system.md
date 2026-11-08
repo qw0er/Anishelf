@@ -136,6 +136,12 @@ changing categories. Avoid explanations that merely repeat labels.
 Keep primary actions together and secondary commands discoverable. Distinguish saved
 configuration from verified connectivity, and keep unresolved setup failures visible.
 
+Persist single-value choices immediately and report success or failure through a toast.
+Keep failed drafts editable so users can correct and retry without re-entering them.
+Reserve explicit Save actions for forms whose values must be submitted together, such
+as connection credentials, download destinations and resource directories whose save
+starts a library scan.
+
 ## Player layout
 
 Keep the picture primary and playback interaction familiar. Size the player from the

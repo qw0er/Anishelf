@@ -1,10 +1,8 @@
 import { rssConstraints } from "@anishelf/backend/contracts/defaults";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ProfileIssueNotice } from "../../shared/components/profile-issue-notice.js";
-import { ActionButton } from "../../shared/components/ui/action-button.js";
 import { Button } from "../../shared/components/ui/button.js";
 import {
 	Card,
@@ -21,6 +19,7 @@ import {
 	RadioCardGroup,
 } from "../../shared/components/ui/radio-card.js";
 import { toast } from "../../shared/components/ui/toast.js";
+import { useAutoSave } from "../../shared/hooks/use-auto-save.js";
 import {
 	saveSettings,
 	settingsKeys,
@@ -42,24 +41,43 @@ export function RssSettings() {
 			client.setQueryData(settingsKeys.settings, settings);
 			void client.invalidateQueries({ queryKey: ["acquisition"] });
 			setProfileDraft(null);
+			console.info("[Settings] Release profile saved.");
 			toast.add({
 				type: "success",
 				title: t("acquisition.rss.profileSaved"),
+				id: "rss-profile-save",
 			});
 		},
-		onError: () =>
+		onError: () => {
+			console.warn("[Settings] Release profile save failed.");
+			setProfileDraft(null);
 			toast.add({
 				type: "error",
 				title: t("acquisition.rss.profileSaveFailed"),
-			}),
+				id: "rss-profile-save",
+			});
+		},
 	});
-	const [draft, setDraft] = useState<string | null>(null);
+	const [intervalDraft, setIntervalDraft] = useState<string | null>(null);
+	const savedInterval =
+		configuration.data?.rssRefreshIntervalMinutes ??
+		rssConstraints.defaultRefreshIntervalMinutes;
+	const intervalText = intervalDraft ?? String(savedInterval);
+	const interval = Number(intervalText);
+	const intervalValid =
+		intervalText.trim() !== "" &&
+		Number.isSafeInteger(interval) &&
+		interval >= rssConstraints.minimumRefreshIntervalMinutes &&
+		interval <= rssConstraints.maximumRefreshIntervalMinutes;
 	const save = useMutation({
 		mutationFn: (rssRefreshIntervalMinutes: number) =>
 			saveSettings({ rssRefreshIntervalMinutes }),
-		onSuccess: (settings) => {
+		onSuccess: (settings, minutes) => {
 			client.setQueryData(settingsKeys.settings, settings);
-			setDraft(null);
+			setIntervalDraft((current) =>
+				current !== null && Number(current) === minutes ? null : current,
+			);
+			console.info("[Settings] RSS refresh interval saved.", { minutes });
 			toast.add({
 				type: "success",
 				title: t("acquisition.rss.saved"),
@@ -67,6 +85,7 @@ export function RssSettings() {
 			});
 		},
 		onError: () => {
+			console.warn("[Settings] RSS refresh interval save failed.");
 			toast.add({
 				type: "error",
 				title: t("acquisition.rss.saveFailed"),
@@ -74,6 +93,13 @@ export function RssSettings() {
 			});
 		},
 	});
+	const flushInterval = useAutoSave(
+		interval,
+		savedInterval,
+		(minutes) => save.mutate(minutes),
+		intervalDraft !== null && intervalValid,
+	);
+	const selectedProfileId = profileDraft ?? profiles.data?.selectedProfileId;
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
@@ -84,69 +110,47 @@ export function RssSettings() {
 				{profiles.data?.issue && (
 					<ProfileIssueNotice kind="acquisition" issue={profiles.data.issue} />
 				)}
-				{profiles.data && (
-					<form
-						className="space-y-4"
-						onSubmit={(event) => {
-							event.preventDefault();
-							profileSave.mutate(
-								profileDraft ?? profiles.data.selectedProfileId,
-							);
+				{profiles.data && selectedProfileId ? (
+					<RadioCardGroup
+						name="acquisition-profile"
+						value={selectedProfileId}
+						onValueChange={(value) => {
+							if (value === profiles.data.selectedProfileId) return;
+							setProfileDraft(value);
+							profileSave.mutate(value);
 						}}
+						legend={t("acquisition.rss.defaultProfile")}
+						disabled={profileSave.isPending}
 					>
-						<RadioCardGroup
-							name="acquisition-profile"
-							value={profileDraft ?? profiles.data.selectedProfileId}
-							onValueChange={setProfileDraft}
-							legend={t("acquisition.rss.defaultProfile")}
-							disabled={profileSave.isPending}
-						>
-							{!profiles.data.selectionAvailable &&
-								!profiles.data.profiles.some(
-									(profile) =>
-										profile.id ===
-										(profileDraft ?? profiles.data.selectedProfileId),
-								) && (
-									<RadioCard
-										value={profiles.data.selectedProfileId}
-										disabled
-										className="border-dashed"
-										title={t("acquisition.rss.unavailableProfile", {
-											id: profiles.data.selectedProfileId,
-										})}
-										description={t("acquisition.rss.resumePrompt")}
-									/>
-								)}
-							{profiles.data.profiles.map((profile) => (
+						{!profiles.data.selectionAvailable &&
+							!profiles.data.profiles.some(
+								(profile) => profile.id === selectedProfileId,
+							) && (
 								<RadioCard
-									key={profile.id}
-									value={profile.id}
-									title={profile.name}
-									badge={
-										profile.source === "custom"
-											? t("acquisition.rss.customBadge")
-											: undefined
-									}
-									description={profile.description}
+									value={selectedProfileId}
+									disabled
+									className="border-dashed"
+									title={t("acquisition.rss.unavailableProfile", {
+										id: selectedProfileId,
+									})}
+									description={t("acquisition.rss.resumePrompt")}
 								/>
-							))}
-						</RadioCardGroup>
-						<ActionButton
-							icon={Save}
-							label={t("acquisition.rss.saveProfile")}
-							shortLabel={t("actions.save")}
-							type="submit"
-							disabled={
-								profileSave.isPending ||
-								!profiles.data.profiles.some(
-									(profile) =>
-										profile.id ===
-										(profileDraft ?? profiles.data.selectedProfileId),
-								)
-							}
-						/>
-					</form>
-				)}
+							)}
+						{profiles.data.profiles.map((profile) => (
+							<RadioCard
+								key={profile.id}
+								value={profile.id}
+								title={profile.name}
+								badge={
+									profile.source === "custom"
+										? t("acquisition.rss.customBadge")
+										: undefined
+								}
+								description={profile.description}
+							/>
+						))}
+					</RadioCardGroup>
+				) : null}
 				{profiles.isError && (
 					<InlineError>
 						{t("acquisition.rss.loadProfilesFailed")}{" "}
@@ -170,19 +174,7 @@ export function RssSettings() {
 						</Button>
 					</InlineError>
 				) : configuration.data ? (
-					<form
-						className="space-y-3"
-						onSubmit={(event) => {
-							event.preventDefault();
-							save.mutate(
-								Number(
-									draft ??
-										configuration.data.rssRefreshIntervalMinutes ??
-										rssConstraints.defaultRefreshIntervalMinutes,
-								),
-							);
-						}}
-					>
+					<div className="space-y-3">
 						<label htmlFor="rss-refresh-interval" className="block space-y-2">
 							<span className="text-sm font-medium">
 								{t("acquisition.rss.refreshInterval")}
@@ -194,25 +186,41 @@ export function RssSettings() {
 								min={rssConstraints.minimumRefreshIntervalMinutes}
 								max={rssConstraints.maximumRefreshIntervalMinutes}
 								step={1}
-								value={
-									draft ??
-									configuration.data.rssRefreshIntervalMinutes ??
-									rssConstraints.defaultRefreshIntervalMinutes
+								value={intervalText}
+								aria-invalid={!intervalValid || undefined}
+								aria-describedby={
+									!intervalValid ? "rss-refresh-interval-error" : undefined
 								}
-								onChange={(event) => setDraft(event.target.value)}
-								disabled={save.isPending}
+								onChange={(event) => setIntervalDraft(event.target.value)}
+								onBlur={() => {
+									if (!intervalValid) {
+										toast.add({
+											type: "error",
+											title: t("acquisition.rss.invalidInterval", {
+												min: rssConstraints.minimumRefreshIntervalMinutes,
+												max: rssConstraints.maximumRefreshIntervalMinutes,
+											}),
+											id: "rss-settings-save",
+										});
+										return;
+									}
+									flushInterval();
+								}}
 							/>
 						</label>
-
-						<ActionButton
-							icon={Save}
-							label={t("acquisition.rss.save")}
-							shortLabel={t("actions.save")}
-							type="submit"
-							disabled={save.isPending}
-							aria-busy={save.isPending}
-						/>
-					</form>
+						{!intervalValid && (
+							<p
+								id="rss-refresh-interval-error"
+								role="alert"
+								className="field-error"
+							>
+								{t("acquisition.rss.invalidInterval", {
+									min: rssConstraints.minimumRefreshIntervalMinutes,
+									max: rssConstraints.maximumRefreshIntervalMinutes,
+								})}
+							</p>
+						)}
+					</div>
 				) : null}
 			</CardContent>
 		</Card>

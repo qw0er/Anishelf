@@ -58,10 +58,7 @@ test("saves a direct browser address and clearing hides the link", async () => {
 	fireEvent.change(input, {
 		target: { value: "https://downloads.example.com/" },
 	});
-	expect(request.mock.calls.filter((call) => call[1] === "PUT")).toHaveLength(
-		0,
-	);
-	fireEvent.click(screen.getByRole("button", { name: "Save" }));
+	fireEvent.blur(input);
 	await waitFor(() =>
 		expect(screen.getByRole("link").getAttribute("href")).toBe(
 			"https://downloads.example.com/",
@@ -79,7 +76,7 @@ test("saves a direct browser address and clearing hides the link", async () => {
 		],
 	]);
 	fireEvent.change(input, { target: { value: "" } });
-	fireEvent.click(screen.getByRole("button", { name: "Save" }));
+	fireEvent.blur(input);
 	await waitFor(() => expect(screen.queryByRole("link")).toBeNull());
 	expect(
 		request.mock.calls.every((call) =>

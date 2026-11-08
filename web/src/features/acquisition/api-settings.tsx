@@ -113,6 +113,9 @@ function ConnectionForm({
 			const value = await getQbittorrentCredentials(settings.generation);
 			setRevealed(value.password);
 		} catch {
+			console.warn(
+				"[Settings] qBittorrent API credentials could not be loaded.",
+			);
 			toast.add({
 				title: t("acquisition.api.credentialsLoadFailed"),
 				type: "error",
@@ -153,13 +156,17 @@ function ConnectionForm({
 			}),
 		onSuccess: (value) => {
 			saved(value);
+			console.info("[Settings] qBittorrent API connection saved.");
 			toast.add({
+				id: "qbittorrent-api-save",
 				title: t("acquisition.api.saved"),
 				type: "success",
 			});
 		},
 		onError: () => {
+			console.warn("[Settings] qBittorrent API connection save failed.");
 			toast.add({
+				id: "qbittorrent-api-save",
 				title: t("acquisition.api.saveFailed"),
 				type: "error",
 			});
@@ -169,13 +176,17 @@ function ConnectionForm({
 		mutationFn: () => clearQbittorrentConnection(settings.generation),
 		onSuccess: (value) => {
 			saved(value);
+			console.info("[Settings] qBittorrent API connection removed.");
 			toast.add({
+				id: "qbittorrent-api-remove",
 				title: t("acquisition.api.removed"),
 				type: "success",
 			});
 		},
 		onError: () => {
+			console.warn("[Settings] qBittorrent API connection removal failed.");
 			toast.add({
+				id: "qbittorrent-api-remove",
 				title: t("acquisition.api.removeFailed"),
 				type: "error",
 			});
@@ -185,13 +196,19 @@ function ConnectionForm({
 		mutationFn: () => activateBundledQbittorrent(settings.generation),
 		onSuccess: (value) => {
 			saved(value);
+			console.info("[Settings] Bundled qBittorrent connection selected.");
 			toast.add({
+				id: "qbittorrent-api-bundled",
 				title: t("acquisition.api.bundledSelected"),
 				type: "success",
 			});
 		},
 		onError: () => {
+			console.warn(
+				"[Settings] Bundled qBittorrent connection selection failed.",
+			);
 			toast.add({
+				id: "qbittorrent-api-bundled",
 				title: t("acquisition.api.bundledFailed"),
 				type: "error",
 			});
@@ -201,6 +218,7 @@ function ConnectionForm({
 		mutationFn: () => checkQbittorrentConnection(settings.generation),
 		onSuccess: (value) => {
 			toast.add({
+				id: "qbittorrent-api-check",
 				title: value.available
 					? t("acquisition.api.connected", { version: value.version })
 					: t("acquisition.api.connectionFailed"),
@@ -210,6 +228,7 @@ function ConnectionForm({
 		},
 		onError: () => {
 			toast.add({
+				id: "qbittorrent-api-check",
 				title: t("acquisition.api.testFailed"),
 				type: "error",
 			});

@@ -16,5 +16,4 @@ export { usePreparationContext } from "./preparation/context.js";
 export { preparationInteractionDefaults } from "./preparation/defaults.js";
 export { summariesQuery } from "./preparation/queries.js";
 export { useFilePreparations } from "./preparation/use-file-preparations.js";
-export { usePreparationAction } from "./preparation/use-preparations.js";
 export { subtitlePolicy } from "./subtitles/policy.js";

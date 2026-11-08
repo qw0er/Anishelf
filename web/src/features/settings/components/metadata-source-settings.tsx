@@ -31,10 +31,21 @@ export function MetadataSourceSettings() {
 						"metadata-relations",
 					].includes(String(query.queryKey[0])),
 			});
-			toast.add({ type: "success", title: t("metadataSource.saved") });
+			console.info("[Settings] Metadata source saved.");
+			toast.add({
+				id: "metadata-source-save",
+				type: "success",
+				title: t("metadataSource.saved"),
+			});
 		},
-		onError: () =>
-			toast.add({ type: "error", title: t("errors.requestFailed") }),
+		onError: () => {
+			console.warn("[Settings] Metadata source save failed.");
+			toast.add({
+				id: "metadata-source-save",
+				type: "error",
+				title: t("errors.requestFailed"),
+			});
+		},
 	});
 	return (
 		<Card className="settings-section lg:grid">

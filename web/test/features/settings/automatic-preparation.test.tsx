@@ -18,12 +18,6 @@ afterEach(() => {
 	queryClient.clear();
 	vi.restoreAllMocks();
 });
-const action = {
-	busy: false,
-	run: async (fn: (signal: AbortSignal) => Promise<void>) => {
-		await fn(new AbortController().signal);
-	},
-};
 const presets = [
 	{
 		id: "builtin:web",
@@ -40,7 +34,7 @@ const presets = [
 		available: true,
 	},
 ];
-test("saves the runtime switch and preset as top-level settings", async () => {
+test("saves the runtime switch and preset directly as top-level settings", async () => {
 	vi.spyOn(toast, "add").mockReturnValue("toast");
 	const request = vi
 		.spyOn(api, "request")
@@ -55,17 +49,26 @@ test("saves the runtime switch and preset as top-level settings", async () => {
 				selectionAvailable: true,
 			};
 		});
-	render(<AutomaticPreparationSettings action={action} />);
+	render(<AutomaticPreparationSettings />);
+	const toggle = screen.getByRole("switch");
+	await waitFor(() => expect(toggle.hasAttribute("disabled")).toBe(false));
+	fireEvent.click(toggle);
 	await waitFor(() =>
 		expect(
-			(screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)
-				.disabled,
-		).toBe(false),
+			request.mock.calls.some(
+				([path, method, _options, body]) =>
+					path === "/api/settings" &&
+					method === "PUT" &&
+					JSON.stringify(body) ===
+						JSON.stringify({ autoPreparationEnabled: true }),
+			),
+		).toBe(true),
 	);
-	fireEvent.click(screen.getByRole("switch"));
-	fireEvent.click(screen.getByRole("radio", { name: /Conservative/ }));
-	expect(screen.getByText("Conservative playback")).toBeTruthy();
-	fireEvent.click(screen.getByRole("button", { name: "Save" }));
+	const conservative = screen.getByRole("radio", { name: /Conservative/ });
+	await waitFor(() =>
+		expect(conservative.hasAttribute("disabled")).toBe(false),
+	);
+	fireEvent.click(conservative);
 	await waitFor(() =>
 		expect(
 			request.mock.calls.some(
@@ -74,19 +77,19 @@ test("saves the runtime switch and preset as top-level settings", async () => {
 					method === "PUT" &&
 					JSON.stringify(body) ===
 						JSON.stringify({
-							autoPreparationEnabled: true,
 							autoPreparationPresetId: "builtin:web-conservative",
 						}),
 			),
 		).toBe(true),
 	);
+	expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });
 test("preserves missing selections and displays custom-file issues", async () => {
 	vi.spyOn(api, "request").mockImplementation(async (path) =>
 		path === "/api/settings"
 			? {
 					resourceRoots: [],
-					autoPreparationEnabled: true,
+					autoPreparationEnabled: false,
 					autoPreparationPresetId: "custom:missing",
 				}
 			: {
@@ -96,7 +99,8 @@ test("preserves missing selections and displays custom-file issues", async () =>
 					issue: { file: "auto-preparation-presets.yaml" },
 				},
 	);
-	render(<AutomaticPreparationSettings action={action} />);
+	const notice = vi.spyOn(toast, "add").mockReturnValue("toast");
+	render(<AutomaticPreparationSettings />);
 	await screen.findByText(/Automatic preparation is paused/);
 	expect(
 		screen
@@ -104,13 +108,11 @@ test("preserves missing selections and displays custom-file issues", async () =>
 			.getAttribute("aria-checked"),
 	).toBe("true");
 	expect(screen.getByText(/Could not load custom presets/)).toBeTruthy();
-	expect(
-		(screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)
-			.disabled,
-	).toBe(true);
 	fireEvent.click(screen.getByRole("switch"));
-	expect(
-		(screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)
-			.disabled,
-	).toBe(false);
+	await waitFor(() =>
+		expect(notice).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "error" }),
+		),
+	);
+	expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });

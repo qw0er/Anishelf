@@ -1,7 +1,6 @@
 import * as mediacompatibilityApi from "../../../src/features/media/media-compatibility/api.js";
 import * as preparationApi from "../../../src/features/media/preparation/api.js";
 import { usePreparationContext } from "../../../src/features/media/preparation/context.js";
-import { usePreparationAction } from "../../../src/features/media/preparation/use-preparations.js";
 import * as settingsApi from "../../../src/features/settings/api.js";
 // @vitest-environment happy-dom
 
@@ -266,16 +265,16 @@ test("target profile is saved in Settings through the persistent selection API",
 	});
 	expect(compatible.getAttribute("aria-checked")).toBe("true");
 	fireEvent.click(view.getByRole("radio", { name: /Fast preparation/ }));
-	fireEvent.click(
-		view.getByRole("button", { name: "Save preparation settings" }),
-	);
 	await waitFor(() =>
 		expect(settingsApi.selectTranscodeProfile).toHaveBeenCalledWith(
 			task.profileId,
-			expect.anything(),
+			undefined,
 			"fast",
 		),
 	);
+	expect(
+		view.queryByRole("button", { name: "Save preparation settings" }),
+	).toBeNull();
 });
 test("an unavailable target selection sends the user to Settings instead of guessing a profile", async () => {
 	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
@@ -795,12 +794,7 @@ test.each(["remux", "transcode-audio", "transcode-video"] as const)(
 );
 
 function PreparationProfileSettings() {
-	return (
-		<ProfileSettings
-			preparation={usePreparationContext()}
-			action={usePreparationAction()}
-		/>
-	);
+	return <ProfileSettings preparation={usePreparationContext()} />;
 }
 
 test("task monitor loads a failed task after it leaves the active list", async () => {

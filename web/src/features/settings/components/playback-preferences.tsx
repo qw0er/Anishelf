@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	Card,
@@ -10,6 +10,7 @@ import {
 import { Checkbox } from "../../../shared/components/ui/checkbox.js";
 import { Label } from "../../../shared/components/ui/label.js";
 import { Switch } from "../../../shared/components/ui/switch.js";
+import { toast } from "../../../shared/components/ui/toast.js";
 import { useAutomaticContinuation } from "../hooks/use-automatic-continuation.js";
 
 export function AutomaticContinuationSetting({
@@ -21,19 +22,31 @@ export function AutomaticContinuationSetting({
 	const id = useId();
 	const Control = useSwitch ? Switch : Checkbox;
 	const preference = useAutomaticContinuation();
-	const [saveFailed, setSaveFailed] = useState(false);
 	return (
 		<div className="space-y-2">
 			<div className="flex min-h-11 items-center gap-2">
 				<Control
 					id={id}
 					checked={preference.enabled}
+					aria-describedby={preference.error ? `${id}-error` : undefined}
 					onCheckedChange={(enabled) => {
 						try {
 							preference.setEnabled(enabled);
-							setSaveFailed(false);
+							console.info("[Settings] Playback preference saved.", {
+								enabled,
+							});
+							toast.add({
+								id: "playback-preferences-save",
+								type: "success",
+								title: t("playbackPreferences.saved"),
+							});
 						} catch {
-							setSaveFailed(true);
+							console.warn("[Settings] Playback preference save failed.");
+							toast.add({
+								id: "playback-preferences-save",
+								type: "error",
+								title: t("playbackPreferences.storageError"),
+							});
 						}
 					}}
 				/>
@@ -41,8 +54,8 @@ export function AutomaticContinuationSetting({
 					{t("player.continuation.automatic")}
 				</Label>
 			</div>
-			{(preference.error || saveFailed) && (
-				<p role="alert" className="field-error">
+			{preference.error && (
+				<p id={`${id}-error`} role="alert" className="field-error">
 					{t("playbackPreferences.storageError")}
 				</p>
 			)}

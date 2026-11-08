@@ -20,7 +20,26 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-test("shows the RSS default and saves drafts only on explicit Save", async () => {
+const profiles = {
+	profiles: [
+		{
+			id: "builtin:general",
+			name: "General",
+			description: "Any codec",
+			source: "builtin" as const,
+		},
+		{
+			id: "builtin:efficient",
+			name: "Efficient codecs preferred",
+			description: "Prefer HEVC / AV1",
+			source: "builtin" as const,
+		},
+	],
+	selectedProfileId: "builtin:general",
+	selectionAvailable: true,
+};
+
+test("saves the RSS interval after the draft changes", async () => {
 	let settings: {
 		resourceRoots: string[];
 		rssRefreshIntervalMinutes?: number;
@@ -28,25 +47,7 @@ test("shows the RSS default and saves drafts only on explicit Save", async () =>
 	const request = vi
 		.spyOn(api, "request")
 		.mockImplementation(async (_path, method, _options, payload) => {
-			if (_path === "/api/acquisition/profiles")
-				return {
-					profiles: [
-						{
-							id: "builtin:general",
-							name: "General",
-							description: "Any codec",
-							source: "builtin",
-						},
-						{
-							id: "builtin:efficient",
-							name: "Efficient codecs preferred",
-							description: "Prefer HEVC / AV1",
-							source: "builtin",
-						},
-					],
-					selectedProfileId: "builtin:general",
-					selectionAvailable: true,
-				};
+			if (_path === "/api/acquisition/profiles") return profiles;
 			if (method === "PUT")
 				settings = {
 					...settings,
@@ -63,20 +64,19 @@ test("shows the RSS default and saves drafts only on explicit Save", async () =>
 		String(rssConstraints.defaultRefreshIntervalMinutes),
 	);
 	fireEvent.change(input, { target: { value: "60" } });
-	expect(request.mock.calls.filter((call) => call[1] === "PUT")).toHaveLength(
-		0,
-	);
-	fireEvent.click(screen.getByRole("button", { name: "Save" }));
-	await waitFor(() =>
-		expect(request.mock.calls.filter((call) => call[1] === "PUT")).toEqual([
-			["/api/settings", "PUT", undefined, { rssRefreshIntervalMinutes: 60 }],
-		]),
+	await waitFor(
+		() =>
+			expect(request.mock.calls.filter((call) => call[1] === "PUT")).toEqual([
+				["/api/settings", "PUT", undefined, { rssRefreshIntervalMinutes: 60 }],
+			]),
+		{ timeout: 2_000 },
 	);
 	await waitFor(() =>
 		expect(notice).toHaveBeenCalledWith(
 			expect.objectContaining({ type: "success" }),
 		),
 	);
+	expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 	view.unmount();
 	render(<RssSettings />);
 	expect(
@@ -84,14 +84,9 @@ test("shows the RSS default and saves drafts only on explicit Save", async () =>
 	).toBe("60");
 });
 
-test("failed RSS saves retain the draft and allow retry", async () => {
+test("failed RSS interval saves retain the draft", async () => {
 	vi.spyOn(api, "request").mockImplementation(async (_path, method) => {
-		if (_path === "/api/acquisition/profiles")
-			return {
-				profiles: [],
-				selectedProfileId: "builtin:general",
-				selectionAvailable: false,
-			};
+		if (_path === "/api/acquisition/profiles") return profiles;
 		if (method === "PUT") throw new Error("unavailable");
 		return { resourceRoots: [], rssRefreshIntervalMinutes: 45 };
 	});
@@ -99,52 +94,37 @@ test("failed RSS saves retain the draft and allow retry", async () => {
 	render(<RssSettings />);
 	const input = await screen.findByRole("spinbutton");
 	fireEvent.change(input, { target: { value: "60" } });
-	fireEvent.click(screen.getByRole("button", { name: "Save" }));
-	await waitFor(() =>
-		expect(notice).toHaveBeenCalledWith(
-			expect.objectContaining({ type: "error" }),
-		),
+	await waitFor(
+		() =>
+			expect(notice).toHaveBeenCalledWith(
+				expect.objectContaining({ type: "error" }),
+			),
+		{ timeout: 2_000 },
 	);
 	expect((input as HTMLInputElement).value).toBe("60");
-	expect(
-		screen.getByRole("button", { name: "Save" }).hasAttribute("disabled"),
-	).toBe(false);
+	expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });
 
-test("profile choice is saved separately from the RSS interval", async () => {
-	const request = vi.spyOn(api, "request").mockImplementation(async (path) =>
-		path === "/api/acquisition/profiles"
-			? {
-					profiles: [
-						{
-							id: "builtin:general",
-							name: "General",
-							description: "General",
-							source: "builtin",
-						},
-						{
-							id: "custom:mine",
-							name: "Mine",
-							description: "My custom profile",
-							source: "custom",
-						},
-					],
-					selectedProfileId: "builtin:general",
-					selectionAvailable: true,
-				}
-			: { resourceRoots: [] },
-	);
+test("profile choice is saved directly without a Save action", async () => {
+	const request = vi
+		.spyOn(api, "request")
+		.mockImplementation(async (path) =>
+			path === "/api/acquisition/profiles" ? profiles : { resourceRoots: [] },
+		);
 	render(<RssSettings />);
 	const general = await screen.findByRole("radio", { name: /General/ });
 	expect(general.getAttribute("aria-checked")).toBe("true");
-	const custom = screen.getByRole("radio", { name: /Mine/ });
-	fireEvent.click(custom);
-	expect(request.mock.calls.some((call) => call[1] === "PUT")).toBe(false);
-	fireEvent.click(screen.getByRole("button", { name: "Save release profile" }));
+	const efficient = screen.getByRole("radio", {
+		name: /Efficient codecs preferred/,
+	});
+	fireEvent.click(efficient);
 	await waitFor(() =>
 		expect(request).toHaveBeenCalledWith("/api/settings", "PUT", undefined, {
-			defaultAcquisitionProfileId: "custom:mine",
+			defaultAcquisitionProfileId: "builtin:efficient",
 		}),
+	);
+	expect(screen.queryByRole("button", { name: "Save release profile" })).toBe(
+		null,
 	);
 });
 
@@ -152,16 +132,7 @@ test("shows a warning when custom acquisition profiles could not be loaded", asy
 	vi.spyOn(api, "request").mockImplementation(async (path) =>
 		path === "/api/acquisition/profiles"
 			? {
-					profiles: [
-						{
-							id: "builtin:general",
-							name: "General",
-							description: "",
-							source: "builtin",
-						},
-					],
-					selectedProfileId: "builtin:general",
-					selectionAvailable: true,
+					...profiles,
 					issue: {
 						file: "acquisition-profiles.yaml",
 						detail: "acquisition-profiles.yaml: invalid YAML.",

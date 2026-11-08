@@ -373,7 +373,10 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 	if (path === "/api/settings") {
 		if (init?.method === "PUT") {
 			const previousRoot = appFixture.settings.resourceRoots;
-			appFixture.settings = JSON.parse(String(init.body)) as SettingsResponse;
+			appFixture.settings = {
+				...appFixture.settings,
+				...(JSON.parse(String(init.body)) as Partial<SettingsResponse>),
+			};
 			appFixture.library = {
 				...appFixture.library,
 				ready: appFixture.settings.resourceRoots.length > 0,

@@ -12,6 +12,7 @@ import {
 import { Field } from "../../../shared/components/ui/field.js";
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
+import { toast } from "../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import { externalPlayerPolicy } from "../external-player-policy.js";
 import { validPlayerTemplate } from "../external-players.js";
@@ -71,9 +72,21 @@ export function ExternalPlayerSettings() {
 										console.debug("[Settings] Custom player removed.", {
 											count: custom.players.length - 1,
 										});
+										toast.add({
+											id: "external-players-save",
+											type: "success",
+											title: t("externalPlayers.removed"),
+										});
 										setError(null);
 									} catch {
-										setError("externalPlayers.saveError");
+										console.warn(
+											"[Settings] Custom player removal could not be saved.",
+										);
+										toast.add({
+											id: "external-players-save",
+											type: "error",
+											title: t("externalPlayers.saveError"),
+										});
 									}
 								}}
 							/>
@@ -93,11 +106,21 @@ export function ExternalPlayerSettings() {
 							console.debug("[Settings] Custom player added.", {
 								count: custom.players.length + 1,
 							});
+							toast.add({
+								id: "external-players-save",
+								type: "success",
+								title: t("externalPlayers.added"),
+							});
 							setName("");
 							setTemplate("");
 							setError(null);
 						} catch {
-							setError("externalPlayers.saveError");
+							console.warn("[Settings] Custom player could not be saved.");
+							toast.add({
+								id: "external-players-save",
+								type: "error",
+								title: t("externalPlayers.saveError"),
+							});
 						}
 					}}
 				>

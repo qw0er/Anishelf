@@ -8,10 +8,7 @@ import {
 	WatchingSettings,
 } from "../../../features/acquisition/ui.js";
 import { TrackingAccountSettings } from "../../../features/anime/ui.js";
-import {
-	usePreparationAction,
-	usePreparationContext,
-} from "../../../features/media/public.js";
+import { usePreparationContext } from "../../../features/media/public.js";
 import {
 	AboutSettings,
 	AutomaticPreparationSettings,
@@ -60,7 +57,6 @@ function sectionPath(
 export function SettingsPage() {
 	const navigationRef = useCompactNavigation();
 	const preparation = usePreparationContext();
-	const action = usePreparationAction();
 	const { t } = useTranslation();
 	const [params] = useSearchParams();
 	const requestedSection = params.get("section");
@@ -124,11 +120,8 @@ export function SettingsPage() {
 						data-settings-section="playback"
 					>
 						<PlaybackPreferencesSettings />
-						<PreparationProfileSettings
-							preparation={preparation}
-							action={action}
-						/>
-						<AutomaticPreparationSettings action={action} />
+						<PreparationProfileSettings preparation={preparation} />
+						<AutomaticPreparationSettings />
 						<ExternalPlayerSettings />
 					</div>
 					<div

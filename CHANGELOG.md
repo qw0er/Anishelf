@@ -12,6 +12,8 @@
 
 ### Changed
 
+- Save single-value settings immediately and report success or failure with a toast.
+  Keep explicit Save actions for forms that submit several values together.
 - Improve names-only cross-source verification with corroborating evidence instead
   of requiring complete equal dates and episode counts. Normalize title variants
   while guarding season, part, stage, promotional and finale scope; keep unique

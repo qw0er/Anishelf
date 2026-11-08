@@ -50,7 +50,13 @@ export function DownloadDestinationSettings() {
 			setRoot(null);
 			setPath(null);
 			void client.invalidateQueries({ queryKey: downloadKeys });
+			console.info(
+				kind === "save"
+					? "[Settings] Download destination saved."
+					: "[Settings] Download destination validated.",
+			);
 			toast.add({
+				id: "download-destination-save",
 				title:
 					kind === "save"
 						? t("acquisition.destination.saved")
@@ -58,8 +64,18 @@ export function DownloadDestinationSettings() {
 				type: "success",
 			});
 		},
-		onError: () => {
+		onError: (_, kind) => {
+			console.warn(
+				kind === "save"
+					? "[Settings] Download destination save failed."
+					: "[Settings] Download destination validation failed.",
+			);
 			void client.invalidateQueries({ queryKey: downloadKeys });
+			toast.add({
+				id: "download-destination-save",
+				title: t("acquisition.destination.updateFailed"),
+				type: "error",
+			});
 		},
 	});
 	if (query.isPending)
@@ -142,11 +158,6 @@ export function DownloadDestinationSettings() {
 							? t("acquisition.destination.visibilityVerified")
 							: t("acquisition.destination.mappingConfigured")
 						: t("acquisition.destination.validationRequired")}
-				</p>
-			)}
-			{action.isError && (
-				<p role="alert" className="field-error">
-					{t("acquisition.destination.updateFailed")}
 				</p>
 			)}
 			<div className="action-row">

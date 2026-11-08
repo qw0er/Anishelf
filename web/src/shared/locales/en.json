@@ -147,6 +147,8 @@
 		"transcodeCacheBudget": "Transcode cache budget (GiB)",
 		"transcodeCacheBudgetHelp": "Default: {{defaultGiB}} GiB. Applies to new tasks; lowering the budget does not delete existing copies.",
 		"invalidCacheBudget": "Enter a positive whole number for the transcode cache budget.",
+		"cacheSaved": "Transcode cache budget saved.",
+		"cacheSaveFailed": "Could not save the transcode cache budget.",
 		"pathsHelp": "Use non-overlapping absolute server paths. Add directories, then Save to start a scan. Removing every directory returns to setup mode.",
 		"newPathLabel": "New resource directory path",
 		"addPath": "Add directory",
@@ -182,6 +184,8 @@
 		"invalidTemplate": "Enter a name and a valid external-protocol template containing {url} or {urlEncoded}.",
 		"storageError": "Custom player settings could not be read. Browser storage may be unavailable or the saved data may be invalid.",
 		"saveError": "Could not save custom player settings in this browser.",
+		"added": "Custom player added.",
+		"removed": "Custom player removed.",
 		"limit": "Up to {{count}} custom players can be saved.",
 		"templateHelpLabel": "URL template help"
 	},
@@ -429,6 +433,7 @@
 		"compatibleDescription": "Encode video and audio with the selected profile for predictable output.",
 		"fastDescription": "Preserve supported streams when allowed. Other devices may need a different copy.",
 		"profileSaved": "Preparation settings saved.",
+		"profileSaveFailed": "Could not save preparation settings.",
 		"saveProfile": "Save preparation settings",
 		"loadingProfiles": "Loading output profiles…",
 		"required": "This browser cannot play the original file. Pre-transcode it from its folder before watching.",
@@ -1007,6 +1012,7 @@
 			"loadFailed": "Could not load RSS settings.",
 			"refreshInterval": "Refresh interval (minutes)",
 			"refreshHelp": "Applies to all RSS subscriptions. Default: {{minutes}} minutes. Changes apply without a restart.",
+			"invalidInterval": "Enter a whole number between {{min}} and {{max}} minutes.",
 			"saving": "Saving…",
 			"save": "Save",
 			"customBadge": "Custom"
@@ -1030,6 +1036,7 @@
 			"keyHelp": "Copy the API key from Jackett. Leave blank to keep the saved key; enter it again when changing the API URL.",
 			"managementUrl": "Browser URL (optional)",
 			"managementHelp": "Browser address for managing sites. Use an SSH tunnel or your protected service address for a remote server.",
+			"invalidUrl": "Enter an absolute HTTP or HTTPS URL without a username or password.",
 			"saving": "Saving sources…",
 			"save": "Save source settings",
 			"useBundled": "Use bundled Jackett",
@@ -1416,6 +1423,7 @@
 	"playbackPreferences": {
 		"title": "Playback preferences",
 		"storageError": "Your playback preference could not be read or saved in this browser. Check browser storage access and try again.",
+		"saved": "Playback preference saved.",
 		"scope": "Applies to all anime in this browser."
 	},
 	"automaticPreparation": {
@@ -1424,6 +1432,7 @@
 		"enabled": "Enable automatic preparation",
 		"preset": "Playback preset",
 		"saved": "Automatic preparation settings saved",
+		"saveFailed": "Could not save automatic preparation settings.",
 		"unavailable": "Selected preset unavailable",
 		"paused": "Automatic preparation is paused until an available preset is selected.",
 		"configIssue": "Could not load custom presets from {{file}}. Built-in presets remain available.",
