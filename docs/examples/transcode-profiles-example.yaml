@@ -1,5 +1,5 @@
-# Copy to <dataDir>/transcode-profiles.yaml, then use Reload profiles in Settings.
-# Only v2 is accepted. Failed reloads preserve both active profile catalogs.
+# Copy to <dataDir>/transcode-profiles.yaml, then restart Backend.
+# Only v2 is accepted. Invalid custom files fall back to built-ins at startup.
 # See ../guide/transcode-profiles.md for scopes, validation and v1 migration.
 version: 2
 profiles:

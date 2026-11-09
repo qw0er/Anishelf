@@ -39,7 +39,6 @@ export async function createSystemModule(
 			service.configureTranscodeValidation.bind(service),
 		refreshTranscodeValidation:
 			service.refreshTranscodeValidation.bind(service),
-		reloadTranscodeProfiles: service.reloadTranscodeProfiles.bind(service),
 		onSettingsChanged: service.onSettingsChanged.bind(service),
 		get settings() {
 			return service.settings;

@@ -249,7 +249,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 Preparation profiles now use the v2 runtime configuration contract: open FFmpeg
 encoders/options, scoped parameters, single-stream filters, profile-owned copying,
-explicit atomic transcode/preset reload, and field-level capability diagnostics.
+startup-only file loading, and field-level capability diagnostics.
 Queued/running jobs retain immutable execution snapshots; published output facts
 remain authoritative for playback. Unknown predicted browser compatibility permits
 manual preparation, with actual-output checks before publication. V1 configuration
@@ -261,7 +261,7 @@ All encoder options, including profile and level, apply only to encoded streams.
 Automatic presets still require accepted copied streams: rejected or unknown
 acceptance falls back to encoding, and forced copying blocks instead. Actual
 outputs must pass acceptance before publication. See
-[Transcode profiles](guide/transcode-profiles.md).
+[Transcode profiles](guide/transcode-profiles.md). **Release record:** 1.5.1 (v2 profiles and target-matching copying).
 
 #### Prepared-media File Management (P27)
 
@@ -717,7 +717,6 @@ the web build and available offline. The existing update check discovers newer r
 - **O13:** **Delivered:** diagnostic log output with normal-shutdown closure. **Excluded:** guaranteed bounded buffering and loss accounting; these are outside the current scope, not planned remainder. **Release record:** 0.2.6; 1.0.0 (simplified; partial).
 - **O14:** English and Simplified Chinese, browser language detection, language selection and browser-local preference. **Release record:** 0.2.0 (English foundation); 1.2.0 (Simplified Chinese and selection).
 - **O19:** Edit and validate supported custom profile files, including acquisition and transcode profiles.
-- **O20:** Validate and activate acquisition-profiles.yaml changes without restarting Backend; retain the last valid configuration on reload failure.
 - **O21:** Non-interactive flag-driven Docker/Podman deployment, optional services and advanced settings, generated configuration and health feedback. **Release record:** 1.0.0; 1.1.0 (deployment refactor).
 
 #### Immediate Single-value Settings Saves (O04)

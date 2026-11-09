@@ -1,26 +1,16 @@
 # Changelog
 
-## 1.5.0
+## 1.5.1
 
 ### Added
 
 - Add v2 runtime transcode profiles with open encoder options, scoped FFmpeg
   parameters, audio/video filter chains and runtime capability diagnostics.
-- Reload transcode profiles and automatic preparation presets atomically from
-  Settings, preserving the active catalogs when validation fails.
-
-- Manage prepared copies under Files with filename/path search, availability filters,
-  sorting, pagination, storage usage, playback and original-file location links.
-- Delete individual or selected prepared copies with a space estimate, in-use
-  protection, partial-failure reporting and retry. Preserve originals, viewing
-  history and retryable metadata when a filesystem deletion fails.
-- Browse all manual and automatic subscriptions on a dedicated Subscriptions page with
-  search, management and attention filters, status, last check and per-work
-  include/exclude controls.
-- Add a [custom transcode profiles guide](https://github.com/qw0er/Anishelf/blob/main/docs/guide/transcode-profiles.md)
-  covering profile structure, codec and quality options, and selection.
 
 ### Changed
+
+- Load configuration files only at Backend startup; restart after external edits.
+  Remove the manual profile reload API and Settings action.
 
 - Copy streams already matching the target codec and explicitly configured output
   constraints independently of browser compatibility. Remux matching H.264/AAC MKV
@@ -34,6 +24,36 @@
   valid after configuration changes. Custom profile files now require v2.
 - Allow manual preparation when predicted browser support is unknown; validate
   actual output before publication and negotiate playback against the finished copy.
+
+- Standardize typography, icons, action feedback and inventory layouts across the
+  Web interface. Improve empty states and recovery in library, subscription,
+  prepared-media and review views.
+- Manage installer-generated deployments with native Docker Compose or systemd and
+  Podman commands. Generated Compose files contain only selected services; use the
+  latest installer to reconfigure older deployments and adopt the new layout.
+
+### Fixed
+
+- Preserve interface state during refreshes and make loading and operation errors
+  actionable across settings, tracking, playback, subtitles and other views.
+- Show tracking completion errors with retry controls where they occur.
+
+## 1.5.0
+
+### Added
+
+- Manage prepared copies under Files with filename/path search, availability filters,
+  sorting, pagination, storage usage, playback and original-file location links.
+- Delete individual or selected prepared copies with a space estimate, in-use
+  protection, partial-failure reporting and retry. Preserve originals, viewing
+  history and retryable metadata when a filesystem deletion fails.
+- Browse all manual and automatic subscriptions on a dedicated Subscriptions page with
+  search, management and attention filters, status, last check and per-work
+  include/exclude controls.
+- Add a [custom transcode profiles guide](https://github.com/qw0er/Anishelf/blob/main/docs/guide/transcode-profiles.md)
+  covering profile structure, codec and quality options, and selection.
+
+### Changed
 
 - Show every active preparation task in the monitor and load inactive history in
   batches of ten. Reflect the active task in the file preparation action and allow

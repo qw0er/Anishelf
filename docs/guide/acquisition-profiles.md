@@ -34,8 +34,8 @@ certify quality, size or device compatibility.
 | Profile/default changed | Re-evaluate unreserved choices; accepted scope/fingerprint checks still apply |
 | Download already reserved | Retain its selection |
 
-The app reads an immutable startup snapshot and never rewrites the YAML. Hot reload
-is [future work](../requirements.md#acquisition-profile-hot-reload-o20).
+The app reads an immutable startup snapshot and never rewrites the YAML. Restart
+Backend after editing the file; automatic watching and manual reload are not supported.
 YAML aliases, custom tags, duplicate keys, unknown fields and multiple documents
 are rejected. Built-ins cannot be overwritten.
 

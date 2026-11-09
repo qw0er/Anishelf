@@ -36,7 +36,6 @@ export class ConfigurationService {
 		};
 	}
 	private validator?: TranscodeProfileValidator | undefined;
-	private logger?: Logger | undefined;
 	transcodeValidation: Record<string, EncodingValidation> = {};
 	get transcodeRevision(): string {
 		return fingerprint({
@@ -49,13 +48,13 @@ export class ConfigurationService {
 		logger?: Logger,
 	): Promise<void> {
 		this.validator = validator;
-		this.logger = logger;
 		await this.refreshTranscodeValidation();
 		logger?.info(
 			{
 				event: "configuration.transcode_profiles_loaded",
 				revision: this.transcodeRevision,
 				count: this.transcodeProfiles.length,
+				restartRequiredForFileChanges: true,
 			},
 			"Transcode profiles loaded.",
 		);
@@ -67,62 +66,6 @@ export class ConfigurationService {
 		if (this.transcodeProfiles !== current) return;
 		this.transcodeProfiles = freeze(checked.profiles);
 		this.transcodeValidation = checked.validation;
-	}
-	reloadTranscodeProfiles(): Promise<{
-		applied: boolean;
-		issues: ProfileCatalogIssue[];
-	}> {
-		const result = this.pendingChange.then(async () => {
-			const transcode = await loadTranscodeProfiles(this.deployment.dataDir);
-			const checked = this.validator
-				? await this.validator(transcode.profiles, true)
-				: { profiles: transcode.profiles, validation: {} };
-			const automatic = await loadAutoPreparationPresets(
-				this.deployment.dataDir,
-				checked.profiles,
-			);
-			const issues = [transcode.issue, automatic.issue].filter(
-				(v): v is ProfileCatalogIssue => v !== undefined,
-			);
-			if (issues.length) {
-				this.transcodeProfileIssue = issues[0];
-				this.logger?.warn(
-					{
-						event: "configuration.transcode_reload_rejected",
-						revision: this.transcodeRevision,
-						issueCount: issues.length,
-					},
-					"Profile reload rejected; the active configuration is unchanged.",
-				);
-				return { applied: false, issues };
-			}
-			this.transcodeProfiles = freeze(checked.profiles);
-			this.transcodeValidation = checked.validation;
-			this.autoPreparationPresets = automatic.presets;
-			this.autoPreparationIssue = undefined;
-			this.transcodeProfileIssue = undefined;
-			for (const listener of this.listeners) {
-				try {
-					listener();
-				} catch {
-					/* A listener cannot undo the published snapshot. */
-				}
-			}
-			this.logger?.info(
-				{
-					event: "configuration.transcode_profiles_reloaded",
-					revision: this.transcodeRevision,
-					count: this.transcodeProfiles.length,
-				},
-				"Profile configuration reloaded.",
-			);
-			return { applied: true, issues: [] };
-		});
-		this.pendingChange = result.then(
-			() => {},
-			() => {},
-		);
-		return result;
 	}
 	private current: DeepReadonly<EffectiveConfiguration>;
 	private pendingChange: Promise<void> = Promise.resolve();

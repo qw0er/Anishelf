@@ -28,10 +28,6 @@ export interface SystemApi extends SettingsStore {
 		logger?: import("pino").Logger,
 	): Promise<void>;
 	refreshTranscodeValidation?(): Promise<void>;
-	reloadTranscodeProfiles?(): Promise<{
-		applied: boolean;
-		issues: ProfileCatalogIssue[];
-	}>;
 
 	readonly autoPreparationPresets?: DeepReadonly<
 		import("../../contracts/auto-preparation.js").AutoPreparationPreset[]

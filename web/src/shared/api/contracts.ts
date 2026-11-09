@@ -60,7 +60,6 @@ export type {
 	QbittorrentConnectionProbe,
 	QbittorrentConnectionSettings,
 	QbittorrentConnectionUpdate,
-	ReloadTranscodeProfilesResponse,
 	ResourceCommand,
 	ResourceCommandResult,
 	ResourceDto,

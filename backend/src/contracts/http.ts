@@ -99,9 +99,6 @@ export type CompatibilityStream =
 export type TranscodeProfileCatalog = Static<
 	typeof schemas.TranscodeProfileCatalogSchema
 >;
-export type ReloadTranscodeProfilesResponse = Static<
-	typeof schemas.ReloadTranscodeProfilesSchema
->;
 export type SelectTranscodeProfileRequest = Static<
 	typeof schemas.SelectTranscodeProfileSchema
 >;

@@ -375,10 +375,10 @@ and Playback assembly, avoiding a construction cycle and cross-module table acce
 
 `settings.json` stores `autoPreparationEnabled` (default false) and
 `autoPreparationPresetId` (default `builtin:web`) as top-level fields. System loads
-`<dataDir>/auto-preparation-presets.yaml` at startup and on explicit reload and combines valid custom
+`<dataDir>/auto-preparation-presets.yaml` only at startup and combines valid custom
 presets with immutable built-ins. Missing files are normal; invalid files expose a
 catalog issue and retain built-ins. A saved missing preset ID is preserved and
-pauses automation. Configuration edits apply through the explicit profile reload endpoint. Reload stages transcode profiles and automatic presets together, validates references, and atomically publishes them; failure retains the active catalogs.
+pauses automation. External edits to configuration files require a Backend restart. There is no file watcher or manual reload endpoint. Transcode profiles load before automatic presets so preset references can be validated. Application settings saves still update disk and memory immediately.
 
 `GET /api/auto-preparation-presets` returns display metadata, preset availability,
 selected ID and any custom-file issue. Existing settings endpoints save the switch

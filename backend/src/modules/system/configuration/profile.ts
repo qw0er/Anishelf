@@ -45,7 +45,6 @@ export function transcodeProfileFingerprint(
 
 export type TranscodeProfileValidator = (
 	profiles: DeepReadonly<TranscodeProfile[]>,
-	refresh?: boolean,
 ) => Promise<{
 	profiles: TranscodeProfile[];
 	validation: Record<string, EncodingValidation>;

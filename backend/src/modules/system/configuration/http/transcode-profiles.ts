@@ -1,5 +1,4 @@
 import {
-	ReloadTranscodeProfilesSchema,
 	SelectTranscodeProfileSchema,
 	TranscodeProfileCatalogSchema,
 } from "../../../../contracts/schemas/index.js";
@@ -19,15 +18,6 @@ export function registerTranscodeProfileRoutes(
 		async () => {
 			await configuration.refreshTranscodeValidation?.();
 			return transcodeProfileCatalog(configuration);
-		},
-	);
-	app.post(
-		"/api/transcode-profiles/reload",
-		{ schema: { response: { 200: ReloadTranscodeProfilesSchema } } },
-		async () => {
-			const result = await configuration.reloadTranscodeProfiles?.();
-			if (!result) throw new Error("Profile reload is not configured.");
-			return { ...result, catalog: transcodeProfileCatalog(configuration) };
 		},
 	);
 	app.put(

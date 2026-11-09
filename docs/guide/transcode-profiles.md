@@ -9,13 +9,13 @@ planner and FFmpeg compiler.
 
 Copy the [example](../examples/transcode-profiles-example.yaml) to
 `<dataDir>/transcode-profiles.yaml`. Only `version: 2` is accepted. The application
-never rewrites this file. Choose **Reload profiles** in Settings → Playback to
-activate changes without restarting Backend. This command also reloads
-`auto-preparation-presets.yaml`, checking references before replacing either catalog.
-There is no automatic file watcher.
+never rewrites this file. Restart Backend after editing this file or
+`auto-preparation-presets.yaml`. Both files are read at startup, with preset
+references checked against the loaded transcode profiles. There is no automatic
+file watcher or manual reload command.
 
 Missing files use built-ins. Invalid files at startup report an issue and retain
-built-ins; a failed reload retains the entire last valid configuration. A saved
+built-ins. A saved
 missing profile ID remains selected and unavailable until an existing profile is
 selected. Already queued/running tasks retain their execution snapshots; completed
 copies remain available after profile changes or removal.
@@ -181,14 +181,12 @@ combination. Missing help, unknown options and private subparameters remain
 unverified and may be tried; confirmed missing components or wrong scopes are
 unsupported and cannot be newly selected. Actual execution remains authoritative.
 Detection is cached by tool identity, concurrent requests share pending work, and
-reload refreshes the relevant information. Failed option queries retry after the
+Backend restart refreshes the relevant information. Failed option queries retry after the
 existing tool-detection cooldown.
 
 - `GET /api/transcode-profiles`: display metadata, active `revision`, per-profile
   `validation`, saved selection, availability and latest loading issue.
 - `PUT /api/transcode-profiles/selection`: `{ profileId }`; use `null` for the default.
-- `POST /api/transcode-profiles/reload`: `{ applied, catalog, issues }`. Expected
-  configuration/read failures return `applied: false` with the previous catalog.
 
 Task identity covers effective options, their order, filters, constraints and the
 compiler version. Renaming a profile does not itself require another output.
@@ -206,5 +204,5 @@ Replace `channels: stereo` with `channels: 2`; omit `channels: preserve` and rep
 `channelCount` with `channels`. Video bounds and `sampleRate` remain structural.
 
 Set `copyCompatibleStreams` deliberately: it controls compatibility-based copying
-without a global mode. Target-matching copying remains available when it is false. Reload both profile files together after updating their
+without a global mode. Target-matching copying remains available when it is false. Restart Backend after updating both profile files and their
 references. No automatic v1 file migration is performed.

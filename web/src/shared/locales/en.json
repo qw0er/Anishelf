@@ -439,9 +439,6 @@
 		"errors": {
 			"PLAYBACK_CONFLICT": "The source file or preparation settings changed. Refresh the file and retry."
 		},
-		"reloadProfiles": "Reload profiles",
-		"profilesReloaded": "Profiles reloaded",
-		"profilesReloadFailed": "Profiles could not be reloaded",
 		"validationDetails": "Validation details",
 		"validation": {
 			"recognized": "Options recognized",
@@ -1404,8 +1401,7 @@
 		"acquisitionTitle": "Custom acquisition profiles could not be loaded",
 		"acquisitionDescription": "Built-in acquisition profiles are still available. Your custom profiles were ignored.",
 		"details": "Details",
-		"fixAndRestart": "Fix the file and restart Anishelf.",
-		"fixAndReload": "Fix the file and choose Reload profiles."
+		"fixAndRestart": "Fix the file and restart Anishelf."
 	},
 	"pagination": {
 		"first": "First page",

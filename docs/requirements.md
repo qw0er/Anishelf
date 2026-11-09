@@ -36,7 +36,7 @@ implementation choice as a new requirement. Future features specify outcomes and
 acceptance boundaries without selecting their technical solution in advance.
 Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-The repository is at version 1.4.3; 1.5.0 is the planned next release. Later and Optional items remain future work.
+The repository is at version 1.5.0; 1.5.1 is the planned next release. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
@@ -357,20 +357,12 @@ The proposed implementation and staged validation are in the
 | O06 | Back up and restore metadata, viewing history, and configuration | Not started | Later | — | — |
 | O09 | Support multiple users and permissions | Not started | Optional | — | — |
 | O19 | In-app editor for hand-written configuration files | Not started | Later | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
-| O20 | Hot reload acquisition profile configuration | Not started | Later | [Validate and activate acquisition profiles without restart](#delivery-notes-o) | — |
 | O23 | Support multi-node deployments | Not started | Unassigned | — | — |
-
-#### Proposed feature work
-
-| ID | Item | Delivery | Status | Details | First release |
-| --- | --- | --- | --- | --- | --- |
-| WI07 | Dynamically load configuration | — | Unassigned | Define which configuration is loaded dynamically and when changes take effect. Acquisition profile hot reload is already described under O20; determine whether this proposal extends that scope. | — |
 
 #### Delivery Notes (O)
 
 - **O05:** **Delivered:** Durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention. **Remaining:** Broader product history. **Release record:** 1.0.0 (acquisition; partial).
 - **O19:** Edit and validate supported custom profile files, including acquisition and transcode profiles.
-- **O20:** Validate and activate acquisition-profiles.yaml changes without restarting Backend; retain the last valid configuration on reload failure.
 
 #### Configuration File Editor (O19)
 
@@ -380,25 +372,23 @@ YAML files. Show the current content, documented examples and field guidance;
 allow users to edit a draft, validate it, explicitly
 save it or discard changes. Preserve comments and formatting when saving. Display
 syntax and validation errors with field paths and line/column locations where
-available, and explain whether a restart is required for changes to take effect.
+available, and explain that a Backend restart is required for file changes to take effect.
 Detect concurrent file changes before saving and keep the previous valid file on
 validation or write failure. Built-in profiles remain read-only.
 
-#### Acquisition Profile Hot Reload (O20)
+#### Configuration File Loading
 
-Reload changes to `acquisition-profiles.yaml` in the application data directory
-without restarting Backend, including edits saved through atomic file replacement.
-Validate the complete file before activating one consistent profile snapshot.
-Invalid, incomplete or unreadable updates must retain the last valid configuration
-and expose safe reload diagnostics instead of stopping the application or partially
-applying a file. Refresh the available profile choices and make activation status
-visible to the user.
+Read `settings.json`, `acquisition-profiles.yaml`, `transcode-profiles.yaml` and
+`auto-preparation-presets.yaml` from the application data directory at Backend
+startup. External file edits, including atomic file replacement, take effect only
+after restarting Backend. There is no automatic file watching or manual reload
+command. Configuration-file hot reload is outside the current scope.
 
-Apply accepted changes to subsequent discovery and unreserved release assessment,
-rejecting decisions based on outdated configuration. Preserve existing download
-reservations and submitted tasks; reloading must not grant acquisition permission
-or change a subscription's selected source. Preserve existing per-episode waiting
-history when the effective profile policy is unchanged. Current acquisition profiles are loaded only at startup.
+Settings saved through the application continue to update disk and memory on save.
+The in-app configuration file editor (O19) must explain that saved file edits require
+a Backend restart. Deployment environment variables and container configuration also
+remain restart-bound. Startup validation must report invalid custom files and retain
+the documented built-in fallbacks; malformed persistent settings block startup.
 
 #### Logging Maintenance (O11–O13)
 
@@ -429,7 +419,7 @@ Details and acceptance criteria may be refined as decisions are made.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| WI01 | Review tracking-service completion error feedback | Complete | Completed | For “Could not load or update the tracking service completion.”, decide whether to use a dialog or display the error directly, and consider recovery. | — |
+| WI01 | Review tracking-service completion error feedback | Complete | Completed | Tracking completion errors are displayed with retry controls. | 1.5.1 |
 | WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
 | WI05 | Redesign automatic subscription management interaction | Complete | Completed | [Dedicated Subscriptions page](implemented-requirements.md#subscriptions-page-wi05) | 1.5.0 |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
@@ -450,6 +440,10 @@ Collect representative local failure cases with user-confirmed expected works an
   and a confirmed match; do not accept uncertain results solely to increase matches.
 
 #### Evidence-based Decision Quality (WI15)
+
+**Delivered:** Existing identification and cross-provider title-enrichment corpora and
+conservative name verification provide initial evidence and evaluation. **Remaining:**
+Expand evaluation and decision coverage as described below.
 
 Improve decisions that depend on incomplete observations, naming conventions,
 similarity, ranking or thresholds. Coordinate filename and resource matching with

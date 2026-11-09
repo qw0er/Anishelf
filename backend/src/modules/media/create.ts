@@ -88,10 +88,9 @@ export async function createMediaModule(options: {
 		logger,
 	} = options;
 	await configuration.configureTranscodeValidation?.(
-		(profiles, refresh) =>
+		(profiles) =>
 			tools.validateProfiles<import("../system/public.js").TranscodeProfile>(
 				profiles,
-				refresh,
 			),
 		logger,
 	);

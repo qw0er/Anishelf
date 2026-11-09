@@ -116,11 +116,3 @@ export const SelectTranscodeProfileSchema = Type.Object(
 	{ profileId: Type.Union([TranscodeProfileIdSchema, Type.Null()]) },
 	{ additionalProperties: false },
 );
-export const ReloadTranscodeProfilesSchema = Type.Object(
-	{
-		applied: Type.Boolean(),
-		catalog: TranscodeProfileCatalogSchema,
-		issues: Type.Array(ProfileCatalogIssueSchema),
-	},
-	{ additionalProperties: false },
-);

@@ -247,8 +247,8 @@ test("shows a profile configuration issue without hiding built-in choices", asyn
 		"Custom transcode profiles could not be loaded",
 	);
 	expect(alert.textContent).toContain("transcode-profiles.yaml");
-	expect(alert.textContent).toContain("Reload profiles");
-	expect(alert.textContent).not.toContain("restart Anishelf");
+	expect(alert.textContent).toContain("restart Anishelf");
+	expect(alert.textContent).not.toContain("Reload profiles");
 	expect(await view.findByRole("radio", { name: /Browser copy/ })).toBeTruthy();
 });
 
@@ -835,33 +835,23 @@ test("task monitor loads a failed task after it leaves the active list", async (
 	await view.findByRole("complementary", { name: "Transcoding tasks" });
 });
 
-test("profile reload publishes the returned catalog and keeps validation failures visible", async () => {
-	const failed = {
+test("profile file issues require restart and offer no reload action", async () => {
+	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
 		...catalog,
 		issue: { file: "transcode-profiles.yaml", detail: "Invalid option scope." },
-	};
-	const reload = vi
-		.spyOn(settingsApi, "reloadTranscodeProfiles")
-		.mockResolvedValueOnce({
-			applied: false,
-			catalog: failed,
-			issues: [failed.issue],
-		})
-		.mockResolvedValueOnce({ applied: true, catalog, issues: [] });
+	});
 	const view = render(
 		<Wrapper>
 			<PreparationProfileSettings />
 		</Wrapper>,
 	);
-	const button = await view.findByRole("button", { name: "Reload profiles" });
-	fireEvent.click(button);
 	expect((await view.findByRole("alert")).textContent).toContain(
+		"restart Anishelf",
+	);
+	expect(view.getByRole("alert").textContent).toContain(
 		"Invalid option scope.",
 	);
-	fireEvent.click(button);
-	await waitFor(() => expect(reload).toHaveBeenCalledTimes(2));
-	await waitFor(() => expect(view.queryByRole("alert")).toBeNull());
-	expect(await view.findByRole("radio", { name: /Browser copy/ })).toBeTruthy();
+	expect(view.queryByRole("button", { name: /reload profiles/i })).toBeNull();
 });
 
 test("unsupported profiles are disabled and retain their field-level diagnostic", async () => {

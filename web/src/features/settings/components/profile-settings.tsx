@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,8 +18,7 @@ import {
 } from "../../../shared/components/ui/radio-card.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
-import { reloadTranscodeProfiles, selectTranscodeProfile } from "../api.js";
-import { settingsKeys } from "../queries.js";
+import { selectTranscodeProfile } from "../api.js";
 
 export function PreparationProfileSettings({
 	preparation,
@@ -32,7 +31,6 @@ export function PreparationProfileSettings({
 	};
 }) {
 	const { t } = useTranslation();
-	const queryClient = useQueryClient();
 	const [profileId, setProfileId] = useState("");
 	useEffect(() => {
 		setProfileId(
@@ -69,50 +67,12 @@ export function PreparationProfileSettings({
 			});
 		},
 	});
-	const reload = useMutation({
-		mutationFn: reloadTranscodeProfiles,
-		onSuccess: (result) => {
-			preparation.updateCatalog(result.catalog);
-			if (result.applied) {
-				void queryClient.invalidateQueries({
-					queryKey: settingsKeys.automaticPresets,
-				});
-				console.info("[Settings] Transcode profiles reloaded.");
-			} else console.warn("[Settings] Transcode profile reload rejected.");
-			toast.add({
-				id: "transcode-profile-reload",
-				type: result.applied ? "success" : "error",
-				title: t(
-					result.applied
-						? "preparation.profilesReloaded"
-						: "preparation.profilesReloadFailed",
-				),
-			});
-		},
-		onError: () => {
-			console.warn("[Settings] Transcode profile reload failed.");
-			toast.add({
-				id: "transcode-profile-reload",
-				type: "error",
-				title: t("preparation.profilesReloadFailed"),
-			});
-		},
-	});
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("preparation.profile")}</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
-				<ActionButton
-					icon={RefreshCw}
-					label={t("preparation.reloadProfiles")}
-					shortLabel={t("preparation.reloadProfiles")}
-					variant="outline"
-					aria-busy={reload.isPending}
-					disabled={save.isPending || reload.isPending}
-					onClick={() => reload.mutate()}
-				/>
 				{preparation.catalog?.issue && (
 					<ProfileIssueNotice
 						kind="transcode"
@@ -130,7 +90,7 @@ export function PreparationProfileSettings({
 							}}
 							legend={t("preparation.chooseProfile")}
 							className="grid gap-2 space-y-0 sm:grid-cols-2"
-							disabled={save.isPending || reload.isPending}
+							disabled={save.isPending}
 						>
 							{preparation.catalog.profiles.map((profile) => (
 								<div key={profile.id} className="space-y-2">

@@ -1,7 +1,6 @@
 import { type RequestOptions, request } from "../../shared/api/client.js";
 import type {
 	AutoPreparationCatalog,
-	ReloadTranscodeProfilesResponse,
 	SettingsResponse,
 	TranscodeProfileCatalog,
 	UpdateSettingsRequest,
@@ -39,8 +38,4 @@ export function getAutoPreparationPresets(
 	options?: RequestOptions,
 ): Promise<AutoPreparationCatalog> {
 	return request("/api/auto-preparation-presets", "GET", options);
-}
-
-export function reloadTranscodeProfiles(): Promise<ReloadTranscodeProfilesResponse> {
-	return request("/api/transcode-profiles/reload", "POST");
 }

@@ -653,9 +653,6 @@
 			"capability-unknown": "无法确认服务器的媒体处理能力。",
 			"processing-failed": "媒体准备失败，请检查服务器后重试。"
 		},
-		"reloadProfiles": "重载配置",
-		"profilesReloaded": "配置已重载",
-		"profilesReloadFailed": "配置重载失败",
 		"validationDetails": "验证详情",
 		"validation": {
 			"recognized": "参数已识别",
@@ -1383,8 +1380,7 @@
 		"acquisitionTitle": "无法加载自定义获取配置",
 		"acquisitionDescription": "内置获取配置仍可使用，您的自定义配置已被忽略。",
 		"details": "详情",
-		"fixAndRestart": "修复文件并重启 Anishelf。",
-		"fixAndReload": "修复文件后点击“重载配置”。"
+		"fixAndRestart": "修复文件并重启 Anishelf。"
 	},
 	"pagination": {
 		"first": "返回首页",

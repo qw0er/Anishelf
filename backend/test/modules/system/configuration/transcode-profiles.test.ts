@@ -165,37 +165,7 @@ test("open encoders and options are retained without a fixed parameter whitelist
 	});
 });
 
-test("reload is atomic, preserves selection and exposes a rejected file", async () => {
-	await writeProfiles([customProfile()]);
-	const service = await load();
-	await service.selectTranscodeProfile("custom:small");
-	const revision = service.transcodeRevision;
-	await writeFile(
-		join(directory, "transcode-profiles.yaml"),
-		"version: 1\nprofiles: []",
-	);
-	expect(await service.reloadTranscodeProfiles()).toMatchObject({
-		applied: false,
-	});
-	expect(service.transcodeRevision).toBe(revision);
-	expect(transcodeProfileCatalog(service)).toMatchObject({
-		selectedProfileId: "custom:small",
-		selectionAvailable: true,
-		issue: { file: "transcode-profiles.yaml" },
-	});
-	await writeProfiles([]);
-	expect(await service.reloadTranscodeProfiles()).toEqual({
-		applied: true,
-		issues: [],
-	});
-	expect(service.transcodeRevision).not.toBe(revision);
-	expect(transcodeProfileCatalog(service)).toMatchObject({
-		selectedProfileId: "custom:small",
-		selectionAvailable: false,
-	});
-});
-
-test("reload validates automatic preset references before replacing either catalog", async () => {
+test("external profile, preset and settings edits apply only to a new startup snapshot", async () => {
 	await writeProfiles([customProfile()]);
 	const preset = {
 		id: "custom:reference",
@@ -208,21 +178,34 @@ test("reload validates automatic preset references before replacing either catal
 		stringify({ version: 1, presets: [preset] }),
 	);
 	const service = await load();
-	const previous = service.transcodeRevision;
+	await service.selectTranscodeProfile("custom:small");
+	const revision = service.transcodeRevision;
 	await writeProfiles([]);
-	expect(await service.reloadTranscodeProfiles()).toMatchObject({
-		applied: false,
-		issues: [{ file: "auto-preparation-presets.yaml" }],
-	});
-	expect(service.transcodeRevision).toBe(previous);
 	await writeFile(
 		join(directory, "auto-preparation-presets.yaml"),
 		stringify({ version: 1, presets: [] }),
 	);
-	expect(await service.reloadTranscodeProfiles()).toMatchObject({
-		applied: true,
-	});
+	await writeFile(
+		join(directory, "settings.json"),
+		JSON.stringify({
+			resourceRoots: [],
+			defaultTranscodeProfileId: "builtin:fast",
+		}),
+	);
+	await service.refreshTranscodeValidation();
+	expect(service.transcodeRevision).toBe(revision);
+	expect(service.settings.defaultTranscodeProfileId).toBe("custom:small");
 	expect(service.autoPreparationPresets.some((p) => p.id === preset.id)).toBe(
+		true,
+	);
+	expect(transcodeProfileCatalog(service).selectionAvailable).toBe(true);
+	const restarted = await load();
+	expect(restarted.transcodeRevision).not.toBe(revision);
+	expect(restarted.settings.defaultTranscodeProfileId).toBe("builtin:fast");
+	expect(restarted.transcodeProfiles.some((p) => p.id === "custom:small")).toBe(
+		false,
+	);
+	expect(restarted.autoPreparationPresets.some((p) => p.id === preset.id)).toBe(
 		false,
 	);
 });
@@ -264,7 +247,7 @@ test("legacy preparationMode is ignored and removed on the next settings write",
 	).not.toHaveProperty("preparationMode");
 });
 
-test("HTTP catalog/reload expose revisions and validation without accepting the removed mode", async () => {
+test("HTTP catalog exposes the startup snapshot and has no reload endpoint", async () => {
 	const service = await load();
 	const app = createHttpApp({
 		logger: pino({ enabled: false }),
@@ -294,28 +277,18 @@ test("HTTP catalog/reload expose revisions and validation without accepting the 
 			).statusCode,
 		).toBe(400);
 		await writeProfiles([customProfile()]);
-		const loaded = await app.inject({
+		const removed = await app.inject({
 			method: "POST",
 			url: "/api/transcode-profiles/reload",
 			headers,
 		});
-		expect(loaded.statusCode).toBe(200);
-		expect(loaded.json()).toMatchObject({ applied: true, issues: [] });
-		expect(loaded.json().catalog.revision).not.toBe(before.json().revision);
-		await writeFile(
-			join(directory, "transcode-profiles.yaml"),
-			"version: 1\nprofiles: []",
-		);
-		const rejected = await app.inject({
-			method: "POST",
-			url: "/api/transcode-profiles/reload",
+		expect(removed.statusCode).toBe(404);
+		const unchanged = await app.inject({
+			method: "GET",
+			url: "/api/transcode-profiles",
 			headers,
 		});
-		expect(rejected.statusCode).toBe(200);
-		expect(rejected.json()).toMatchObject({
-			applied: false,
-			catalog: { revision: loaded.json().catalog.revision },
-		});
+		expect(unchanged.json()).toEqual(before.json());
 	} finally {
 		await app.close();
 	}

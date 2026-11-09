@@ -10,12 +10,15 @@
 | Backend startup options | Environment variables below | Backend restart |
 | Media roots, preparation mode/cache, subscription defaults | Anishelf Settings | On save; active tasks retain their initial limits |
 | Custom acquisition profiles | YAML in the app data directory | Backend restart |
-| Transcode profiles / automatic preparation presets | YAML in the app data directory | Reload profiles in Settings |
+| Transcode profiles / automatic preparation presets | YAML in the app data directory | Backend restart |
 
 Containers use `/data/app` for state and `/data/media` for initial media. Source
 installations default to the OS user data directory; set `ANISHELF_DATA_DIR` to keep
 an existing location. Paths must be absolute. Existing `settings.json` takes
 precedence over initializers; malformed settings block startup without replacement.
+External edits to `settings.json` also require a Backend restart; Settings saves
+continue to update disk and memory immediately. There is no configuration file
+watcher or manual reload command.
 
 ### Environment variables
 
@@ -80,8 +83,8 @@ filters; there is no global compatibility/fast mode. Streams matching the target
 codec and explicitly configured output constraints can be copied independently of
 browser evidence. Built-ins disable compatibility-based copying, but still reuse
 matching streams. Encoding parameters apply only to streams that need encoding.
-Use Reload profiles after editing transcode or automatic-preparation YAML files.
-A failed reload preserves both active catalogs and reports the issue.
+Restart Backend after editing transcode or automatic-preparation YAML files.
+Invalid custom files report a startup issue and fall back to built-ins.
 
 Playable originals use direct playback. New requests use the active profile;
 queued/running tasks retain their execution snapshot, and completed copies remain
