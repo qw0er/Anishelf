@@ -251,7 +251,7 @@ export function SubscriptionPanel({
 						className="min-w-0 gap-1.5 whitespace-normal"
 					>
 						{needsAttention && (
-							<TriangleAlert className="size-3.5 shrink-0" aria-hidden="true" />
+							<TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
 						)}
 						{rowSummary}
 					</StatusBadge>

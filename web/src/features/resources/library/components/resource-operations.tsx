@@ -22,6 +22,7 @@ import {
 	DropdownMenuTrigger,
 } from "../../../../shared/components/ui/dropdown-menu.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
+import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { executeResource } from "../api.js";
 import { directoryQuery } from "../queries.js";
@@ -56,17 +57,19 @@ export function ResourceOperationMenu({
 	const { t } = useTranslation();
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger
-				render={
-					<Button
-						variant="ghost"
-						size="icon"
-						aria-label={t("library.operations.actions")}
-					/>
-				}
-			>
-				<Ellipsis size={16} />
-			</DropdownMenuTrigger>
+			<Tooltip content={t("library.operations.actions")}>
+				<DropdownMenuTrigger
+					render={
+						<Button
+							variant="ghost"
+							size="icon"
+							aria-label={t("library.operations.actions")}
+						/>
+					}
+				>
+					<Ellipsis size={16} />
+				</DropdownMenuTrigger>
+			</Tooltip>
 			<DropdownMenuContent>
 				<ResourceOperationItems onSelect={onSelect} />
 			</DropdownMenuContent>

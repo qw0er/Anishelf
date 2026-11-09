@@ -56,9 +56,9 @@ export default function ThemeToggle() {
 				onClick={selectTheme}
 			>
 				{theme === "dark" ? (
-					<Sun aria-hidden="true" />
+					<Sun size={16} aria-hidden="true" />
 				) : (
-					<Moon aria-hidden="true" />
+					<Moon size={16} aria-hidden="true" />
 				)}
 			</Button>
 		</Tooltip>

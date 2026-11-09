@@ -188,7 +188,7 @@ test("a slow background scan poll does not turn the Refresh button into a manual
 	}) as HTMLButtonElement;
 	expect(refresh.disabled).toBe(false);
 	expect(refresh.getAttribute("aria-busy")).toBe("false");
-	expect(refresh.querySelector(".animate-spin")).toBeNull();
+	expect(refresh.querySelector(".motion-safe\\:animate-spin")).toBeNull();
 	await act(async () => {
 		resolvePoll?.(json({ ...appFixture.library, scan: completedScan }));
 	});

@@ -55,7 +55,7 @@ export function CandidateSelection({
 				<span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
 					1
 				</span>
-				<h2 className="font-semibold">{t("review.chooseWork")}</h2>
+				<h2 className="section-title">{t("review.chooseWork")}</h2>
 			</div>
 			<section className="space-y-3">
 				<h3 className="text-sm font-medium text-muted-foreground">
@@ -95,7 +95,7 @@ export function CandidateSelection({
 									</span>
 								</div>
 								{warnings.length > 0 && (
-									<ul className="space-y-1 rounded-lg bg-warning/10 p-2.5 text-xs leading-relaxed text-warning">
+									<ul className="space-y-1 rounded-lg bg-warning/10 p-2.5 text-sm leading-relaxed text-warning">
 										{warnings.map((reason) => (
 											<li className="wrap-anywhere" key={reason}>
 												{reason}
@@ -185,7 +185,7 @@ export function CandidateSelection({
 					>
 						<label
 							htmlFor="candidate-search"
-							className="min-w-0 flex-1 space-y-1.5 text-xs font-medium"
+							className="min-w-0 flex-1 space-y-1.5 field-label"
 						>
 							{t("review.search")}
 							<Input
@@ -215,7 +215,7 @@ export function CandidateSelection({
 					>
 						<label
 							htmlFor="provider-id"
-							className="min-w-0 flex-1 space-y-1.5 text-xs font-medium"
+							className="min-w-0 flex-1 space-y-1.5 field-label"
 						>
 							{t("review.providerId")}
 							<Input

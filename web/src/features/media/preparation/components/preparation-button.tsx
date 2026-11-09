@@ -71,13 +71,17 @@ export function PreparationButton({
 			<Link
 				className={buttonStyles(
 					"ghost",
-					menuItem ? "w-full justify-start" : "size-9 p-0",
+					menuItem
+						? "w-full justify-start"
+						: showLabel
+							? "responsive-action"
+							: "size-9 p-0",
 				)}
 				to="/settings"
 				aria-label={t("preparation.configure")}
 			>
 				<Settings2 className="size-4" aria-hidden="true" />
-				{menuItem && t("preparation.configure")}
+				{(menuItem || showLabel) && t("preparation.configure")}
 			</Link>,
 		);
 	const label = t(

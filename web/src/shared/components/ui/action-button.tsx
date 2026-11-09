@@ -1,10 +1,10 @@
-import type { LucideIcon } from "lucide-react";
+import { type LucideIcon, RefreshCw } from "lucide-react";
 import type { ComponentProps } from "react";
 import { Button, buttonStyles } from "./button.js";
 import { Spinner } from "./spinner.js";
 import { Tooltip } from "./tooltip.js";
 
-/** Keep the action named at every size; compact toolbars reveal text when they fit. */
+/** Business actions retain visible labels, including in narrow toolbars. */
 export function ActionButton({
 	icon: Icon,
 	label,
@@ -16,6 +16,7 @@ export function ActionButton({
 	label: string;
 	shortLabel?: string;
 }) {
+	const busy = props["aria-busy"] === true || props["aria-busy"] === "true";
 	return (
 		<Tooltip content={label}>
 			<Button
@@ -25,10 +26,14 @@ export function ActionButton({
 					`responsive-action ${typeof className === "function" ? className(state) : (className ?? "")}`
 				}
 			>
-				{props["aria-busy"] ? (
+				{busy && Icon !== RefreshCw ? (
 					<Spinner />
 				) : (
-					<Icon size={16} className="shrink-0" aria-hidden="true" />
+					<Icon
+						size={16}
+						className={`shrink-0 ${Icon === RefreshCw && busy ? "motion-safe:animate-spin" : ""}`}
+						aria-hidden="true"
+					/>
 				)}
 				<span className="responsive-action-label">{shortLabel}</span>
 			</Button>

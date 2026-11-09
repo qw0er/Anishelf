@@ -41,7 +41,7 @@ export function RejectionPanel({
 				{t(existing.length ? "review.removeAction" : "review.reject")}
 			</CollapsibleTrigger>
 			<CollapsibleContent keepMounted>
-				<p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+				<p className="mt-3 text-sm leading-relaxed text-muted-foreground">
 					{t("review.rejectHint")}
 				</p>
 				<form
@@ -69,7 +69,7 @@ export function RejectionPanel({
 						/>
 					</label>
 					{existing.length > 0 && (
-						<div className="touch-control flex items-start gap-2 text-xs leading-relaxed">
+						<div className="touch-control flex items-start gap-2 text-sm leading-relaxed">
 							<Checkbox id="remove-association" name="remove" />
 							<FieldLabel
 								className="touch-control flex-1"

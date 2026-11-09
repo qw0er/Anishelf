@@ -83,7 +83,7 @@ export function AiringStatus({
 						className="ml-auto text-muted-foreground"
 						aria-label={t("anime.airingInfo")}
 					>
-						<Info className="size-3.5" aria-hidden="true" />
+						<Info className="size-4" aria-hidden="true" />
 					</Button>
 				</Tooltip>
 				{cached && (
@@ -99,7 +99,7 @@ export function AiringStatus({
 				{refreshing && (
 					<span role="status" aria-label={t("anime.airingLoading")}>
 						<RefreshCw
-							className="size-3.5 animate-spin text-muted-foreground"
+							className="size-4 motion-safe:animate-spin text-muted-foreground"
 							aria-hidden="true"
 						/>
 					</span>
@@ -159,7 +159,7 @@ export function AiringStatus({
 				</div>
 			)}
 			{query.error && (
-				<div role="alert" className="flex items-center gap-2 text-xs">
+				<div role="alert" className="flex items-center gap-2 text-sm">
 					{t("anime.airingFailed")}
 					<Button
 						size="sm"

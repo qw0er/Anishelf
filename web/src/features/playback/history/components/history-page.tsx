@@ -1,18 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { History, Library, Play, RefreshCw } from "lucide-react";
+import { History, Library, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useLoaderData } from "react-router";
 import type { HistoryResponse } from "../../../../shared/api/contracts.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
-import {
-	Button,
-	buttonStyles,
-} from "../../../../shared/components/ui/button.js";
+import { buttonStyles } from "../../../../shared/components/ui/button.js";
 import { Card, CardContent } from "../../../../shared/components/ui/card.js";
 import { Progress } from "../../../../shared/components/ui/progress.js";
-import { Spinner } from "../../../../shared/components/ui/spinner.js";
+import { RefreshButton } from "../../../../shared/components/ui/refresh-button.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { useRefreshError } from "../../../../shared/hooks/use-refresh-error.js";
 import { filePath } from "../../../../shared/navigation.js";
@@ -42,19 +39,11 @@ export default function HistoryPage() {
 				title={t("history.title")}
 				description={t("history.description")}
 				actions={
-					<Button
-						variant="outline"
-						disabled={query.isFetching}
-						aria-busy={query.isFetching}
+					<RefreshButton
+						label={t("history.refresh")}
+						busy={query.isFetching}
 						onClick={() => void query.refetch()}
-					>
-						{query.isFetching ? (
-							<Spinner />
-						) : (
-							<RefreshCw size={16} aria-hidden="true" />
-						)}
-						{t("history.refresh")}
-					</Button>
+					/>
 				}
 			/>
 			<Card>

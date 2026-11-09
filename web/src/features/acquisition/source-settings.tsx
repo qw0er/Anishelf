@@ -386,17 +386,19 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					menu={
 						settings.bundledAvailable || settings.url ? (
 							<DropdownMenu>
-								<DropdownMenuTrigger
-									render={
-										<Button
-											type="button"
-											variant="ghost"
-											aria-label={t("acquisition.connection.more")}
-										/>
-									}
-								>
-									<MoreHorizontal size={16} />
-								</DropdownMenuTrigger>
+								<Tooltip content={t("acquisition.connection.more")}>
+									<DropdownMenuTrigger
+										render={
+											<Button
+												type="button"
+												variant="ghost"
+												aria-label={t("acquisition.connection.more")}
+											/>
+										}
+									>
+										<MoreHorizontal size={16} />
+									</DropdownMenuTrigger>
+								</Tooltip>
 								<DropdownMenuContent>
 									{settings.bundledAvailable && (
 										<DropdownMenuItem
@@ -552,6 +554,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 								variant="outline"
 								disabled={busy || changed}
 								onClick={() => bundled.mutate(true)}
+								aria-busy={bundled.isPending}
 							/>
 						)}
 				</div>
@@ -588,6 +591,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							variant="outline"
 							disabled={!canTest}
 							onClick={() => list.mutate()}
+							aria-busy={list.isPending}
 						/>
 					</div>
 				</div>
@@ -642,20 +646,26 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 									</Button>
 								</Tooltip>
 								<DropdownMenu>
-									<DropdownMenuTrigger
-										render={
-											<Button
-												size="icon"
-												type="button"
-												variant="ghost"
-												aria-label={t("acquisition.sources.siteActions", {
-													name: id,
-												})}
-											/>
-										}
+									<Tooltip
+										content={t("acquisition.sources.siteActions", {
+											name: id,
+										})}
 									>
-										<MoreHorizontal size={16} aria-hidden="true" />
-									</DropdownMenuTrigger>
+										<DropdownMenuTrigger
+											render={
+												<Button
+													size="icon"
+													type="button"
+													variant="ghost"
+													aria-label={t("acquisition.sources.siteActions", {
+														name: id,
+													})}
+												/>
+											}
+										>
+											<MoreHorizontal size={16} aria-hidden="true" />
+										</DropdownMenuTrigger>
+									</Tooltip>
 									<DropdownMenuContent>
 										<DropdownMenuItem
 											disabled={busy}
@@ -756,6 +766,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 								variant="outline"
 								disabled={!canTest || !providerId}
 								onClick={() => probe.mutate()}
+								aria-busy={probe.isPending}
 							/>
 						</div>
 						{probe.data && !changed && (
@@ -795,6 +806,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 									type="submit"
 									variant="outline"
 									disabled={!canTest || !providerId || !title.trim()}
+									aria-busy={search.isPending}
 								/>
 							</div>
 						</form>

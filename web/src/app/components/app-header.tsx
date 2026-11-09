@@ -93,7 +93,7 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 								className={`${buttonStyles("ghost")} header-nav-link app-nav-item ${active ? "app-nav-active" : ""} ${index === 2 ? "app-nav-management" : ""} ${index === 5 ? "app-nav-settings" : ""}`}
 							>
 								<Icon
-									size={18}
+									size={20}
 									aria-hidden="true"
 									className="header-nav-icon"
 								/>

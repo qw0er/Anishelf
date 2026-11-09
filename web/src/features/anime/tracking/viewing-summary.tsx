@@ -70,7 +70,7 @@ export function ViewingSummary({
 							className="text-muted-foreground"
 							aria-label={t("trackingList.progressInfo")}
 						>
-							<Info className="size-3.5" aria-hidden="true" />
+							<Info className="size-4" aria-hidden="true" />
 						</Button>
 					</Tooltip>
 				</>
@@ -92,15 +92,15 @@ export function ViewingSummary({
 				<Tooltip content={t("trackingList.reconnect")}>
 					<Link
 						to="/settings"
-						className="inline-flex items-center gap-1 text-xs text-warning underline"
+						className="inline-flex items-center gap-1 text-sm text-warning underline"
 					>
-						<Link2 className="size-3.5" aria-hidden="true" />
+						<Link2 className="size-4" aria-hidden="true" />
 						{t("trackingList.reconnectAction")}
 					</Link>
 				</Tooltip>
 			)}
 			{unavailable && !state.reconnect && (
-				<span role="alert" className="text-xs text-muted-foreground">
+				<span role="alert" className="supporting-text">
 					{t("trackingList.unavailable")}
 				</span>
 			)}
@@ -131,7 +131,9 @@ export function ViewingSummary({
 					}}
 				>
 					<RefreshCw
-						className={state.refreshing ? "size-3.5 animate-spin" : "size-3.5"}
+						className={
+							state.refreshing ? "size-4 motion-safe:animate-spin" : "size-4"
+						}
 						aria-hidden="true"
 					/>
 				</Button>

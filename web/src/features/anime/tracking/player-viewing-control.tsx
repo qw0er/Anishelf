@@ -168,7 +168,7 @@ function TargetControl({
 			>
 				<Button
 					variant={known ? "secondary" : "outline"}
-					className="player-action"
+					className="responsive-action"
 					aria-label={t(
 						known ? "playbackCompletion.watched" : "playbackCompletion.mark",
 					)}
@@ -180,7 +180,7 @@ function TargetControl({
 					) : (
 						<Check className="size-4 shrink-0" aria-hidden="true" />
 					)}
-					<span className="player-action-label">
+					<span className="responsive-action-label">
 						{t(known ? "player.watched" : "playbackCompletion.mark")}
 					</span>
 				</Button>

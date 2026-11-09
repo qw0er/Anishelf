@@ -23,22 +23,22 @@ export function ProfileIssueNotice({
 			<p className="mt-1 text-muted-foreground">
 				{t(`profileIssue.${kind}Description`)}
 			</p>
-			<p className="mt-1 text-xs text-muted-foreground">
+			<p className="mt-1 text-sm text-muted-foreground">
 				<code className="break-all">{issue.file}</code>
 			</p>
 			{issue.detail && (
 				<Collapsible className="mt-2">
-					<CollapsibleTrigger className="cursor-pointer text-xs text-muted-foreground">
+					<CollapsibleTrigger className="cursor-pointer text-sm text-muted-foreground">
 						{t("profileIssue.details")}
 					</CollapsibleTrigger>
 					<CollapsibleContent keepMounted>
-						<p className="mt-1 break-words text-xs text-muted-foreground">
+						<p className="mt-1 break-words text-sm text-muted-foreground">
 							{issue.detail}
 						</p>
 					</CollapsibleContent>
 				</Collapsible>
 			)}
-			<p className="mt-2 text-xs text-muted-foreground">
+			<p className="mt-2 text-sm text-muted-foreground">
 				{t(
 					kind === "transcode"
 						? "profileIssue.fixAndReload"

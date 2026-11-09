@@ -213,6 +213,7 @@ export function TrackingAccountSettings() {
 								type="submit"
 								form="tracking-credential-form"
 								disabled={busy || !credential.trim()}
+								aria-busy={command.isPending && command.variables === "preview"}
 							/>
 							{preview && (
 								<>
@@ -222,6 +223,9 @@ export function TrackingAccountSettings() {
 										shortLabel={t("actions.connect")}
 										disabled={busy}
 										onClick={() => command.mutate("confirm")}
+										aria-busy={
+											command.isPending && command.variables === "confirm"
+										}
 									/>
 									<ActionButton
 										icon={X}
@@ -242,6 +246,9 @@ export function TrackingAccountSettings() {
 										variant="outline"
 										disabled={busy}
 										onClick={() => command.mutate("check")}
+										aria-busy={
+											command.isPending && command.variables === "check"
+										}
 									/>
 									<ActionButton
 										icon={Unplug}
@@ -250,6 +257,9 @@ export function TrackingAccountSettings() {
 										variant="outline"
 										disabled={busy}
 										onClick={() => command.mutate("disconnect")}
+										aria-busy={
+											command.isPending && command.variables === "disconnect"
+										}
 									/>
 								</>
 							)}

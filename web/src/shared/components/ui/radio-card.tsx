@@ -71,9 +71,7 @@ export function RadioCard({
 					<span className="block text-xs text-muted-foreground">{meta}</span>
 				)}
 				{description && (
-					<span className="mt-1 block text-xs text-muted-foreground">
-						{description}
-					</span>
+					<span className="mt-1 block supporting-text">{description}</span>
 				)}
 			</span>
 		</label>

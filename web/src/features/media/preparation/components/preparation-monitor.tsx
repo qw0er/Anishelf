@@ -1,10 +1,10 @@
-import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import type { PreparationTaskResponse } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
-import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
+import { RefreshButton } from "../../../../shared/components/ui/refresh-button.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { preparedWatchPath } from "../audio-tracks.js";
 import { usePreparationContext } from "../context.js";
@@ -72,16 +72,11 @@ export function PreparationMonitor() {
 					{collapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
 				</Button>
 				{!collapsed && (
-					<Tooltip content={t("preparation.refresh")}>
-						<Button
-							size="icon"
-							variant="ghost"
-							aria-label={t("preparation.refresh")}
-							onClick={preparation.refresh}
-						>
-							<RefreshCw size={16} />
-						</Button>
-					</Tooltip>
+					<RefreshButton
+						label={t("preparation.refresh")}
+						busy={preparation.refreshing}
+						onClick={preparation.refresh}
+					/>
 				)}
 			</div>
 			{

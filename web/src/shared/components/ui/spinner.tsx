@@ -9,7 +9,7 @@ export function Spinner({
 	return (
 		<LoaderCircle
 			aria-hidden="true"
-			className={cn("size-4 animate-spin", className)}
+			className={cn("size-4 shrink-0 motion-safe:animate-spin", className)}
 			{...props}
 		/>
 	);

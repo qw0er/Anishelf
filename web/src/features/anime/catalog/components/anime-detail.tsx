@@ -223,7 +223,7 @@ function LocalWorkDetail({
 						aria-hidden="true"
 						className={
 							refresh.isPending || metadata.refreshing
-								? "animate-spin"
+								? "motion-safe:animate-spin"
 								: undefined
 						}
 					/>

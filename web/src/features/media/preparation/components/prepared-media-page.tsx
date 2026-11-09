@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen, Play, RefreshCw, Trash2 } from "lucide-react";
+import { FolderOpen, Play, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
@@ -25,6 +25,7 @@ import {
 import { Input } from "../../../../shared/components/ui/input.js";
 import { NativeSelect } from "../../../../shared/components/ui/native-select.js";
 import { PaginationControls } from "../../../../shared/components/ui/pagination-controls.js";
+import { RefreshButton } from "../../../../shared/components/ui/refresh-button.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
@@ -262,30 +263,12 @@ function PreparedMediaInventory({
 								)}
 							</Button>
 						)}
-						<Tooltip content={t("preparedMedia.refresh")}>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="text-muted-foreground"
-								aria-label={t("preparedMedia.refresh")}
-								aria-busy={query.isFetching}
-								disabled={query.isFetching || mutation.isPending}
-								onClick={() => {
-									console.debug(
-										"[Prepared media] Inventory refresh requested.",
-									);
-									void query.refetch();
-								}}
-							>
-								<RefreshCw
-									size={16}
-									className={
-										query.isFetching ? "motion-safe:animate-spin" : undefined
-									}
-									aria-hidden="true"
-								/>
-							</Button>
-						</Tooltip>
+						<RefreshButton
+							label={t("preparedMedia.refresh")}
+							busy={query.isFetching}
+							disabled={mutation.isPending}
+							onClick={() => void query.refetch()}
+						/>
 					</div>
 				</div>
 				{query.isPending && <p role="status">{t("preparedMedia.loading")}</p>}
@@ -416,7 +399,7 @@ function PreparedMediaInventory({
 												>
 													<button
 														type="button"
-														className="block w-full truncate rounded text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														className="block w-full truncate rounded text-left list-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 														aria-label={item.filename}
 													>
 														{item.filename}

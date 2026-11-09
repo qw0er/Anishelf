@@ -92,7 +92,7 @@ export function SettingsPage() {
 											"header-nav-link settings-nav-item",
 										)}
 									>
-										<Icon size={16} aria-hidden="true" />
+										<Icon size={20} aria-hidden="true" />
 										<span className="header-nav-label">
 											{t(`settingsPage.sections.${section}`)}
 										</span>

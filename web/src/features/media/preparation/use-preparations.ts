@@ -33,6 +33,7 @@ export function usePreparations(fileId?: string, enabled = true) {
 	return {
 		tasks: enabled ? (query.data?.tasks ?? []) : [],
 		loading: enabled && query.isPending,
+		refreshing: enabled && query.isFetching,
 		loadingMore: inactiveLimit > 0 && query.isFetching,
 		hasMore: enabled && (query.data?.hasMore ?? false),
 		loadMore: () =>

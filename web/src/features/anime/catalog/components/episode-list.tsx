@@ -49,7 +49,7 @@ export function EpisodeList({
 						className="text-muted-foreground"
 						aria-label={t("anime.episodeNumberingInfo")}
 					>
-						<Info className="size-3.5" aria-hidden="true" />
+						<Info className="size-4" aria-hidden="true" />
 					</Button>
 				</Tooltip>
 				{trackingProgress !== null && counts.availableUnwatched > 0 && (
@@ -62,7 +62,7 @@ export function EpisodeList({
 							{t("episodeViewing.availableUnwatched", {
 								count: counts.availableUnwatched,
 							})}
-							<Info className="size-3.5" aria-hidden="true" />
+							<Info className="size-4" aria-hidden="true" />
 						</Button>
 					</Tooltip>
 				)}

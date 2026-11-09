@@ -42,7 +42,7 @@ export function UnresolvedResources({ workId }: { workId: string }) {
 							{t("anime.unresolvedResources")}
 						</span>
 						<ChevronDown
-							className="size-3.5 text-muted-foreground transition-transform group-data-open:rotate-180"
+							className="size-4 text-muted-foreground transition-transform group-data-open:rotate-180"
 							aria-hidden="true"
 						/>
 					</CollapsibleTrigger>
@@ -103,7 +103,7 @@ export function UnresolvedResources({ workId }: { workId: string }) {
 						className="text-muted-foreground"
 						aria-label={t("anime.reviewCandidatesInfo")}
 					>
-						<Info className="size-3.5" aria-hidden="true" />
+						<Info className="size-4" aria-hidden="true" />
 					</Button>
 				</Tooltip>
 			</div>

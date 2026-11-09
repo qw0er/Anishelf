@@ -25,12 +25,12 @@ export function LibraryTrackingAction({
 			<Tooltip content={t("trackingList.connect")}>
 				<Button
 					variant="outline"
-					className="shrink-0 px-2 sm:px-4"
+					className="responsive-action"
 					aria-label={t("trackingList.connect")}
 					onClick={() => void navigate("/settings")}
 				>
 					<Link2 className="size-4" aria-hidden="true" />
-					<span className="hidden sm:inline">{t("trackingList.connect")}</span>
+					<span className="min-w-0">{t("trackingList.connect")}</span>
 				</Button>
 			</Tooltip>
 		);
@@ -42,15 +42,15 @@ export function LibraryTrackingAction({
 			}
 		>
 			<Button
-				variant="outline"
-				className="size-9 shrink-0 p-0"
+				variant="ghost"
+				className="size-9 shrink-0 p-0 text-muted-foreground"
 				disabled={refreshing || account.state !== "connected"}
 				onClick={() => refresh.mutate()}
 				aria-label={t("trackingList.refresh")}
 				aria-busy={refreshing}
 			>
 				<RefreshCw
-					className={refreshing ? "size-4 animate-spin" : "size-4"}
+					className={refreshing ? "size-4 motion-safe:animate-spin" : "size-4"}
 					aria-hidden="true"
 				/>
 			</Button>

@@ -317,12 +317,12 @@ export function SubscriptionsPage() {
 							>
 								<div className="min-w-0 space-y-2">
 									<Link
-										className="block w-fit max-w-full rounded-sm text-sm font-semibold leading-6 wrap-anywhere underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+										className="block w-fit max-w-full rounded-sm list-primary wrap-anywhere underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
 										to={`/anime/tracked/${encodeURIComponent(sub.workKey)}`}
 									>
 										{title}
 									</Link>
-									<p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+									<p className="flex flex-wrap gap-x-3 gap-y-1 compact-metadata">
 										<span>
 											{t(
 												sub.management === "watching"

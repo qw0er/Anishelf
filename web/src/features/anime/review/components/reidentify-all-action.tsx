@@ -31,7 +31,7 @@ export function ReidentifyAllAction({ disabled }: { disabled: boolean }) {
 			onClick={() => action.mutate()}
 		>
 			<RotateCw
-				className={`size-4 ${busy ? "animate-spin" : ""}`}
+				className={`size-4 ${busy ? "motion-safe:animate-spin" : ""}`}
 				aria-hidden="true"
 			/>
 			{t(busy ? "review.reidentifying" : "review.reidentifyAll")}

@@ -268,7 +268,9 @@ export default function LibraryBrowser({
 													/>
 												)}
 												<span className="min-w-0">
-													<span className="block truncate">{entry.name}</span>
+													<span className="block truncate list-primary">
+														{entry.name}
+													</span>
 													{Boolean(paths.get(entry.id)?.length) && (
 														<span className="block truncate text-sm text-muted-foreground">
 															{paths.get(entry.id)?.join(" / ")}

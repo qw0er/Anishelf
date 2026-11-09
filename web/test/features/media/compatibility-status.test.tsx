@@ -64,7 +64,7 @@ test("checking uses Spinner and failure remains distinct from unknown support", 
 		name: "Checking playback compatibility…",
 	});
 	expect(pending.getAttribute("aria-busy")).toBe("true");
-	expect(pending.querySelector("svg.animate-spin")).toBeTruthy();
+	expect(pending.querySelector("svg.motion-safe\\:animate-spin")).toBeTruthy();
 	view.rerender(
 		<CompatibilityStatus
 			loading={false}
@@ -77,7 +77,7 @@ test("checking uses Spinner and failure remains distinct from unknown support", 
 			.getByRole("button", {
 				name: "Compatibility could not be checked. You can retry or try the original file.",
 			})
-			.querySelector("svg.animate-spin"),
+			.querySelector("svg.motion-safe\\:animate-spin"),
 	).toBeNull();
 	expect(
 		view.queryByRole("button", {

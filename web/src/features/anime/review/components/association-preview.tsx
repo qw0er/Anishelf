@@ -54,7 +54,7 @@ export function AssociationPreview({
 				<span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
 					3
 				</span>
-				<h3 className="font-semibold">{t("review.previewTitle")}</h3>
+				<h3 className="section-title">{t("review.previewTitle")}</h3>
 			</div>
 			{preview.rows.map((row) => (
 				<div key={row.reviewId} className="space-y-3 text-sm">

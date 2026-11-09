@@ -1,7 +1,8 @@
-import { RefreshCw, ScanLine } from "lucide-react";
+import { ScanLine } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Button } from "../../../../shared/components/ui/button.js";
+import { RefreshButton } from "../../../../shared/components/ui/refresh-button.js";
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { useDelayedPending } from "../../../../shared/hooks/use-delayed-pending.js";
 import type { LibraryScanState } from "../public.js";
@@ -29,7 +30,6 @@ export function LibraryScanActions({
 }: LibraryScanProps) {
 	const { t } = useTranslation();
 	const showSubmitting = useDelayedPending(scanSubmitting);
-	const showRefreshing = useDelayedPending(refreshing);
 	const showScanning = useDelayedPending(scanning);
 
 	return (
@@ -47,20 +47,11 @@ export function LibraryScanActions({
 				)}
 				{t("scan.start")}
 			</Button>
-			<Button
-				type="button"
-				variant="outline"
-				disabled={refreshing}
-				aria-busy={refreshing}
+			<RefreshButton
+				label={t("scan.refresh")}
+				busy={refreshing}
 				onClick={reload}
-			>
-				{showRefreshing ? (
-					<Spinner />
-				) : (
-					<RefreshCw size={16} aria-hidden="true" />
-				)}
-				{t("scan.refresh")}
-			</Button>
+			/>
 		</>
 	);
 }

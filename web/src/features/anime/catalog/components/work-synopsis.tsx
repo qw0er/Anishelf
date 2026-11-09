@@ -21,7 +21,7 @@ export function WorkSynopsis({
 			<h2 className="section-title-prominent">{t("anime.synopsis")}</h2>
 			{info.description ? (
 				<div
-					className={`space-y-2 wrap-anywhere [&_a]:underline [&_p]:my-2 ${long && !expanded ? "line-clamp-5" : ""}`}
+					className={`reading-body space-y-2 wrap-anywhere [&_a]:underline [&_p]:my-2 ${long && !expanded ? "line-clamp-5" : ""}`}
 				>
 					<Markdown
 						rehypePlugins={[rehypeRaw, rehypeSanitize]}

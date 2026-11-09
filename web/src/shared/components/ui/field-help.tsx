@@ -9,7 +9,7 @@ export function FieldHelp({ label, help }: { label: string; help: string }) {
 				aria-label={label}
 				className="icon-control rounded text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 			>
-				<Info size={14} aria-hidden="true" />
+				<Info size={16} aria-hidden="true" />
 			</button>
 		</Tooltip>
 	);

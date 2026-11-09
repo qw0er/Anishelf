@@ -70,10 +70,10 @@ export function MappingForm({
 		>
 			<fieldset disabled={busy} className="space-y-4">
 				<div className="flex items-center gap-2">
-					<span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+					<span className="flex size-6 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
 						2
 					</span>
-					<h3 className="font-semibold">{t("review.mapEpisodes")}</h3>
+					<h3 className="section-title">{t("review.mapEpisodes")}</h3>
 				</div>
 				<div className="flex min-w-0 items-start gap-4 rounded-lg bg-muted/40 p-3">
 					<div className="w-14 shrink-0 overflow-hidden rounded-md">
@@ -93,14 +93,14 @@ export function MappingForm({
 						)}
 					</div>
 					<div className="min-w-0 space-y-1">
-						<p className="text-xs text-muted-foreground">
+						<p className="text-sm text-muted-foreground">
 							{t("review.selected")}
 						</p>
 						<p className="font-medium wrap-anywhere">
 							{details.data.data.displayTitle ??
 								details.data.data.titles[0]?.value}
 						</p>
-						<p className="text-xs text-muted-foreground">
+						<p className="text-sm text-muted-foreground">
 							{details.data.data.format ?? t("anime.unknown")} ·{" "}
 							{t("review.total", {
 								count: details.data.data.episodeCount ?? t("anime.unknown"),
@@ -199,7 +199,7 @@ export function MappingForm({
 						/>
 					</label>
 				</div>
-				<p className="text-xs leading-relaxed text-muted-foreground">
+				<p className="text-sm leading-relaxed text-muted-foreground">
 					{t("review.mappingHint")}
 				</p>
 				{defaults.offset !== 0 && (

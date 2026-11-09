@@ -184,3 +184,28 @@ test("disconnect uses connection generation and authorization failure offers rec
 	fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
 	await screen.findByText("Disconnected");
 });
+
+test("connection checks show busy feedback only on the initiating action", async () => {
+	let finishCheck: ((response: Response) => void) | undefined;
+	fetcher.mockImplementation(async (path) => {
+		if (path === "/api/tracking/account/check") {
+			return new Promise<Response>((resolve) => {
+				finishCheck = resolve;
+			});
+		}
+		if (path === "/api/tracking/account") return json(connected);
+		throw new Error(`Unexpected route: ${path}`);
+	});
+	render(<TrackingAccountSettings />);
+	const check = await screen.findByRole("button", { name: "Check connection" });
+	const disconnect = screen.getByRole("button", { name: "Disconnect" });
+	fireEvent.click(check);
+	await waitFor(() => expect(check.getAttribute("aria-busy")).toBe("true"));
+	expect(check.textContent).toContain("Test");
+	expect(check.querySelector(".lucide-loader-circle")).toBeTruthy();
+	expect(disconnect.getAttribute("aria-busy")).toBe("false");
+	expect(disconnect.querySelector(".lucide-loader-circle")).toBeNull();
+	expect(disconnect.hasAttribute("disabled")).toBe(true);
+	finishCheck?.(json(connected));
+	await waitFor(() => expect(check.getAttribute("aria-busy")).toBe("false"));
+});

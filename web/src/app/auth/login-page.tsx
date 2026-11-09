@@ -6,6 +6,7 @@ import { clearAuthToken, request } from "../../shared/api/client.js";
 import { queryClient } from "../../shared/api/query-client.js";
 import { Button } from "../../shared/components/ui/button.js";
 import { Input } from "../../shared/components/ui/input.js";
+import { Spinner } from "../../shared/components/ui/spinner.js";
 import { loginReturnPath } from "./return-path.js";
 export function LoginPage() {
 	const { t } = useTranslation();
@@ -43,12 +44,12 @@ export function LoginPage() {
 					}
 				}}
 			>
-				<h1 className="text-2xl font-semibold">{t("auth.login.title")}</h1>
+				<h1 className="page-title">{t("auth.login.title")}</h1>
 				<p className="text-sm text-muted-foreground">
 					{t("auth.login.description")}
 				</p>
 				<label htmlFor="login-password" className="block space-y-2">
-					<span>{t("auth.login.password")}</span>
+					<span className="field-label">{t("auth.login.password")}</span>
 					<Input
 						id="login-password"
 						type="password"
@@ -65,8 +66,18 @@ export function LoginPage() {
 						{error}
 					</p>
 				)}
-				<Button type="submit" disabled={pending} className="w-full">
-					{pending ? t("auth.login.signingIn") : t("auth.login.signIn")}
+				<Button
+					type="submit"
+					disabled={pending}
+					aria-busy={pending}
+					className="w-full"
+				>
+					<span className="relative">
+						<span className={pending ? "absolute -left-6 top-0.5" : "hidden"}>
+							<Spinner />
+						</span>
+						{t("auth.login.signIn")}
+					</span>
 				</Button>
 			</form>
 		</main>

@@ -136,7 +136,7 @@ export function PreparationTaskCard({
 								})
 							}
 						>
-							<X className="size-3.5" aria-hidden="true" />
+							<X className="size-4" aria-hidden="true" />
 						</Button>
 					</Tooltip>
 				)}
@@ -165,7 +165,7 @@ export function PreparationTaskCard({
 								})
 							}
 						>
-							<RotateCcw className="size-3.5" aria-hidden="true" />
+							<RotateCcw className="size-4" aria-hidden="true" />
 						</Button>
 					</Tooltip>
 				)}
@@ -184,7 +184,7 @@ export function PreparationTaskCard({
 							disabled={action.busy || playing}
 							onClick={() => onWatch(task)}
 						>
-							<Play className="size-3.5" aria-hidden="true" />
+							<Play className="size-4" aria-hidden="true" />
 						</Button>
 					</Tooltip>
 				)}
@@ -204,7 +204,7 @@ export function PreparationTaskCard({
 								})
 							}
 						>
-							<Trash2 className="size-3.5" aria-hidden="true" />
+							<Trash2 className="size-4" aria-hidden="true" />
 						</Button>
 					</Tooltip>
 				)}

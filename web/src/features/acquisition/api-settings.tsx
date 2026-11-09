@@ -32,6 +32,7 @@ import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { LoadingState } from "../../shared/components/ui/loading-state.js";
 import { toast } from "../../shared/components/ui/toast.js";
+import { Tooltip } from "../../shared/components/ui/tooltip.js";
 import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import {
 	activateBundledQbittorrent,
@@ -280,17 +281,19 @@ function ConnectionForm({
 				menu={
 					(settings.bundledAvailable || settings.state !== "unconfigured") && (
 						<DropdownMenu>
-							<DropdownMenuTrigger
-								render={
-									<Button
-										type="button"
-										variant="ghost"
-										aria-label={t("acquisition.connection.more")}
-									/>
-								}
-							>
-								<MoreHorizontal size={16} />
-							</DropdownMenuTrigger>
+							<Tooltip content={t("acquisition.connection.more")}>
+								<DropdownMenuTrigger
+									render={
+										<Button
+											type="button"
+											variant="ghost"
+											aria-label={t("acquisition.connection.more")}
+										/>
+									}
+								>
+									<MoreHorizontal size={16} />
+								</DropdownMenuTrigger>
+							</Tooltip>
 							<DropdownMenuContent>
 								{settings.bundledAvailable && (
 									<DropdownMenuItem

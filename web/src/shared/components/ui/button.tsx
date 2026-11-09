@@ -6,7 +6,7 @@ type Variant = "default" | "secondary" | "outline" | "ghost";
 type Size = "default" | "sm" | "icon";
 const sizes: Record<Size, string> = {
 	default: "h-9 px-4",
-	sm: "h-8 px-3 text-xs",
+	sm: "h-8 px-3",
 	icon: "icon-control",
 };
 export function buttonStyles(
@@ -15,7 +15,7 @@ export function buttonStyles(
 	size: Size = "default",
 ) {
 	return cn(
-		"inline-flex touch-control items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
+		"inline-flex touch-control items-center justify-center gap-2 [&>svg]:shrink-0 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
 		sizes[size],
 		variant === "default" &&
 			"bg-primary text-primary-foreground hover:bg-primary/90",

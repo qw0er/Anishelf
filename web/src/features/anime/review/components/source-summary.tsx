@@ -30,7 +30,7 @@ export function SourceSummary({
 				</span>
 				<DecisionBadge decision={item.decision} />
 			</div>
-			<h2 className="font-semibold leading-relaxed wrap-anywhere">
+			<h2 className="section-title wrap-anywhere">
 				{item.evidence.originalName}
 			</h2>
 			{item.relativePath !== item.evidence.originalName && (
@@ -72,9 +72,7 @@ export function SourceSummary({
 				)}
 			{existing.length > 0 && (
 				<section className="space-y-2 border-t pt-3">
-					<h3 className="text-xs text-muted-foreground">
-						{t("review.current")}
-					</h3>
+					<h3 className="text-sm font-medium">{t("review.current")}</h3>
 					<ul className="space-y-2">
 						{existing.map((link) => (
 							<li
@@ -96,7 +94,7 @@ export function SourceSummary({
 					</ul>
 				</section>
 			)}
-			<Collapsible className="border-t pt-3 text-xs">
+			<Collapsible className="border-t pt-3 text-sm">
 				<CollapsibleTrigger className="cursor-pointer font-medium text-muted-foreground">
 					{t("review.evidence")}
 				</CollapsibleTrigger>

@@ -167,6 +167,7 @@ export function DownloadDestinationSettings() {
 					shortLabel={t("actions.save")}
 					type="submit"
 					disabled={action.isPending || !query.data?.roots.length}
+					aria-busy={action.isPending && action.variables === "save"}
 				/>
 				{changed && (
 					<Button
@@ -189,6 +190,7 @@ export function DownloadDestinationSettings() {
 					variant="outline"
 					disabled={action.isPending || !destination || changed}
 					onClick={() => action.mutate("validate")}
+					aria-busy={action.isPending && action.variables === "validate"}
 				/>
 			</div>
 		</form>

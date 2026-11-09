@@ -27,7 +27,7 @@ export function ReidentifyAction({
 				onClick={controller.reidentify}
 			>
 				<RotateCw
-					className={`size-4 ${controller.reidentifyPending ? "animate-spin" : ""}`}
+					className={`size-4 ${controller.reidentifyPending ? "motion-safe:animate-spin" : ""}`}
 					aria-hidden="true"
 				/>
 				{t(
@@ -36,7 +36,7 @@ export function ReidentifyAction({
 						: "review.reidentify",
 				)}
 			</Button>
-			<p className="text-xs leading-relaxed text-muted-foreground">
+			<p className="text-sm leading-relaxed text-muted-foreground">
 				{t("review.reidentifyHint")}
 			</p>
 			{controller.reidentifyError && (

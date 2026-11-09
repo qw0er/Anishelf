@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { FolderMinus, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActionButton } from "../../../shared/components/ui/action-button.js";
@@ -61,7 +61,7 @@ export function ResourcePathList({
 								/>
 							</Tooltip>
 							<ActionButton
-								icon={Trash2}
+								icon={FolderMinus}
 								shortLabel={t("settingsPage.deletePath")}
 								label={t("settingsPage.removePath", { path })}
 								type="button"

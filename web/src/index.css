@@ -116,7 +116,7 @@
 		@apply border-border outline-ring/50;
 	}
 	body {
-		@apply m-0 bg-background font-sans text-base text-foreground antialiased;
+		@apply m-0 bg-background font-sans text-sm leading-5 text-foreground antialiased;
 	}
 }
 
@@ -177,10 +177,22 @@
 	@apply text-sm text-destructive;
 }
 @utility section-title {
-	@apply text-base font-semibold leading-snug;
+	@apply text-base font-semibold leading-6;
 }
 @utility section-title-prominent {
 	@apply text-lg font-semibold leading-snug;
+}
+@utility list-primary {
+	@apply text-sm font-medium leading-5;
+}
+@utility supporting-text {
+	@apply text-sm leading-5 text-muted-foreground;
+}
+@utility compact-metadata {
+	@apply text-xs leading-4 text-muted-foreground;
+}
+@utility reading-body {
+	@apply text-base leading-relaxed;
 }
 @utility panel-inset {
 	@apply px-4;
@@ -197,26 +209,6 @@
 }
 @utility icon-control {
 	@apply inline-flex size-9 shrink-0 items-center justify-center p-0;
-}
-/* Touch controls grow in layout, so adjacent targets never overlap. */
-@media (pointer: coarse) {
-	.touch-control,
-	.field-heading,
-	.icon-control,
-	.form-select,
-	.form-control,
-	.responsive-action,
-	.player-action,
-	.header-nav-link {
-		min-height: 2.75rem;
-	}
-	.touch-control,
-	.icon-control,
-	.responsive-action,
-	.player-action,
-	.header-nav-link {
-		min-width: 2.75rem;
-	}
 }
 
 .app-header-container {
@@ -248,26 +240,18 @@
 	display: none;
 }
 
-/* Measure the toolbar itself so side panels also compact on wide screens. */
-.action-row:has(.responsive-action) {
-	/* Size containment needs an explicit width; generic rows size to content. */
-	width: 100%;
-	min-width: 0;
-	container-type: inline-size;
-	container-name: actions;
-}
-
+/* Business actions retain visible labels and wrap within their toolbar. */
 .responsive-action {
-	padding-inline: 0.75rem;
+	max-width: 100%;
+	min-width: 0;
+	height: auto;
+	min-height: 2.25rem;
+	padding: 0.5rem 0.75rem;
+	white-space: normal;
 }
-@container actions (max-width: 30rem) {
-	.responsive-action {
-		width: 2.25rem;
-		padding-inline: 0;
-	}
-	.responsive-action-label {
-		display: none;
-	}
+.responsive-action-label {
+	min-width: 0;
+	overflow-wrap: anywhere;
 }
 
 /* Keep player actions on one compact line; collapse labels to icons when narrow. */
@@ -302,6 +286,27 @@
 		display: none;
 	}
 }
+/* Touch controls grow in layout, so adjacent targets never overlap. */
+@media (pointer: coarse) {
+	.touch-control,
+	.field-heading,
+	.icon-control,
+	.form-select,
+	.form-control,
+	.responsive-action,
+	.player-action,
+	.header-nav-link {
+		min-height: 2.75rem;
+	}
+	.touch-control,
+	.icon-control,
+	.responsive-action,
+	.player-action,
+	.header-nav-link {
+		min-width: 2.75rem;
+	}
+}
+
 .settings-section {
 	container-type: inline-size;
 }

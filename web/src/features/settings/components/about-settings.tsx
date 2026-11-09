@@ -234,7 +234,7 @@ export function AboutSettings() {
 					<div className="space-y-6 text-sm">
 						{releases.map((release) => (
 							<section key={release.version} className="space-y-2">
-								<h2 className="text-base font-semibold">
+								<h2 className="section-title">
 									{release.version}
 									{release.version === webBuild.version &&
 										` · ${t("about.installed")}`}

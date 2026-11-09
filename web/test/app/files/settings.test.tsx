@@ -132,7 +132,9 @@ test("saving a new directory returns from the player and unloads old media", asy
 	expect(screen.queryByRole("button", { name: "Scan library" })).toBeNull();
 	fireEvent.click(screen.getByRole("link", { name: "Settings" }));
 	const input = await screen.findByLabelText("New resource directory path");
-	fireEvent.click(screen.getByRole("button", { name: "Delete /media" }));
+	fireEvent.click(
+		screen.getByRole("button", { name: "Remove directory /media" }),
+	);
 	fireEvent.change(input, { target: { value: "/new/media" } });
 	fireEvent.click(screen.getByRole("button", { name: "Add directory" }));
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
@@ -175,7 +177,9 @@ test("a failed settings save retains the draft list and supports a retry", async
 	const input = (await screen.findByLabelText(
 		"New resource directory path",
 	)) as HTMLInputElement;
-	fireEvent.click(screen.getByRole("button", { name: "Delete /media" }));
+	fireEvent.click(
+		screen.getByRole("button", { name: "Remove directory /media" }),
+	);
 	fireEvent.change(input, { target: { value: "/new/media" } });
 	fireEvent.click(screen.getByRole("button", { name: "Add directory" }));
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
@@ -184,7 +188,7 @@ test("a failed settings save retains the draft list and supports a retry", async
 	});
 	expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
 	expect(
-		screen.getByRole("button", { name: "Delete /new/media" }),
+		screen.getByRole("button", { name: "Remove directory /new/media" }),
 	).toBeTruthy();
 	expect(screen.getByTestId("location").textContent).toBe("/settings");
 	// The error toast appears before the fetcher returns to idle. Wait until
@@ -229,7 +233,9 @@ test("settings expose shared cache budget constraints", async () => {
 test("settings save the edited directory list", async () => {
 	renderApp("/settings");
 	const input = await screen.findByLabelText("New resource directory path");
-	fireEvent.click(screen.getByRole("button", { name: "Delete /media" }));
+	fireEvent.click(
+		screen.getByRole("button", { name: "Remove directory /media" }),
+	);
 	fireEvent.change(input, { target: { value: "/disk-a/media" } });
 	fireEvent.click(screen.getByRole("button", { name: "Add directory" }));
 	fireEvent.change(input, { target: { value: "/disk-b/中文 videos" } });
@@ -277,7 +283,9 @@ test("duplicate paths stay editable without sending a settings request", async (
 test("clearing the path list saves setup mode", async () => {
 	renderApp("/settings");
 	const input = await screen.findByLabelText("New resource directory path");
-	fireEvent.click(screen.getByRole("button", { name: "Delete /media" }));
+	fireEvent.click(
+		screen.getByRole("button", { name: "Remove directory /media" }),
+	);
 	await screen.findByText("No resource directories added.");
 	fireEvent.submit(input.closest("form") as HTMLFormElement);
 	await waitFor(() => expect(appFixture.settings.resourceRoots).toEqual([]));

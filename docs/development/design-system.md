@@ -3,8 +3,9 @@
 This document owns design principles and the reasoning behind interface decisions.
 [Requirements](../requirements.md) owns product behavior and scope;
 [Architecture](architecture.md#frontend-ownership) owns data and module boundaries;
-[History](../history.md) records delivered iterations. Component APIs, library
-choices and exact layout values belong in implementation, rather than this document.
+[History](../history.md) records delivered iterations. This document defines semantic
+roles, usage rules and baseline visual scales. Component APIs, library wiring and
+exact responsive layout values belong in implementation.
 
 ## UI principles
 
@@ -15,7 +16,8 @@ choices and exact layout values belong in implementation, rather than this docum
 - **Consistent meaning.** Give equivalent states, actions and fields consistent
   meaning across the application, while allowing each task an appropriate density.
 - **Continuity.** Background work must preserve usable content, input, focus,
-  navigation context and playback.
+  navigation context and playback. Feedback must preserve the page structure and
+  control positions, avoiding abrupt layout changes as messages appear or disappear.
 
 ## Visual and interaction conventions
 
@@ -38,6 +40,108 @@ Use a brief action verb or state label; put detailed causes, timing and conseque
 in the associated details or help. Preserve meaningful distinctions between states
 and keep actionable failures discoverable. Do not rely on truncation to make verbose
 copy fit, and account for longer translations when reviewing labels.
+
+### Typography and text roles
+
+Choose typography by information role, not by individual page. Shared styles own
+the scale; equivalent roles must use the same size, weight and color treatment.
+The following values are project design baselines, not accessibility requirements.
+Implement font sizes in relative units and preserve browser text scaling.
+
+| Role | Baseline size / line height | Weight | Use |
+| --- | --- | --- | --- |
+| Page title | 24 / 32 px | 600 | Management page identity |
+| Work title | 24–36 px / 1.25 | 600 | Artwork-led work details; responsive sizing |
+| Section title | 16 / 24 px | 600 | Task panels, settings groups and inventory sections |
+| List primary text | 14 / 20 px | 500 | Filenames and work names in management rows |
+| Interface body | 14 / 20 px | 400 | Menus, fields and ordinary list content |
+| Reading body | 16 / 26 px | 400 | Synopses and extended explanations |
+| Supporting text | 14 / 20 px | 400 | Field descriptions and failure reasons |
+| Compact metadata | 12 / 16 px | 400 | Short timestamps, sizes, counts and states |
+| Control label | 14 / 20 px | 500 | Buttons and field labels |
+
+Use one section-title treatment throughout management pages. A larger section title
+may distinguish major sections on artwork-led detail pages, but must not become an
+alternative chosen arbitrarily for ordinary panels. Keep HTML heading levels tied
+to document structure independently of visual size.
+
+Use normal foreground text for primary content, a shared secondary foreground for
+supporting information, and semantic colors for feedback. Do not create hierarchy
+by repeatedly reducing font size or opacity. Compact metadata must not carry primary
+actions, essential instructions or failure explanations. Use normal letter spacing
+for Chinese body text and comfortable line heights for multiline content.
+
+Allow filenames and paths to wrap where useful. When a title is visually shortened,
+provide an accessible way to inspect its complete value, including on touch devices.
+Do not truncate essential recovery instructions or action labels.
+
+### Interface language
+
+Use a stable vocabulary across pages and translations. Distinguish deleting a file,
+removing a configured directory and cancelling a subscription; these actions have
+different consequences and must not share an ambiguous generic label.
+
+| Copy role | Rule | Examples |
+| --- | --- | --- |
+| Name | Use a concise noun or noun phrase | Download directory, Prepared copies |
+| Action | Use a verb, adding an object when needed | Refresh, Add directory, Retry download |
+| State | Report a short factual condition | Waiting, Preparing, Failed |
+| Explanation | Describe the cause, consequence or next step | This file is playing and cannot be deleted yet. |
+
+Omit an action's object only when the surrounding context makes it unambiguous.
+Keep distinctions such as Refresh metadata and Re-identify when they explain what
+will happen. Show consequential information beside the affected content or in the
+confirmation flow; tooltips must not be its only presentation. Keep terminology
+consistent without forcing all languages into identical sentence structures.
+
+### Icon roles and action presentation
+
+Use the shared Lucide icon family with consistent stroke treatment. Select icons by
+meaning and reuse that mapping across pages. Baseline sizes are 16 px for actions
+and inline states, 20 px for navigation, and 24–32 px for empty-state illustrations.
+Exceptions belong to shared components or distinct contexts such as the player,
+rather than individual page overrides.
+
+Keep common action mappings stable: RefreshCw for refresh, Search for search, Play
+for playback, Trash2 for deletion, and Ellipsis for additional commands. Related but
+different operations must retain explicit labels when the icon alone is ambiguous.
+
+Add icons when they improve recognition or scanning. Do not decorate every heading,
+metadata value or explanation. Plain state text is sufficient when an additional
+icon or colored badge would not help users understand or act.
+
+| Presentation | Use when | Examples |
+| --- | --- | --- |
+| Text only | The label is clear and an icon adds little | Save, Cancel, View details |
+| Icon and text | A recognizable icon helps identify a frequent or important action | Play, Add directory, Download |
+| Icon only | The action is familiar, compact and unambiguous in context | Toolbar refresh, Close, More actions |
+
+Keep visible labels for primary actions and unfamiliar domain operations such as
+Re-identify and Prepare copy. On narrow screens, reflow controls or move secondary
+commands into a labeled menu before removing meaningful labels. Do not automatically
+convert every action to an icon-only button.
+
+Icon-only controls need an accessible name and a tooltip available on hover and
+keyboard focus. Touch users must still be able to identify the action through its
+context or an accessible labeled alternative. Hide decorative icons from assistive
+technology when adjacent text already names the action.
+
+Size the interaction target independently of the glyph. A 16 px icon normally sits
+inside a 36 px control; prefer targets of at least 44 px for touch interaction.
+Preserve sufficient spacing and visible keyboard focus in compact toolbars.
+
+### Action emphasis and busy feedback
+
+Normally give each independent task region one primary action. Use neutral or
+outlined controls for secondary actions and quiet controls for routine toolbar
+commands such as refresh and more actions. Keep destructive actions explicit in
+menus and confirmations without making every inventory row visually alarming.
+
+Use the same busy behavior for equivalent actions. Ordinary asynchronous buttons
+show a spinner in the icon position while retaining their label and width. Refresh
+controls rotate the refresh icon consistently. Respect reduced-motion preferences,
+expose busy state accessibly, and prevent conflicting or duplicate activation.
+Do not rely on animation alone to communicate ongoing work.
 
 ### Surface hierarchy
 
@@ -87,24 +191,47 @@ the available viewport.
 
 ## Feedback and interface states
 
-Place information according to how long it matters to the task. Durable information
-belongs beside the affected content. Temporary feedback should be nonblocking and
-should not displace the page.
+Use one application-wide presentation scheme: operation results go to toasts,
+input errors stay beside fields, and current state updates in its existing place.
+Pages must follow these roles rather than choose their own feedback surfaces.
 
-- Initial loading should communicate the expected content without inventing data.
-- Empty results should explain the situation and offer a useful next action.
-- Read failures should remain distinguishable from confirmed empty results and
-  provide a recovery action.
-- Validation, setup blockers and conflicts should appear beside the affected input
-  or item while preserving user work.
-- Background refresh should retain existing content and avoid resetting interaction.
-- Operation feedback should be concise, deduplicated and offer recovery when useful.
-- Ongoing work should report its actual state, without invented percentages.
-- Persistent issues, authorization failures and reconnection needs must remain
-  visible in context; routine success does not need persistent emphasis.
+| Information | Presentation | Layout rule |
+| --- | --- | --- |
+| Operation success, failure, partial success or background failure notification | Global toast | Overlay the page without moving content |
+| Input validation error | Error area beside the affected field | Reserve space for ordinary validation feedback and preserve the draft |
+| Current loading, task, connection, authorization or content availability state | Existing button, status area or content container | Update in place; do not insert a new banner or panel |
 
-Deduplicate repeated background failures across refreshes and navigation, and allow
-new failures to be reported after recovery.
+### Toast behavior
+
+- Report an operation's result once, through one toast. Update that toast as the
+  operation's state changes; do not repeat its result in an inline summary or dialog.
+  Input validation stays beside the field instead of producing a duplicate toast.
+- Dismiss success after six seconds. Failure and partial-success toasts remain until
+  dismissed or the issue is resolved. Offer one Retry action when retry is possible.
+- State the result and the necessary reason concisely. Reveal lengthy batch failure
+  details on demand, and keep technical diagnostics in logs.
+- Deduplicate repeated background failures across refreshes and navigation. Allow
+  failures to be reported again after recovery. Close scope-specific notifications
+  when leaving their resource scope; navigation alone must not repeat a global error.
+
+### Stable state and recovery
+
+Show ordinary activity at the initiating button using the shared busy behavior.
+Long-running work uses the existing task list or status area, without adding a
+temporary progress panel or inventing percentages. Current object or page state may
+remain visible in its designated area; operation result messages belong in toasts.
+Keep unresolved setup, authorization and connection states discoverable there, with
+the relevant recovery action.
+
+Keep the task container and toolbar placement stable across initial loading, empty
+results and read failures. Show initial loading or failure inside that container;
+distinguish a failure from an empty result and provide Retry. Empty results explain
+the situation and offer a useful next action. Background refresh retains existing
+content, drafts, focus and scroll; report refresh failure through a toast rather
+than replacing usable content or adding a banner.
+
+Reserve dialogs for decisions that require confirmation before an operation, with
+its scope and consequences explained. Do not open a dialog just to report a result.
 
 ## Page patterns
 
@@ -172,11 +299,9 @@ common actions compact and accessible. Hide checkboxes and batch commands until
 users enter selection mode, and clear selection when they leave it. Selection
 is limited to the current page and resets when search, filters or pagination change.
 Before cleanup, show the selected count and estimated space, preserve originals,
-and explain possible automatic regeneration. Report deletion outcomes through a
-single toast per operation, without inline result summaries. Success messages expire;
-failure toasts retain per-copy reasons and a retry action until dismissed. Close
-page-specific notifications when leaving the resource scope. Active preparation and
-readers must explain why removal is blocked.
+and explain possible automatic regeneration. Deletion feedback follows the global
+feedback rules, retaining access to per-copy failure reasons. Active preparation
+and readers must explain why removal is blocked.
 
 ### Settings
 
@@ -191,7 +316,7 @@ additional cards.
 Keep primary actions together and secondary commands discoverable. Distinguish saved
 configuration from verified connectivity, and keep unresolved setup failures visible.
 
-Persist single-value choices immediately and report success or failure through a toast.
+Persist single-value choices immediately; feedback follows the global feedback rules.
 Keep failed drafts editable so users can correct and retry without re-entering them.
 Reserve explicit Save actions for forms whose values must be submitted together, such
 as connection credentials, download destinations and resource directories whose save
@@ -265,6 +390,14 @@ non-color status cues. Provide labels, useful units, visible validation and acce
 help. Supplemental hints must not replace essential recovery information, and help
 must work with keyboard and touch.
 
+Use [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/) as the accessibility target.
+Normal text, including secondary text, needs at least 4.5:1 contrast; large text as
+defined by WCAG needs at least 3:1. Necessary non-text control and state indicators
+need at least 3:1 against adjacent colors. Check both light and dark themes.
+Pointer targets must meet the 24 by 24 CSS px minimum or a documented exception
+under [Target Size (Minimum)](https://www.w3.org/TR/WCAG22/#target-size-minimum);
+the larger touch-target baseline above is a project usability preference.
+
 Adapt grouping and density to available space while preserving reading order and
 relationships. Keep touch targets usable, avoid overlapping controls and prevent
 page-wide horizontal overflow.
@@ -279,6 +412,15 @@ Validate shared patterns in representative contexts before broad adoption. Revie
 light and dark themes across mobile, tablet and desktop sizes, including long titles,
 Chinese filenames, empty/loading/error states and keyboard focus. Automated checks
 alone do not establish visual acceptance.
+Verify text resizing to 200%, complete long-title access, icon-only accessible names,
+reduced-motion busy feedback and consistent typography roles across these contexts.
+Keep text roles, icon mappings and action behavior in shared styles and components;
+validate Files and Subscriptions as the initial examples before broader adoption.
+These rules are acceptance targets, not a claim that existing pages already comply.
+
+Verify that operation results use one toast, validation preserves drafts, and state
+changes keep the task container, toolbar and unrelated controls in place. Check
+success expiry, persistent failures, retry and background-error deduplication.
 
 Review Files and Subscriptions together as representative management inventories
 before extending the surface pattern to other pages. Verify that equivalent tasks
