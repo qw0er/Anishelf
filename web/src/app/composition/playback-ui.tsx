@@ -16,7 +16,11 @@ export const playbackUiSlots: PlaybackUiSlots = {
 	renderPreparation: ({ key, ...props }) => (
 		<PlaybackPreparation key={key} {...props} />
 	),
-	renderSubtitles: (fileId) => (
-		<SubtitleTracks fileId={fileId} policy={subtitlePolicy} />
+	renderSubtitles: (fileId, onPreparingChange) => (
+		<SubtitleTracks
+			fileId={fileId}
+			policy={subtitlePolicy}
+			onPreparingChange={onPreparingChange}
+		/>
 	),
 };

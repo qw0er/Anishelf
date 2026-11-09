@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { request } from "../../../shared/api/client.js";
+import { isRequestCancelled, request } from "../../../shared/api/client.js";
 import type {
 	TrackingAccountResponse,
 	TrackingPreviewResponse,
@@ -29,6 +29,8 @@ import {
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
 import { StatusBadge } from "../../../shared/components/ui/status-badge.js";
+import { toast } from "../../../shared/components/ui/toast.js";
+import { useRefreshError } from "../../../shared/hooks/use-refresh-error.js";
 
 import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { accountQuery } from "./queries.js";
@@ -40,13 +42,19 @@ export function TrackingAccountSettings() {
 	const [credential, setCredential] = useState("");
 	const [preview, setPreview] = useState<TrackingPreviewResponse | null>(null);
 	const account = useQuery(accountQuery());
+	useRefreshError(
+		"tracking-account",
+		account.data ? account.error : null,
+		account.errorUpdatedAt,
+		() => void account.refetch(),
+	);
 	const command = useMutation({
+		onMutate: () => toast.close("tracking-account-command"),
 		mutationFn: async (
 			operation: "preview" | "confirm" | "disconnect" | "check",
 		) => {
 			if (operation === "preview") {
 				const input = credential.trim();
-				setCredential("");
 				setPreview(null);
 				const result = await request<TrackingPreviewResponse>(
 					"/api/tracking/account/preview",
@@ -54,6 +62,7 @@ export function TrackingAccountSettings() {
 					{},
 					{ credential: input },
 				);
+				setCredential("");
 				setPreview(result);
 				return;
 			}
@@ -89,7 +98,14 @@ export function TrackingAccountSettings() {
 			client.setQueryData(accountKey, result);
 			setPreview(null);
 		},
-		onError: () => {
+		onError: (error, operation) => {
+			if (isRequestCancelled(error)) return;
+			console.warn("[Tracking] Account command failed.", { operation });
+			toast.add({
+				id: "tracking-account-command",
+				type: "error",
+				title: t("errors.requestFailed"),
+			});
 			void client.invalidateQueries({ queryKey: accountKey });
 		},
 	});
@@ -265,7 +281,7 @@ export function TrackingAccountSettings() {
 							)}
 						</>
 					)}
-					{(account.error || command.error) && (
+					{account.error && !current && (
 						<ActionButton
 							icon={RefreshCw}
 							label={t("trackingAccount.refresh")}
@@ -279,9 +295,9 @@ export function TrackingAccountSettings() {
 						/>
 					)}
 				</fieldset>
-				{(account.error || command.error) && (
+				{account.error && !current && (
 					<div role="alert" className="space-y-2">
-						<p>{(command.error ?? account.error)?.message}</p>
+						<p>{account.error?.message}</p>
 					</div>
 				)}
 			</CardContent>

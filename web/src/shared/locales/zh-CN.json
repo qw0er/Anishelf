@@ -35,9 +35,9 @@
 		"resourcePathRequired": "请输入资源目录的绝对路径。",
 		"startScan": "无法开始扫描。",
 		"mediaPlayback": "此浏览器无法播放该媒体。",
-		"playbackLoad": "无法加载播放进度。您可以继续观看并重试。",
-		"playbackSave": "无法保存播放进度，请重试。",
-		"playbackSaveRetrying": "播放进度尚未同步，正在自动重试。",
+		"playbackLoad": "无法加载保存在 Anishelf 中的播放位置。您可以继续观看并重试。",
+		"playbackSave": "无法将播放位置保存到 Anishelf，请重试。",
+		"playbackSaveRetrying": "播放位置尚未保存到 Anishelf，正在自动重试。",
 		"network": "无法连接服务器，请检查连接后重试。",
 		"invalidResponse": "服务器返回了无效响应，请重试。",
 		"requestFailed": "请求失败，请重试。",
@@ -168,6 +168,7 @@
 		"cacheHelpLabel": "缓存预算帮助"
 	},
 	"actions": {
+		"details": "详细信息",
 		"retry": "重试",
 		"close": "关闭",
 		"preview": "预览",
@@ -785,7 +786,8 @@
 		"confirm": "确认进度更新",
 		"keep": "保留当前进度",
 		"view": "查看观看记录服务进度",
-		"error": "无法加载或更新观看记录服务的完成状态。",
+		"loadFailed": "无法加载观看记录服务的完成状态。",
+		"submitFailed": "无法向观看记录服务提交更新。",
 		"unchanged": "观看记录服务进度未更改。",
 		"reasons": {
 			"account-changed": "连接的账户已更改，观看记录服务进度未更改。",

@@ -28,6 +28,7 @@ import { PaginationControls } from "../../../../shared/components/ui/pagination-
 import { RefreshButton } from "../../../../shared/components/ui/refresh-button.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
+import { useRefreshError } from "../../../../shared/hooks/use-refresh-error.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { formatFileSize } from "../../../resources/public.js";
 import { deletePreparedMediaBatch } from "../api.js";
@@ -78,6 +79,13 @@ function PreparedMediaInventory({
 		),
 	};
 	const query = useQuery(preparedMediaQuery(scope, input));
+	useRefreshError(
+		`prepared-media:${scope}`,
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+		{ scoped: true },
+	);
 	const client = useQueryClient();
 	const [selected, setSelected] = useState<string[]>([]);
 	const [selecting, setSelecting] = useState(false);
@@ -120,13 +128,18 @@ function PreparedMediaInventory({
 							timeout: 0,
 							priority: "high" as const,
 							description: (
-								<ul className="max-h-40 space-y-1 overflow-y-auto break-words">
-									{failures.map(({ item, error }) => (
-										<li key={item.id}>
-											{item.filename}: {t(`errors.api.${error}`)}
-										</li>
-									))}
-								</ul>
+								<details>
+									<summary className="cursor-pointer">
+										{t("actions.details")}
+									</summary>
+									<ul className="max-h-40 space-y-1 overflow-y-auto break-words">
+										{failures.map(({ item, error }) => (
+											<li key={item.id}>
+												{item.filename}: {t(`errors.api.${error}`)}
+											</li>
+										))}
+									</ul>
+								</details>
 							),
 							actionProps: {
 								children: t("actions.retry"),
@@ -272,7 +285,7 @@ function PreparedMediaInventory({
 					</div>
 				</div>
 				{query.isPending && <p role="status">{t("preparedMedia.loading")}</p>}
-				{query.error && (
+				{query.error && !query.data && (
 					<div role="alert" className="flex flex-wrap items-center gap-2">
 						<span>
 							{t(getErrorTranslationKey(query.error) ?? "errors.requestFailed")}
@@ -285,36 +298,34 @@ function PreparedMediaInventory({
 				{query.data && (
 					<>
 						{items.length === 0 ? (
-							!query.error && (
-								<EmptyState
-									embedded
-									icon={<FolderOpen size={24} />}
-									title={t(
-										query.data.usage.count === 0
-											? "preparedMedia.emptyTitle"
-											: "preparedMedia.noMatchesTitle",
-									)}
-									description={t(
-										query.data.usage.count === 0
-											? "preparedMedia.empty"
-											: "preparedMedia.noMatches",
-									)}
-									actions={
-										query.data.usage.count === 0 ? (
-											<Link
-												className={buttonStyles("outline")}
-												to="/directories/root"
-											>
-												{t("preparedMedia.browseFiles")}
-											</Link>
-										) : (
-											<Button variant="outline" onClick={resetFilters}>
-												{t("preparedMedia.resetFilters")}
-											</Button>
-										)
-									}
-								/>
-							)
+							<EmptyState
+								embedded
+								icon={<FolderOpen size={24} />}
+								title={t(
+									query.data.usage.count === 0
+										? "preparedMedia.emptyTitle"
+										: "preparedMedia.noMatchesTitle",
+								)}
+								description={t(
+									query.data.usage.count === 0
+										? "preparedMedia.empty"
+										: "preparedMedia.noMatches",
+								)}
+								actions={
+									query.data.usage.count === 0 ? (
+										<Link
+											className={buttonStyles("outline")}
+											to="/directories/root"
+										>
+											{t("preparedMedia.browseFiles")}
+										</Link>
+									) : (
+										<Button variant="outline" onClick={resetFilters}>
+											{t("preparedMedia.resetFilters")}
+										</Button>
+									)
+								}
+							/>
 						) : (
 							<>
 								{selecting && (

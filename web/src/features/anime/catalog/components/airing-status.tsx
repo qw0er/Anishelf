@@ -17,6 +17,7 @@ import {
 } from "../../../../shared/components/ui/collapsible.js";
 import { StatusBadge } from "../../../../shared/components/ui/status-badge.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
+import { useRefreshError } from "../../../../shared/hooks/use-refresh-error.js";
 import { type AiringRecord, airingSchedule } from "../airing-schedule.js";
 
 export function AiringStatus({
@@ -27,6 +28,13 @@ export function AiringStatus({
 	metadata: MetadataDetailsResponse | null;
 }) {
 	const { t, i18n } = useTranslation();
+	useRefreshError(
+		`airing:${metadata?.data.reference.id}`,
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+		{ scoped: true },
+	);
 	const [now, setNow] = useState(Date.now);
 	const { plans, history } = airingSchedule(
 		query.data?.pages ?? [],
@@ -112,7 +120,6 @@ export function AiringStatus({
 				<AiringTable records={plans} planned />
 			) : (
 				query.data &&
-				!query.error &&
 				!query.isPending && (
 					<p className="text-sm text-muted-foreground">
 						{t("anime.airingNoPlans")}
@@ -158,7 +165,7 @@ export function AiringStatus({
 					</Button>
 				</div>
 			)}
-			{query.error && (
+			{query.error && !query.data && (
 				<div role="alert" className="flex items-center gap-2 text-sm">
 					{t("anime.airingFailed")}
 					<Button

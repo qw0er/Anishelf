@@ -15,7 +15,44 @@ import { interactionDefaults } from "../../config/interaction-defaults.js";
 import { Button } from "./button.js";
 
 // Adapted from shadcn/ui's Base UI Toast component.
-const toast = ToastPrimitive.createToastManager();
+/** Apply result timing at creation and transitions, including explicit legacy overrides. */
+function createToastManager<Data extends object>() {
+	const manager = ToastPrimitive.createToastManager<Data>();
+	const add = manager.add;
+	const update = manager.update;
+	const timeout = (options: {
+		type?: string | undefined;
+		timeout?: number | undefined;
+	}) =>
+		options.type === "error"
+			? 0
+			: options.type === "success"
+				? interactionDefaults.toastTimeoutMs
+				: (options.timeout ?? interactionDefaults.toastTimeoutMs);
+	manager.add = (options) =>
+		add({
+			...options,
+			description: options.description,
+			actionProps: options.actionProps,
+			timeout: timeout(options),
+		});
+	manager.update = <T extends Data>(
+		id: string,
+		updates: Parameters<typeof update<T>>[1],
+	) =>
+		update<T>(id, (previous) => {
+			const next = typeof updates === "function" ? updates(previous) : updates;
+			return {
+				...next,
+				...(next.type === "success"
+					? { actionProps: next.actionProps, description: next.description }
+					: {}),
+				timeout: timeout({ type: previous.type, ...next }),
+			};
+		});
+	return manager;
+}
+const toast = createToastManager();
 
 function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
 	return <ToastPrimitive.Provider {...props} />;
@@ -189,7 +226,7 @@ function ToastList() {
 				<ToastIcon type={toastItem.type} />
 				<div className="flex min-w-0 flex-1 flex-col gap-1">
 					<ToastTitle />
-					<ToastDescription />
+					<ToastDescription render={<div />} />
 				</div>
 				<ToastAction />
 				<ToastClose />
@@ -219,7 +256,6 @@ function Toaster({
 	);
 }
 
-const createToastManager = ToastPrimitive.createToastManager;
 const useToastManager = ToastPrimitive.useToastManager;
 
 export {

@@ -89,7 +89,7 @@ export function usePlaybackSession(
 					priority: "high",
 					title: t(key),
 					id: notificationId,
-					timeout: interactionDefaults.errorToastTimeoutMs,
+					timeout: interactionDefaults.persistentToastTimeoutMs,
 					actionProps: {
 						children: t("actions.retry"),
 						onClick: () => {

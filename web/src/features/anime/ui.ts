@@ -3,7 +3,10 @@ export { FileIdentification } from "./catalog/components/file-identification.js"
 export { FileIdentificationMenu } from "./catalog/components/file-identification-menu.js";
 export { PlayerContinuation } from "./catalog/components/player-continuation.js";
 export { TrackedAnimeDetail } from "./catalog/components/tracked-anime-detail.js";
-export { IdentificationStatus } from "./identification-status.js";
+export {
+	IdentificationIndicator,
+	IdentificationStatus,
+} from "./identification-status.js";
 export { AnimeLibrary } from "./library/components/anime-library.js";
 export { ReviewPage } from "./review/components/review-page.js";
 export { TrackingAccountSettings } from "./tracking/account-settings.js";

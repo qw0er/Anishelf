@@ -5,6 +5,7 @@ import { clearCompatibilityCache } from "../../features/media/public.js";
 import { clearAuthToken, request } from "../../shared/api/client.js";
 import { queryClient } from "../../shared/api/query-client.js";
 import { Button } from "../../shared/components/ui/button.js";
+import { FieldError } from "../../shared/components/ui/field.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { Spinner } from "../../shared/components/ui/spinner.js";
 import { loginReturnPath } from "./return-path.js";
@@ -52,6 +53,8 @@ export function LoginPage() {
 					<span className="field-label">{t("auth.login.password")}</span>
 					<Input
 						id="login-password"
+						aria-invalid={Boolean(error) || undefined}
+						aria-describedby={error ? "login-password-error" : undefined}
 						type="password"
 						autoComplete="current-password"
 						required
@@ -61,11 +64,7 @@ export function LoginPage() {
 						disabled={pending}
 					/>
 				</label>
-				{error && (
-					<p role="alert" className="text-sm text-destructive">
-						{error}
-					</p>
-				)}
+				<FieldError id="login-password-error">{error}</FieldError>
 				<Button
 					type="submit"
 					disabled={pending}

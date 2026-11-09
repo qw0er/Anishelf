@@ -14,6 +14,7 @@ import {
 import { Progress } from "../../shared/components/ui/progress.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
+import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
 import { settingsQuery } from "../settings/public.js";
 import { activityStatus } from "./activity-status.js";
@@ -187,6 +188,13 @@ export function DownloadActivityPanel({
 				title: t("acquisition.activity.retryFailed"),
 			}),
 	});
+	useRefreshError(
+		`download-activity:${workKey}`,
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+		{ scoped: true },
+	);
 	const activity = query.data,
 		tasks = (activity?.items ?? []).filter(
 			(item) => !episode || item.episode === episode,
@@ -281,7 +289,7 @@ export function DownloadActivityPanel({
 			{query.isPending && !activity && (
 				<p role="status">{t("acquisition.activity.loading")}</p>
 			)}
-			{query.isError && (
+			{query.isError && !query.data && (
 				<p role="alert">
 					{t("acquisition.activity.statusUnavailable")}{" "}
 					<Button variant="ghost" onClick={() => void query.refetch()}>
@@ -308,7 +316,7 @@ export function DownloadActivityPanel({
 					{tasks.filter((item) => !historical(item)).map(row)}
 					{!tasks.some((item) => !historical(item)) &&
 						!query.isPending &&
-						!query.isError && (
+						query.data && (
 							<p className="text-sm text-muted-foreground">
 								{t("acquisition.activity.noActiveTasks")}
 							</p>

@@ -19,6 +19,7 @@ import {
 	NativeSelectOption,
 } from "../../shared/components/ui/native-select.js";
 import { toast } from "../../shared/components/ui/toast.js";
+import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
 import { SubscriptionPanel } from "./subscription-panel.js";
 import { subscriptionStatus } from "./subscription-status.js";
@@ -34,6 +35,12 @@ export function SubscriptionsPage() {
 	const { t } = useTranslation();
 	const client = useQueryClient();
 	const watching = useQuery(watchingQuery());
+	useRefreshError(
+		`watching-automation`,
+		watching.data ? watching.error : null,
+		watching.errorUpdatedAt,
+		() => void watching.refetch(),
+	);
 	const membership = useMutation({
 		mutationFn: (work: WatchingAutomationStatus["works"][number]) => {
 			if (!watching.data?.accountId)
@@ -94,6 +101,12 @@ export function SubscriptionsPage() {
 		setParams(next, { replace: key === "search" });
 	}
 	const query = useQuery(subscriptionListQuery());
+	useRefreshError(
+		"subscriptions-inventory",
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+	);
 	const filtered = search.trim() !== "" || filter !== "all" || attention;
 	const clearFilters = () => {
 		const next = new URLSearchParams(params);
@@ -165,10 +178,10 @@ export function SubscriptionsPage() {
 			<div className="flex flex-wrap items-center justify-between gap-2 text-sm">
 				<p
 					className="text-muted-foreground"
-					role={watching.isError ? "alert" : "status"}
+					role={watching.isError && !watching.data ? "alert" : "status"}
 				>
 					{t("acquisition.manager.automation")}:{" "}
-					{watching.isError
+					{watching.isError && !watching.data
 						? t("acquisition.watching.loadFailed")
 						: watching.data
 							? t(
@@ -177,12 +190,12 @@ export function SubscriptionsPage() {
 										: "acquisition.watching.disabled",
 								)
 							: t("acquisition.watching.loading")}
-					{!watching.isError &&
+					{!(watching.isError && !watching.data) &&
 						watching.data &&
 						!["ready", "disabled"].includes(watching.data.reason) &&
 						` · ${watchingReason(watching.data.reason)}`}
 				</p>
-				{watching.isError && (
+				{watching.isError && !watching.data && (
 					<Button variant="ghost" onClick={() => void watching.refetch()}>
 						{t("actions.retry")}
 					</Button>
@@ -264,7 +277,7 @@ export function SubscriptionsPage() {
 						{t("acquisition.subscription.loading")}
 					</p>
 				)}
-				{query.isError && (
+				{query.isError && !query.data && (
 					<div
 						className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm sm:px-5"
 						role="alert"
@@ -275,7 +288,7 @@ export function SubscriptionsPage() {
 						</Button>
 					</div>
 				)}
-				{!query.isError && rows?.length === 0 && (
+				{query.data && rows?.length === 0 && (
 					<div className="p-4 sm:p-5">
 						<EmptyState
 							embedded

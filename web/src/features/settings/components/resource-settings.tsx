@@ -12,6 +12,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import { FieldError } from "../../../shared/components/ui/field.js";
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
 import { toast } from "../../../shared/components/ui/toast.js";
@@ -62,12 +63,16 @@ export default function ResourceSettings({
 				title: t("settingsPage.cacheSaved"),
 			});
 		},
-		onError: () => {
+		onError: (_error, value) => {
 			console.warn("[Settings] Transcode cache budget save failed.");
 			toast.add({
 				id: "settings-cache-budget-save",
 				type: "error",
 				title: t("settingsPage.cacheSaveFailed"),
+				actionProps: {
+					children: t("actions.retry"),
+					onClick: () => cacheSave.mutate(value),
+				},
 			});
 		},
 	});
@@ -130,27 +135,14 @@ export default function ResourceSettings({
 								!budgetValid ? "transcode-cache-budget-error" : undefined
 							}
 							onChange={(event) => setBudgetDraft(event.target.value)}
-							onBlur={() => {
-								if (!budgetValid) {
-									toast.add({
-										id: "settings-cache-budget-save",
-										type: "error",
-										title: t("settingsPage.invalidCacheBudget"),
-									});
-									return;
-								}
-								flushBudget();
-							}}
+							onBlur={flushBudget}
 						/>
-						{!budgetValid && (
-							<p
-								id="transcode-cache-budget-error"
-								role="alert"
-								className="field-error"
-							>
-								{t("settingsPage.invalidCacheBudget")}
-							</p>
-						)}
+						<FieldError
+							id="transcode-cache-budget-error"
+							className="field-error"
+						>
+							{!budgetValid && t("settingsPage.invalidCacheBudget")}
+						</FieldError>
 					</div>
 					{disabled && (
 						<p className="text-sm">{t("settingsPage.waitForScan")}</p>

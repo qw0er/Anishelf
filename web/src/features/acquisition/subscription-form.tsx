@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiClientError, isRequestCancelled } from "../../shared/api/client.js";
 import type { SubscriptionView } from "../../shared/api/contracts.js";
 import { Button } from "../../shared/components/ui/button.js";
 import {
@@ -56,6 +57,7 @@ export function SubscriptionForm({
 	const sourceReady = !needsSource || !!sources.data?.ready;
 	const target = destination.data?.destination;
 	const save = useMutation({
+		onMutate: () => toast.close(`subscription-save:${workKey}`),
 		mutationFn: () => {
 			if (!target?.validated) throw new Error("Destination required");
 			return saveSubscription({
@@ -76,11 +78,23 @@ export function SubscriptionForm({
 		onSuccess: (result) => {
 			onSaved(result);
 			toast.add({
+				id: `subscription-save:${workKey}`,
 				type: "success",
 				title: t("acquisition.subscription.updated"),
 			});
 		},
-		onError: () => {
+		onError: (error) => {
+			if (isRequestCancelled(error)) return;
+			console.warn("[Acquisition] Subscription save failed.", { workKey });
+			toast.add({
+				id: `subscription-save:${workKey}`,
+				type: "error",
+				title: t(
+					error instanceof ApiClientError && error.status === 409
+						? "acquisition.subscription.saveConflict"
+						: "errors.requestFailed",
+				),
+			});
 			void client.invalidateQueries({
 				queryKey: [...downloadKeys, "settings"],
 			});
@@ -218,11 +232,7 @@ export function SubscriptionForm({
 						</a>
 					</p>
 				)}
-			{save.isError && (
-				<p role="alert" className="text-sm">
-					{t("acquisition.subscription.saveConflict")}
-				</p>
-			)}
+
 			<Button
 				type="submit"
 				disabled={

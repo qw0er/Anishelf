@@ -25,14 +25,7 @@ export function ReviewEditor({ id }: { id: string }) {
 function MappingEditor({ item }: { item: CatalogReviewItem }) {
 	const { t } = useTranslation();
 	const controller = useReviewController(item);
-	const {
-		reference,
-		details,
-		preview,
-		validation,
-		previewError,
-		confirmError,
-	} = controller;
+	const { reference, details, preview } = controller;
 	return (
 		<div className="grid min-w-0 items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
 			<aside className="min-w-0 space-y-4 lg:sticky lg:top-6">
@@ -71,9 +64,6 @@ function MappingEditor({ item }: { item: CatalogReviewItem }) {
 					<MappingForm item={item} controller={controller} />
 				)}
 				{preview && <AssociationPreview item={item} controller={controller} />}
-				{validation && <p role="alert">{validation}</p>}
-				{previewError && <ErrorMessage error={previewError} />}
-				{confirmError && <ErrorMessage error={confirmError} />}
 			</div>
 		</div>
 	);

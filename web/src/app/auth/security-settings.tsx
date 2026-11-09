@@ -12,6 +12,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
+import { FieldError } from "../../shared/components/ui/field.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 export function SecuritySettings() {
@@ -120,6 +121,8 @@ export function SecuritySettings() {
 						</div>
 						<Input
 							id="confirm-password"
+							aria-invalid={Boolean(error) || undefined}
+							aria-describedby={error ? "security-password-error" : undefined}
 							type="password"
 							autoComplete="new-password"
 							required
@@ -128,11 +131,9 @@ export function SecuritySettings() {
 							disabled={pending}
 						/>
 					</div>
-					{error && (
-						<p role="alert" className="field-error sm:col-span-2">
-							{error}
-						</p>
-					)}
+					<FieldError id="security-password-error" className="sm:col-span-2">
+						{error}
+					</FieldError>
 				</form>
 				<div className="action-row">
 					<ActionButton

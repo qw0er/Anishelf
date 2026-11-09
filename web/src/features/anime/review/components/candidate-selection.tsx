@@ -7,6 +7,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../../../shared/components/ui/collapsible.js";
+import { FieldError } from "../../../../shared/components/ui/field.js";
 import { Input } from "../../../../shared/components/ui/input.js";
 import { NativeSelect } from "../../../../shared/components/ui/native-select.js";
 import { PaginationControls } from "../../../../shared/components/ui/pagination-controls.js";
@@ -31,6 +32,7 @@ export function CandidateSelection({
 		| "selectWork"
 		| "searchWorks"
 		| "lookupWork"
+		| "lookupValidation"
 		| "changeSearchPage"
 	>;
 }) {
@@ -47,6 +49,7 @@ export function CandidateSelection({
 		selectWork,
 		searchWorks,
 		lookupWork,
+		lookupValidation,
 		changeSearchPage,
 	} = controller;
 	return (
@@ -202,7 +205,7 @@ export function CandidateSelection({
 						</Button>
 					</form>
 					<form
-						className="flex min-w-0 items-end gap-2"
+						className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2"
 						onSubmit={(event) => {
 							event.preventDefault();
 							lookupWork(
@@ -220,6 +223,10 @@ export function CandidateSelection({
 							{t("review.providerId")}
 							<Input
 								id="provider-id"
+								aria-invalid={Boolean(lookupValidation) || undefined}
+								aria-describedby={
+									lookupValidation ? "review-lookup-error" : undefined
+								}
 								name="providerReference"
 								disabled={busy}
 								required
@@ -228,6 +235,9 @@ export function CandidateSelection({
 						<Button type="submit" variant="outline" disabled={busy}>
 							{t("review.lookup")}
 						</Button>
+						<FieldError id="review-lookup-error" className="col-span-2">
+							{lookupValidation}
+						</FieldError>
 					</form>
 				</div>
 			</div>

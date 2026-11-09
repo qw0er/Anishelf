@@ -10,9 +10,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { isRequestCancelled } from "../../shared/api/client.js";
 import type { WatchingAutomationStatus } from "../../shared/api/contracts.js";
 import { ActionButton } from "../../shared/components/ui/action-button.js";
-import { buttonStyles } from "../../shared/components/ui/button.js";
+import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import {
 	Card,
 	CardContent,
@@ -36,6 +37,8 @@ import {
 	RadioCardGroup,
 } from "../../shared/components/ui/radio-card.js";
 import { StatusBadge } from "../../shared/components/ui/status-badge.js";
+import { toast } from "../../shared/components/ui/toast.js";
+import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
 import { acquisitionProfilesQuery } from "./subscriptions-api.js";
 import {
@@ -55,6 +58,12 @@ export function WatchingSettings({
 }) {
 	const { t } = useTranslation();
 	const query = useQuery(watchingQuery());
+	useRefreshError(
+		"watching-automation",
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+	);
 	return (
 		<Card
 			className={
@@ -102,6 +111,11 @@ export function WatchingSettings({
 						{query.isError
 							? t("acquisition.watching.loadFailed")
 							: t("acquisition.watching.loading")}
+						{query.isError && (
+							<Button variant="outline" onClick={() => void query.refetch()}>
+								{t("actions.retry")}
+							</Button>
+						)}
 					</p>
 				)}
 			</CardContent>
@@ -122,7 +136,21 @@ function WatchingForm({
 		status.config?.backlog ?? "progress",
 	);
 	const profileId = profiles.data?.selectedProfileId ?? "";
+	const noticeId = "watching-command";
+	const feedback = {
+		onMutate: () => toast.close(noticeId),
+		onError: (error: Error) => {
+			if (isRequestCancelled(error)) return;
+			console.warn("[Acquisition] Watching command failed.");
+			toast.add({
+				id: noticeId,
+				type: "error",
+				title: t("acquisition.watching.updateFailed"),
+			});
+		},
+	};
 	const preview = useMutation({
+		...feedback,
 		mutationFn: () =>
 			previewWatching(status.revision, {
 				backlog,
@@ -147,6 +175,7 @@ function WatchingForm({
 		preview.reset();
 	};
 	const confirm = useMutation({
+		...feedback,
 		mutationFn: () => {
 			if (!preview.data) throw Error("Preview required");
 			return confirmWatching(preview.data.id);
@@ -154,10 +183,12 @@ function WatchingForm({
 		onSuccess: update,
 	});
 	const disable = useMutation({
+		...feedback,
 		mutationFn: () => disableWatching(status.revision),
 		onSuccess: update,
 	});
 	const override = useMutation({
+		...feedback,
 		mutationFn: (
 			work: WatchingAutomationStatus["works"][number] & {
 				excluded: boolean;
@@ -233,6 +264,7 @@ function WatchingForm({
 								shortLabel={t("actions.disable")}
 								variant="outline"
 								disabled={busy}
+								aria-busy={disable.isPending}
 								onClick={() => disable.mutate()}
 							/>
 						)}
@@ -245,12 +277,6 @@ function WatchingForm({
 							/>
 						</a>
 					</div>
-					{(preview.isError ||
-						confirm.isError ||
-						disable.isError ||
-						override.isError) && (
-						<p role="alert">{t("acquisition.watching.updateFailed")}</p>
-					)}
 				</>
 			)}
 			{preview.isSuccess &&
@@ -379,6 +405,10 @@ function WatchingForm({
 															: "actions.exclude",
 													)}
 													variant="ghost"
+													aria-busy={
+														override.isPending &&
+														override.variables?.workKey === work.workKey
+													}
 													disabled={busy || !status.accountId}
 													onClick={() =>
 														override.mutate({

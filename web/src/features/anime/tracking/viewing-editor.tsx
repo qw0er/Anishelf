@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { Loader2, Save } from "lucide-react";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiClientError, request } from "../../../shared/api/client.js";
+import { request } from "../../../shared/api/client.js";
 import type {
 	TrackingEntryResponse,
 	TrackingOperationResponse,
@@ -304,10 +305,6 @@ function ViewingForm({
 						)}
 					</div>
 				)}
-			{mutation.error instanceof ApiClientError &&
-				(mutation.error.status === 400 || mutation.error.status === 409) && (
-					<p role="alert">{mutation.error.message}</p>
-				)}
 			{operation?.state === "decision-required" && (
 				<div className="grid gap-2">
 					<p>
@@ -361,8 +358,29 @@ function ViewingForm({
 					<>
 						<Button
 							type="submit"
-							disabled={mutation.isPending || !valid || !changed}
+							aria-busy={
+								mutation.isPending ||
+								operation?.state === "pending" ||
+								operation?.state === "submitting"
+							}
+							disabled={
+								mutation.isPending ||
+								operation?.state === "pending" ||
+								operation?.state === "submitting" ||
+								!valid ||
+								!changed
+							}
 						>
+							{mutation.isPending ||
+							operation?.state === "pending" ||
+							operation?.state === "submitting" ? (
+								<Loader2
+									className="size-4 motion-safe:animate-spin"
+									aria-hidden="true"
+								/>
+							) : (
+								<Save className="size-4" aria-hidden="true" />
+							)}
 							{t("trackingUpdate.save")}
 						</Button>
 						{operation?.state === "failed" && (

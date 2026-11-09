@@ -147,3 +147,38 @@ test("shows a warning when custom acquisition profiles could not be loaded", asy
 	);
 	expect(alert.textContent).toContain("acquisition-profiles.yaml");
 });
+
+test("background settings failure preserves the mounted draft and focus, then recovers", async () => {
+	let failed = false;
+	vi.spyOn(api, "request").mockImplementation(async (path, method) => {
+		if (path === "/api/acquisition/profiles") return profiles;
+		if (method === "GET" && failed) throw new Error("offline");
+		return { resourceRoots: [], rssRefreshIntervalMinutes: 45 };
+	});
+	const add = vi.spyOn(toast, "add").mockReturnValue("settings-configuration");
+	const close = vi.spyOn(toast, "close");
+	render(<RssSettings />);
+	const input = await screen.findByRole("spinbutton");
+	input.focus();
+	fireEvent.change(input, { target: { value: "0" } });
+	fireEvent.blur(input);
+	expect(screen.getByRole("alert").id).toBe("rss-refresh-interval-error");
+	expect(add).not.toHaveBeenCalled();
+	failed = true;
+	await queryClient.refetchQueries({ queryKey: ["settings"] });
+	await waitFor(() => expect(add).toHaveBeenCalledOnce());
+	expect(screen.getByRole("spinbutton")).toBe(input);
+	expect((input as HTMLInputElement).value).toBe("0");
+	expect(document.activeElement).toBe(input);
+	await queryClient.refetchQueries({ queryKey: ["settings"] });
+	expect(add).toHaveBeenCalledOnce();
+	failed = false;
+	await queryClient.refetchQueries({ queryKey: ["settings"] });
+	await waitFor(() =>
+		expect(close).toHaveBeenCalledWith("settings-configuration"),
+	);
+	expect(document.activeElement).toBe(input);
+	failed = true;
+	await queryClient.refetchQueries({ queryKey: ["settings"] });
+	await waitFor(() => expect(add).toHaveBeenCalledTimes(2));
+});

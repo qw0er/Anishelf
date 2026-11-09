@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import { ApiClientError } from "../../../shared/api/client.js";
 import type {
 	CatalogPreviewResponse,
 	CatalogReviewItem,
@@ -21,7 +22,7 @@ import {
 	previewMapping,
 	reidentifyReview,
 } from "./api.js";
-import { inlineReviewError, reportReviewFailure } from "./feedback.js";
+import { reportReviewFailure } from "./feedback.js";
 import { parseMapping } from "./mapping.js";
 import { reviewQuery } from "./queries.js";
 export function useReviewController(item: CatalogReviewItem) {
@@ -30,6 +31,7 @@ export function useReviewController(item: CatalogReviewItem) {
 	const scope = useQueryScope();
 	const navigate = useNavigate();
 	const noticeId = `review-operation:${item.id}`;
+	useEffect(() => () => toast.close(noticeId), [noticeId]);
 	const [reference, setReference] = useState<{
 		id: string;
 	} | null>(() =>
@@ -49,6 +51,7 @@ export function useReviewController(item: CatalogReviewItem) {
 	const [decisionValidation, setDecisionValidation] = useState<string | null>(
 		null,
 	);
+	const [lookupValidation, setLookupValidation] = useState<string | null>(null);
 	const [validation, setValidation] = useState<string | null>(null);
 	const searchQuery = useQuery({
 		...metadataSearchQuery(search, searchPage, searchProvider || undefined),
@@ -149,7 +152,11 @@ export function useReviewController(item: CatalogReviewItem) {
 	const lookup = useMutation({
 		mutationFn: (value: string) => resolveMetadataReference(value),
 		onSuccess: selectWork,
-		onError: () => setValidation(t("review.invalidId")),
+		onError: (error) => {
+			if (error instanceof ApiClientError && error.code === "INVALID_REQUEST")
+				setLookupValidation(t("review.invalidId"));
+			else reportReviewFailure(noticeId, error);
+		},
 	});
 	const busy =
 		lookup.isPending ||
@@ -163,6 +170,7 @@ export function useReviewController(item: CatalogReviewItem) {
 	}
 
 	function selectWork(value: NonNullable<typeof reference>) {
+		setLookupValidation(null);
 		setReference(value);
 		clearPreview();
 	}
@@ -172,7 +180,7 @@ export function useReviewController(item: CatalogReviewItem) {
 	}
 
 	function lookupWork(value: string) {
-		setValidation(null);
+		setLookupValidation(null);
 		lookup.mutate(value);
 	}
 
@@ -209,6 +217,7 @@ export function useReviewController(item: CatalogReviewItem) {
 		preview,
 		replace,
 		validation,
+		lookupValidation,
 		decisionValidation,
 		searchQuery,
 		details,
@@ -216,11 +225,7 @@ export function useReviewController(item: CatalogReviewItem) {
 		busy,
 		previewPending: previewAction.isPending,
 		confirmPending: confirmAction.isPending,
-		previewError: inlineReviewError(previewAction.error),
-		confirmError: inlineReviewError(confirmAction.error),
-		decisionError: inlineReviewError(decisionAction.error),
 		reidentifyPending: reidentifyAction.isPending,
-		reidentifyError: inlineReviewError(reidentifyAction.error),
 		reidentify: () => reidentifyAction.mutate(),
 		selectWork,
 		searchWorks,

@@ -35,9 +35,9 @@
 		"resourcePathRequired": "Enter an absolute resource directory path.",
 		"startScan": "Could not start scanning.",
 		"mediaPlayback": "This media could not be played in this browser.",
-		"playbackLoad": "Playback progress could not be loaded. You can keep watching and retry.",
-		"playbackSave": "Playback progress could not be saved. Please retry.",
-		"playbackSaveRetrying": "Playback progress has not synced. Retrying automatically.",
+		"playbackLoad": "The playback position saved in Anishelf could not be loaded. You can keep watching and retry.",
+		"playbackSave": "The playback position could not be saved to Anishelf. Please retry.",
+		"playbackSaveRetrying": "The playback position has not been saved to Anishelf. Retrying automatically.",
 		"network": "Cannot connect to the server. Check your connection and try again.",
 		"invalidResponse": "The server returned an invalid response. Please try again.",
 		"requestFailed": "The request failed. Please try again.",
@@ -242,6 +242,7 @@
 		}
 	},
 	"actions": {
+		"details": "Details",
 		"retry": "Retry",
 		"close": "Close",
 		"preview": "Preview",
@@ -802,7 +803,8 @@
 		"confirm": "Confirm progress update",
 		"keep": "Keep current progress",
 		"view": "View the tracking service progress",
-		"error": "Could not load or update the tracking service completion.",
+		"loadFailed": "Could not load the tracking service completion state.",
+		"submitFailed": "Could not submit the update to the tracking service.",
 		"reasons": {
 			"account-changed": "the tracking service progress unchanged because the connected account changed.",
 			"mapping-changed": "the tracking service progress unchanged because the episode association changed.",

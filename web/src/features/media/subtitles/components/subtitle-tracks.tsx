@@ -14,9 +14,11 @@ import { StyledSubtitleRenderer } from "../renderer.js";
 export function SubtitleTracks({
 	fileId,
 	policy,
+	onPreparingChange,
 }: {
 	fileId: string;
 	policy: SubtitlePolicy;
+	onPreparingChange?: (label: string | null) => void;
 }) {
 	const { initializationTimeoutMs, memoryMaximumBytes, maximumBytes } = policy;
 	const formatsKey = policy.formats.join(",");
@@ -56,50 +58,53 @@ export function SubtitleTracks({
 			(feedback) => {
 				toast.close(notificationId);
 				toast.close(`subtitle-fonts:${fileId}`);
-				if (!feedback) return;
-				const preparing = feedback.status === "preparing";
+				onPreparingChange?.(
+					feedback?.status === "preparing"
+						? t("subtitles.preparing", { name: feedback.name })
+						: null,
+				);
+				if (!feedback || feedback.status === "preparing") return;
+				console.debug("[Subtitles] Preparation result notified.", {
+					fileId,
+					status: feedback.status,
+					code: feedback.errorCode,
+				});
 				toast.add({
 					id: notificationId,
-					type: preparing || feedback.status === "warning" ? "info" : "error",
-					timeout: preparing
-						? interactionDefaults.persistentToastTimeoutMs
-						: interactionDefaults.errorToastTimeoutMs,
+					type: feedback.status === "warning" ? "warning" : "error",
+					timeout: interactionDefaults.persistentToastTimeoutMs,
 					title: t(
-						preparing
-							? "subtitles.preparing"
-							: feedback.status === "warning"
-								? "subtitles.fontFallback"
-								: "subtitles.failed",
-						{
-							name: feedback.name,
-						},
+						feedback.status === "warning"
+							? "subtitles.fontFallback"
+							: "subtitles.failed",
+						{ name: feedback.name },
 					),
-					...(!preparing && {
-						priority: "high" as const,
-						description: t(`subtitles.errors.${feedback.errorCode}`, {
-							defaultValue: t("subtitles.errors.SUBTITLE_EXTRACTION_FAILED"),
-						}),
-						actionProps: {
-							children: t("subtitles.retry"),
-							onClick: () => controllerRef.current?.retry(),
-						},
+					priority: "high",
+					description: t(`subtitles.errors.${feedback.errorCode}`, {
+						defaultValue: t("subtitles.errors.SUBTITLE_EXTRACTION_FAILED"),
 					}),
+					actionProps: {
+						children: t("subtitles.retry"),
+						onClick: () => controllerRef.current?.retry(),
+					},
 				});
 			},
 		);
 		controllerRef.current = controller;
 		return () => {
 			controller.dispose();
+			onPreparingChange?.(null);
 			toast.close(notificationId);
 			controllerRef.current = null;
 		};
-	}, [player, discovery, fileId, t, client]);
+	}, [player, discovery, fileId, t, client, onPreparingChange]);
 	useEffect(() => {
 		if (!player) return;
 		const renderer = new StyledSubtitleRenderer(stablePolicy, (track) => {
 			toast.add({
 				id: `subtitle-fonts:${fileId}`,
-				type: "info",
+				type: "warning",
+				timeout: 0,
 				title: t("subtitles.fontFallback", { name: track.label }),
 				description: t("subtitles.errors.FONT_FALLBACK"),
 				actionProps: {

@@ -14,6 +14,7 @@ import {
 	NativeSelectOption,
 } from "../../shared/components/ui/native-select.js";
 import { toast } from "../../shared/components/ui/toast.js";
+import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import {
 	downloadKeys,
 	getDownloadSettings,
@@ -29,6 +30,12 @@ export function DownloadDestinationSettings() {
 		queryFn: ({ signal }) =>
 			getDownloadSettings({ signal: boundedSignal(signal) }),
 	});
+	useRefreshError(
+		"download-destination",
+		query.data ? query.error : null,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+	);
 	const [root, setRoot] = useState<string | null>(null),
 		[path, setPath] = useState<string | null>(null);
 	const destination = query.data?.destination;
@@ -80,7 +87,7 @@ export function DownloadDestinationSettings() {
 	});
 	if (query.isPending)
 		return <LoadingState label={t("acquisition.destination.loading")} />;
-	if (query.isError)
+	if (query.isError && !query.data)
 		return (
 			<p role="alert">
 				{t("acquisition.destination.unavailable")}{" "}

@@ -80,7 +80,12 @@ test("checks only on demand, shows mismatched builds and retains successful resu
 		).toBe(false),
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Check for updates" }));
-	await screen.findByText(/The latest check failed/);
+	await waitFor(() =>
+		expect(toast.add).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "error" }),
+		),
+	);
+	expect(screen.queryByText(/The latest check failed/)).toBeNull();
 	expect(screen.getByText("A new version is available.")).toBeTruthy();
 	expect(screen.getByText(/Checked/)).toBeTruthy();
 });

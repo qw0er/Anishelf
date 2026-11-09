@@ -11,6 +11,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
+import { FieldError } from "../../shared/components/ui/field.js";
 import { InlineError } from "../../shared/components/ui/inline-error.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { LoadingState } from "../../shared/components/ui/loading-state.js";
@@ -20,6 +21,7 @@ import {
 } from "../../shared/components/ui/radio-card.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { useAutoSave } from "../../shared/hooks/use-auto-save.js";
+import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import {
 	saveSettings,
 	settingsKeys,
@@ -33,6 +35,18 @@ export function RssSettings() {
 	const client = useQueryClient();
 	const configuration = useQuery(settingsQuery());
 	const profiles = useQuery(acquisitionProfilesQuery());
+	useRefreshError(
+		"settings-configuration",
+		configuration.data ? configuration.error : null,
+		configuration.errorUpdatedAt,
+		() => void configuration.refetch(),
+	);
+	useRefreshError(
+		"acquisition-profiles",
+		profiles.data ? profiles.error : null,
+		profiles.errorUpdatedAt,
+		() => void profiles.refetch(),
+	);
 	const [profileDraft, setProfileDraft] = useState<string | null>(null);
 	const profileSave = useMutation({
 		mutationFn: (defaultAcquisitionProfileId: string) =>
@@ -50,7 +64,6 @@ export function RssSettings() {
 		},
 		onError: () => {
 			console.warn("[Settings] Release profile save failed.");
-			setProfileDraft(null);
 			toast.add({
 				type: "error",
 				title: t("acquisition.rss.profileSaveFailed"),
@@ -84,11 +97,15 @@ export function RssSettings() {
 				id: "rss-settings-save",
 			});
 		},
-		onError: () => {
+		onError: (_error, value) => {
 			console.warn("[Settings] RSS refresh interval save failed.");
 			toast.add({
 				type: "error",
 				title: t("acquisition.rss.saveFailed"),
+				actionProps: {
+					children: t("actions.retry"),
+					onClick: () => save.mutate(value),
+				},
 				id: "rss-settings-save",
 			});
 		},
@@ -151,7 +168,7 @@ export function RssSettings() {
 						))}
 					</RadioCardGroup>
 				) : null}
-				{profiles.isError && (
+				{profiles.isError && !profiles.data && (
 					<InlineError>
 						{t("acquisition.rss.loadProfilesFailed")}{" "}
 						<Button variant="outline" onClick={() => void profiles.refetch()}>
@@ -161,7 +178,7 @@ export function RssSettings() {
 				)}
 				{configuration.isPending ? (
 					<LoadingState label={t("acquisition.rss.loading")} />
-				) : configuration.isError ? (
+				) : configuration.isError && !configuration.data ? (
 					<InlineError>
 						{t("acquisition.rss.loadFailed")}{" "}
 						<Button
@@ -192,34 +209,16 @@ export function RssSettings() {
 									!intervalValid ? "rss-refresh-interval-error" : undefined
 								}
 								onChange={(event) => setIntervalDraft(event.target.value)}
-								onBlur={() => {
-									if (!intervalValid) {
-										toast.add({
-											type: "error",
-											title: t("acquisition.rss.invalidInterval", {
-												min: rssConstraints.minimumRefreshIntervalMinutes,
-												max: rssConstraints.maximumRefreshIntervalMinutes,
-											}),
-											id: "rss-settings-save",
-										});
-										return;
-									}
-									flushInterval();
-								}}
+								onBlur={flushInterval}
 							/>
 						</label>
-						{!intervalValid && (
-							<p
-								id="rss-refresh-interval-error"
-								role="alert"
-								className="field-error"
-							>
-								{t("acquisition.rss.invalidInterval", {
+						<FieldError id="rss-refresh-interval-error" className="field-error">
+							{!intervalValid &&
+								t("acquisition.rss.invalidInterval", {
 									min: rssConstraints.minimumRefreshIntervalMinutes,
 									max: rssConstraints.maximumRefreshIntervalMinutes,
 								})}
-							</p>
-						)}
+						</FieldError>
 					</div>
 				) : null}
 			</CardContent>

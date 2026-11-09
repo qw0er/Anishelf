@@ -102,12 +102,7 @@ export function reportTrackingOperations(
 		const id = `tracking-operation:${op.id}`;
 		if (op.state === "pending" || op.state === "submitting") {
 			toast.close(id);
-			toast.add({
-				id,
-				type: "loading",
-				title: i18n.t(`trackingUpdate.states.${op.state}`),
-				timeout: 0,
-			});
+
 			continue;
 		}
 		if (isResultState(op.state)) {
@@ -131,7 +126,7 @@ export function reportTrackingOperations(
 			id,
 			type: "error" as const,
 			title: i18n.t(`trackingUpdate.states.${op.state}`),
-			timeout: 10000,
+			timeout: 0,
 			actionProps: {
 				children: i18n.t("trackingUpdate.edit"),
 				onClick: () => window.location.assign(`/anime/tracked/${op.mediaId}`),

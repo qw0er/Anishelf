@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckCheck } from "lucide-react";
+import { Check, CheckCheck, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { request } from "../../../shared/api/client.js";
@@ -18,6 +18,7 @@ import {
 } from "../../../shared/components/ui/collapsible.js";
 import { RadioOptions } from "../../../shared/components/ui/radio-options.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
+import { useRefreshError } from "../../../shared/hooks/use-refresh-error.js";
 import {
 	appliesToEpisode,
 	isResultState,
@@ -58,7 +59,8 @@ export function PlayerViewingControl({
 				{ signal: boundedSignal(signal) },
 			),
 	});
-	if (target.error) return <TargetError retry={() => void target.refetch()} />;
+	if (target.error && !target.data)
+		return <TargetError retry={() => void target.refetch()} />;
 	if (!target.data) return null;
 	if (!target.data.target)
 		return (
@@ -100,6 +102,13 @@ function TargetControl({
 		...operationsQuery(identity, true),
 		enabled: Boolean(identity.accountId),
 	});
+	useRefreshError(
+		`tracking-operations:${identity.generation}`,
+		operations.data ? operations.error : null,
+		operations.errorUpdatedAt,
+		() => void operations.refetch(),
+		{ scoped: true, title: t("playbackCompletion.loadFailed") },
+	);
 	const operation = operations.data?.find(
 		(op) => op.mediaId === target.mediaId,
 	);
@@ -172,10 +181,16 @@ function TargetControl({
 					aria-label={t(
 						known ? "playbackCompletion.watched" : "playbackCompletion.mark",
 					)}
-					disabled={busy || Boolean(operations.error)}
+					disabled={busy || Boolean(operations.error && !operations.data)}
+					aria-busy={busy}
 					onClick={() => mutation.mutate("mark")}
 				>
-					{known ? (
+					{busy ? (
+						<Loader2
+							className="size-4 motion-safe:animate-spin"
+							aria-hidden="true"
+						/>
+					) : known ? (
 						<CheckCheck className="size-4 shrink-0" aria-hidden="true" />
 					) : (
 						<Check className="size-4 shrink-0" aria-hidden="true" />
@@ -185,14 +200,11 @@ function TargetControl({
 					</span>
 				</Button>
 			</Tooltip>
-			{current &&
-				!isResultState(current.state) &&
-				current.state !== "pending" &&
-				current.state !== "submitting" && (
-					<span role="status" className="text-sm text-muted-foreground">
-						{t(`trackingUpdate.states.${current.state}`)}
-					</span>
-				)}
+			{current && !isResultState(current.state) && (
+				<span role="status" className="text-sm text-muted-foreground">
+					{t(`trackingUpdate.states.${current.state}`)}
+				</span>
+			)}
 			{current?.state === "decision-required" && (
 				<>
 					<span>
@@ -262,14 +274,12 @@ function TargetControl({
 			{current?.state === "authorization-required" && (
 				<span role="alert">{t("trackingList.reconnect")}</span>
 			)}
-			{(mutation.error || operations.error) && (
-				<p role="alert">
-					{mutation.error?.message ?? t("playbackCompletion.error")}
-					{operations.error && (
-						<Button variant="outline" onClick={() => void operations.refetch()}>
-							{t("actions.retry")}
-						</Button>
-					)}
+			{operations.error && !operations.data && (
+				<p role="alert" className="text-sm">
+					{t("playbackCompletion.loadFailed")}
+					<Button variant="outline" onClick={() => void operations.refetch()}>
+						{t("actions.retry")}
+					</Button>
 				</p>
 			)}
 		</fieldset>

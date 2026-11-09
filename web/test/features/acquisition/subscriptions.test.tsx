@@ -4,6 +4,7 @@ import { SubscriptionPanel } from "../../../src/features/acquisition/subscriptio
 import * as api from "../../../src/shared/api/client.js";
 import type { SubscriptionView } from "../../../src/shared/api/contracts.js";
 import { queryClient } from "../../../src/shared/api/query-client.js";
+import { toast } from "../../../src/shared/components/ui/toast.js";
 import { animeStatusFixture } from "../../fixtures/anime.js";
 import {
 	act,
@@ -311,7 +312,8 @@ test("pause and unsubscribe remain secondary revision-checked actions", async ()
 	);
 });
 
-test("failed saves preserve editable fields, and setup failures expose a specific Settings action", async () => {
+test("failed saves preserve editable fields and report a request failure once", async () => {
+	const notice = vi.spyOn(toast, "add");
 	const request = fixture();
 	const implementation = request.getMockImplementation();
 	request.mockImplementation(async (...args) => {
@@ -330,7 +332,15 @@ test("failed saves preserve editable fields, and setup failures expose a specifi
 		).toBe(false),
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
-	await screen.findByRole("alert");
+	await waitFor(() =>
+		expect(notice).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "error",
+				title: "The request failed. Please try again.",
+			}),
+		),
+	);
+	expect(screen.queryByRole("alert")).toBeNull();
 	expect(
 		(screen.getByLabelText("Starting episode") as HTMLInputElement).value,
 	).toBe("9");

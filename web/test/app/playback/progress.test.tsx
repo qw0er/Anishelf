@@ -230,7 +230,7 @@ test("progress save failures notify once across online and manual retries until 
 	video.currentTime = 15;
 	fireEvent.seeked(video);
 	await screen.findByText(
-		"Playback progress has not synced. Retrying automatically.",
+		"The playback position has not been saved to Anishelf. Retrying automatically.",
 		{ selector: "[data-slot=toast-title]" },
 	);
 	expect(notify).toHaveBeenCalledTimes(1);
@@ -266,7 +266,7 @@ test("progress save failures notify once across online and manual retries until 
 	await waitFor(() =>
 		expect(
 			screen.queryByText(
-				"Playback progress has not synced. Retrying automatically.",
+				"The playback position has not been saved to Anishelf. Retrying automatically.",
 				{ selector: "[data-slot=toast-title]" },
 			),
 		).toBeNull(),
@@ -328,7 +328,7 @@ test("failed final saves do not show session messages or block navigation", asyn
 	await screen.findByRole("link", { name: "Episode 01.mp4" });
 	expect(
 		screen.queryByText(
-			"Playback progress has not synced. Retrying automatically.",
+			"The playback position has not been saved to Anishelf. Retrying automatically.",
 		),
 	).toBeNull();
 	expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();

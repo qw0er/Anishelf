@@ -7,9 +7,11 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../../../shared/components/ui/collapsible.js";
-import { FieldLabel } from "../../../../shared/components/ui/field.js";
+import {
+	FieldError,
+	FieldLabel,
+} from "../../../../shared/components/ui/field.js";
 import { Input } from "../../../../shared/components/ui/input.js";
-import { ErrorMessage } from "../../shared/components/error-message.js";
 import type { ReviewController } from "../use-review-controller.js";
 
 export function RejectionPanel({
@@ -21,19 +23,13 @@ export function RejectionPanel({
 		ReviewController,
 		| "busy"
 		| "decisionValidation"
-		| "decisionError"
 		| "clearDecisionValidation"
 		| "requestDecision"
 	>;
 }) {
 	const { t } = useTranslation();
-	const {
-		busy,
-		decisionValidation,
-		decisionError,
-		clearDecisionValidation,
-		requestDecision,
-	} = controller;
+	const { busy, decisionValidation, clearDecisionValidation, requestDecision } =
+		controller;
 	const existing = item.associations;
 	return (
 		<Collapsible className="rounded-lg border p-4 text-sm">
@@ -70,7 +66,14 @@ export function RejectionPanel({
 					</label>
 					{existing.length > 0 && (
 						<div className="touch-control flex items-start gap-2 text-sm leading-relaxed">
-							<Checkbox id="remove-association" name="remove" />
+							<Checkbox
+								id="remove-association"
+								name="remove"
+								aria-invalid={Boolean(decisionValidation) || undefined}
+								aria-describedby={
+									decisionValidation ? "review-removal-error" : undefined
+								}
+							/>
 							<FieldLabel
 								className="touch-control flex-1"
 								htmlFor="remove-association"
@@ -88,12 +91,9 @@ export function RejectionPanel({
 						{t(existing.length ? "review.removeAction" : "review.reject")}
 					</Button>
 				</form>
-				{decisionValidation && (
-					<p role="alert" className="mt-3 text-sm text-destructive">
-						{decisionValidation}
-					</p>
-				)}
-				{decisionError && <ErrorMessage error={decisionError} />}
+				<FieldError id="review-removal-error" className="mt-3">
+					{decisionValidation}
+				</FieldError>
 			</CollapsibleContent>
 		</Collapsible>
 	);

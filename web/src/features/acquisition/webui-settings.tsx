@@ -15,11 +15,13 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../shared/components/ui/collapsible.js";
+import { FieldError } from "../../shared/components/ui/field.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { StatusBadge } from "../../shared/components/ui/status-badge.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { useAutoSave } from "../../shared/hooks/use-auto-save.js";
+import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import { isHttpUrl } from "../../shared/lib/url.js";
 import {
 	saveSettings,
@@ -37,6 +39,12 @@ export function QbittorrentSettings() {
 	const client = useQueryClient();
 	const configuration = useQuery(settingsQuery());
 	const connection = useQbittorrentConnection();
+	useRefreshError(
+		"settings-configuration",
+		configuration.data ? configuration.error : null,
+		configuration.errorUpdatedAt,
+		() => void configuration.refetch(),
+	);
 	const [draft, setDraft] = useState<string | null>(null);
 	const save = useMutation({
 		mutationFn: (qbittorrentWebUiUrl: string) =>
@@ -53,11 +61,15 @@ export function QbittorrentSettings() {
 				id: "qbittorrent-webui-save",
 			});
 		},
-		onError: () => {
+		onError: (_error, value) => {
 			console.warn("[Settings] qBittorrent WebUI URL save failed.");
 			toast.add({
 				type: "error",
 				title: t("acquisition.webui.saveFailed"),
+				actionProps: {
+					children: t("actions.retry"),
+					onClick: () => save.mutate(value),
+				},
 				id: "qbittorrent-webui-save",
 			});
 		},
@@ -96,7 +108,7 @@ export function QbittorrentSettings() {
 				<DownloadDestinationSettings />
 				{configuration.isPending ? (
 					<p role="status">{t("acquisition.webui.loading")}</p>
-				) : configuration.isError ? (
+				) : configuration.isError && !configuration.data ? (
 					<div role="alert">
 						{t("acquisition.webui.loadFailed")}{" "}
 						<Button
@@ -139,28 +151,15 @@ export function QbittorrentSettings() {
 												!validUrl ? "qbittorrent-webui-url-error" : undefined
 											}
 											onChange={(event) => setDraft(event.target.value)}
-											onBlur={() => {
-												if (!validUrl) {
-													toast.add({
-														type: "error",
-														title: t("acquisition.webui.saveFailed"),
-														id: "qbittorrent-webui-save",
-													});
-													return;
-												}
-												flush();
-											}}
+											onBlur={flush}
 											placeholder="https://downloads.example.com/"
 										/>
-										{!validUrl && (
-											<p
-												id="qbittorrent-webui-url-error"
-												role="alert"
-												className="field-error"
-											>
-												{t("acquisition.webui.saveFailed")}
-											</p>
-										)}
+										<FieldError
+											id="qbittorrent-webui-url-error"
+											className="field-error"
+										>
+											{!validUrl && t("acquisition.sources.invalidUrl")}
+										</FieldError>
 									</div>
 								</div>
 							</CollapsibleContent>

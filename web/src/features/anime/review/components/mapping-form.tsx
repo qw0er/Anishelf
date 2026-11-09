@@ -8,6 +8,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../../../shared/components/ui/collapsible.js";
+import { FieldError } from "../../../../shared/components/ui/field.js";
 import { Input } from "../../../../shared/components/ui/input.js";
 import {
 	RadioGroup,
@@ -30,6 +31,7 @@ export function MappingForm({
 		| "clearPreview"
 		| "requestPreview"
 		| "previewPending"
+		| "validation"
 	>;
 }) {
 	const { t } = useTranslation();
@@ -40,6 +42,7 @@ export function MappingForm({
 		clearPreview,
 		requestPreview,
 		previewPending,
+		validation,
 	} = controller;
 	const mappingRef = useRef<HTMLFormElement>(null);
 	const loadedReference = reference && details.data ? reference.id : null;
@@ -152,6 +155,8 @@ export function MappingForm({
 						{t("review.numbers")}
 						<Input
 							id="target-numbers"
+							aria-invalid={Boolean(validation) || undefined}
+							aria-describedby={validation ? "review-mapping-error" : undefined}
 							name="numbers"
 							placeholder={
 								details.data.data.format === "MOVIE"
@@ -161,6 +166,7 @@ export function MappingForm({
 							defaultValue={defaults.numbers}
 							required
 						/>
+						<FieldError id="review-mapping-error">{validation}</FieldError>
 					</label>
 					<label
 						htmlFor="number-offset"

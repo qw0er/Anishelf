@@ -408,7 +408,7 @@ test("no search results offer a clear-filters action which preserves sorting and
 	);
 });
 
-test("a failed refresh of an empty inventory shows recovery without claiming a confirmed empty result", async () => {
+test("a failed background refresh preserves the cached empty state and offers recovery", async () => {
 	listing.items = [];
 	listing.total = 0;
 	listing.usage.count = 0;
@@ -416,11 +416,18 @@ test("a failed refresh of an empty inventory shows recovery without claiming a c
 	await screen.findByRole("heading", { name: "No prepared copies yet" });
 	vi.mocked(api.getPreparedMedia).mockRejectedValue(new Error("offline"));
 	fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-	await screen.findByRole("alert");
+	await waitFor(() =>
+		expect(toast.add).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "error",
+				actionProps: expect.objectContaining({ children: "Retry" }),
+			}),
+		),
+	);
+	expect(screen.queryByRole("alert")).toBeNull();
 	expect(
 		screen.queryByRole("heading", { name: "No prepared copies yet" }),
-	).toBeNull();
-	expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+	).toBeTruthy();
 });
 
 test("selection is opt-in and leaving the mode clears selected copies", async () => {

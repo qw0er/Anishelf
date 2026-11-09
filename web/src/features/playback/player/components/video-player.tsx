@@ -3,6 +3,7 @@ import {
 	sourceTimeMs,
 } from "@anishelf/backend/contracts/media";
 import {
+	CaptionButton,
 	isVideoProvider,
 	MediaPlayer,
 	MediaProvider,
@@ -14,6 +15,7 @@ import {
 	DefaultVideoLayout,
 	defaultLayoutIcons,
 } from "@vidstack/react/player/layouts/default";
+import { Loader2 } from "lucide-react";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -65,6 +67,9 @@ export default function VideoPlayer({
 	renderSubtitles?: PlaybackUiSlots["renderSubtitles"] | undefined;
 }) {
 	const { t } = useTranslation();
+	const [subtitlePreparation, setSubtitlePreparation] = useState<string | null>(
+		null,
+	);
 	const timeline = active.resource.timeline;
 	const played = useRef(false);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -225,9 +230,23 @@ export default function VideoPlayer({
 					sourceVersion={sourceVersion}
 					timeline={timeline}
 				/>
-				{renderSubtitles?.(fileId)}
+				{renderSubtitles?.(fileId, setSubtitlePreparation)}
 				<DefaultVideoLayout
 					icons={defaultLayoutIcons}
+					slots={{
+						captionButton: subtitlePreparation ? (
+							<CaptionButton
+								className="vds-caption-button vds-button"
+								aria-busy="true"
+								aria-label={subtitlePreparation}
+							>
+								<Loader2
+									className="vds-icon motion-safe:animate-spin"
+									aria-hidden="true"
+								/>
+							</CaptionButton>
+						) : undefined,
+					}}
 					seekStep={playbackInteractionPolicy.seekStepSeconds}
 				/>
 				<div

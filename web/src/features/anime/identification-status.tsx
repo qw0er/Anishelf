@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ListChecks, Loader2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { IdentificationStatusResponse } from "../../shared/api/contracts.js";
@@ -62,23 +63,20 @@ export function IdentificationStatus({
 		if (last?.running && !current.running) {
 			void invalidateAnimeQueries(client, "local");
 		}
-		if (current.incremental && !current.failed) {
+		if (
+			(current.incremental || (last?.failed && !last.running)) &&
+			!current.failed
+		) {
 			toast.close(notificationId);
 			return;
 		}
 		if (current.running) {
 			toast.close(notificationId);
-			toast.add({
-				id: notificationId,
-				type: "loading",
-				timeout: interactionDefaults.persistentToastTimeoutMs,
-				title: t("review.identifying"),
-			});
 		} else if (current.failed || last?.running) {
 			const options = {
 				type: current.failed ? "error" : "success",
 				timeout: current.failed
-					? interactionDefaults.errorToastTimeoutMs
+					? interactionDefaults.persistentToastTimeoutMs
 					: interactionDefaults.toastTimeoutMs,
 				title: t(
 					current.failed
@@ -86,9 +84,28 @@ export function IdentificationStatus({
 						: "review.identificationCompleted",
 				),
 			};
-			if (last?.running) toast.update(notificationId, options);
-			else toast.add({ id: notificationId, ...options });
+			toast.add({ id: notificationId, ...options });
 		}
 	}, [enabled, status.data, client, t]);
 	return null;
+}
+
+/** Keep identification activity in its navigation control across pages. */
+export function IdentificationIndicator({ enabled }: { enabled: boolean }) {
+	const { t } = useTranslation();
+	const status = useQuery({ ...identificationQuery(useQueryScope()), enabled });
+	const running =
+		enabled &&
+		(status.data?.running || status.data?.reviewRun?.state === "running");
+	return running ? (
+		<span
+			role="status"
+			aria-label={t("review.identifying")}
+			className="header-nav-icon size-5 shrink-0"
+		>
+			<Loader2 className="size-5 motion-safe:animate-spin" aria-hidden="true" />
+		</span>
+	) : (
+		<ListChecks size={20} aria-hidden="true" className="header-nav-icon" />
+	);
 }

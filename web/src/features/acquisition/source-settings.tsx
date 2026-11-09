@@ -48,7 +48,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "../../shared/components/ui/dropdown-menu.js";
-import { Field } from "../../shared/components/ui/field.js";
+import { Field, FieldError } from "../../shared/components/ui/field.js";
 import { FieldHeading } from "../../shared/components/ui/field-heading.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
@@ -250,11 +250,15 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				id: "source-management-save",
 			});
 		},
-		onError: () => {
+		onError: (_error, value) => {
 			console.warn("[Settings] Jackett management URL save failed.");
 			toast.add({
 				type: "error",
 				title: t("acquisition.sources.actionFailed"),
+				actionProps: {
+					children: t("actions.retry"),
+					onClick: () => saveWebui.mutate(value),
+				},
 				id: "source-management-save",
 			});
 		},
@@ -504,27 +508,14 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 									!managementValid ? "source-management-url-error" : undefined
 								}
 								onChange={(event) => setManagementUrl(event.target.value)}
-								onBlur={() => {
-									if (!managementValid) {
-										toast.add({
-											type: "error",
-											title: t("acquisition.sources.invalidUrl"),
-											id: "source-management-save",
-										});
-										return;
-									}
-									flushManagementUrl();
-								}}
+								onBlur={flushManagementUrl}
 							/>
-							{!managementValid && (
-								<p
-									id="source-management-url-error"
-									role="alert"
-									className="field-error"
-								>
-									{t("acquisition.sources.invalidUrl")}
-								</p>
-							)}
+							<FieldError
+								id="source-management-url-error"
+								className="field-error"
+							>
+								{!managementValid && t("acquisition.sources.invalidUrl")}
+							</FieldError>
 						</div>
 					</div>
 				</CollapsibleContent>

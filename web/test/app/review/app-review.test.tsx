@@ -502,7 +502,7 @@ test("Review can reject a pending resource without a reason", async () => {
 });
 
 test.each([400, 409, 422])(
-	"Review HTTP %s correction errors stay inline with the form",
+	"Review HTTP %s operation errors use one toast and preserve the form",
 	async (status) => {
 		const item = mockReview();
 		const fallback = fetcher.getMockImplementation();
@@ -529,7 +529,15 @@ test.each([400, 409, 422])(
 		fireEvent.click(
 			await screen.findByRole("button", { name: "Confirm association" }),
 		);
-		await within(screen.getByRole("main")).findByRole("alert");
+		await waitFor(() =>
+			expect(notify).toHaveBeenCalledWith(
+				expect.objectContaining({
+					id: `review-operation:${item.id}`,
+					type: "error",
+				}),
+			),
+		);
+		expect(within(screen.getByRole("main")).queryByRole("alert")).toBeNull();
 		expect(screen.getByLabelText("Episode numbers")).toBeTruthy();
 		expect(
 			screen.getByRole("heading", { name: "Association preview" }),
@@ -538,7 +546,7 @@ test.each([400, 409, 422])(
 			notify.mock.calls.some(
 				([notice]) => notice.id === `review-operation:${item.id}`,
 			),
-		).toBe(false);
+		).toBe(true);
 		notify.mockRestore();
 	},
 );
@@ -718,3 +726,40 @@ test("a failed refresh of empty Review results shows recovery without confirming
 	).toBeNull();
 	expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
 });
+
+test.each([400, 404, 409, 422])(
+	"bulk re-identification HTTP %s has one visible failure outlet",
+	async (status) => {
+		mockReview();
+		const fallback = requiredFetch(fetcher.getMockImplementation());
+		fetcher.mockImplementation(async (input, init) =>
+			String(input) === "/api/catalog/reviews/reidentify"
+				? json(
+						{
+							error: {
+								code: "INVALID_REQUEST",
+								message: "Cannot start this run",
+								requestId: "bulk",
+							},
+						},
+						status,
+					)
+				: fallback(input, init),
+		);
+		renderApp("/review");
+		const button = await screen.findByRole("button", {
+			name: "Re-identify all pending resources",
+		});
+		await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
+		fireEvent.click(button);
+		await screen.findByText("The request is invalid.", {
+			selector: "[data-slot=toast-title]",
+		});
+		expect(document.querySelectorAll("[data-slot=toast-title]")).toHaveLength(
+			1,
+		);
+		expect(
+			screen.queryByRole("button", { name: "Re-identifying…" }),
+		).toBeNull();
+	},
+);

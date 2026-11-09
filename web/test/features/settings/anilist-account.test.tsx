@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { TrackingAccountSettings } from "../../../src/features/anime/tracking/account-settings.js";
 import { queryClient } from "../../../src/shared/api/query-client.js";
+import { toast } from "../../../src/shared/components/ui/toast.js";
 import "../../../src/shared/i18n.js";
 
 import type { TrackingAccountResponse } from "../../../src/shared/api/contracts.js";
@@ -142,6 +143,7 @@ test("previews without retaining token, requires confirmation and clears former 
 });
 
 test("disconnect uses connection generation and authorization failure offers reconnection", async () => {
+	vi.spyOn(toast, "add");
 	let status: TrackingAccountResponse = connected;
 	fetcher.mockImplementation(async (path, options) => {
 		if (path === "/api/tracking/account" && options?.method === "DELETE") {
@@ -171,7 +173,12 @@ test("disconnect uses connection generation and authorization failure offers rec
 	render(<TrackingAccountSettings />);
 	await screen.findByText("Account: Fixture");
 	fireEvent.click(screen.getByRole("button", { name: "Check connection" }));
-	await screen.findByRole("alert");
+	await waitFor(() =>
+		expect(toast.add).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "error" }),
+		),
+	);
+	expect(screen.queryByRole("alert")).toBeNull();
 	await screen.findByText("Reconnect required");
 	expect(screen.getByText("Connection check failed")).toBeTruthy();
 	expect(screen.getByRole("link", { name: "Authorize" })).toBeTruthy();

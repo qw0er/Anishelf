@@ -2,7 +2,6 @@ import { RotateCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { CatalogReviewItem } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
-import { ErrorMessage } from "../../shared/components/error-message.js";
 import type { ReviewController } from "../use-review-controller.js";
 
 export function ReidentifyAction({
@@ -12,7 +11,7 @@ export function ReidentifyAction({
 	item: CatalogReviewItem;
 	controller: Pick<
 		ReviewController,
-		"busy" | "reidentifyPending" | "reidentifyError" | "reidentify"
+		"busy" | "reidentifyPending" | "reidentify"
 	>;
 }) {
 	const { t } = useTranslation();
@@ -39,9 +38,6 @@ export function ReidentifyAction({
 			<p className="text-sm leading-relaxed text-muted-foreground">
 				{t("review.reidentifyHint")}
 			</p>
-			{controller.reidentifyError && (
-				<ErrorMessage error={controller.reidentifyError} />
-			)}
 		</div>
 	);
 }

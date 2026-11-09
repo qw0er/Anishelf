@@ -1,6 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, test, vi } from "vitest";
-import { IdentificationStatus } from "../../../src/features/anime/identification-status.js";
+import {
+	IdentificationIndicator,
+	IdentificationStatus,
+} from "../../../src/features/anime/identification-status.js";
 import { queryClient } from "../../../src/shared/api/query-client.js";
 import { toast } from "../../../src/shared/components/ui/toast.js";
 import {
@@ -23,33 +26,35 @@ afterEach(() => {
 });
 const key = ["identification", ""];
 
-test("background recognition uses one persistent Toast and updates it on completion", async () => {
+test("background recognition uses the navigation status and one completion toast", async () => {
 	const add = vi
 		.spyOn(toast, "add")
 		.mockReturnValue("automatic-identification");
-	const update = vi.spyOn(toast, "update").mockImplementation(() => {});
+
 	vi.spyOn(toast, "close").mockImplementation(() => {});
 	const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 	queryClient.setQueryData(key, { running: false, failed: false });
-	const view = render(<IdentificationStatus />);
+	const view = render(
+		<>
+			<IdentificationStatus />
+			<IdentificationIndicator enabled />
+		</>,
+	);
 	expect(add).not.toHaveBeenCalled();
 	await act(async () => {
 		queryClient.setQueryData(key, { running: true, failed: false });
 	});
 	await waitFor(() =>
-		expect(add).toHaveBeenCalledWith(
-			expect.objectContaining({ type: "loading", timeout: 0 }),
+		expect(view.getByRole("status").getAttribute("aria-label")).toBe(
+			"review.identifying",
 		),
 	);
-	view.rerender(<IdentificationStatus />);
-	expect(add).toHaveBeenCalledTimes(1);
-	expect(view.container.textContent).toBe("");
+	expect(add).not.toHaveBeenCalled();
 	await act(async () => {
 		queryClient.setQueryData(key, { running: false, failed: false });
 	});
 	await waitFor(() =>
-		expect(update).toHaveBeenCalledWith(
-			"automatic-identification",
+		expect(add).toHaveBeenCalledWith(
 			expect.objectContaining({
 				type: "success",
 				title: "review.identificationCompleted",

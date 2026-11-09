@@ -146,13 +146,9 @@ test("manual mark creates a Tracking decision, confirms separately and reports t
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await waitFor(() =>
-		expect(notify).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "loading",
-				title: "Progress change queued",
-			}),
-		),
+	await screen.findByText("Progress change queued");
+	expect(notify.mock.calls.some(([notice]) => notice.type === "loading")).toBe(
+		false,
 	);
 	expect(
 		(
@@ -204,13 +200,9 @@ test("keep then mark again remains actionable and final submission failures offe
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await waitFor(() =>
-		expect(notify).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "loading",
-				title: "Progress change queued",
-			}),
-		),
+	await screen.findByText("Progress change queued");
+	expect(notify.mock.calls.some(([notice]) => notice.type === "loading")).toBe(
+		false,
 	);
 	expect(
 		(

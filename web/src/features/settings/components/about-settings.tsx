@@ -67,6 +67,7 @@ export function AboutSettings() {
 		queryFn: () => request<UpdateCheck>("/api/system/updates/check", "POST"),
 	});
 	const check = useMutation({
+		onMutate: () => toast.close("update-check"),
 		mutationFn: () => request<UpdateCheck>("/api/system/updates/check", "POST"),
 		onSuccess: (result) => {
 			client.setQueryData(updateKey, result);
@@ -77,10 +78,15 @@ export function AboutSettings() {
 			});
 		},
 		onError: () => {
+			console.warn("[Settings] Update check failed.");
 			toast.add({
 				id: "update-check",
 				type: "error",
 				title: t("about.checkFailed"),
+				actionProps: {
+					children: t("actions.retry"),
+					onClick: () => check.mutate(),
+				},
 			});
 		},
 	});
@@ -182,11 +188,7 @@ export function AboutSettings() {
 							</span>
 						</div>
 					)}
-					{check.isError && (
-						<p role="alert" className="field-error">
-							{t("about.lastCheckFailed")}
-						</p>
-					)}
+
 					<div className="flex flex-wrap items-start gap-x-4 gap-y-2 border-t pt-3 text-sm text-muted-foreground">
 						<Collapsible
 							className="min-w-0 flex-1"

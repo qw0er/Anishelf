@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
+import { IdentificationIndicator } from "../../features/anime/ui.js";
 import LanguageToggle from "../../shared/components/language-toggle.js";
 import ThemeToggle from "../../shared/components/theme-toggle.js";
 import { buttonStyles } from "../../shared/components/ui/button.js";
@@ -15,7 +16,13 @@ import { Tooltip } from "../../shared/components/ui/tooltip.js";
 
 import { useCompactNavigation } from "../../shared/hooks/use-compact-navigation.js";
 
-export default function AppHeader({ pending = false }: { pending?: boolean }) {
+export default function AppHeader({
+	pending = false,
+	identificationEnabled = false,
+}: {
+	pending?: boolean;
+	identificationEnabled?: boolean;
+}) {
 	const { t } = useTranslation();
 	const navigationRef = useCompactNavigation();
 	const { pathname } = useLocation();
@@ -92,11 +99,15 @@ export default function AppHeader({ pending = false }: { pending?: boolean }) {
 								aria-current={active ? "page" : undefined}
 								className={`${buttonStyles("ghost")} header-nav-link app-nav-item ${active ? "app-nav-active" : ""} ${index === 2 ? "app-nav-management" : ""} ${index === 5 ? "app-nav-settings" : ""}`}
 							>
-								<Icon
-									size={20}
-									aria-hidden="true"
-									className="header-nav-icon"
-								/>
+								{to === "/review" ? (
+									<IdentificationIndicator enabled={identificationEnabled} />
+								) : (
+									<Icon
+										size={20}
+										aria-hidden="true"
+										className="header-nav-icon"
+									/>
+								)}
 								<span className="header-nav-label">{label}</span>
 							</Link>
 						</Tooltip>

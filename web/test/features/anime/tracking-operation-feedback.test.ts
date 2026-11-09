@@ -56,7 +56,7 @@ test("does not replay old completed notices on first read or after account repla
 	client.clear();
 });
 
-test("shows pending feedback and an actionable failure, and clears it after success", () => {
+test("keeps pending work in controls and shows an actionable failure, and clears it after success", () => {
 	const client = new QueryClient();
 	const notify = vi.spyOn(toast, "add").mockReturnValue("notice");
 	const close = vi.spyOn(toast, "close");
@@ -64,9 +64,7 @@ test("shows pending feedback and an actionable failure, and clears it after succ
 	reportTrackingOperations(client, identity, [
 		{ ...completed(), state: "pending" },
 	]);
-	expect(notify).toHaveBeenCalledWith(
-		expect.objectContaining({ type: "loading" }),
-	);
+	expect(notify).not.toHaveBeenCalled();
 	notify.mockClear();
 	const failed = {
 		...completed(),
@@ -92,14 +90,12 @@ test("reports manual submission progress and completion without replaying old re
 	const notify = vi.spyOn(toast, "add").mockReturnValue("notice");
 	const manual = { ...completed(), origin: "manual-detail" as const };
 	reportTrackingOperations(client, identity, [{ ...manual, state: "pending" }]);
-	expect(notify).toHaveBeenLastCalledWith(
-		expect.objectContaining({ type: "loading", timeout: 0 }),
-	);
+	expect(notify).not.toHaveBeenCalled();
 	reportTrackingOperations(client, identity, [{ ...manual, revision: 2 }]);
 	expect(notify).toHaveBeenLastCalledWith(
 		expect.objectContaining({ type: "success" }),
 	);
 	reportTrackingOperations(client, identity, [{ ...manual, revision: 2 }]);
-	expect(notify).toHaveBeenCalledTimes(2);
+	expect(notify).toHaveBeenCalledTimes(1);
 	client.clear();
 });

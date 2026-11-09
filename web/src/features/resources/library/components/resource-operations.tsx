@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Ellipsis, Folder, FolderInput, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { isRequestCancelled } from "../../../../shared/api/client.js";
 import type {
 	ResourceCommand,
 	ResourceDto,
@@ -90,7 +91,8 @@ export function ResourceOperationDialog({
 	const client = useQueryClient();
 	const [destinationId, setDestinationId] = useState(entry.parentId ?? "root");
 	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState<unknown>(null);
+	const noticeId = `resource-operation:${entry.id}`;
+	useEffect(() => () => toast.close(noticeId), [noticeId]);
 	const directory = useQuery({
 		...directoryQuery(destinationId, useQueryScope()),
 		enabled: action === "move",
@@ -103,11 +105,12 @@ export function ResourceOperationDialog({
 	async function submit() {
 		if (busy) return;
 		setBusy(true);
-		setError(null);
+		toast.close(noticeId);
 		try {
 			const result = await executeResource(input);
 			void client.invalidateQueries();
 			toast.add({
+				timeout: result.refreshRequired ? 0 : undefined,
 				type: result.refreshRequired ? "warning" : "success",
 				title: t(
 					result.refreshRequired
@@ -117,7 +120,17 @@ export function ResourceOperationDialog({
 			});
 			onClose();
 		} catch (failure) {
-			setError(failure);
+			if (!isRequestCancelled(failure)) {
+				console.warn("[Resources] Operation failed.", {
+					action,
+					resourceId: entry.id,
+				});
+				toast.add({
+					id: noticeId,
+					type: "error",
+					title: t(getErrorTranslationKey(failure) ?? "errors.requestFailed"),
+				});
+			}
 			void client.invalidateQueries();
 		} finally {
 			setBusy(false);
@@ -125,7 +138,7 @@ export function ResourceOperationDialog({
 	}
 	function navigate(id: string) {
 		setDestinationId(id);
-		setError(null);
+		toast.close(noticeId);
 	}
 	return (
 		<Dialog
@@ -211,11 +224,6 @@ export function ResourceOperationDialog({
 							</>
 						)}
 					</div>
-				)}
-				{error != null && (
-					<p role="alert" className="text-sm text-destructive">
-						{t(getErrorTranslationKey(error) ?? "errors.requestFailed")}
-					</p>
 				)}
 				<DialogFooter>
 					<Button variant="outline" disabled={busy} onClick={onClose}>

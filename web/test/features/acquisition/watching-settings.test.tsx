@@ -4,6 +4,7 @@ import { WatchingSettings } from "../../../src/features/acquisition/watching-set
 import * as api from "../../../src/shared/api/client.js";
 import type { WatchingAutomationStatus } from "../../../src/shared/api/contracts.js";
 import { queryClient } from "../../../src/shared/api/query-client.js";
+import { toast } from "../../../src/shared/components/ui/toast.js";
 import "../../../src/shared/i18n.js";
 import {
 	cleanup,
@@ -253,4 +254,28 @@ test("activation uses the saved subscription default instead of an older automat
 	expect(request.mock.calls.some((call) => call[0] === `${base}/confirm`)).toBe(
 		false,
 	);
+});
+
+test("management failures use one toast and keep the work action available", async () => {
+	const notice = vi.spyOn(toast, "add").mockReturnValue("watching-command");
+	const request = fixture();
+	const fallback = request.getMockImplementation();
+	request.mockImplementation(async (...args) => {
+		if (args[0] === `${base}/works`) throw new Error("offline");
+		return fallback?.(...args);
+	});
+	render(<WatchingSettings management />);
+	const include = await screen.findByRole("button", {
+		name: "Include in automation",
+	});
+	fireEvent.click(include);
+	await waitFor(() => expect(notice).toHaveBeenCalledOnce());
+	expect(notice).toHaveBeenCalledWith(
+		expect.objectContaining({ id: "watching-command", type: "error" }),
+	);
+	expect(screen.queryByRole("alert")).toBeNull();
+	expect(screen.getByRole("button", { name: "Include in automation" })).toBe(
+		include,
+	);
+	expect((include as HTMLButtonElement).disabled).toBe(false);
 });

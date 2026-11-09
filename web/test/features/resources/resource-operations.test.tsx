@@ -7,6 +7,7 @@ import type {
 	DirectoryResponse,
 	ResourceDto,
 } from "../../../src/shared/api/contracts.js";
+import { toast } from "../../../src/shared/components/ui/toast.js";
 import i18n from "../../../src/shared/i18n.js";
 import {
 	cleanup,
@@ -118,7 +119,8 @@ test("move executes directly into the selected destination", async () => {
 	});
 });
 
-test("a failed command keeps the dialog open for correction and retry", async () => {
+test("a failed command keeps its confirmation and reports one toast", async () => {
+	const notice = vi.spyOn(toast, "add");
 	vi.mocked(api.executeResource).mockRejectedValue(
 		new ApiClientError({
 			kind: "http",
@@ -134,7 +136,12 @@ test("a failed command keeps the dialog open for correction and retry", async ()
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Delete permanently" }),
 	);
-	await screen.findByRole("alert");
+	await waitFor(() =>
+		expect(notice).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "error" }),
+		),
+	);
+	expect(screen.queryByRole("alert")).toBeNull();
 	expect(
 		screen.getByRole("button", { name: "Delete permanently" }),
 	).toBeDefined();
