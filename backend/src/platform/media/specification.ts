@@ -1,11 +1,24 @@
-import type { AudioEncoding, VideoEncoding } from "./encoding.js";
+import type {
+	AudioEncoding,
+	EncodingOptions,
+	VideoEncoding,
+} from "./encoding.js";
 
 /** Explicit execution requirements, independent of compatibility recommendations. */
 type MediaStreamExecution =
 	| { action: "copy" }
-	| { action: "encode"; encoder: string; codec: string; pixelFormat?: string };
+	| {
+			action: "encode";
+			encoder: string;
+			codec: string;
+			pixelFormat?: string | undefined;
+	  };
 export interface MediaProcessingPlan {
 	id: string;
+	compilerVersion?: 2;
+	globalOptions?: EncodingOptions | undefined;
+	inputOptions?: EncodingOptions | undefined;
+	muxerOptions?: EncodingOptions | undefined;
 	audioTracks?: {
 		sourceIndex: number;
 		execution: MediaStreamExecution;

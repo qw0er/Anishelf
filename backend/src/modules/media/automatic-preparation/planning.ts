@@ -8,6 +8,7 @@ import {
 	canMux,
 	dynamicRange,
 } from "../../../platform/media/acceptance-policy.js";
+import { filterName } from "../../../platform/media/encoding-policy.js";
 import type { MediaInfo, MediaStream } from "../../../platform/media/model.js";
 import type { MediaProcessingPlan } from "../../../platform/media/specification.js";
 import { fingerprint } from "../../../shared/fingerprint.js";
@@ -118,6 +119,7 @@ export function planAutomaticPreparation(
 	const audioAcceptance = audios.map((s) =>
 		acceptsStream(s, preset.accept?.audio),
 	);
+
 	if (
 		videoAcceptance === "unknown" ||
 		audioAcceptance.includes("unknown") ||
@@ -147,20 +149,26 @@ export function planAutomaticPreparation(
 			(video.framesPerSecond === null ||
 				video.framesPerSecond > profile.video.maxFrameRate));
 	const copyVideo =
-		profile.copyCompatibleStreams &&
+		(profile.copyCompatibleStreams || profile.video.encoder === "copy") &&
+		!profile.video.filters?.length &&
 		videoAcceptance === "accepted" &&
 		!resize &&
-		canMux(profile.container, video.codec, "video");
+		canMux(profile.container, video.codec, "video") &&
+		(profile.video.encoder !== "copy" ||
+			!profile.video.codec ||
+			profile.video.codec === video.codec);
+	if (profile.video.encoder === "copy" && !copyVideo)
+		return block("forced-video-copy-unavailable");
+	if (!copyVideo && !profile.video.codec) return block("video-codec-required");
 	if (
 		!copyVideo &&
+		!profile.video.filters?.length &&
 		(dynamicRange(video) !== "sdr" ||
 			video.hdr.pq ||
 			video.hdr.hlg ||
 			video.hdr.sideDataTypes.length)
 	)
 		return block("hdr-conversion-unverified");
-	if (!copyVideo && (!video.width || !video.height || !video.framesPerSecond))
-		return block("video-dimensions-unverified");
 	const predicted = encodedVideoSpec(
 		describeVideo(video as MediaStream),
 		profile.video,
@@ -168,41 +176,40 @@ export function planAutomaticPreparation(
 	const encodedVideo: DeepReadonly<MediaStream> = {
 		...structuredClone(video),
 		codec: profile.video.codec,
-		pixelFormat: profile.video.pixelFormat,
+		pixelFormat: profile.video.pixelFormat ?? null,
 		profile:
-			profile.video.profile ??
-			(profile.video.codec === "h264"
-				? "high"
-				: profile.video.codec === "vp9"
-					? "0"
-					: null),
+			typeof profile.video.options?.profile === "string"
+				? profile.video.options.profile
+				: null,
 		width: predicted.width,
 		height: predicted.height,
 		framesPerSecond: predicted.frameRate,
-		bitRate: profile.video.maxBitrateKbps
-			? profile.video.maxBitrateKbps * 1000
-			: "bitrateKbps" in profile.video
-				? profile.video.bitrateKbps * 1000
-				: null,
-		level: profile.video.level
-			? Number(profile.video.level) * (profile.video.codec === "hevc" ? 30 : 10)
-			: profile.video.codec === "h264"
-				? 51
-				: null,
+		bitRate: null,
+		level: null,
 	};
 	if (
 		!copyVideo &&
-		acceptsStream(encodedVideo, preset.accept?.video) !== "accepted"
+		acceptsStream(
+			encodedVideo,
+			profile.video.filters?.length
+				? preset.accept?.video?.map((candidate) => ({
+						...candidate,
+						dynamicRanges: [],
+					}))
+				: preset.accept?.video,
+		) === "rejected"
 	)
 		return block("output-video-rejected");
 	const tracks = audios.map((audio, i) => {
-		const channels =
-			profile.audio.channelCount ??
-			(profile.audio.channels === "stereo" ? 2 : audio.channels);
+		const channels = profile.audio.channels ?? audio.channels;
 		const copy =
-			profile.copyCompatibleStreams &&
+			(profile.copyCompatibleStreams || profile.audio.encoder === "copy") &&
+			!profile.audio.filters?.length &&
 			audioAcceptance[i] === "accepted" &&
 			canMux(profile.container, audio.codec, "audio") &&
+			(profile.audio.encoder !== "copy" ||
+				!profile.audio.codec ||
+				profile.audio.codec === audio.codec) &&
 			channels === audio.channels &&
 			(profile.audio.sampleRate === undefined ||
 				profile.audio.sampleRate === audio.sampleRate);
@@ -219,6 +226,16 @@ export function planAutomaticPreparation(
 			default: audio.default,
 		};
 	});
+	if (
+		profile.audio.encoder === "copy" &&
+		tracks.some((t) => t.execution.action !== "copy")
+	)
+		return block("forced-audio-copy-unavailable");
+	if (
+		tracks.some((t) => t.execution.action === "encode") &&
+		!profile.audio.codec
+	)
+		return block("audio-codec-required");
 	for (const [i, track] of tracks.entries()) {
 		if (track.execution.action === "copy") continue;
 		const audio = audios[i];
@@ -226,19 +243,18 @@ export function planAutomaticPreparation(
 		const expected = {
 			...audio,
 			codec: profile.audio.codec,
-			profile: profile.audio.codec === "aac" ? "lc" : null,
+			profile: null,
 			channels:
-				profile.audio.channelCount ??
-				(profile.audio.channels === "stereo" ? 2 : audio.channels),
-			sampleRate: profile.audio.sampleRate ?? audio.sampleRate,
-			bitRate:
-				"bitrateKbps" in profile.audio
-					? profile.audio.bitrateKbps * 1000
-					: null,
+				profile.audio.channels ??
+				(profile.audio.filters?.length ? null : audio.channels),
+			sampleRate:
+				profile.audio.sampleRate ??
+				(profile.audio.filters?.length ? null : audio.sampleRate),
+			bitRate: null,
 		};
 		if (
 			!canMux(profile.container, profile.audio.codec, "audio") ||
-			acceptsStream(expected, preset.accept?.audio) !== "accepted"
+			acceptsStream(expected, preset.accept?.audio) === "rejected"
 		)
 			return block("output-audio-rejected");
 	}
@@ -248,6 +264,10 @@ export function planAutomaticPreparation(
 	const profileFingerprint = transcodeProfileFingerprint(profile);
 	const plan: MediaProcessingPlan = {
 		id: "",
+		compilerVersion: 2,
+		globalOptions: structuredClone(profile.globalOptions),
+		inputOptions: structuredClone(profile.inputOptions),
+		muxerOptions: structuredClone(profile.muxerOptions),
 		container: profile.container,
 		delivery: "file",
 		outputFormat: profile.container,
@@ -279,9 +299,17 @@ export function planAutomaticPreparation(
 						"pad",
 						"format",
 						...(profile.video.maxFrameRate ? ["fps"] : []),
+						...(profile.video.filters ?? []).map(filterName),
 					]),
 			...(encodeAudio
-				? ["abuffer", "abuffersink", "aresample", "aformat", "anull"]
+				? [
+						"abuffer",
+						"abuffersink",
+						"aresample",
+						"aformat",
+						"anull",
+						...(profile.audio.filters ?? []).map(filterName),
+					]
 				: []),
 		],
 		...(!copyVideo
@@ -291,16 +319,11 @@ export function planAutomaticPreparation(
 						describeVideo(video as MediaStream),
 						profile.video,
 					),
-					...(profile.video.encoder === "libx264" &&
-					!profile.video.profile &&
-					!profile.video.level
-						? { h264Level: "5.1" as const }
-						: {}),
 				}
 			: {}),
 	};
 	plan.id = fingerprint({
-		version: "automatic-preparation:1",
+		version: "automatic-preparation:2",
 		source,
 		profileFingerprint,
 		plan,

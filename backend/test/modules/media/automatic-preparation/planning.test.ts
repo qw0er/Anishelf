@@ -63,7 +63,10 @@ function info(
 	);
 }
 const preset = builtinAutoPreparationPresets[0] as AutoPreparationPreset;
-const profile = required(builtinTranscodeProfiles[0]);
+const profile = {
+	...required(builtinTranscodeProfiles[0]),
+	copyCompatibleStreams: true,
+};
 
 test.each(["h264", "vp9"])(
 	"accepts original %s with any audio and all tracks",
@@ -248,5 +251,21 @@ describe("audio selection", () => {
 		expect(acceptsMedia(media, preset)).toBe(true);
 		required(media.streams[0]).codec = "hevc";
 		expect(acceptsMedia(media, preset)).toBe(false);
+	});
+});
+
+test("explicit color filters defer dynamic-range acceptance to the actual output", () => {
+	const media = info();
+	required(media.streams[0]).hdr.pq = true;
+	const result = planAutomaticPreparation(source, media, preset, {
+		...profile,
+		copyCompatibleStreams: false,
+		video: { ...profile.video, filters: ["tonemap=tonemap=mobius"] },
+	});
+	expect(result).toMatchObject({
+		kind: "processing-required",
+		execution: {
+			plan: { video: { action: "encode" }, acceptance: preset.accept },
+		},
 	});
 });

@@ -31,6 +31,10 @@ function executionFingerprint(
 	audios: readonly number[],
 ): string {
 	return fingerprint({
+		compilerVersion: plan.compilerVersion,
+		globalOptions: Object.entries(plan.globalOptions ?? {}),
+		inputOptions: Object.entries(plan.inputOptions ?? {}),
+		muxerOptions: Object.entries(plan.muxerOptions ?? {}),
 		container: plan.container,
 		delivery: plan.delivery ?? "file",
 		video,
@@ -274,7 +278,10 @@ export class PreparationApplication implements PreparationApi {
 				executionPlanId: planned.identity.executionPlanId,
 				profileFingerprint: planned.identity.profileFingerprint,
 				settings: {
-					version: 1,
+					version: 2,
+					...(demand.presetSnapshot
+						? { automaticPreset: structuredClone(demand.presetSnapshot) }
+						: {}),
 					plan,
 					mode: planned.mode,
 					reasons: { ...planned.reasons },
@@ -293,6 +300,9 @@ export class PreparationApplication implements PreparationApi {
 		context.logger.info(
 			{
 				event: "preparation.queued",
+				profileId: task.profileId,
+				profileFingerprint: task.spec.profileFingerprint,
+				executionPlanId: task.spec.executionPlanId,
 				taskId: task.id,
 				fileId: task.spec.source.fileId,
 				mode: task.spec.settings.mode,

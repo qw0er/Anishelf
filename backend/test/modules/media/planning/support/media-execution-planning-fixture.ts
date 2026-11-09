@@ -22,7 +22,7 @@ import { settingsStore } from "../../../../support/settings-store.js";
 
 export const resolveExecutionPlan = (
 	input: Parameters<typeof resolvePreparationExecutionPlan>[0],
-) => resolvePreparationExecutionPlan(input, "fast");
+) => resolvePreparationExecutionPlan(input);
 
 export const cleanup: Array<() => Promise<unknown>> = [];
 
@@ -92,8 +92,10 @@ export async function fixture(
 	const app = new MediaPlanningApplication({
 		sources: library.sources,
 		inspection,
-		profiles,
-		preparationMode,
+		profiles: () => {
+			profile.copyCompatibleStreams = preparationMode() === "fast";
+			return profiles;
+		},
 	});
 	cleanup.push(async () => {
 		await inspection.close();

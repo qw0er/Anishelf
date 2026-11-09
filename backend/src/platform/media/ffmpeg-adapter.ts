@@ -7,22 +7,32 @@ import {
 	TranscodeVideoSchema,
 } from "../../contracts/schemas/transcode-profiles.js";
 import type { DeepReadonly } from "../../shared/policy.js";
+import type { EncodingOptions } from "./encoding.js";
+import {
+	filterName,
+	legacyAudio,
+	legacyVideo,
+	type OptionScope,
+	validateEncodingOptions,
+	validEncodingOptions,
+} from "./encoding-policy.js";
 import { MediaOutputBudgetError, MediaToolError } from "./errors.js";
 import type { MediaInfo, MediaProcessingOptions, ToolStatus } from "./model.js";
 import { type MediaToolPolicy, mediaToolPolicy } from "./policy.js";
 import { startMediaProcess } from "./processing-process.js";
 
-/** Compile only typed profile settings and application-generated filters. */
+/** Compile scoped options without a shell; input/output ownership remains with the application. */
 export function compileFfmpegArguments(
 	input: string,
 	output: string,
 	options: MediaProcessingOptions,
 ): string[] {
 	const { plan } = options;
+	const invalid = (message: string): never => {
+		throw new MediaToolError("INVALID_INPUT", message);
+	};
 	if (
-		![input, output].every(
-			(path) => isAbsolute(path) && !path.includes("\0"),
-		) ||
+		![input, output].every((p) => isAbsolute(p) && !p.includes("\0")) ||
 		input === output ||
 		!Number.isSafeInteger(options.maximumBytes) ||
 		options.maximumBytes <= 0 ||
@@ -31,19 +41,43 @@ export function compileFfmpegArguments(
 		!Array.isArray(options.audioStreamIndices) ||
 		new Set(options.audioStreamIndices).size !==
 			options.audioStreamIndices.length ||
-		options.audioStreamIndices.some(
-			(index) => !Number.isSafeInteger(index) || index < 0,
-		)
+		options.audioStreamIndices.some((i) => !Number.isSafeInteger(i) || i < 0)
 	)
-		throw new MediaToolError(
-			"INVALID_INPUT",
-			"Invalid FFmpeg paths, stream selection or output budget.",
-		);
+		invalid("Invalid FFmpeg paths, stream selection or output budget.");
 	if (!["mp4", "mov", "matroska", "webm"].includes(plan.container))
-		throw new MediaToolError(
-			"INVALID_INPUT",
-			"Unsupported FFmpeg delivery container.",
-		);
+		invalid("Unsupported FFmpeg delivery container.");
+	try {
+		const needed = [
+			...(plan.video.action === "encode"
+				? [
+						"buffer",
+						"buffersink",
+						"null",
+						"scale",
+						...(plan.videoFilters ?? []).map(filterName),
+					]
+				: []),
+			...(options.audioStreamIndices.length &&
+			(plan.audio.action === "encode" ||
+				plan.audioTracks?.some((t) => t.execution.action === "encode"))
+				? [
+						"abuffer",
+						"abuffersink",
+						"aresample",
+						"aformat",
+						"anull",
+						...(plan.audioParameters?.filters ?? []).map(filterName),
+						...(plan.audioTracks ?? []).flatMap((t) =>
+							(t.parameters?.filters ?? []).map(filterName),
+						),
+					]
+				: []),
+		];
+		if (needed.some((name) => !plan.filters.includes(name)))
+			invalid("Execution plan omits required filters.");
+	} catch {
+		invalid("Execution plan contains invalid or missing filters.");
+	}
 	const args = [
 		"-nostdin",
 		"-hide_banner",
@@ -53,6 +87,25 @@ export function compileFfmpegArguments(
 		"-progress",
 		"pipe:1",
 		"-nostats",
+	];
+	const append = (
+		values: DeepReadonly<EncodingOptions> | undefined,
+		scope: OptionScope,
+		suffix = "",
+	) => {
+		try {
+			validateEncodingOptions(values, scope);
+		} catch {
+			invalid("Invalid or reserved FFmpeg options.");
+		}
+		for (const [key, value] of Object.entries(values ?? {})) {
+			args.push(`-${key}${suffix}`);
+			if (value !== null) args.push(String(value));
+		}
+	};
+	append(plan.globalOptions, "global");
+	append(plan.inputOptions, "input");
+	args.push(
 		"-protocol_whitelist",
 		"file,pipe",
 		"-i",
@@ -65,181 +118,104 @@ export function compileFfmpegArguments(
 		"-1",
 		"-sn",
 		"-dn",
-	];
+	);
 	if (plan.video.action === "copy") {
 		if (plan.videoParameters || plan.videoFilters?.length || plan.h264Level)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Copied video cannot have encoding settings.",
-			);
+			invalid("Copied video cannot have encoding settings.");
 		args.push("-c:v", "copy");
 	} else {
-		const video = plan.videoParameters;
+		const raw = plan.videoParameters;
+		const video =
+			raw &&
+			(plan.compilerVersion === 2
+				? raw
+				: legacyVideo(raw as unknown as Record<string, unknown>));
 		if (
 			!video ||
 			!Check(TranscodeVideoSchema, video) ||
 			video.encoder !== plan.video.encoder ||
 			video.codec !== plan.video.codec ||
-			video.pixelFormat !== plan.video.pixelFormat
+			video.pixelFormat !== plan.video.pixelFormat ||
+			!validEncodingOptions(video, { encoder: "copy", codec: "" })
 		)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Video encoding requires matching typed parameters.",
-			);
-		args.push("-c:v", video.encoder, "-pix_fmt", video.pixelFormat);
-		if ("crf" in video) args.push("-crf", String(video.crf));
-		if ("preset" in video) args.push("-preset", String(video.preset));
-		if ("cpuUsed" in video)
-			args.push("-cpu-used", String(video.cpuUsed), "-b:v", "0");
-		if ("bitrateKbps" in video) args.push("-b:v", `${video.bitrateKbps}k`);
-		if (
-			video.profile &&
-			!["libx264", "libx265", "libvpx-vp9"].includes(video.encoder)
-		)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Profile selection is unsupported by this encoder.",
-			);
-		if (video.level && !["libx264", "libx265"].includes(video.encoder))
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Level selection is unsupported by this encoder.",
-			);
-		if (video.profile) args.push("-profile:v", video.profile);
-		if (video.level) args.push("-level:v", video.level);
-		if (video.maxBitrateKbps)
-			args.push(
-				"-maxrate",
-				`${video.maxBitrateKbps}k`,
-				"-bufsize",
-				`${video.maxBitrateKbps * 2}k`,
-			);
-		if (plan.h264Level && !video.profile && !video.level) {
-			if (
-				plan.h264Level !== "5.1" ||
-				video.encoder !== "libx264" ||
-				video.pixelFormat !== "yuv420p"
-			)
-				throw new MediaToolError(
-					"INVALID_INPUT",
-					"Unsupported H.264 output descriptor.",
-				);
-			args.push("-profile:v", "high", "-level:v", plan.h264Level);
-		}
-		if (plan.videoFilters?.length) {
-			// No arbitrary graphs: match the expressions generated by the resolver.
-			if (
-				!plan.videoFilters.every((filter) =>
-					/^scale=w=(-2|\d+):h=\d+:flags=lanczos$|^fps=\d+(\.\d+)?$|^pad=ceil\(iw\/2\)\*2:ceil\(ih\/2\)\*2$|^format=[a-z][a-z0-9_]{0,63}$/.test(
-						filter,
-					),
-				)
-			)
-				throw new MediaToolError(
-					"INVALID_INPUT",
-					"Unsupported generated video filter.",
-				);
-			args.push("-vf", plan.videoFilters.join(","));
+			invalid("Video encoding requires matching parameters.");
+		if (video) {
+			args.push("-c:v", video.encoder);
+			append(video.options, "video", ":v");
+			if (video.pixelFormat) args.push("-pix_fmt:v", video.pixelFormat);
+			if (plan.h264Level)
+				args.push("-profile:v", "high", "-level:v", plan.h264Level);
+			if (plan.videoFilters?.length)
+				args.push("-vf", plan.videoFilters.join(","));
 		}
 	}
-	const dependencies = [
-		...(plan.video.action === "encode"
-			? [
-					"buffer",
-					"buffersink",
-					"null",
-					"scale",
-					...(plan.videoFilters ?? []).map(
-						(filter) => filter.split("=")[0] as string,
-					),
-				]
-			: []),
-		...(options.audioStreamIndices.length > 0 &&
-		(plan.audio.action === "encode" ||
-			plan.audioTracks?.some((t) => t.execution.action === "encode"))
-			? ["abuffer", "abuffersink", "aresample", "aformat", "anull"]
-			: []),
-	];
-	if (dependencies.some((filter) => !plan.filters.includes(filter)))
-		throw new MediaToolError(
-			"INVALID_INPUT",
-			"Execution plan omits required conversion filters.",
+	if (
+		plan.audioTracks &&
+		(plan.audioTracks.length !== options.audioStreamIndices.length ||
+			plan.audioTracks.some(
+				(t, i) => t.sourceIndex !== options.audioStreamIndices[i],
+			))
+	)
+		invalid("Audio plan selection is inconsistent.");
+	if (!options.audioStreamIndices.length) args.push("-an");
+	options.audioStreamIndices.forEach((index, position) => {
+		args.push(
+			"-map",
+			`0:${index}`,
+			`-map_metadata:s:a:${position}`,
+			`0:s:${index}`,
 		);
-	if (options.audioStreamIndices.length === 0) args.push("-an");
-	else {
-		for (const index of options.audioStreamIndices)
-			args.push("-map", `0:${index}`);
-		options.audioStreamIndices.forEach((index, position) => {
-			args.push(`-map_metadata:s:a:${position}`, `0:s:${index}`);
-		});
-		if (
-			plan.audioTracks &&
-			(plan.audioTracks.length !== options.audioStreamIndices.length ||
-				plan.audioTracks.some(
-					(t, i) => t.sourceIndex !== options.audioStreamIndices[i],
-				))
-		)
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Audio plan selection is inconsistent.",
-			);
-		options.audioStreamIndices.forEach((_index, position) => {
-			const track = plan.audioTracks?.[position];
-			const action = track?.execution ?? plan.audio;
+		const track = plan.audioTracks?.[position];
+		const action = track?.execution ?? plan.audio;
+		const raw = track ? track.parameters : plan.audioParameters;
+		const suffix = `:a:${position}`;
+		if (action.action === "copy") {
+			if (raw) invalid("Copied audio cannot have encoding settings.");
+			args.push(`-c${suffix}`, "copy");
+		} else {
 			const audio =
-				track?.parameters ?? (track ? undefined : plan.audioParameters);
-			const suffix = plan.audioTracks ? `:a:${position}` : ":a";
-			if (action.action === "copy") {
-				if (audio)
-					throw new MediaToolError(
-						"INVALID_INPUT",
-						"Copied audio cannot have encoding settings.",
-					);
-				args.push(`-c${suffix}`, "copy");
-			} else {
-				if (
-					!audio ||
-					!Check(TranscodeAudioSchema, audio) ||
-					audio.encoder !== action.encoder ||
-					audio.codec !== action.codec ||
-					(audio.profile && audio.encoder !== "aac")
-				)
-					throw new MediaToolError(
-						"INVALID_INPUT",
-						"Audio encoding requires matching typed parameters.",
-					);
+				raw &&
+				(plan.compilerVersion === 2
+					? raw
+					: legacyAudio(raw as unknown as Record<string, unknown>));
+			if (
+				!audio ||
+				!Check(TranscodeAudioSchema, audio) ||
+				audio.encoder !== action.encoder ||
+				audio.codec !== action.codec ||
+				!validEncodingOptions({ encoder: "copy", codec: "" }, audio)
+			)
+				invalid("Audio encoding requires matching parameters.");
+			if (audio) {
 				args.push(`-c${suffix}`, audio.encoder);
-				if (audio.encoder === "aac") args.push(`-profile${suffix}`, "aac_low");
-				if ("bitrateKbps" in audio)
-					args.push(`-b${suffix}`, `${audio.bitrateKbps}k`);
-				if ("compressionLevel" in audio)
-					args.push(
-						`-compression_level${suffix}`,
-						String(audio.compressionLevel),
-					);
-				if (audio.channelCount || audio.channels === "stereo")
-					args.push(`-ac${suffix}`, String(audio.channelCount ?? 2));
+				append(audio.options, "audio", suffix);
+				if (audio.channels) args.push(`-ac${suffix}`, String(audio.channels));
 				if (audio.sampleRate)
 					args.push(`-ar${suffix}`, String(audio.sampleRate));
+				const filters = [
+					...(audio.filters ?? []),
+					...(audio.sampleRate ? [`aresample=${audio.sampleRate}`] : []),
+				];
+				if (audio.channels)
+					filters.push(`aformat=channel_layouts=${audio.channels}c`);
+				if (filters.length) args.push(`-filter${suffix}`, filters.join(","));
 			}
-			if (track)
-				args.push(
-					`-disposition:a:${position}`,
-					track.default ? "default" : "0",
-				);
-		});
-	}
+		}
+		if (track)
+			args.push(`-disposition:a:${position}`, track.default ? "default" : "0");
+	});
 	if (plan.delivery === "media-source") {
-		if (plan.container !== "mp4")
-			throw new MediaToolError(
-				"INVALID_INPUT",
-				"Fragmented delivery currently requires MP4.",
-			);
+		if (plan.container !== "mp4" || plan.muxerOptions?.movflags !== undefined)
+			invalid("Fragmented delivery requires application-owned MP4 packaging.");
 		args.push("-movflags", "+frag_keyframe+empty_moov+default_base_moof");
-	} else if (plan.delivery !== undefined && plan.delivery !== "file") {
-		throw new MediaToolError("INVALID_INPUT", "Invalid delivery target.");
-	} else if (plan.container === "mp4" || plan.container === "mov")
+	} else if (plan.delivery !== undefined && plan.delivery !== "file")
+		invalid("Invalid delivery target.");
+	else if (
+		(plan.container === "mp4" || plan.container === "mov") &&
+		plan.muxerOptions?.movflags === undefined
+	)
 		args.push("-movflags", "+faststart");
+	append(plan.muxerOptions, "muxer");
 	args.push("-fs", String(options.maximumBytes), "-f", plan.container, output);
 	return args;
 }

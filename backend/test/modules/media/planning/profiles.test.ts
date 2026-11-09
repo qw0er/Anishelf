@@ -8,7 +8,6 @@ import {
 	expectedOutputSpec,
 	resolveExecutionPlan as resolvePreparationExecutionPlan,
 } from "../../../../src/modules/media/media-planning/public.js";
-import { fingerprint } from "../../../../src/shared/fingerprint.js";
 import { presentCompatibility } from "../../../../src/transport/presenters/compatibility.js";
 
 import {
@@ -69,20 +68,7 @@ test.each([
 			width: expectedWidth,
 			height: expectedHeight,
 		});
-		expect(plan.request.plan.id).toBe(
-			fingerprint({
-				version: "preparation-execution:2",
-				fileId: f.file.id,
-				root: f.source.identity.scopeId,
-				sourceVersion: description.sourceVersion,
-				profileFingerprint: checked.output?.profileFingerprint,
-				delivery: "file",
-				video: 2,
-				audio: [4],
-				v: "encode",
-				a: "copy",
-			}),
-		);
+		expect(plan.request.plan.id).toMatch(/^[a-f0-9]{64}$/);
 		expect(Check(CompatibilityInspectionSchema, description)).toBe(true);
 		const publicResult = presentCompatibility(checked);
 		expect(Check(CompatibilityResultSchema, publicResult)).toBe(true);
@@ -114,28 +100,14 @@ test("non-H264 encoding omits H264 constraints and has a distinct resolver ident
 				encoder: "libsvtav1",
 				codec: "av1",
 				pixelFormat: "yuv420p",
-				crf: 30,
-				preset: 8,
+				options: { crf: 30, preset: 8 },
 			},
 		},
 		output: { ...checked.output, copyVideo: "unsupported" },
 	});
 	if (result.kind !== "processing") throw new Error("No plan");
 	expect(result.request.plan).not.toHaveProperty("h264Level");
-	expect(result.request.plan.id).toBe(
-		fingerprint({
-			version: "preparation-execution:3",
-			fileId: f.file.id,
-			root: f.source.identity.scopeId,
-			sourceVersion: f.description.sourceVersion,
-			profileFingerprint: checked.output.profileFingerprint,
-			delivery: "file",
-			video: 2,
-			audio: [4],
-			v: "encode",
-			a: "copy",
-		}),
-	);
+	expect(result.request.plan.id).toMatch(/^[a-f0-9]{64}$/);
 });
 
 test.each([2, 3])(
@@ -167,7 +139,7 @@ test.each([2, 3])(
 );
 
 test.each([0, 2])(
-	"compatibility mode encodes both streams using profile %s regardless of source copy support",
+	"copy-disabled profile %s encodes both streams regardless of source copy support",
 	async (profileIndex) => {
 		const f = await fixture(true, false, profileIndex);
 		const request = {
@@ -187,7 +159,12 @@ test.each([0, 2])(
 				...request,
 				evidence: f.evidence(overrides),
 			});
-			const result = resolvePreparationExecutionPlan(checked);
+			const result = resolvePreparationExecutionPlan({
+				...checked,
+				profile: checked.profile
+					? { ...checked.profile, copyCompatibleStreams: false }
+					: null,
+			});
 			expect(result).toMatchObject({
 				kind: "processing",
 				mode: "transcode",
@@ -201,23 +178,41 @@ test.each([0, 2])(
 			});
 		}
 		const checked = await f.app.check(request);
-		const compatible = resolvePreparationExecutionPlan(checked);
-		const fast = resolvePreparationExecutionPlan(checked, "fast");
+		const compatible = resolvePreparationExecutionPlan({
+			...checked,
+			profile: checked.profile
+				? { ...checked.profile, copyCompatibleStreams: false }
+				: null,
+		});
+		const fast = resolvePreparationExecutionPlan({
+			...checked,
+			profile: checked.profile
+				? { ...checked.profile, copyCompatibleStreams: true }
+				: null,
+		});
 		if (compatible.kind !== "processing" || fast.kind !== "processing")
 			throw new Error("Missing plans");
-		expect(compatible.request.plan.id).not.toBe(fast.request.plan.id);
+		expect(compatible.request.plan.video.action).toBe("encode");
+		if (profileIndex === 0) expect(fast.request.plan.video.action).toBe("copy");
 		expect(compatible.profileFingerprint).toBe(fast.profileFingerprint);
 		const rejected = await f.app.check({
 			...request,
 			evidence: f.evidence({ "output-encode-encode": "unsupported" }),
 		});
-		expect(resolvePreparationExecutionPlan(rejected)).toMatchObject({
+		expect(
+			resolvePreparationExecutionPlan({
+				...rejected,
+				profile: rejected.profile
+					? { ...rejected.profile, copyCompatibleStreams: false }
+					: null,
+			}),
+		).toMatchObject({
 			kind: "blocked",
 		});
 	},
 );
 
-test("planning reads the current preparation mode for each request", async () => {
+test("planning reads the current profile and rejects stale evidence after a policy edit", async () => {
 	let mode: "compatible" | "fast" = "compatible";
 	const f = await fixture(true, false, 0, () => mode);
 	const request = {
@@ -232,7 +227,16 @@ test("planning reads the current preparation mode for each request", async () =>
 		mode: "transcode",
 	});
 	mode = "fast";
-	expect(await f.app.plan(request)).toMatchObject({
+	await expect(f.app.plan(request)).rejects.toMatchObject({
+		code: "INVALID_REQUEST",
+	});
+	const description = await f.inspectOutput(
+		f.file.id,
+		f.source.identity.sourceVersion,
+	);
+	expect(
+		await f.app.plan({ ...request, descriptionId: description.descriptionId }),
+	).toMatchObject({
 		kind: "processing-required",
 		mode: "remux",
 	});

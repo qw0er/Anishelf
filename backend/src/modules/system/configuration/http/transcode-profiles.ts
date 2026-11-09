@@ -1,4 +1,5 @@
 import {
+	ReloadTranscodeProfilesSchema,
 	SelectTranscodeProfileSchema,
 	TranscodeProfileCatalogSchema,
 } from "../../../../contracts/schemas/index.js";
@@ -15,7 +16,19 @@ export function registerTranscodeProfileRoutes(
 		{
 			schema: { response: { 200: TranscodeProfileCatalogSchema } },
 		},
-		async () => transcodeProfileCatalog(configuration),
+		async () => {
+			await configuration.refreshTranscodeValidation?.();
+			return transcodeProfileCatalog(configuration);
+		},
+	);
+	app.post(
+		"/api/transcode-profiles/reload",
+		{ schema: { response: { 200: ReloadTranscodeProfilesSchema } } },
+		async () => {
+			const result = await configuration.reloadTranscodeProfiles?.();
+			if (!result) throw new Error("Profile reload is not configured.");
+			return { ...result, catalog: transcodeProfileCatalog(configuration) };
+		},
 	);
 	app.put(
 		"/api/transcode-profiles/selection",
@@ -26,10 +39,8 @@ export function registerTranscodeProfileRoutes(
 			},
 		},
 		async (request) => {
-			await configuration.selectTranscodeProfile(
-				request.body.profileId,
-				request.body.preparationMode,
-			);
+			await configuration.refreshTranscodeValidation?.();
+			await configuration.selectTranscodeProfile(request.body.profileId);
 			return transcodeProfileCatalog(configuration);
 		},
 	);

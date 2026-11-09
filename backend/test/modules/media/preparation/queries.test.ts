@@ -150,7 +150,7 @@ test("directory summaries include old publications without validating source or 
 	expect((await f.preparation.get(id)).failureReason).toBe("cache-missing");
 });
 
-test("summaries separate source versions and filter the current profile and root", async () => {
+test("summaries retain snapshotted tasks across profile edits and filter resource roots", async () => {
 	const f = await fixture();
 	const ready = await completed(
 		f,
@@ -189,9 +189,16 @@ test("summaries separate source versions and filter the current profile and root
 	profile.copyCompatibleStreams = !profile.copyCompatibleStreams;
 	expect(
 		(await f.application.summaries([ready.fileId])).files[0]?.versions,
-	).toEqual([
-		{ sourceVersion: ready.sourceVersion, publishedCopies: 1, pendingTasks: 0 },
-	]);
+	).toEqual(
+		expect.arrayContaining([
+			{
+				sourceVersion: ready.sourceVersion,
+				publishedCopies: 1,
+				pendingTasks: 0,
+			},
+			{ sourceVersion: "b".repeat(64), publishedCopies: 0, pendingTasks: 1 },
+		]),
+	);
 	const otherRoot = join(f.dataDir, "other-root");
 	await mkdir(otherRoot, { recursive: true });
 	await updateResourceSettings(f.library, { resourceRoots: [otherRoot] });

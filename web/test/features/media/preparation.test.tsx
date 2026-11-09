@@ -85,12 +85,12 @@ const catalog = {
 			videoEncoder: "libx264",
 			audioEncoder: "aac",
 			source: "builtin" as const,
-			usage: "preparation" as const,
+			validation: { status: "unverified" as const, issues: [] },
 		},
 	],
 	selectedProfileId: task.profileId,
 	selectionAvailable: true,
-	preparationMode: "compatible" as const,
+	revision: "test",
 };
 const unsupported = {
 	audioTracks: [],
@@ -247,35 +247,35 @@ test("shows a profile configuration issue without hiding built-in choices", asyn
 		"Custom transcode profiles could not be loaded",
 	);
 	expect(alert.textContent).toContain("transcode-profiles.yaml");
+	expect(alert.textContent).toContain("Reload profiles");
+	expect(alert.textContent).not.toContain("restart Anishelf");
 	expect(await view.findByRole("radio", { name: /Browser copy/ })).toBeTruthy();
 });
 
-test("target profile is saved in Settings through the persistent selection API", async () => {
+test("target profile is saved without a global preparation mode", async () => {
+	const firstProfile = catalog.profiles[0];
+	if (!firstProfile) throw new Error("Missing test profile");
+	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
+		...catalog,
+		profiles: [
+			...catalog.profiles,
+			{ ...firstProfile, id: "custom:second", name: "Second profile" },
+		],
+	});
 	const view = render(
 		<Wrapper>
 			<PreparationProfileSettings />
 		</Wrapper>,
 	);
-	const profile = await view.findByRole("radio", { name: /Browser copy/ });
-	await waitFor(() =>
-		expect(profile.getAttribute("aria-checked")).toBe("true"),
-	);
-	const compatible = view.getByRole("radio", {
-		name: /Compatibility \(default\)/,
-	});
-	expect(compatible.getAttribute("aria-checked")).toBe("true");
-	fireEvent.click(view.getByRole("radio", { name: /Fast preparation/ }));
+	fireEvent.click(await view.findByRole("radio", { name: /Second profile/ }));
 	await waitFor(() =>
 		expect(settingsApi.selectTranscodeProfile).toHaveBeenCalledWith(
-			task.profileId,
-			undefined,
-			"fast",
+			"custom:second",
 		),
 	);
-	expect(
-		view.queryByRole("button", { name: "Save preparation settings" }),
-	).toBeNull();
+	expect(view.queryByRole("radio", { name: /Compatibility/ })).toBeNull();
 });
+
 test("an unavailable target selection sends the user to Settings instead of guessing a profile", async () => {
 	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
 		...catalog,
@@ -364,7 +364,7 @@ test("file menu discovers older prepared copies and deletes them even for a supp
 		(await view.findByRole("menuitem", { name: "Pre-transcode" })).getAttribute(
 			"aria-disabled",
 		),
-	).toBe("false");
+	).toBe("true");
 	fireEvent.click(remove);
 	await waitFor(() =>
 		expect(preparationApi.deletePreparedMedia).toHaveBeenCalledWith(
@@ -779,7 +779,7 @@ test("narrow monitor starts collapsed and exposes failed tasks on demand", async
 });
 
 test.each(["remux", "transcode-audio", "transcode-video"] as const)(
-	"compatibility preparation does not reuse a %s copy as a completed full transcode",
+	"preparation retains a completed %s copy without the removed global mode",
 	async (mode) => {
 		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
 			preparationList([{ ...ready, mode }]),
@@ -787,9 +787,8 @@ test.each(["remux", "transcode-audio", "transcode-video"] as const)(
 		const view = button({ tasks: [{ ...ready, mode }] });
 		const prepare = await view.findByRole("button", { name: "Pre-transcode" });
 		fireEvent.click(prepare);
-		await waitFor(() =>
-			expect(preparationApi.createPreparation).toHaveBeenCalled(),
-		);
+		expect(prepare.getAttribute("aria-disabled")).toBe("true");
+		expect(preparationApi.createPreparation).not.toHaveBeenCalled();
 	},
 );
 
@@ -834,4 +833,68 @@ test("task monitor loads a failed task after it leaves the active list", async (
 		).toBeTruthy(),
 	);
 	await view.findByRole("complementary", { name: "Transcoding tasks" });
+});
+
+test("profile reload publishes the returned catalog and keeps validation failures visible", async () => {
+	const failed = {
+		...catalog,
+		issue: { file: "transcode-profiles.yaml", detail: "Invalid option scope." },
+	};
+	const reload = vi
+		.spyOn(settingsApi, "reloadTranscodeProfiles")
+		.mockResolvedValueOnce({
+			applied: false,
+			catalog: failed,
+			issues: [failed.issue],
+		})
+		.mockResolvedValueOnce({ applied: true, catalog, issues: [] });
+	const view = render(
+		<Wrapper>
+			<PreparationProfileSettings />
+		</Wrapper>,
+	);
+	const button = await view.findByRole("button", { name: "Reload profiles" });
+	fireEvent.click(button);
+	expect((await view.findByRole("alert")).textContent).toContain(
+		"Invalid option scope.",
+	);
+	fireEvent.click(button);
+	await waitFor(() => expect(reload).toHaveBeenCalledTimes(2));
+	await waitFor(() => expect(view.queryByRole("alert")).toBeNull());
+	expect(await view.findByRole("radio", { name: /Browser copy/ })).toBeTruthy();
+});
+
+test("unsupported profiles are disabled and retain their field-level diagnostic", async () => {
+	const first = catalog.profiles[0];
+	if (!first) throw new Error("Missing profile");
+	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
+		...catalog,
+		selectionAvailable: false,
+		profiles: [
+			{
+				...first,
+				validation: {
+					status: "unsupported",
+					issues: [
+						{
+							field: "video.encoder",
+							message: "The encoder is not installed.",
+						},
+					],
+				},
+			},
+		],
+	});
+	const view = render(
+		<Wrapper>
+			<PreparationProfileSettings />
+		</Wrapper>,
+	);
+	expect(
+		(await view.findByRole("radio", { name: /Browser copy/ })).getAttribute(
+			"aria-disabled",
+		),
+	).toBe("true");
+	fireEvent.click(view.getByText(/Validation details/));
+	expect(view.getByText(/The encoder is not installed/)).toBeTruthy();
 });

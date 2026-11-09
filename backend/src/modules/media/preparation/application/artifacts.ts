@@ -12,10 +12,7 @@ import type {
 	PreparedArtifact,
 } from "../domain/model.js";
 import { InvalidPreparedMediaError } from "../infrastructure/files.js";
-import {
-	type PreparationContext,
-	PreparationProfileChangedError,
-} from "./context.js";
+import type { PreparationContext } from "./context.js";
 import { preparationFailure } from "./failures.js";
 
 /** Only operations on the same artifact serialize. Planning and task control never acquire this gate. */
@@ -408,8 +405,6 @@ export class PreparationArtifacts {
 			this.context.sources.assertAccessRevision(source.accessRevision);
 			signal.throwIfAborted();
 			this.context.assertOpen();
-			if (!this.context.profileValid(task))
-				throw new PreparationProfileChangedError();
 			const mimeType = {
 				mp4: "video/mp4",
 				mov: "video/quicktime",
@@ -434,6 +429,8 @@ export class PreparationArtifacts {
 			this.context.logger.info(
 				{
 					event: "preparation.ready",
+					profileId: task.profileId,
+					profileFingerprint: task.spec.profileFingerprint,
 					taskId: task.id,
 					sizeBytes: processed.sizeBytes,
 				},
@@ -469,6 +466,8 @@ export class PreparationArtifacts {
 			this.context.logger.warn(
 				{
 					event: "preparation.failed",
+					profileId: current.profileId,
+					profileFingerprint: current.spec.profileFingerprint,
 					taskId: id,
 					reason: current.state.failureReason,
 				},

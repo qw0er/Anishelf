@@ -1,52 +1,24 @@
-/** Typed encoder settings; transport validates its own representation. */
-type VideoFields = {
-	pixelFormat: string;
-	maxHeight?: number;
-	maxWidth?: number;
-	maxFrameRate?: number;
-	profile?: string;
-	level?: string;
-	maxBitrateKbps?: number;
-};
-type X26xPreset =
-	| "ultrafast"
-	| "superfast"
-	| "veryfast"
-	| "faster"
-	| "fast"
-	| "medium"
-	| "slow"
-	| "slower"
-	| "veryslow";
-export type VideoEncoding = VideoFields &
-	(
-		| { encoder: "libx264"; codec: "h264"; crf: number; preset: X26xPreset }
-		| { encoder: "libx265"; codec: "hevc"; crf: number; preset: X26xPreset }
-		| { encoder: "libsvtav1"; codec: "av1"; crf: number; preset: number }
-		| { encoder: "libaom-av1"; codec: "av1"; crf: number; cpuUsed: number }
-		| { encoder: "libvpx-vp9"; codec: "vp9"; crf: number; cpuUsed: number }
-		| {
-				encoder: "h264_nvenc" | "h264_qsv" | "h264_videotoolbox";
-				codec: "h264";
-				bitrateKbps: number;
-		  }
-		| {
-				encoder: "hevc_nvenc" | "hevc_qsv" | "hevc_videotoolbox";
-				codec: "hevc";
-				bitrateKbps: number;
-		  }
-		| { encoder: "av1_nvenc" | "av1_qsv"; codec: "av1"; bitrateKbps: number }
-	);
-export type AudioEncoding = {
-	channels: "preserve" | "stereo";
-	channelCount?: number;
-	sampleRate?: number;
-	profile?: string;
-} & (
-	| { encoder: "aac"; codec: "aac"; bitrateKbps: number }
-	| { encoder: "libopus"; codec: "opus"; bitrateKbps: number }
-	| { encoder: "libvorbis"; codec: "vorbis"; bitrateKbps: number }
-	| { encoder: "flac"; codec: "flac"; compressionLevel: number }
-	| { encoder: "alac"; codec: "alac" }
-	| { encoder: "pcm_s16le"; codec: "pcm_s16le" }
-);
+/** FFmpeg options retain their authored order; null represents a valueless flag. */
+export type EncodingOptions = Record<string, string | number | null>;
+export interface VideoEncoding {
+	encoder: string;
+	codec: string;
+	pixelFormat?: string | undefined;
+	maxWidth?: number | undefined;
+	maxHeight?: number | undefined;
+	maxFrameRate?: number | undefined;
+	options?: EncodingOptions | undefined;
+	filters?: readonly string[] | undefined;
+}
+export interface AudioEncoding {
+	encoder: string;
+	codec: string;
+	channels?: number | undefined;
+	sampleRate?: number | undefined;
+	options?: EncodingOptions | undefined;
+	filters?: readonly string[] | undefined;
+}
+export interface EncodingValidation {
+	status: "recognized" | "unsupported" | "unverified";
+	issues: { field: string; message: string }[];
+}

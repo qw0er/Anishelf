@@ -24,7 +24,9 @@ export function createPreparationApplication(options: {
 	planning: PreparationPlanner;
 	processing: MediaProcessingApi;
 	repository: PreparationStore;
-	profiles: DeepReadonly<TranscodeProfile[]>;
+	profiles:
+		| DeepReadonly<TranscodeProfile[]>
+		| (() => DeepReadonly<TranscodeProfile[]>);
 	dataDir: string;
 	logger: Logger;
 	probe: (path: string) => Promise<MediaInfo>;

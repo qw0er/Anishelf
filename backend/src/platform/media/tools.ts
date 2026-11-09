@@ -25,6 +25,12 @@ import { parseMediaInfo, probeRecord } from "./probe-parser.js";
 
 export { parseMediaInfo } from "./probe-parser.js";
 
+import {
+	type EncodingProfileShape,
+	inspectEncodingProfiles,
+	type OptionHelp,
+	parseOptionHelp,
+} from "./option-catalog.js";
 import { mediaToolPolicy, validateMediaToolPolicy } from "./policy.js";
 import { MediaToolError, runTool } from "./process.js";
 import { MediaToolDiscovery } from "./tool-discovery.js";
@@ -113,6 +119,85 @@ export class MediaTools {
 			);
 		}
 		return structuredClone(await this.capabilityInventory);
+	}
+	private optionCache = new Map<string, Promise<OptionHelp>>();
+	private optionFailures = new Map<string, number>();
+	async validateProfiles<T extends EncodingProfileShape>(
+		profiles: DeepReadonly<T[]>,
+		refresh = false,
+	) {
+		if (refresh) {
+			this.optionCache.clear();
+			this.optionFailures.clear();
+			this.capabilityInventory = undefined;
+		}
+		const server = await this.capabilities();
+		const tool = await this.toolStatus("ffmpeg");
+		return inspectEncodingProfiles(profiles, server, async (topic) => {
+			if (!tool.available) return { options: new Map(), available: false };
+			const key = JSON.stringify([tool.path, tool.version, topic]);
+			if (
+				(this.optionFailures.get(key) ?? Number.POSITIVE_INFINITY) +
+					this.policy.mediaTools.detectionRetryIntervalMs <=
+				Date.now()
+			) {
+				this.optionCache.delete(key);
+				this.optionFailures.delete(key);
+			}
+			let pending = this.optionCache.get(key);
+			if (!pending) {
+				this.logger?.debug(
+					{ event: "media.option_detection_started", topic },
+					"Reading FFmpeg option metadata.",
+				);
+				pending = runTool(
+					tool.path,
+					["-hide_banner", "-h", topic],
+					{
+						timeoutMs: this.policy.mediaTools.detectionTimeoutMs,
+						maxBytes: this.policy.mediaTools.capabilityMaximumBytes * 8,
+					},
+					this.policy.mediaTools,
+					this.logger,
+				)
+					.then((source) => parseOptionHelp(source, topic !== "full"))
+					.catch(() => {
+						this.optionFailures.set(key, Date.now());
+						this.logger?.warn(
+							{ event: "media.option_detection_failed", topic },
+							"FFmpeg option information could not be read.",
+						);
+						return { options: new Map(), available: false };
+					});
+				this.optionCache.set(key, pending);
+			}
+			return pending;
+		});
+	}
+	async validatePlan(
+		plan: DeepReadonly<import("./specification.js").MediaProcessingPlan>,
+	): Promise<void> {
+		const audios = plan.audioTracks?.map((track) => track.parameters) ?? [
+			plan.audioParameters,
+		];
+		const checked = await this.validateProfiles(
+			audios.map((audio, index) => ({
+				id: String(index),
+				container: plan.container,
+				video: plan.videoParameters ?? { encoder: "copy", codec: "" },
+				audio: audio ?? { encoder: "copy", codec: "" },
+				globalOptions: plan.globalOptions,
+				inputOptions: plan.inputOptions,
+				muxerOptions: plan.muxerOptions,
+			})),
+		);
+		if (
+			Object.values(checked.validation).some((v) => v.status === "unsupported")
+		)
+			throw new MediaToolError(
+				"CAPABILITY_MISSING",
+				"The execution parameters are unsupported by this FFmpeg build.",
+			);
 	}
 	async probe(path: string, signal?: AbortSignal): Promise<MediaInfo> {
 		const executable = await this.executable("ffprobe");

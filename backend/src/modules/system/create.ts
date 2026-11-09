@@ -23,8 +23,23 @@ export async function createSystemModule(
 ) {
 	const service = await ConfigurationService.load(env);
 	const api: SystemApi = {
-		autoPreparationPresets: service.autoPreparationPresets,
-		autoPreparationIssue: service.autoPreparationIssue,
+		get autoPreparationPresets() {
+			return service.autoPreparationPresets;
+		},
+		get autoPreparationIssue() {
+			return service.autoPreparationIssue;
+		},
+		get transcodeRevision() {
+			return service.transcodeRevision;
+		},
+		get transcodeValidation() {
+			return service.transcodeValidation;
+		},
+		configureTranscodeValidation:
+			service.configureTranscodeValidation.bind(service),
+		refreshTranscodeValidation:
+			service.refreshTranscodeValidation.bind(service),
+		reloadTranscodeProfiles: service.reloadTranscodeProfiles.bind(service),
 		onSettingsChanged: service.onSettingsChanged.bind(service),
 		get settings() {
 			return service.settings;

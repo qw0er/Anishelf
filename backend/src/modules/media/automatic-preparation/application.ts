@@ -74,14 +74,26 @@ export class AutomaticPreparationApplication {
 				)
 			: undefined;
 	}
-	private async eligible(task: PreparationTask): Promise<boolean> {
-		const preset = this.selected();
+	private taskPreset(
+		task: PreparationTask,
+	): DeepReadonly<AutoPreparationPreset> | undefined {
+		const system = this.options.system;
 		if (
-			!preset ||
-			task.demand?.presetId !== preset.id ||
-			task.demand.presetFingerprint !== presetFingerprint(preset)
+			!system.settings.autoPreparationEnabled ||
+			task.demand?.presetId !==
+				(system.settings.autoPreparationPresetId ?? "builtin:web")
 		)
-			return false;
+			return undefined;
+		const saved = task.spec.settings.automaticPreset;
+		if (saved?.id === task.demand.presetId) return saved;
+		const active = this.selected();
+		return active && task.demand.presetFingerprint === presetFingerprint(active)
+			? active
+			: undefined;
+	}
+	private async eligible(task: PreparationTask): Promise<boolean> {
+		const preset = this.taskPreset(task);
+		if (!preset) return false;
 		try {
 			const source = await this.options.resources.sources.resolveSource(
 				task.spec.source.fileId,
@@ -90,10 +102,13 @@ export class AutomaticPreparationApplication {
 			const states = preset.match?.viewingStates?.length
 				? await this.options.viewing([source.identity])
 				: {};
-			return matchesPreset(
-				preset,
-				source.identity,
-				states[source.identity.fileId] ?? "unwatched",
+			return (
+				this.taskPreset(task) === preset &&
+				matchesPreset(
+					preset,
+					source.identity,
+					states[source.identity.fileId] ?? "unwatched",
+				)
 			);
 		} catch {
 			return false;
@@ -148,10 +163,7 @@ export class AutomaticPreparationApplication {
 		}
 		const preset = this.selected();
 		await this.options.preparation.reconcileAutomatic(
-			(task) =>
-				!!preset &&
-				task.demand?.presetId === preset.id &&
-				task.demand.presetFingerprint === presetFingerprint(preset),
+			(task) => !!this.taskPreset(task),
 		);
 		if (!preset || this.closed) {
 			this.paused = false;
@@ -236,6 +248,16 @@ export class AutomaticPreparationApplication {
 	): Promise<PreparationView | undefined> {
 		const { resources, system, repository, preparation, inspection } =
 			this.options;
+		await system.refreshTranscodeValidation?.();
+		const revision = system.transcodeRevision;
+		const profile = system.transcodeProfiles.find(
+			(p) => p.id === preset.transcodeProfileId,
+		);
+		if (
+			!profile ||
+			system.transcodeValidation?.[profile.id]?.status === "unsupported"
+		)
+			return;
 		const source = await resources.sources.resolveSource(fileId);
 		const states =
 			batchStates ??
@@ -247,9 +269,7 @@ export class AutomaticPreparationApplication {
 		const id = fingerprint({
 			source: source.identity,
 			preset: presetFingerprint(preset),
-			profile: system.transcodeProfiles.find(
-				(p) => p.id === preset.transcodeProfileId,
-			),
+			profile,
 		});
 		let demand = repository.getAutomaticDemand?.(id) ?? {
 			id,
@@ -279,10 +299,6 @@ export class AutomaticPreparationApplication {
 			)
 		)
 			return;
-		const profile = system.transcodeProfiles.find(
-			(p) => p.id === preset.transcodeProfileId,
-		);
-		if (!profile) return;
 		const planned = planAutomaticPreparation(
 			source.identity,
 			inspected.info,
@@ -326,7 +342,12 @@ export class AutomaticPreparationApplication {
 		}
 		await resources.sources.revalidateSource(source);
 		resources.sources.assertAccessRevision(source.accessRevision);
-		if (this.closed || this.selected() !== preset) return;
+		if (
+			this.closed ||
+			this.selected() !== preset ||
+			system.transcodeRevision !== revision
+		)
+			return;
 		const latestStates = preset.match?.viewingStates?.length
 			? await this.options.viewing([source.identity])
 			: {};
@@ -338,6 +359,12 @@ export class AutomaticPreparationApplication {
 			)
 		)
 			return;
+		if (
+			this.closed ||
+			this.selected() !== preset ||
+			system.transcodeRevision !== revision
+		)
+			return;
 		const view = await preparation.createAutomatic(
 			fileId,
 			source.identity.sourceVersion,
@@ -347,6 +374,7 @@ export class AutomaticPreparationApplication {
 				origin: "automatic",
 				presetId: preset.id,
 				presetFingerprint: presetFingerprint(preset),
+				presetSnapshot: preset,
 			},
 		);
 		if (

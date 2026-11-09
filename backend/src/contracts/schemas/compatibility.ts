@@ -33,7 +33,7 @@ export const VideoStreamDescriptionSchema = Type.Object(
 		kind: Type.Literal("video"),
 		pixelFormat: nullableString,
 		bitDepth: nullableNumber,
-		hdr: Type.Boolean(),
+		hdr: Type.Union([Type.Boolean(), Type.Null()]),
 		width: nullableNumber,
 		height: nullableNumber,
 		frameRate: nullableNumber,

@@ -23,7 +23,10 @@ test("profile content changes invalidate evidence; metadata and key order do not
 		f.source.identity.sourceVersion,
 	);
 	expect(renamed.descriptionId).toBe(f.description.descriptionId);
-	if ("crf" in f.profile.video) f.profile.video.crf += 1;
+	f.profile.video.options = {
+		...f.profile.video.options,
+		crf: Number(f.profile.video.options?.crf ?? 23) + 1,
+	};
 	await expect(f.resolve()).rejects.toThrow("stale");
 });
 
@@ -130,9 +133,9 @@ test("media planning validates evidence without opening history or claiming reso
 		...input,
 		evidence: f.evidence({ "copy-video": "unknown" }),
 	});
-	expect(blocked).toEqual({
-		kind: "blocked",
-		reason: "source-stream-compatibility-unknown",
+	expect(blocked).toMatchObject({
+		kind: "processing-required",
+		execution: { plan: { video: { action: "encode" } } },
 	});
 	f.app.close();
 	await expect(f.app.plan(input)).rejects.toMatchObject({

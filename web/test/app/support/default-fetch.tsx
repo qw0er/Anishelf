@@ -105,12 +105,12 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 					videoEncoder: "libx264",
 					audioEncoder: "aac",
 					source: "builtin",
-					usage: "preparation",
+					validation: { status: "unverified" as const, issues: [] },
 				},
 			],
 			selectedProfileId: "builtin:web",
 			selectionAvailable: true,
-			preparationMode: "compatible" as const,
+			revision: "test",
 		});
 	if (path === "/api/preparations/summaries")
 		return json({

@@ -49,9 +49,7 @@ export function usePreparationCommand({
 		(candidate) =>
 			candidate.fileId === fileId &&
 			(!sourceKnown || candidate.sourceVersion === sourceVersion) &&
-			candidate.profileId === profile &&
-			(preparation.catalog?.preparationMode !== "compatible" ||
-				candidate.mode === "transcode"),
+			candidate.profileId === profile,
 	);
 	const activeTask = scoped.find(isPending);
 	const candidates = scoped.filter(

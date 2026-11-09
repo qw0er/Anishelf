@@ -106,6 +106,7 @@ export async function fixture(
 	const profiles = structuredClone(
 		builtinTranscodeProfiles,
 	) as TranscodeProfile[];
+	for (const profile of profiles) profile.copyCompatibleStreams = true;
 	let compatibility: MediaPlanningApplication;
 	let database = ApplicationDatabase.open(dataDir);
 	cleanup.push(async () => database.close());
@@ -170,7 +171,6 @@ export async function fixture(
 	let app: ReturnType<typeof createHttpApp>;
 	async function start() {
 		compatibility = new MediaPlanningApplication({
-			preparationMode: () => "fast",
 			sources: library.sources,
 			inspection,
 			profiles,

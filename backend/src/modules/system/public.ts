@@ -1,7 +1,6 @@
 export type {
 	DeploymentConfig,
 	PersistentSettings,
-	PreparationMode,
 	SettingsStore,
 	TranscodeProfile,
 } from "./configuration/public.js";
@@ -13,11 +12,27 @@ import type { ProfileCatalogIssue } from "../../shared/profile-issue.js";
 import type {
 	DeploymentConfig,
 	PersistentSettings,
-	PreparationMode,
 	SettingsStore,
 	TranscodeProfile,
 } from "./configuration/public.js";
 export interface SystemApi extends SettingsStore {
+	readonly transcodeRevision?: string;
+	readonly transcodeValidation?: Readonly<
+		Record<
+			string,
+			import("../../platform/media/encoding.js").EncodingValidation
+		>
+	>;
+	configureTranscodeValidation?(
+		validator: import("./configuration/profile.js").TranscodeProfileValidator,
+		logger?: import("pino").Logger,
+	): Promise<void>;
+	refreshTranscodeValidation?(): Promise<void>;
+	reloadTranscodeProfiles?(): Promise<{
+		applied: boolean;
+		issues: ProfileCatalogIssue[];
+	}>;
+
 	readonly autoPreparationPresets?: DeepReadonly<
 		import("../../contracts/auto-preparation.js").AutoPreparationPreset[]
 	>;
@@ -31,7 +46,6 @@ export interface SystemApi extends SettingsStore {
 		readonly settings: DeepReadonly<
 			PersistentSettings & {
 				defaultTranscodeProfileId: string;
-				preparationMode: PreparationMode;
 			}
 		>;
 	};
@@ -40,7 +54,6 @@ export interface SystemApi extends SettingsStore {
 	): Promise<Readonly<PersistentSettings>>;
 	selectTranscodeProfile(
 		id: string | null,
-		mode?: PreparationMode,
 	): Promise<Readonly<PersistentSettings>>;
 }
 

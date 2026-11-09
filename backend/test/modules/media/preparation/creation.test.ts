@@ -118,11 +118,11 @@ test("retry creates a replacement task when the profile changed", async () => {
 	fail = false;
 	required(f.profiles[0]).video.maxHeight = 720;
 	await f.restart();
-	expect((await f.preparation.get(id)).failureReason).toBe("profile-changed");
+	expect((await f.preparation.get(id)).failureReason).toBe("tool-unavailable");
 	const { fileId: _fileId, ...input } = await f.input();
 	const replacement = await f.preparation.retry(id, input);
 	expect(replacement.id).not.toBe(id);
-	expect((await f.preparation.get(id)).failureReason).toBe("profile-changed");
+	expect((await f.preparation.get(id)).failureReason).toBe("tool-unavailable");
 	expect((await completed(f, replacement.id)).status).toBe("ready");
 });
 
@@ -211,4 +211,26 @@ test("worker admission and scheduling never scan the whole task list", async () 
 	});
 	const id = await taskId(f.preparation.create(await f.input()));
 	expect((await completed(f, id)).status).toBe("ready");
+});
+
+test("running tasks publish their saved plan after the active profile is edited or removed", async () => {
+	let release = () => {};
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const f = await fixture({ beforeOutput: async () => gate });
+	try {
+		const id = await taskId(f.preparation.create(await f.input()));
+		await vi.waitFor(() => expect(f.processing.start).toHaveBeenCalledTimes(1));
+		const original = structuredClone(
+			required(f.database.preparation.get(id)).spec.settings,
+		);
+		required(f.profiles[0]).video.options = { crf: 40 };
+		f.profiles.splice(0, 1);
+		release();
+		expect((await completed(f, id)).status).toBe("ready");
+		expect(f.database.preparation.get(id)?.spec.settings).toEqual(original);
+	} finally {
+		release();
+	}
 });

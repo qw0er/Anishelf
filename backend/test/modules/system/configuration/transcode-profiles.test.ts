@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
@@ -30,7 +30,7 @@ const customProfile = () => ({
 const writeProfiles = (profiles: unknown[]) =>
 	writeFile(
 		join(directory, "transcode-profiles.yaml"),
-		stringify({ version: 1, profiles }),
+		stringify({ version: 2, profiles }),
 	);
 
 test("built-ins use the shared schema and missing external files create no configuration files", async () => {
@@ -94,333 +94,234 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 
 test.each([
 	"{",
-	stringify({ version: 2, profiles: [] }),
-	stringify({ version: 1, profiles: [builtinTranscodeProfiles[0]] }),
-	stringify({ version: 1, profiles: [customProfile(), customProfile()] }),
+	stringify({ version: 1, profiles: [] }),
+	stringify({ version: 2, profiles: [builtinTranscodeProfiles[0]] }),
+	stringify({ version: 2, profiles: [customProfile(), customProfile()] }),
 	stringify({
-		version: 1,
-		profiles: [{ ...customProfile(), args: ["-i", "other"] }],
+		version: 2,
+		profiles: [{ ...customProfile(), usage: "preparation" }],
 	}),
 	stringify({
-		version: 1,
+		version: 2,
+		profiles: [{ ...customProfile(), inputOptions: { i: "other" } }],
+	}),
+	stringify({
+		version: 2,
 		profiles: [
-			{ ...customProfile(), video: { ...customProfile().video, crf: 52 } },
+			{ ...customProfile(), video: { encoder: "copy", options: { crf: 20 } } },
 		],
 	}),
 	stringify({
-		version: 1,
+		version: 2,
 		profiles: [
 			{
 				...customProfile(),
-				video: { ...customProfile().video, preset: "invalid" },
+				video: { ...customProfile().video, filters: ["trim=duration=1"] },
 			},
 		],
 	}),
 	stringify({
-		version: 1,
-		profiles: [{ ...customProfile(), id: "custom:../file" }],
-	}),
-	stringify({
-		version: 1,
-		profiles: [{ ...customProfile(), name: "   " }],
-	}),
-	stringify({
-		version: 1,
+		version: 2,
 		profiles: [
 			{
 				...customProfile(),
-				video: { ...customProfile().video, maxHeight: 721 },
+				video: { ...customProfile().video, filters: ["null;movie=other"] },
 			},
 		],
 	}),
+	"version: 2\nversion: 2\nprofiles: []\n",
 ])(
-	"falls back to built-ins for malformed or conflicting administrator configuration: %s",
-	async (source) => {
-		expect(() => parseTranscodeProfiles(source)).toThrowError(
-			expect.objectContaining({ code: "CONFIG_INVALID" }),
-		);
-		await writeFile(join(directory, "transcode-profiles.yaml"), source);
-		const service = await load();
-		expect(service.transcodeProfiles.map((profile) => profile.id)).toEqual([
-			"builtin:balanced",
-			"builtin:fast",
-			"builtin:efficient",
-			"builtin:compact",
-		]);
-		expect(service.transcodeProfileIssue).toMatchObject({
-			file: "transcode-profiles.yaml",
-		});
-		expect(transcodeProfileCatalog(service).issue).toMatchObject({
-			file: "transcode-profiles.yaml",
-		});
+	"rejects invalid v2 structure and application-owned overrides: %s",
+	(source) => {
+		expect(() => parseTranscodeProfiles(source)).toThrow();
 	},
 );
 
-test("unreadable external file falls back without changing the snapshot", async () => {
-	await mkdir(join(directory, "transcode-profiles.yaml"));
-	const unreadable = await load();
-	expect(unreadable.transcodeProfiles).toHaveLength(
-		builtinTranscodeProfiles.length,
+test("open encoders and options are retained without a fixed parameter whitelist", () => {
+	const value = parseTranscodeProfiles(
+		stringify({
+			version: 2,
+			profiles: [
+				{
+					...customProfile(),
+					copyCompatibleStreams: undefined,
+					video: {
+						encoder: "new_encoder",
+						options: {
+							new_quality: 17,
+							"8x8dct": 1,
+							"encoder-params": "new-feature=1",
+						},
+					},
+					audio: { encoder: "copy" },
+				},
+			],
+		}),
 	);
-	expect(unreadable.transcodeProfileIssue).toMatchObject({
-		file: "transcode-profiles.yaml",
+	expect(value[0]).toMatchObject({
+		copyCompatibleStreams: false,
+		video: { encoder: "new_encoder", codec: "", options: { new_quality: 17 } },
+		audio: { encoder: "copy" },
 	});
-	await rm(join(directory, "transcode-profiles.yaml"), { recursive: true });
-	const service = await load();
-	const before = service.snapshot;
-	await mkdir(join(directory, "settings.json"));
-	await expect(
-		service.selectTranscodeProfile("builtin:fast"),
-	).rejects.toMatchObject({ code: "CONFIG_WRITE_FAILED" });
-	expect(service.snapshot).toBe(before);
-	await rm(join(directory, "settings.json"), { recursive: true });
-	await service.selectTranscodeProfile("builtin:fast");
-	expect(service.snapshot.settings.defaultTranscodeProfileId).toBe(
-		"builtin:fast",
-	);
 });
 
-test("catalog and selection APIs expose display metadata, validate IDs, and preserve existing settings", async () => {
+test("reload is atomic, preserves selection and exposes a rejected file", async () => {
 	await writeProfiles([customProfile()]);
 	const service = await load();
-	await service.update({ resourceRoots: [] });
-	const app = createHttpApp({
-		configuration: service,
-		config: service.deployment,
-		logger: pino({ enabled: false }),
+	await service.selectTranscodeProfile("custom:small");
+	const revision = service.transcodeRevision;
+	await writeFile(
+		join(directory, "transcode-profiles.yaml"),
+		"version: 1\nprofiles: []",
+	);
+	expect(await service.reloadTranscodeProfiles()).toMatchObject({
+		applied: false,
 	});
-	try {
-		const response = await app.inject({
-			headers: { host: `127.0.0.1:${service.deployment.port}` },
-			url: "/api/transcode-profiles",
-		});
-		expect(response.statusCode).toBe(200);
-		expect(response.json().profiles[builtinTranscodeProfiles.length]).toEqual({
-			id: "custom:small",
-			container: "mp4",
-			videoEncoder: "libx264",
-			audioEncoder: "aac",
-			name: "Small",
-			description: "Smaller Web copy.",
-			source: "custom",
-			usage: "preparation",
-		});
-		const select = await app.inject({
-			headers: { host: `127.0.0.1:${service.deployment.port}` },
-			method: "PUT",
-			url: "/api/transcode-profiles/selection",
-			payload: { profileId: "custom:small" },
-		});
-		expect(select.statusCode).toBe(200);
-		expect(select.json().selectedProfileId).toBe("custom:small");
-		expect(service.settings).toEqual({
-			resourceRoots: [],
-			defaultTranscodeProfileId: "custom:small",
-		});
-		for (const payload of [
-			{ profileId: "custom:missing" },
-			{ profileId: "builtin:fast", video: {} },
-			{},
-			{ profileId: 1 },
-		]) {
-			const rejected = await app.inject({
-				headers: { host: `127.0.0.1:${service.deployment.port}` },
-				method: "PUT",
-				url: "/api/transcode-profiles/selection",
-				payload,
-			});
-			expect(rejected.statusCode).toBe(400);
-		}
-		expect(service.settings.defaultTranscodeProfileId).toBe("custom:small");
-		const reset = await app.inject({
-			headers: { host: `127.0.0.1:${service.deployment.port}` },
-			method: "PUT",
-			url: "/api/transcode-profiles/selection",
-			payload: { profileId: null },
-		});
-		expect(reset.statusCode).toBe(200);
-		expect(reset.json().selectedProfileId).toBe("builtin:balanced");
-	} finally {
-		await app.close();
-	}
-});
-
-const videoVariants = [
-	{ encoder: "libx264", codec: "h264", crf: 23, preset: "medium" },
-	{ encoder: "libx265", codec: "hevc", crf: 28, preset: "slow" },
-	{ encoder: "libsvtav1", codec: "av1", crf: 35, preset: 8 },
-	{ encoder: "libaom-av1", codec: "av1", crf: 32, cpuUsed: 6 },
-	{ encoder: "libvpx-vp9", codec: "vp9", crf: 32, cpuUsed: 4 },
-	{ encoder: "h264_nvenc", codec: "h264", bitrateKbps: 5000 },
-	{ encoder: "hevc_nvenc", codec: "hevc", bitrateKbps: 4000 },
-	{ encoder: "av1_nvenc", codec: "av1", bitrateKbps: 3000 },
-	{ encoder: "h264_qsv", codec: "h264", bitrateKbps: 5000 },
-	{ encoder: "hevc_qsv", codec: "hevc", bitrateKbps: 4000 },
-	{ encoder: "av1_qsv", codec: "av1", bitrateKbps: 3000 },
-	{ encoder: "h264_videotoolbox", codec: "h264", bitrateKbps: 5000 },
-	{ encoder: "hevc_videotoolbox", codec: "hevc", bitrateKbps: 4000 },
-];
-const audioVariants = [
-	{ encoder: "aac", codec: "aac", bitrateKbps: 192 },
-	{ encoder: "libopus", codec: "opus", bitrateKbps: 128 },
-	{ encoder: "libvorbis", codec: "vorbis", bitrateKbps: 160 },
-	{ encoder: "flac", codec: "flac", compressionLevel: 8 },
-	{ encoder: "alac", codec: "alac" },
-	{ encoder: "pcm_s16le", codec: "pcm_s16le" },
-];
-
-test("loads software and hardware declarations without requiring installed encoders", async () => {
-	const profiles = videoVariants.map((video, index) => ({
-		...customProfile(),
-		id: `custom:variant-${index}`,
-		container: "matroska",
-		video: { ...video, pixelFormat: index === 1 ? "yuv420p10le" : "yuv420p" },
-	}));
-	await writeProfiles(profiles);
-	const service = await load();
-	expect(
-		service.transcodeProfiles.slice(builtinTranscodeProfiles.length),
-	).toEqual(profiles);
-	await service.selectTranscodeProfile("custom:variant-1");
-	expect(transcodeProfileCatalog(await load())).toMatchObject({
-		selectedProfileId: "custom:variant-1",
+	expect(service.transcodeRevision).toBe(revision);
+	expect(transcodeProfileCatalog(service)).toMatchObject({
+		selectedProfileId: "custom:small",
 		selectionAvailable: true,
+		issue: { file: "transcode-profiles.yaml" },
 	});
-	expect(transcodeProfileCatalog(service).profiles[3]).not.toHaveProperty(
-		"video",
+	await writeProfiles([]);
+	expect(await service.reloadTranscodeProfiles()).toEqual({
+		applied: true,
+		issues: [],
+	});
+	expect(service.transcodeRevision).not.toBe(revision);
+	expect(transcodeProfileCatalog(service)).toMatchObject({
+		selectedProfileId: "custom:small",
+		selectionAvailable: false,
+	});
+});
+
+test("reload validates automatic preset references before replacing either catalog", async () => {
+	await writeProfiles([customProfile()]);
+	const preset = {
+		id: "custom:reference",
+		name: "Reference",
+		description: "Uses a custom profile.",
+		transcodeProfileId: "custom:small",
+	};
+	await writeFile(
+		join(directory, "auto-preparation-presets.yaml"),
+		stringify({ version: 1, presets: [preset] }),
 	);
-});
-
-test.each(audioVariants)(
-	"accepts the declared $encoder audio parameters",
-	(audio) => {
-		const profile = {
-			...customProfile(),
-			container: "matroska",
-			audio: { ...audio, channels: "preserve" },
-		};
-		expect(
-			parseTranscodeProfiles(stringify({ version: 1, profiles: [profile] })),
-		).toEqual([profile]);
-	},
-);
-
-test.each(["mp4", "webm", "matroska", "mov"])(
-	"accepts %s packaging declarations",
-	(container) => {
-		const profile = {
-			...customProfile(),
-			container,
-			video: {
-				encoder: "libsvtav1",
-				codec: "av1",
-				pixelFormat: "yuv420p10le",
-				crf: 40,
-				preset: 10,
-			},
-			audio: {
-				encoder: "libopus",
-				codec: "opus",
-				bitrateKbps: 128,
-				channels: "stereo",
-			},
-		};
-		expect(Check(TranscodeProfileSchema, profile)).toBe(true);
-	},
-);
-
-test.each([
-	{ encoder: "libx265", codec: "h264", crf: 28, preset: "medium" },
-	{ encoder: "libx265", codec: "hevc", crf: 52, preset: "medium" },
-	{ encoder: "libsvtav1", codec: "av1", crf: 64, preset: 8 },
-	{ encoder: "libsvtav1", codec: "av1", crf: 35, preset: "medium" },
-	{ encoder: "libsvtav1", codec: "av1", crf: 35, preset: 14 },
-	{ encoder: "libaom-av1", codec: "av1", crf: 32, cpuUsed: 9 },
-	{ encoder: "libvpx-vp9", codec: "vp9", crf: 32, cpuUsed: 6 },
-	{ encoder: "hevc_nvenc", codec: "hevc", bitrateKbps: 4000, crf: 28 },
-	{ encoder: "hevc_videotoolbox", codec: "hevc", bitrateKbps: 0 },
-	{ encoder: "h264_qsv", codec: "h264", bitrateKbps: 5000, preset: "medium" },
-	{ encoder: "unknown", codec: "hevc", bitrateKbps: 4000 },
-])("rejects mismatched or invalid video options: %j", (video) => {
-	const profile = {
-		...customProfile(),
-		video: { ...video, pixelFormat: "yuv420p" },
-	};
-	expect(() =>
-		parseTranscodeProfiles(stringify({ version: 1, profiles: [profile] })),
-	).toThrowError(expect.objectContaining({ code: "CONFIG_INVALID" }));
-});
-
-test.each([
-	{ encoder: "libopus", codec: "aac", bitrateKbps: 128 },
-	{ encoder: "libopus", codec: "opus", bitrateKbps: 511 },
-	{ encoder: "flac", codec: "flac", compressionLevel: 13 },
-	{ encoder: "flac", codec: "flac", compressionLevel: 8, bitrateKbps: 192 },
-	{ encoder: "alac", codec: "alac", bitrateKbps: 192 },
-])("rejects mismatched or invalid audio options: %j", (audio) => {
-	const profile = {
-		...customProfile(),
-		audio: { ...audio, channels: "preserve" },
-	};
-	expect(Check(TranscodeProfileSchema, profile)).toBe(false);
-});
-
-test.each(["-pix_fmt yuv420p", "../pixel", "yuv420p;command"])(
-	"rejects malformed pixel format tokens: %s",
-	(pixelFormat) => {
-		expect(
-			Check(TranscodeProfileSchema, {
-				...customProfile(),
-				video: { ...customProfile().video, pixelFormat },
-			}),
-		).toBe(false);
-	},
-);
-
-test("preparation mode defaults to compatibility and persists with profile selection", async () => {
 	const service = await load();
-	expect(transcodeProfileCatalog(service).preparationMode).toBe("compatible");
-	await service.selectTranscodeProfile("builtin:efficient", "fast");
-	expect(transcodeProfileCatalog(await load())).toMatchObject({
-		selectedProfileId: "builtin:efficient",
-		preparationMode: "fast",
+	const previous = service.transcodeRevision;
+	await writeProfiles([]);
+	expect(await service.reloadTranscodeProfiles()).toMatchObject({
+		applied: false,
+		issues: [{ file: "auto-preparation-presets.yaml" }],
 	});
-	await service.selectTranscodeProfile("builtin:balanced");
-	expect(transcodeProfileCatalog(service).preparationMode).toBe("fast");
-	await service.selectTranscodeProfile("builtin:balanced", "compatible");
-	expect(transcodeProfileCatalog(await load()).preparationMode).toBe(
-		"compatible",
+	expect(service.transcodeRevision).toBe(previous);
+	await writeFile(
+		join(directory, "auto-preparation-presets.yaml"),
+		stringify({ version: 1, presets: [] }),
 	);
+	expect(await service.reloadTranscodeProfiles()).toMatchObject({
+		applied: true,
+	});
+	expect(service.autoPreparationPresets.some((p) => p.id === preset.id)).toBe(
+		false,
+	);
+});
+
+test("detected unsupported profiles cannot be selected; unverified profiles remain selectable", async () => {
+	const service = await load();
+	await service.configureTranscodeValidation(async (profiles) => ({
+		profiles: structuredClone(
+			profiles,
+		) as typeof service.transcodeProfiles extends readonly (infer T)[]
+			? T[]
+			: never,
+		validation: {
+			"builtin:fast": {
+				status: "unsupported",
+				issues: [{ field: "video.encoder", message: "Missing encoder." }],
+			},
+		},
+	}));
+	await expect(service.selectTranscodeProfile("builtin:fast")).rejects.toThrow(
+		"existing transcode profile",
+	);
+	await service.selectTranscodeProfile("builtin:compact");
+	expect(transcodeProfileCatalog(service).selectedProfileId).toBe(
+		"builtin:compact",
+	);
+});
+
+test("legacy preparationMode is ignored and removed on the next settings write", async () => {
+	await writeFile(
+		join(directory, "settings.json"),
+		JSON.stringify({ resourceRoots: [], preparationMode: "fast" }),
+	);
+	const service = await load();
+	expect(service.settings).not.toHaveProperty("preparationMode");
+	await service.selectTranscodeProfile("builtin:fast");
+	expect(
+		JSON.parse(await readFile(join(directory, "settings.json"), "utf8")),
+	).not.toHaveProperty("preparationMode");
+});
+
+test("HTTP catalog/reload expose revisions and validation without accepting the removed mode", async () => {
+	const service = await load();
 	const app = createHttpApp({
 		logger: pino({ enabled: false }),
 		configuration: service,
 		config: service.deployment,
 	});
+	const headers = { host: `127.0.0.1:${service.deployment.port}` };
 	try {
-		const invalid = await app.inject({
-			headers: { host: `127.0.0.1:${service.deployment.port}` },
-			method: "PUT",
-			url: "/api/transcode-profiles/selection",
-			payload: { profileId: "builtin:balanced", preparationMode: "invalid" },
+		const before = await app.inject({
+			method: "GET",
+			url: "/api/transcode-profiles",
+			headers,
 		});
-		expect(invalid.statusCode).toBe(400);
-		const updated = await app.inject({
-			headers: { host: `127.0.0.1:${service.deployment.port}` },
-			method: "PUT",
-			url: "/api/transcode-profiles/selection",
-			payload: { profileId: "builtin:compact", preparationMode: "fast" },
+		expect(before.statusCode).toBe(200);
+		expect(before.json().profiles[0]).toMatchObject({
+			validation: { status: "unverified" },
 		});
-		expect(updated.statusCode).toBe(200);
-		expect(updated.json()).toMatchObject({
-			selectedProfileId: "builtin:compact",
-			preparationMode: "fast",
+		expect(before.json()).not.toHaveProperty("preparationMode");
+		expect(
+			(
+				await app.inject({
+					method: "PUT",
+					url: "/api/transcode-profiles/selection",
+					headers,
+					payload: { profileId: "builtin:balanced", preparationMode: "fast" },
+				})
+			).statusCode,
+		).toBe(400);
+		await writeProfiles([customProfile()]);
+		const loaded = await app.inject({
+			method: "POST",
+			url: "/api/transcode-profiles/reload",
+			headers,
+		});
+		expect(loaded.statusCode).toBe(200);
+		expect(loaded.json()).toMatchObject({ applied: true, issues: [] });
+		expect(loaded.json().catalog.revision).not.toBe(before.json().revision);
+		await writeFile(
+			join(directory, "transcode-profiles.yaml"),
+			"version: 1\nprofiles: []",
+		);
+		const rejected = await app.inject({
+			method: "POST",
+			url: "/api/transcode-profiles/reload",
+			headers,
+		});
+		expect(rejected.statusCode).toBe(200);
+		expect(rejected.json()).toMatchObject({
+			applied: false,
+			catalog: { revision: loaded.json().catalog.revision },
 		});
 	} finally {
 		await app.close();
 	}
 });
 
-test("the documented YAML example loads with comments and native scalar types", async () => {
+test("the documented v2 YAML example loads", async () => {
 	const source = await readFile(
 		new URL(
 			"../../../../../docs/examples/transcode-profiles-example.yaml",
@@ -428,33 +329,9 @@ test("the documented YAML example loads with comments and native scalar types", 
 		),
 		"utf8",
 	);
-	const profiles = parseTranscodeProfiles(source);
-	expect(profiles).toHaveLength(1);
-	expect(profiles[0]).toMatchObject({
-		id: "custom:small",
-		copyCompatibleStreams: true,
-		video: { crf: 25, maxHeight: 720 },
+	expect(parseTranscodeProfiles(source)[0]).toMatchObject({
+		id: "custom:hevc-quality",
+		video: { options: { "x265-params": "aq-mode=3:psy-rd=2.0" } },
+		audio: { channels: 2 },
 	});
-	await writeFile(join(directory, "transcode-profiles.yaml"), source);
-	expect((await load()).transcodeProfiles).toContainEqual(profiles[0]);
-});
-
-test.each([
-	"version: 1\nversion: 1\nprofiles: []",
-	"version: 1\nprofiles: []\n---\nversion: 1\nprofiles: []",
-	"version: 1\nprofiles: !unsupported []",
-	"version: 1\nprofiles: *missing",
-	"version: 1\nprofiles:\n  - [broken",
-])("rejects invalid YAML documents: %s", (source) => {
-	expect(() => parseTranscodeProfiles(source)).toThrowError(
-		expect.objectContaining({ code: "CONFIG_INVALID" }),
-	);
-});
-
-test("the old JSON filename is no longer loaded", async () => {
-	await writeFile(
-		join(directory, "transcode-profiles.json"),
-		JSON.stringify({ version: 1, profiles: [customProfile()] }),
-	);
-	expect((await load()).transcodeProfiles).toEqual(builtinTranscodeProfiles);
 });

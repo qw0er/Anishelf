@@ -3,28 +3,38 @@ import type { SystemApi } from "../../public.js";
 export function transcodeProfileCatalog(
 	configuration: Pick<
 		SystemApi,
-		"snapshot" | "transcodeProfiles" | "transcodeProfileIssue"
+		| "snapshot"
+		| "transcodeProfiles"
+		| "transcodeProfileIssue"
+		| "transcodeRevision"
+		| "transcodeValidation"
 	>,
 ): TranscodeProfileCatalog {
 	const selectedProfileId =
 		configuration.snapshot.settings.defaultTranscodeProfileId;
 	return {
 		profiles: configuration.transcodeProfiles.map(
-			({ id, name, description, usage, container, video, audio }) => ({
+			({ id, name, description, container, video, audio }) => ({
 				id,
 				name,
 				description,
 				container,
 				videoEncoder: video.encoder,
 				audioEncoder: audio.encoder,
-				usage,
+				validation: configuration.transcodeValidation?.[id] ?? {
+					status: "unverified",
+					issues: [],
+				},
 				source: id.startsWith("builtin:") ? "builtin" : "custom",
 			}),
 		),
 		selectedProfileId,
-		preparationMode: configuration.snapshot.settings.preparationMode,
+		revision: configuration.transcodeRevision ?? "uninitialized",
 		selectionAvailable: configuration.transcodeProfiles.some(
-			(profile) => profile.id === selectedProfileId,
+			(profile) =>
+				profile.id === selectedProfileId &&
+				configuration.transcodeValidation?.[profile.id]?.status !==
+					"unsupported",
 		),
 		...(configuration.transcodeProfileIssue
 			? { issue: configuration.transcodeProfileIssue }

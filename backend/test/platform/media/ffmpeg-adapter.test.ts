@@ -81,8 +81,7 @@ test("encoder-specific settings compile without accepting raw graphs or mismatch
 			encoder: "libsvtav1",
 			codec: "av1",
 			pixelFormat: "yuv420p",
-			crf: 30,
-			preset: 8,
+			options: { crf: 30, preset: 8 },
 		},
 		filters: ["buffer", "buffersink", "null", "scale"],
 	};
@@ -113,8 +112,7 @@ test("encoder-specific settings compile without accepting raw graphs or mismatch
 					encoder: "libx264",
 					codec: "h264",
 					pixelFormat: "yuv420p",
-					crf: 23,
-					preset: "medium",
+					options: { crf: 23, preset: "medium" },
 				},
 			}),
 		),
@@ -220,7 +218,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			executor: adapter,
 			dataDir: root,
 		});
-		const description = await compatibility.inspect({
+		let description = await compatibility.inspect({
 			fileId: file.id,
 			sourceVersion: source.identity.sourceVersion,
 			output: { profileId: profile.id, target: "file" },
@@ -256,6 +254,12 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			"transcode-video",
 			"transcode",
 		] as const) {
+			profile.copyCompatibleStreams = mode !== "transcode";
+			description = await compatibility.inspect({
+				fileId: file.id,
+				sourceVersion: source.identity.sourceVersion,
+				output: { profileId: profile.id, target: "file" },
+			});
 			const result = resolveExecutionPlan(
 				await compatibility.check({
 					output: { profileId: profile.id, target: "file" },
@@ -277,7 +281,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 						};
 					}),
 				}),
-				mode === "transcode" ? "compatible" : "fast",
+				true,
 			);
 			expect(result).toMatchObject({ kind: "processing", mode });
 			if (result.kind !== "processing") throw new Error("No plan");
@@ -372,7 +376,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			});
 		}
 		profile.video.maxHeight = 60;
-		profile.audio.channels = "stereo";
+		profile.audio.channels = 2;
 		const resizedDescription = await compatibility.inspect({
 			fileId: file.id,
 			sourceVersion: source.identity.sourceVersion,
@@ -410,6 +414,50 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				.map((stream) => stream.channels),
 		).toEqual([2, 2]);
 		await processing.release(resizedOutput.id);
+		profile.copyCompatibleStreams = false;
+		profile.video.filters = ["hqdn3d=1.5:1.5:6:6"];
+		profile.video.options = {
+			...profile.video.options,
+			"x264-params": "aq-mode=3:psy-rd=1.0",
+		};
+		profile.audio.filters = ["loudnorm=I=-16:TP=-1.5:LRA=11"];
+		profile.audio.sampleRate = 48000;
+		const advancedDescription = await compatibility.inspect({
+			fileId: file.id,
+			sourceVersion: source.identity.sourceVersion,
+			output: { profileId: profile.id, target: "file" },
+		});
+		const advanced = resolveExecutionPlan(
+			await compatibility.check({
+				fileId: file.id,
+				sourceVersion: source.identity.sourceVersion,
+				descriptionId: advancedDescription.descriptionId,
+				output: { profileId: profile.id, target: "file" },
+				evidence: advancedDescription.queries.map((query) => ({
+					id: query.id,
+					status: "unknown" as const,
+					reason: "incomplete-description" as const,
+					smooth: null,
+				})),
+			}),
+			true,
+		);
+		if (advanced.kind !== "processing") throw new Error("No advanced plan");
+		const validation = await tools.validateProfiles([profile]);
+		expect(validation.validation[profile.id]?.status).toBe("unverified");
+		const advancedOutput = await processing.start(advanced.request).completion;
+		expect(
+			advancedOutput.info.streams.find((s) => s.type === "video")?.height,
+		).toBeLessThanOrEqual(60);
+		expect(
+			advancedOutput.info.streams
+				.filter((s) => s.type === "audio")
+				.map((s) => ({ channels: s.channels, sampleRate: s.sampleRate })),
+		).toEqual([
+			{ channels: 2, sampleRate: 48000 },
+			{ channels: 2, sampleRate: 48000 },
+		]);
+		await processing.release(advancedOutput.id);
 	} finally {
 		await processing?.close();
 		await inspection?.close();

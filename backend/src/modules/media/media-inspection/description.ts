@@ -14,7 +14,7 @@ export interface MediaVideoDescription extends StreamIdentity {
 	kind: "video";
 	pixelFormat: string | null;
 	bitDepth: number | null;
-	hdr: boolean;
+	hdr: boolean | null;
 	width: number | null;
 	height: number | null;
 	frameRate: number | null;

@@ -72,7 +72,7 @@ test("System settings HTTP updates media settings while Resources reserves its s
 			method: "PUT",
 			url: "/api/transcode-profiles/selection",
 			headers,
-			payload: { profileId: "builtin:fast", preparationMode: "fast" },
+			payload: { profileId: "builtin:fast" },
 		});
 		expect(selection.statusCode).toBe(200);
 		const duplicateWrite = await app.inject({
@@ -111,7 +111,6 @@ test("System settings HTTP updates media settings while Resources reserves its s
 		expect(profile.statusCode).toBe(200);
 		expect(profile.json()).toMatchObject({
 			selectedProfileId: "builtin:fast",
-			preparationMode: "fast",
 			selectionAvailable: true,
 		});
 	} finally {
@@ -125,10 +124,7 @@ test("a media settings patch does not restore a stale root or overwrite concurre
 	const settings = new SettingsApplication(system.api, resources.api, logger);
 	// All writes enqueue before persistence completes; the media patch observes the old root.
 	const rootWrite = system.api.patchSettings({ resourceRoots: [other] });
-	const profileWrite = system.api.selectTranscodeProfile(
-		"builtin:fast",
-		"fast",
-	);
+	const profileWrite = system.api.selectTranscodeProfile("builtin:fast");
 	const budgetWrite = settings.updateSettings({
 		resourceRoots: [root],
 		transcodeCacheBudgetGiB: 14,
@@ -141,7 +137,6 @@ test("a media settings patch does not restore a stale root or overwrite concurre
 		resourceRoots: [other],
 		transcodeCacheBudgetGiB: 14,
 		defaultTranscodeProfileId: "builtin:fast",
-		preparationMode: "fast",
 		qbittorrentWebUiUrl: "https://downloads.example.com/",
 	});
 });

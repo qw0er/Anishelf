@@ -38,6 +38,7 @@ export interface MediaStream {
 	channels: number | null;
 	channelLayout: string | null;
 	duration: number | null;
+	startTime?: number | null;
 	bitRate: number | null;
 	tags: Readonly<Record<string, string>>;
 	default: boolean;

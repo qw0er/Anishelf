@@ -30,7 +30,7 @@ client and selects among the original and available copies.
 ## Custom presets
 
 Copy the [example](../examples/auto-preparation-presets-example.yaml) to
-`<dataDir>/auto-preparation-presets.yaml`. Restart after editing. The file is
+`<dataDir>/auto-preparation-presets.yaml`. Use Reload profiles in Settings after editing. Transcode profiles and these presets are validated and activated together. The file is
 optional; missing files use built-ins. Invalid files fall back to built-ins and
 show an issue in Settings. Saved missing preset IDs remain selected and pause
 work rather than silently selecting a different policy.

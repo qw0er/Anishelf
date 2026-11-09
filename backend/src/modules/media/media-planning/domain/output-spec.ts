@@ -49,30 +49,37 @@ export function encodedVideoSpec(
 	source: CompatibilityVideoStream,
 	profile: DeepReadonly<TranscodeProfile["video"]>,
 ): CompatibilityVideoStream {
+	const transformed = !!profile.filters?.length;
 	return {
 		...source,
-		...outputDimensions(source, profile.maxHeight, profile.maxWidth),
-		codec: profile.codec,
+		...(transformed
+			? { width: null, height: null }
+			: outputDimensions(source, profile.maxHeight, profile.maxWidth)),
+		codec: profile.codec || "unknown",
 		codecString:
-			profile.encoder === "libx264" &&
+			profile.codec === "h264" &&
 			profile.pixelFormat === "yuv420p" &&
-			!profile.profile &&
-			!profile.level
+			profile.options?.profile === "high" &&
+			String(profile.options?.level) === "5.1"
 				? "avc1.640033"
-				: profile.encoder === "libvpx-vp9" && profile.pixelFormat === "yuv420p"
+				: profile.codec === "vp9" && profile.pixelFormat === "yuv420p"
 					? "vp9"
 					: null,
-		profile: profile.profile ?? (profile.encoder === "libx264" ? "High" : null),
-		frameRate:
-			profile.maxFrameRate === undefined
+		profile:
+			typeof profile.options?.profile === "string"
+				? profile.options.profile
+				: null,
+		frameRate: transformed
+			? null
+			: profile.maxFrameRate === undefined
 				? source.frameRate
 				: Math.min(
 						source.frameRate ?? profile.maxFrameRate,
 						profile.maxFrameRate,
 					),
-		pixelFormat: profile.pixelFormat,
+		pixelFormat: profile.pixelFormat ?? null,
 		bitDepth: profile.pixelFormat === "yuv420p" ? 8 : null,
-		hdr: false,
+		hdr: null,
 		bitrate: null,
 	};
 }
@@ -82,21 +89,23 @@ export function encodedAudioSpec(
 ): CompatibilityAudioStream {
 	return {
 		...source,
-		codec: profile.codec,
+		codec: profile.codec || "unknown",
 		codecString:
-			profile.encoder === "aac"
+			profile.codec === "aac" && profile.options?.profile === "aac_low"
 				? "mp4a.40.2"
-				: profile.encoder === "libopus"
+				: profile.codec === "opus"
 					? "opus"
 					: null,
 		profile: null,
-		bitrate: "bitrateKbps" in profile ? profile.bitrateKbps * 1000 : null,
+		bitrate: null,
 		channels:
-			profile.channelCount ??
-			(profile.channels === "stereo" ? 2 : source.channels),
-		sampleRate: profile.sampleRate ?? source.sampleRate,
+			profile.channels ?? (profile.filters?.length ? null : source.channels),
+		sampleRate:
+			profile.sampleRate ??
+			(profile.filters?.length ? null : source.sampleRate),
 	};
 }
+
 export function videoEncodingFilters(
 	source: CompatibilityVideoStream,
 	profile: DeepReadonly<TranscodeProfile["video"]>,
@@ -107,24 +116,26 @@ export function videoEncodingFilters(
 		profile.maxWidth,
 	);
 	return [
-		...(profile.maxWidth !== undefined && dimensions.width && dimensions.height
-			? [`scale=w=${dimensions.width}:h=${dimensions.height}:flags=lanczos`]
-			: profile.maxHeight !== undefined &&
-					(source.height === null || source.height > profile.maxHeight)
-				? [`scale=w=-2:h=${profile.maxHeight}:flags=lanczos`]
-				: []),
+		...(profile.filters ?? []),
+		...(profile.filters?.length && (profile.maxWidth || profile.maxHeight)
+			? [
+					`scale=w='${profile.maxWidth ? `min(iw,${profile.maxWidth})` : "iw"}':h='${profile.maxHeight ? `min(ih,${profile.maxHeight})` : "ih"}':force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos`,
+				]
+			: profile.maxWidth !== undefined && dimensions.width && dimensions.height
+				? [`scale=w=${dimensions.width}:h=${dimensions.height}:flags=lanczos`]
+				: profile.maxHeight !== undefined &&
+						(source.height === null || source.height > profile.maxHeight)
+					? [`scale=w=-2:h=${profile.maxHeight}:flags=lanczos`]
+					: []),
 		...(profile.maxFrameRate !== undefined &&
-		(source.frameRate === null || source.frameRate > profile.maxFrameRate)
+		(!!profile.filters?.length ||
+			source.frameRate === null ||
+			source.frameRate > profile.maxFrameRate)
 			? [`fps=${profile.maxFrameRate}`]
 			: []),
 		"pad=ceil(iw/2)*2:ceil(ih/2)*2",
-		`format=${profile.pixelFormat}`,
+		...(profile.pixelFormat ? [`format=${profile.pixelFormat}`] : []),
 	];
-}
-export function exceedsH264Level(video: CompatibilityVideoStream): boolean {
-	const macroblocks =
-		Math.ceil((video.width ?? 0) / 16) * Math.ceil((video.height ?? 0) / 16);
-	return macroblocks > 36864 || macroblocks * (video.frameRate ?? 0) > 983040;
 }
 /** Only decodingInfo parameters cross the browser boundary. */
 export function browserQuery(

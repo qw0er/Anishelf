@@ -18,6 +18,7 @@ async function automatic(f: Awaited<ReturnType<typeof fixture>>) {
 	const system = await ConfigurationService.load({
 		ANISHELF_DATA_DIR: f.dataDir,
 	});
+	system.transcodeProfiles = f.profiles;
 	await system.patchSettings({ autoPreparationEnabled: true });
 	const worker = new AutomaticPreparationApplication({
 		system,
@@ -192,4 +193,33 @@ test("automatic task retry is replanned on the server and needs no browser evide
 	expect(response.statusCode).toBe(200);
 	await completed(f, task.id);
 	expect((await f.application.get(task.id)).task.state.status).toBe("ready");
+});
+
+test("queued automatic work retains its preset and encoding snapshots after catalog removal", async () => {
+	const gate = barrier();
+	const f = await fixture({ beforeOutput: async () => gate.promise });
+	try {
+		await writeFile(join(dirname(f.sourcePath), "second.mkv"), "source two");
+		await f.library.startScan();
+		await f.library.waitForCompletion();
+		const { system, worker } = await automatic(f);
+		await vi.waitFor(() =>
+			expect(f.database.preparation.list()).toHaveLength(2),
+		);
+		const queued = required(
+			f.database.preparation.list().find((t) => t.state.status === "queued"),
+		);
+		const snapshot = structuredClone(queued.spec.settings);
+		expect(snapshot.automaticPreset?.id).toBe("builtin:web");
+		system.transcodeProfiles = [];
+		system.autoPreparationPresets = [];
+		worker.wake();
+		gate.resolve();
+		expect((await completed(f, queued.id)).status).toBe("ready");
+		expect(f.database.preparation.get(queued.id)?.spec.settings).toEqual(
+			snapshot,
+		);
+	} finally {
+		gate.resolve();
+	}
 });

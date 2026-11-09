@@ -115,7 +115,10 @@ test("real automatic preparation copies AAC, encodes PCM and reuses the publishe
 		);
 		const inspected = await inspection.inspect(file.id);
 		const preset = required(builtinAutoPreparationPresets[0]);
-		const profile = required(builtinTranscodeProfiles[0]);
+		const profile = {
+			...required(builtinTranscodeProfiles[0]),
+			copyCompatibleStreams: true,
+		};
 		const planned = planAutomaticPreparation(
 			inspected.source.identity,
 			inspected.info,

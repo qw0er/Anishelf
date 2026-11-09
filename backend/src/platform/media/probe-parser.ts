@@ -27,6 +27,12 @@ function number(value: unknown): number | null {
 	const parsed = Number(value);
 	return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
+function timestamp(value: unknown): number | null {
+	if ((typeof value !== "string" && typeof value !== "number") || value === "")
+		return null;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : null;
+}
 function tags(value: unknown): Record<string, string> {
 	if (value === undefined) return {};
 	return Object.fromEntries(
@@ -151,6 +157,7 @@ export function parseMediaInfo(
 				channels: number(stream.channels),
 				channelLayout: text(stream.channel_layout),
 				duration: number(stream.duration),
+				startTime: timestamp(stream.start_time),
 				bitRate: number(stream.bit_rate),
 				tags: tags(stream.tags),
 				default: number(disposition.default) === 1,

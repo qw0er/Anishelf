@@ -19,9 +19,6 @@ export function settingsResponse(
 		...(settings.qbittorrentWebUiUrl === undefined
 			? {}
 			: { qbittorrentWebUiUrl: settings.qbittorrentWebUiUrl }),
-		...(settings.preparationMode === undefined
-			? {}
-			: { preparationMode: settings.preparationMode }),
 		...(settings.transcodeCacheBudgetGiB === undefined
 			? {}
 			: { transcodeCacheBudgetGiB: settings.transcodeCacheBudgetGiB }),

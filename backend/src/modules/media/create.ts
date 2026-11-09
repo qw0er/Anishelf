@@ -87,6 +87,14 @@ export async function createMediaModule(options: {
 		tools,
 		logger,
 	} = options;
+	await configuration.configureTranscodeValidation?.(
+		(profiles, refresh) =>
+			tools.validateProfiles<import("../system/public.js").TranscodeProfile>(
+				profiles,
+				refresh,
+			),
+		logger,
+	);
 	const inspection = new MediaInspectionApplication({
 		sources: library.sources,
 		tools,
@@ -112,8 +120,14 @@ export async function createMediaModule(options: {
 		sources: library.sources,
 		inspection,
 		logger,
-		profiles: configuration.transcodeProfiles,
-		preparationMode: () => configuration.snapshot.settings.preparationMode,
+		profiles: () =>
+			configuration.transcodeProfiles.filter(
+				(profile) =>
+					configuration.transcodeValidation?.[profile.id]?.status !==
+					"unsupported",
+			),
+		refreshProfiles:
+			configuration.refreshTranscodeValidation?.bind(configuration),
 	});
 	const processing = createMediaProcessingModule({
 		dataDir: configuration.deployment.dataDir,
@@ -132,7 +146,7 @@ export async function createMediaModule(options: {
 		probe: tools.probe.bind(tools),
 		sources: library.sources,
 		repository: database.preparation,
-		profiles: configuration.transcodeProfiles,
+		profiles: () => configuration.transcodeProfiles,
 		dataDir: configuration.deployment.dataDir,
 		maximumCacheBytes: () =>
 			(configuration.settings.transcodeCacheBudgetGiB ??

@@ -1,8 +1,11 @@
+import type { Logger } from "pino";
 import {
 	captureRuntimeEnvironment,
 	type RuntimeEnvironment,
 } from "../../../../platform/environment.js";
+import type { EncodingValidation } from "../../../../platform/media/encoding.js";
 import { DomainError } from "../../../../shared/errors.js";
+import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
 import type { AutoPreparationPreset } from "../domain/auto-preparation.js";
@@ -15,13 +18,12 @@ import { loadAutoPreparationPresets } from "../infrastructure/auto-preparation.j
 import { loadDeploymentConfig } from "../infrastructure/deployment.js";
 import { PersistentConfiguration } from "../infrastructure/persistent.js";
 import { loadTranscodeProfiles } from "../infrastructure/transcode-profiles.js";
-import type { PreparationMode } from "../settings.js";
+import type { TranscodeProfileValidator } from "../profile.js";
 
 export interface EffectiveConfiguration {
 	deployment: DeploymentConfig;
 	settings: PersistentSettings & {
 		defaultTranscodeProfileId: string;
-		preparationMode: PreparationMode;
 	};
 }
 /** The composition root owns one service; consumers receive immutable snapshots. */
@@ -33,16 +35,105 @@ export class ConfigurationService {
 			this.listeners.delete(listener);
 		};
 	}
+	private validator?: TranscodeProfileValidator | undefined;
+	private logger?: Logger | undefined;
+	transcodeValidation: Record<string, EncodingValidation> = {};
+	get transcodeRevision(): string {
+		return fingerprint({
+			profiles: this.transcodeProfiles,
+			presets: this.autoPreparationPresets,
+		});
+	}
+	async configureTranscodeValidation(
+		validator: TranscodeProfileValidator,
+		logger?: Logger,
+	): Promise<void> {
+		this.validator = validator;
+		this.logger = logger;
+		await this.refreshTranscodeValidation();
+		logger?.info(
+			{
+				event: "configuration.transcode_profiles_loaded",
+				revision: this.transcodeRevision,
+				count: this.transcodeProfiles.length,
+			},
+			"Transcode profiles loaded.",
+		);
+	}
+	async refreshTranscodeValidation(): Promise<void> {
+		if (!this.validator) return;
+		const current = this.transcodeProfiles;
+		const checked = await this.validator(current);
+		if (this.transcodeProfiles !== current) return;
+		this.transcodeProfiles = freeze(checked.profiles);
+		this.transcodeValidation = checked.validation;
+	}
+	reloadTranscodeProfiles(): Promise<{
+		applied: boolean;
+		issues: ProfileCatalogIssue[];
+	}> {
+		const result = this.pendingChange.then(async () => {
+			const transcode = await loadTranscodeProfiles(this.deployment.dataDir);
+			const checked = this.validator
+				? await this.validator(transcode.profiles, true)
+				: { profiles: transcode.profiles, validation: {} };
+			const automatic = await loadAutoPreparationPresets(
+				this.deployment.dataDir,
+				checked.profiles,
+			);
+			const issues = [transcode.issue, automatic.issue].filter(
+				(v): v is ProfileCatalogIssue => v !== undefined,
+			);
+			if (issues.length) {
+				this.transcodeProfileIssue = issues[0];
+				this.logger?.warn(
+					{
+						event: "configuration.transcode_reload_rejected",
+						revision: this.transcodeRevision,
+						issueCount: issues.length,
+					},
+					"Profile reload rejected; the active configuration is unchanged.",
+				);
+				return { applied: false, issues };
+			}
+			this.transcodeProfiles = freeze(checked.profiles);
+			this.transcodeValidation = checked.validation;
+			this.autoPreparationPresets = automatic.presets;
+			this.autoPreparationIssue = undefined;
+			this.transcodeProfileIssue = undefined;
+			for (const listener of this.listeners) {
+				try {
+					listener();
+				} catch {
+					/* A listener cannot undo the published snapshot. */
+				}
+			}
+			this.logger?.info(
+				{
+					event: "configuration.transcode_profiles_reloaded",
+					revision: this.transcodeRevision,
+					count: this.transcodeProfiles.length,
+				},
+				"Profile configuration reloaded.",
+			);
+			return { applied: true, issues: [] };
+		});
+		this.pendingChange = result.then(
+			() => {},
+			() => {},
+		);
+		return result;
+	}
 	private current: DeepReadonly<EffectiveConfiguration>;
 	private pendingChange: Promise<void> = Promise.resolve();
 	private constructor(
 		readonly deployment: DeepReadonly<DeploymentConfig>,
 		private readonly persistent: PersistentConfiguration,
 		readonly environment: RuntimeEnvironment,
-		readonly transcodeProfiles: DeepReadonly<TranscodeProfile[]>,
-		readonly transcodeProfileIssue: ProfileCatalogIssue | undefined,
-		readonly autoPreparationPresets: DeepReadonly<AutoPreparationPreset[]>,
-		readonly autoPreparationIssue: ProfileCatalogIssue | undefined,
+		public transcodeProfiles: DeepReadonly<TranscodeProfile[]>,
+		public transcodeProfileIssue: ProfileCatalogIssue | undefined,
+		public autoPreparationPresets: DeepReadonly<AutoPreparationPreset[]>,
+		public autoPreparationIssue: ProfileCatalogIssue | undefined,
 	) {
 		this.current = this.resolve();
 	}
@@ -87,19 +178,21 @@ export class ConfigurationService {
 
 	selectTranscodeProfile(
 		profileId: string | null,
-		preparationMode?: PreparationMode,
 	): Promise<Readonly<PersistentSettings>> {
 		return this.change((current) => {
 			if (
 				profileId !== null &&
-				!this.transcodeProfiles.some((profile) => profile.id === profileId)
+				!this.transcodeProfiles.some(
+					(profile) =>
+						profile.id === profileId &&
+						this.transcodeValidation[profile.id]?.status !== "unsupported",
+				)
 			)
 				throw new DomainError(
 					"INVALID_REQUEST",
 					"Select an existing transcode profile.",
 				);
 			const next = { ...current };
-			if (preparationMode !== undefined) next.preparationMode = preparationMode;
 			if (profileId === null) delete next.defaultTranscodeProfileId;
 			else next.defaultTranscodeProfileId = profileId;
 			return next;
@@ -117,7 +210,9 @@ export class ConfigurationService {
 			next.defaultTranscodeProfileId !== undefined &&
 			next.defaultTranscodeProfileId !== current.defaultTranscodeProfileId &&
 			!this.transcodeProfiles.some(
-				(profile) => profile.id === next.defaultTranscodeProfileId,
+				(profile) =>
+					profile.id === next.defaultTranscodeProfileId &&
+					this.transcodeValidation[profile.id]?.status !== "unsupported",
 			)
 		)
 			throw new DomainError(
@@ -164,7 +259,6 @@ export class ConfigurationService {
 			deployment: this.deployment,
 			settings: freeze({
 				...this.settings,
-				preparationMode: this.settings.preparationMode ?? "compatible",
 				defaultTranscodeProfileId:
 					this.settings.defaultTranscodeProfileId ?? defaultTranscodeProfileId,
 			}),

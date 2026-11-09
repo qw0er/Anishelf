@@ -6,10 +6,7 @@ import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../../resources/public.js";
-import type {
-	PreparationMode,
-	TranscodeProfile,
-} from "../../../system/public.js";
+import type { TranscodeProfile } from "../../../system/public.js";
 import {
 	type MediaInspectionApi,
 	MediaInspectionBusyError,
@@ -45,9 +42,11 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 	constructor(
 		private readonly options: {
 			inspection: MediaInspectionApi;
+			refreshProfiles?: (() => Promise<void>) | undefined;
 			sources: ResourceAccessApi;
-			profiles?: DeepReadonly<TranscodeProfile[]>;
-			preparationMode?: () => PreparationMode;
+			profiles?:
+				| DeepReadonly<TranscodeProfile[]>
+				| (() => DeepReadonly<TranscodeProfile[]>);
 			logger?: Logger;
 		},
 	) {}
@@ -78,7 +77,6 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 			);
 		const resolved = resolveExecutionPlan(
 			checked,
-			this.options.preparationMode?.() ?? "compatible",
 			options?.forcePreparation ?? false,
 		);
 		await this.options.sources.revalidateSource(source);
@@ -132,6 +130,7 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 	}
 	private async load(input: CompatibilityInspectInput) {
 		this.assertOpen();
+		await this.options.refreshProfiles?.();
 		let profile: DeepReadonly<TranscodeProfile> | null = null;
 		if (input.output) {
 			if (!["file", "media-source"].includes(input.output.target))
@@ -139,9 +138,11 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 					"INVALID_REQUEST",
 					"Invalid compatibility delivery target.",
 				);
-			const configured = this.options.profiles?.find(
-				(profile) => profile.id === input.output?.profileId,
-			);
+			const configured = (
+				typeof this.options.profiles === "function"
+					? this.options.profiles()
+					: this.options.profiles
+			)?.find((profile) => profile.id === input.output?.profileId);
 			if (!configured)
 				throw new DomainError(
 					"INVALID_REQUEST",

@@ -247,6 +247,15 @@ See the [player layout conventions](development/design-system.md#player-layout).
 
 See the [archived V2 requirements and design](history.md#v2-requirements).
 
+Preparation profiles now use the v2 runtime configuration contract: open FFmpeg
+encoders/options, scoped parameters, single-stream filters, profile-owned copying,
+explicit atomic transcode/preset reload, and field-level capability diagnostics.
+Queued/running jobs retain immutable execution snapshots; published output facts
+remain authoritative for playback. Unknown predicted browser compatibility permits
+manual preparation, with actual-output checks before publication. V1 configuration
+files require manual migration; legacy database records and completed copies remain
+readable. See [Transcode profiles](guide/transcode-profiles.md).
+
 #### Prepared-media File Management (P27)
 
 Files provides Original files and Prepared copies views. The copy inventory lists

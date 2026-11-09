@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,9 +18,8 @@ import {
 } from "../../../shared/components/ui/radio-card.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
-import { selectTranscodeProfile } from "../api.js";
-
-type PreparationMode = TranscodeProfileCatalog["preparationMode"];
+import { reloadTranscodeProfiles, selectTranscodeProfile } from "../api.js";
+import { settingsKeys } from "../queries.js";
 
 export function PreparationProfileSettings({
 	preparation,
@@ -33,10 +32,9 @@ export function PreparationProfileSettings({
 	};
 }) {
 	const { t } = useTranslation();
-	const [mode, setMode] = useState<PreparationMode>("compatible");
+	const queryClient = useQueryClient();
 	const [profileId, setProfileId] = useState("");
 	useEffect(() => {
-		setMode(preparation.catalog?.preparationMode ?? "compatible");
 		setProfileId(
 			preparation.catalog?.selectionAvailable
 				? preparation.catalog.selectedProfileId
@@ -44,7 +42,6 @@ export function PreparationProfileSettings({
 		);
 	}, [preparation.catalog]);
 	const revert = () => {
-		setMode(preparation.catalog?.preparationMode ?? "compatible");
 		setProfileId(
 			preparation.catalog?.selectionAvailable
 				? preparation.catalog.selectedProfileId
@@ -52,8 +49,7 @@ export function PreparationProfileSettings({
 		);
 	};
 	const save = useMutation({
-		mutationFn: (selection: { profileId: string; mode: PreparationMode }) =>
-			selectTranscodeProfile(selection.profileId, undefined, selection.mode),
+		mutationFn: (profileId: string) => selectTranscodeProfile(profileId),
 		onSuccess: (catalog) => {
 			preparation.updateCatalog(catalog);
 			console.info("[Settings] Preparation profile saved.");
@@ -73,16 +69,50 @@ export function PreparationProfileSettings({
 			});
 		},
 	});
-	const choose = (nextMode: PreparationMode, nextProfileId: string) => {
-		if (!nextProfileId) return;
-		save.mutate({ profileId: nextProfileId, mode: nextMode });
-	};
+	const reload = useMutation({
+		mutationFn: reloadTranscodeProfiles,
+		onSuccess: (result) => {
+			preparation.updateCatalog(result.catalog);
+			if (result.applied) {
+				void queryClient.invalidateQueries({
+					queryKey: settingsKeys.automaticPresets,
+				});
+				console.info("[Settings] Transcode profiles reloaded.");
+			} else console.warn("[Settings] Transcode profile reload rejected.");
+			toast.add({
+				id: "transcode-profile-reload",
+				type: result.applied ? "success" : "error",
+				title: t(
+					result.applied
+						? "preparation.profilesReloaded"
+						: "preparation.profilesReloadFailed",
+				),
+			});
+		},
+		onError: () => {
+			console.warn("[Settings] Transcode profile reload failed.");
+			toast.add({
+				id: "transcode-profile-reload",
+				type: "error",
+				title: t("preparation.profilesReloadFailed"),
+			});
+		},
+	});
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("preparation.profile")}</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
+				<ActionButton
+					icon={RefreshCw}
+					label={t("preparation.reloadProfiles")}
+					shortLabel={t("preparation.reloadProfiles")}
+					variant="outline"
+					aria-busy={reload.isPending}
+					disabled={save.isPending || reload.isPending}
+					onClick={() => reload.mutate()}
+				/>
 				{preparation.catalog?.issue && (
 					<ProfileIssueNotice
 						kind="transcode"
@@ -92,49 +122,47 @@ export function PreparationProfileSettings({
 				{preparation.catalog ? (
 					<div className="space-y-4">
 						<RadioCardGroup
-							name="preparation-mode"
-							value={mode}
-							onValueChange={(value) => {
-								const nextMode = value as PreparationMode;
-								setMode(nextMode);
-								choose(nextMode, profileId);
-							}}
-							legend={t("preparation.preparationMode")}
-							className="grid gap-2 space-y-0 sm:grid-cols-2"
-							disabled={save.isPending}
-						>
-							{(["compatible", "fast"] as const).map((value) => (
-								<RadioCard
-									value={value}
-									key={value}
-									title={t(`preparation.${value}Mode`)}
-									description={t(`preparation.${value}Description`)}
-								/>
-							))}
-						</RadioCardGroup>
-						<RadioCardGroup
 							name="transcode-profile"
 							value={profileId}
 							onValueChange={(value) => {
 								setProfileId(value);
-								choose(mode, value);
+								save.mutate(value);
 							}}
 							legend={t("preparation.chooseProfile")}
 							className="grid gap-2 space-y-0 sm:grid-cols-2"
-							disabled={save.isPending}
+							disabled={save.isPending || reload.isPending}
 						>
 							{preparation.catalog.profiles.map((profile) => (
-								<RadioCard
-									key={profile.id}
-									value={profile.id}
-									title={profile.name}
-									meta={t("preparation.profileFormat", {
-										container: profile.container.toUpperCase(),
-										videoEncoder: profile.videoEncoder,
-										audioEncoder: profile.audioEncoder,
-									})}
-									description={profile.description}
-								/>
+								<div key={profile.id} className="space-y-2">
+									<RadioCard
+										value={profile.id}
+										disabled={profile.validation.status === "unsupported"}
+										badge={t(
+											`preparation.validation.${profile.validation.status}`,
+										)}
+										title={profile.name}
+										meta={t("preparation.profileFormat", {
+											container: profile.container.toUpperCase(),
+											videoEncoder: profile.videoEncoder,
+											audioEncoder: profile.audioEncoder,
+										})}
+										description={profile.description}
+									/>
+									{profile.validation.issues.length > 0 && (
+										<details className="text-xs text-muted-foreground">
+											<summary>
+												{t("preparation.validationDetails")} · {profile.name}
+											</summary>
+											<ul className="mt-1 space-y-1">
+												{profile.validation.issues.map((issue) => (
+													<li key={`${issue.field}-${issue.message}`}>
+														{issue.field}: {issue.message}
+													</li>
+												))}
+											</ul>
+										</details>
+									)}
+								</div>
 							))}
 						</RadioCardGroup>
 					</div>

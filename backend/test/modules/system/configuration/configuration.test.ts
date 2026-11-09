@@ -54,14 +54,15 @@ const environment = () => ({ ANISHELF_DATA_DIR: dataDir });
 test("missing settings use current defaults without generating a policy or settings file", async () => {
 	const service = await ConfigurationService.load(environment());
 	expect(service.settings).toEqual({ resourceRoots: [] });
-	expect(service.snapshot.settings.preparationMode).toBe("compatible");
+	expect(service.snapshot.settings).not.toHaveProperty("preparationMode");
 	await expect(readFile(join(dataDir, "settings.json"))).rejects.toMatchObject({
 		code: "ENOENT",
 	});
 	expect(Object.isFrozen(service.snapshot.settings.resourceRoots)).toBe(true);
 	expect(() => {
-		(service.snapshot.settings as { preparationMode: string }).preparationMode =
-			"fast";
+		(
+			service.snapshot.settings as { defaultTranscodeProfileId: string }
+		).defaultTranscodeProfileId = "builtin:fast";
 	}).toThrow(TypeError);
 });
 
@@ -178,10 +179,13 @@ test("settings updates preserve prior snapshots and persist explicit preparation
 	);
 	const service = await ConfigurationService.load(environment());
 	const previous = service.snapshot;
-	const next = { resourceRoots: [nextRoot], preparationMode: "fast" as const };
+	const next = {
+		resourceRoots: [nextRoot],
+		defaultTranscodeProfileId: "builtin:fast",
+	};
 	await service.update(next);
 	expect(previous.settings.resourceRoots).toEqual([root]);
-	expect(previous.settings.preparationMode).toBe("compatible");
+	expect(previous.settings.defaultTranscodeProfileId).toBe("builtin:balanced");
 	expect(service.snapshot.settings).toMatchObject(next);
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),

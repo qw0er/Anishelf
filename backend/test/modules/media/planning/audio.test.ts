@@ -52,7 +52,17 @@ test("checks every audio track and defaults execution to all audio streams", asy
 				evidence: f.evidence({ "copy-audio-7": "unknown" }),
 			}),
 		),
-	).toEqual({ kind: "blocked", reason: "source-stream-compatibility-unknown" });
+	).toMatchObject({
+		kind: "processing",
+		request: {
+			plan: {
+				audioTracks: [
+					{ sourceIndex: 4, execution: { action: "copy" } },
+					{ sourceIndex: 7, execution: { action: "encode" } },
+				],
+			},
+		},
+	});
 });
 
 test("audio selection binds evidence and execution identity, preserving requested order and video-only selection", async () => {
@@ -100,7 +110,7 @@ test("audio selection binds evidence and execution identity, preserving requeste
 	}
 });
 
-test("compatibility mode without audio still uses the full-transcode mode", async () => {
+test("copy-disabled video-only profiles encode video without inventing audio work", async () => {
 	const f = await fixture(false);
 	const checked = await f.app.check({
 		fileId: f.file.id,
@@ -109,9 +119,16 @@ test("compatibility mode without audio still uses the full-transcode mode", asyn
 		output: { profileId: f.profile.id, target: "file" },
 		evidence: f.evidence(),
 	});
-	expect(resolvePreparationExecutionPlan(checked)).toMatchObject({
+	expect(
+		resolvePreparationExecutionPlan({
+			...checked,
+			profile: checked.profile
+				? { ...checked.profile, copyCompatibleStreams: false }
+				: null,
+		}),
+	).toMatchObject({
 		kind: "processing",
-		mode: "transcode",
+		mode: "transcode-video",
 		request: { audioStreamIndices: [], plan: { video: { action: "encode" } } },
 	});
 });

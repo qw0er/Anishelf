@@ -211,6 +211,7 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 			selectedAudios.map(describeAudio),
 			plan,
 		);
+		await this.options.tools.validatePlan?.(plan);
 		const check = checkExecutionCapabilities(
 			await this.options.tools.capabilities(),
 			plan,
@@ -268,15 +269,28 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 				workspace.pendingPath,
 				signal,
 			);
-			validateProcessedMedia(
-				output,
-				info,
-				video,
-				selectedAudios,
-				plan,
-				expected,
-				this.policy.durationToleranceSeconds,
-			);
+			try {
+				validateProcessedMedia(
+					output,
+					info,
+					video,
+					selectedAudios,
+					plan,
+					expected,
+					this.policy.durationToleranceSeconds,
+				);
+			} catch (error) {
+				this.options.logger?.warn(
+					{
+						event: "media.output_validation_failed",
+						fileId: request.fileId,
+						executionPlanId: plan.id,
+						reason: error instanceof Error ? error.message : "Invalid output",
+					},
+					"Processed output failed validation.",
+				);
+				throw error;
+			}
 			await this.options.sources.revalidateSource(source);
 			signal.throwIfAborted();
 			const sizeBytes = await this.files.publish(workspace);

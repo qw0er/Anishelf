@@ -1,5 +1,9 @@
 import { asc, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
+import {
+	legacyAudio,
+	legacyVideo,
+} from "../../../../platform/media/encoding-policy.js";
 import * as s from "./schema.js";
 import type { PreparationRecord } from "./task-record.js";
 
@@ -7,7 +11,7 @@ export function readPreparationTasks(
 	store: Store,
 	row: typeof s.preparationTasks.$inferSelect,
 ): PreparationRecord {
-	return {
+	const record = {
 		id: row.id,
 		demand: {
 			origin: row.origin,
@@ -242,6 +246,44 @@ export function readPreparationTasks(
 		createdAtMs: row.createdAtMs,
 		updatedAtMs: row.updatedAtMs,
 	} as PreparationRecord;
+	if (record.snapshot.version === 1) {
+		const plan = record.snapshot.plan;
+		record.snapshot = {
+			...record.snapshot,
+			plan: {
+				...plan,
+				...(plan.videoParameters
+					? {
+							videoParameters: legacyVideo(
+								plan.videoParameters as unknown as Record<string, unknown>,
+							),
+						}
+					: {}),
+				...(plan.audioParameters
+					? {
+							audioParameters: legacyAudio(
+								plan.audioParameters as unknown as Record<string, unknown>,
+							),
+						}
+					: {}),
+				...(plan.audioTracks
+					? {
+							audioTracks: plan.audioTracks.map((t) => ({
+								...t,
+								...(t.parameters
+									? {
+											parameters: legacyAudio(
+												t.parameters as unknown as Record<string, unknown>,
+											),
+										}
+									: {}),
+							})),
+						}
+					: {}),
+			},
+		};
+	}
+	return record;
 }
 
 export function writePreparationTasks(
@@ -251,8 +293,6 @@ export function writePreparationTasks(
 	connection.transaction((store) => {
 		const video = value.snapshot.plan.video;
 		const audio = value.snapshot.plan.audio;
-		const videoParameters = value.snapshot.plan.videoParameters;
-		const audioParameters = value.snapshot.plan.audioParameters;
 		const row0 = {
 			id: value?.id,
 			origin: value.demand?.origin ?? "manual",
@@ -264,7 +304,8 @@ export function writePreparationTasks(
 			profileId: value?.profileId,
 			profileFingerprint: value?.profileFingerprint,
 			filename: value?.filename,
-			snapshotVersion: value?.snapshot?.version,
+			// Legacy projection retains its original version; extended_snapshot is authoritative.
+			snapshotVersion: 1,
 			snapshotMode: value?.snapshot?.mode,
 			snapshotReasonsVideo: value?.snapshot?.reasons?.video,
 			snapshotReasonsAudio: value?.snapshot?.reasons?.audio,
@@ -299,45 +340,20 @@ export function writePreparationTasks(
 				value?.snapshot?.plan?.videoParameters?.encoder ?? null,
 			snapshotPlanVideoParametersCodec:
 				value?.snapshot?.plan?.videoParameters?.codec ?? null,
-			snapshotPlanVideoParametersCrf:
-				(videoParameters && "crf" in videoParameters
-					? videoParameters.crf
-					: undefined) ?? null,
-			snapshotPlanVideoParametersPreset:
-				(videoParameters && "preset" in videoParameters
-					? videoParameters.preset
-					: undefined) === undefined
-					? null
-					: String(
-							videoParameters && "preset" in videoParameters
-								? videoParameters.preset
-								: undefined,
-						),
-			snapshotPlanVideoParametersCpuUsed:
-				(videoParameters && "cpuUsed" in videoParameters
-					? videoParameters.cpuUsed
-					: undefined) ?? null,
-			snapshotPlanVideoParametersBitrateKbps:
-				(videoParameters && "bitrateKbps" in videoParameters
-					? videoParameters.bitrateKbps
-					: undefined) ?? null,
+			snapshotPlanVideoParametersCrf: null,
+			snapshotPlanVideoParametersPreset: null,
+			snapshotPlanVideoParametersCpuUsed: null,
+			snapshotPlanVideoParametersBitrateKbps: null,
 			snapshotPlanAudioParametersPresent:
 				value?.snapshot?.plan?.audioParameters !== null &&
 				value?.snapshot?.plan?.audioParameters !== undefined,
-			snapshotPlanAudioParametersChannels:
-				value?.snapshot?.plan?.audioParameters?.channels ?? null,
+			snapshotPlanAudioParametersChannels: null,
 			snapshotPlanAudioParametersEncoder:
 				value?.snapshot?.plan?.audioParameters?.encoder ?? null,
 			snapshotPlanAudioParametersCodec:
 				value?.snapshot?.plan?.audioParameters?.codec ?? null,
-			snapshotPlanAudioParametersBitrateKbps:
-				(audioParameters && "bitrateKbps" in audioParameters
-					? audioParameters.bitrateKbps
-					: undefined) ?? null,
-			snapshotPlanAudioParametersCompressionLevel:
-				(audioParameters && "compressionLevel" in audioParameters
-					? audioParameters.compressionLevel
-					: undefined) ?? null,
+			snapshotPlanAudioParametersBitrateKbps: null,
+			snapshotPlanAudioParametersCompressionLevel: null,
 			snapshotPlanVideoFiltersPresent:
 				value?.snapshot?.plan?.videoFilters !== null &&
 				value?.snapshot?.plan?.videoFilters !== undefined,

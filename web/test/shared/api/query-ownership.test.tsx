@@ -65,7 +65,7 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 		profiles: [],
 		selectedProfileId: "builtin:web",
 		selectionAvailable: true,
-		preparationMode: "compatible" as const,
+		revision: "test",
 	});
 	vi.spyOn(
 		mediacompatibilityApi,

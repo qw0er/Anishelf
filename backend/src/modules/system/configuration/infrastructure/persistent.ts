@@ -15,10 +15,7 @@ import {
 	preparationConstraints,
 	rssConstraints,
 } from "../../../../contracts/defaults.js";
-import {
-	PreparationModeSchema,
-	TranscodeProfileIdSchema,
-} from "../../../../contracts/schemas/transcode-profiles.js";
+import { TranscodeProfileIdSchema } from "../../../../contracts/schemas/transcode-profiles.js";
 import { canonicalPath } from "../../../../platform/canonical-path.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
@@ -118,16 +115,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 			"CONFIG_INVALID",
 			"settings.json rssRefreshIntervalMinutes must be an integer between 1 and 1440.",
 		);
-	const preparationMode = settings.preparationMode;
-	if (
-		preparationMode !== undefined &&
-		!Check(PreparationModeSchema, preparationMode)
-	)
-		throw new DomainError(
-			"CONFIG_INVALID",
-			"settings.json preparationMode must be compatible or fast.",
-		);
-	const mode = preparationMode === undefined ? {} : { preparationMode };
 	const cacheBudget = settings.transcodeCacheBudgetGiB;
 	if (
 		cacheBudget !== undefined &&
@@ -222,7 +209,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 				}),
 		...profile,
 		...cache,
-		...mode,
 	};
 }
 

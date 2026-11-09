@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { Check } from "typebox/value";
 import { parseDocument } from "yaml";
 import { AutoPreparationFileSchema } from "../../../../contracts/schemas/auto-preparation.js";
-import { normalizeMediaProfile } from "../../../../platform/media/acceptance-policy.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import { freeze } from "../../../../shared/policy.js";
@@ -75,74 +74,21 @@ export function parseAutoPreparationPresets(
 				"Output container is rejected by the preset.",
 			);
 
-		const videoProfile =
-			profile.video.profile ??
-			(profile.video.codec === "h264"
-				? "high"
-				: profile.video.codec === "vp9"
-					? "0"
-					: undefined);
-		if (
-			preset.accept?.video?.length &&
-			!preset.accept.video.some(
-				(c) =>
-					(!c.codecs?.length || c.codecs.includes(profile.video.codec)) &&
-					(!c.profiles?.length ||
-						videoProfile === undefined ||
-						c.profiles
-							.map(normalizeMediaProfile)
-							.includes(normalizeMediaProfile(videoProfile))) &&
-					(!c.pixelFormats?.length ||
-						c.pixelFormats.includes(profile.video.pixelFormat)) &&
-					(c.maxLevel == null ||
-						Number(
-							profile.video.level ??
-								(profile.video.codec === "h264" ? "5.1" : "0"),
-						) <= Number(c.maxLevel)),
-			)
-		)
-			throw new DomainError(
-				"CONFIG_INVALID",
-				"Output video profile is rejected by the preset.",
-			);
-		if (
-			preset.accept?.audio?.length &&
-			!preset.accept.audio.some(
-				(c) =>
-					(!c.codecs?.length || c.codecs.includes(profile.audio.codec)) &&
-					(!c.profiles?.length ||
-						profile.audio.codec !== "aac" ||
-						c.profiles.map(normalizeMediaProfile).includes("lc")) &&
-					(!c.sampleRates?.length ||
-						profile.audio.sampleRate === undefined ||
-						c.sampleRates.includes(profile.audio.sampleRate)) &&
-					(c.maxChannels == null ||
-						(profile.audio.channelCount === undefined &&
-							profile.audio.channels !== "stereo") ||
-						(profile.audio.channelCount ?? 2) <= c.maxChannels),
-			)
-		)
-			throw new DomainError(
-				"CONFIG_INVALID",
-				"Output audio settings are rejected by the preset.",
-			);
 		for (const [candidates, encoding] of [
 			[preset.accept?.video, profile.video],
 			[preset.accept?.audio, profile.audio],
 		] as const) {
 			if (
+				encoding.encoder !== "copy" &&
+				encoding.codec &&
 				candidates?.length &&
 				!candidates.some(
-					(c) =>
-						(!c.codecs?.length || c.codecs.includes(encoding.codec)) &&
-						(!("pixelFormats" in c) ||
-							!c.pixelFormats?.length ||
-							c.pixelFormats.includes(profile.video.pixelFormat)),
+					(c) => !c.codecs?.length || c.codecs.includes(encoding.codec),
 				)
 			)
 				throw new DomainError(
 					"CONFIG_INVALID",
-					"Output encoding is rejected by the preset.",
+					"Output codec is rejected by the preset.",
 				);
 		}
 	}

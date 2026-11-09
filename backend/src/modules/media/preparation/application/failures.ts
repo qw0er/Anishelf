@@ -5,12 +5,10 @@ import {
 import { MediaProcessError } from "../../../../platform/media/processing-process.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PreparationFailureReason } from "../domain/model.js";
-import { PreparationProfileChangedError } from "./context.js";
 export function preparationFailure(
 	error: unknown,
 	budgetFailure: PreparationFailureReason = "cache-full",
 ): PreparationFailureReason {
-	if (error instanceof PreparationProfileChangedError) return "profile-changed";
 	if (error instanceof MediaOutputBudgetError) return budgetFailure;
 	if (error instanceof DomainError) {
 		if (error.code === "PREPARATION_CACHE_FULL") return "cache-full";

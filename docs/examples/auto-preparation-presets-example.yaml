@@ -1,4 +1,4 @@
-# Optional: copy to <dataDir>/auto-preparation-presets.yaml and restart.
+# Optional: copy to <dataDir>/auto-preparation-presets.yaml and use Reload profiles in Settings.
 # Missing files use built-ins. Invalid custom files expose a configuration issue
 # and fall back to built-ins; a missing saved preset pauses automatic preparation.
 # Enable and select a preset in Settings; this file contains no runtime switch.

@@ -427,11 +427,6 @@
 		"monitorError": "Update failed",
 		"totalCount_one": "{{count}} task",
 		"totalCount_other": "{{count}} tasks",
-		"preparationMode": "Preparation mode",
-		"compatibleMode": "Compatibility (default)",
-		"fastMode": "Fast preparation",
-		"compatibleDescription": "Encode video and audio with the selected profile for predictable output.",
-		"fastDescription": "Preserve supported streams when allowed. Other devices may need a different copy.",
 		"profileSaved": "Preparation settings saved.",
 		"profileSaveFailed": "Could not save preparation settings.",
 		"saveProfile": "Save preparation settings",
@@ -442,6 +437,15 @@
 		"more": "More",
 		"errors": {
 			"PLAYBACK_CONFLICT": "The source file or preparation settings changed. Refresh the file and retry."
+		},
+		"reloadProfiles": "Reload profiles",
+		"profilesReloaded": "Profiles reloaded",
+		"profilesReloadFailed": "Profiles could not be reloaded",
+		"validationDetails": "Validation details",
+		"validation": {
+			"recognized": "Options recognized",
+			"unsupported": "Unsupported",
+			"unverified": "Not fully verified"
 		}
 	},
 	"anime": {
@@ -1376,11 +1380,12 @@
 	},
 	"profileIssue": {
 		"transcodeTitle": "Custom transcode profiles could not be loaded",
-		"transcodeDescription": "Built-in transcode profiles are still available. Your custom profiles were ignored.",
+		"transcodeDescription": "The active profiles remain available. This file was not activated.",
 		"acquisitionTitle": "Custom acquisition profiles could not be loaded",
 		"acquisitionDescription": "Built-in acquisition profiles are still available. Your custom profiles were ignored.",
 		"details": "Details",
-		"fixAndRestart": "Fix the file and restart Anishelf."
+		"fixAndRestart": "Fix the file and restart Anishelf.",
+		"fixAndReload": "Fix the file and choose Reload profiles."
 	},
 	"pagination": {
 		"label": "Pagination",

@@ -131,18 +131,30 @@ export function validateProcessedMedia(
 			"Output frame rate exceeds the profile limit.",
 		);
 
+	if (
+		(plan.videoParameters?.maxWidth &&
+			(videos[0]?.width == null ||
+				videos[0].width > plan.videoParameters.maxWidth)) ||
+		(plan.videoParameters?.maxHeight &&
+			(videos[0]?.height == null ||
+				videos[0].height > plan.videoParameters.maxHeight))
+	)
+		throw new MediaToolError(
+			"TOOL_FAILED",
+			"Output dimensions exceed the profile limit.",
+		);
 	const videoParameters = plan.videoParameters;
 	if (videoParameters) {
 		const result = videos[0];
 		if (
 			!result ||
-			(videoParameters.profile &&
+			(videoParameters.options?.profile &&
 				normalizeMediaProfile(result.profile ?? "") !==
-					normalizeMediaProfile(videoParameters.profile)) ||
-			(videoParameters.level &&
+					normalizeMediaProfile(String(videoParameters.options?.profile))) ||
+			(videoParameters.options?.level &&
 				(codecLevel(result.codec, result.level) === null ||
 					(codecLevel(result.codec, result.level) as number) >
-						Number(videoParameters.level)))
+						Number(videoParameters.options?.level)))
 		)
 			throw new MediaToolError(
 				"TOOL_FAILED",
@@ -159,8 +171,15 @@ export function validateProcessedMedia(
 				"Output audio sample rate does not match encoding settings.",
 			);
 		if (
-			parameters?.profile &&
-			normalizeMediaProfile(result.profile ?? "") !== parameters.profile
+			parameters?.options?.profile &&
+			normalizeMediaProfile(result.profile ?? "") !==
+				normalizeMediaProfile(
+					String(
+						parameters.options?.profile === "aac_low"
+							? "lc"
+							: parameters.options?.profile,
+					),
+				)
 		)
 			throw new MediaToolError(
 				"TOOL_FAILED",
@@ -180,6 +199,23 @@ export function validateProcessedMedia(
 		);
 
 	for (const [index, audio] of selectedAudios.entries()) {
+		const result = audios[index];
+		const resultVideo = videos[0];
+		if (
+			audio.startTime != null &&
+			video.startTime != null &&
+			result?.startTime != null &&
+			resultVideo?.startTime != null &&
+			Math.abs(
+				audio.startTime -
+					video.startTime -
+					(result.startTime - resultVideo.startTime),
+			) > durationToleranceSeconds
+		)
+			throw new MediaToolError(
+				"TOOL_FAILED",
+				"Output audio/video timestamps do not preserve the source timeline.",
+			);
 		const audioBefore = audio.duration;
 		const audioAfter = audios[index]?.duration;
 		if (

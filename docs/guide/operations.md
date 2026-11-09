@@ -9,7 +9,8 @@
 | Container images, ports, mounts | Compose `.env`/YAML or installed Quadlet units | Recreate containers / reload and restart Quadlet |
 | Backend startup options | Environment variables below | Backend restart |
 | Media roots, preparation mode/cache, subscription defaults | Anishelf Settings | On save; active tasks retain their initial limits |
-| Custom acquisition/transcode profiles | YAML in the app data directory | Backend restart |
+| Custom acquisition profiles | YAML in the app data directory | Backend restart |
+| Transcode profiles / automatic preparation presets | YAML in the app data directory | Reload profiles in Settings |
 
 Containers use `/data/app` for state and `/data/media` for initial media. Source
 installations default to the OS user data directory; set `ANISHELF_DATA_DIR` to keep
@@ -71,18 +72,19 @@ missing settings. Use Settings for later edits; direct settings-file edits requi
 restart. Network filesystems need deployment-specific watcher checks. See
 [monitoring architecture](../development/architecture.md#resource-directory-isolation).
 
-## Preparation modes
+## Preparation profiles
 
-| Setting | Behavior |
-| --- | --- |
-| Compatibility (default) | Encode both video and audio using the selected profile |
-| Fast | Preserve browser-supported streams when the profile allows it |
-| Cache budget | Default 10 GiB; limits new output, without deleting existing copies when lowered |
-| Output profile | Built-in or [custom transcode profile](transcode-profiles.md) |
+Choose a built-in or [custom v2 transcode profile](transcode-profiles.md) under
+Settings → Playback. The profile owns stream copying, encoding parameters and
+filters; there is no global compatibility/fast mode. Built-ins encode by default.
+Use Reload profiles after editing transcode or automatic-preparation YAML files.
+A failed reload preserves both active catalogs and reports the issue.
 
-Playable originals use direct playback. Mode/profile changes affect new requests;
-existing copies remain available and are checked against the playback device using their actual output descriptions. Automatic audio chooses one source track; it does not require a copy retaining every track. Playback options can select an existing version independently of the default preparation profile.
-Compatibility mode still depends on the device's actual codec support.
+Playable originals use direct playback. New requests use the active profile;
+queued/running tasks retain their execution snapshot, and completed copies remain
+available. Browser playback checks actual output descriptions. The default cache
+budget is 10 GiB; lowering it does not delete existing copies. Audio selection and
+playback-version selection remain independent of the default encoding profile.
 
 ## Subscription settings
 

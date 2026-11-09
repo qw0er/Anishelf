@@ -4,7 +4,6 @@ import type {
 	PreparedMediaList,
 	PreparedMediaQuery,
 } from "../../../../contracts/http.js";
-import { transcodeProfileFingerprint } from "../../../system/public.js";
 import type { PreparationView } from "../domain/model.js";
 import type { PreparedMediaInventory } from "../public.js";
 import type { PreparationArtifacts } from "./artifacts.js";
@@ -164,18 +163,7 @@ export class PreparationQueries {
 			}[],
 		}));
 		const byFile = new Map(files.map((file) => [file.fileId, file]));
-		const fingerprints = new Map(
-			context.profiles.map((profile) => [
-				profile.id,
-				transcodeProfileFingerprint(profile),
-			]),
-		);
 		for (const row of context.repository.summaries(scope.ids, fileIds)) {
-			if (
-				row.status !== "ready" &&
-				fingerprints.get(row.profileId) !== row.profileFingerprint
-			)
-				continue;
 			const file = byFile.get(row.fileId);
 			if (!file) continue;
 			let version = file.versions.find(

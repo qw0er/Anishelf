@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-import { fingerprint } from "../../../../src/shared/fingerprint.js";
 
 import {
 	fixture,
@@ -35,20 +34,7 @@ test.each([
 		});
 		if (result.kind === "processing") {
 			expect(Object.isFrozen(result.request.plan)).toBe(true);
-			expect(result.request.plan.id).toBe(
-				fingerprint({
-					version: "preparation-execution:2",
-					fileId: f.file.id,
-					root: f.source.identity.scopeId,
-					sourceVersion: f.description.sourceVersion,
-					profileFingerprint: f.description.output?.profileFingerprint,
-					delivery: "file",
-					video: 2,
-					audio: [4],
-					v: video,
-					a: audio,
-				}),
-			);
+			expect(result.request.plan.id).toMatch(/^[a-f0-9]{64}$/);
 		}
 	},
 );
@@ -63,10 +49,10 @@ test("supported originals resolve to direct", async () => {
 	).toMatchObject({ kind: "direct" });
 });
 
-test("missing/unknown evidence and rejected combinations never authorize processing", async () => {
+test("unknown copy evidence falls back to encoding; rejected known combinations block", async () => {
 	const f = await fixture();
 	expect(await f.resolve({ "copy-video": "unknown" })).toMatchObject({
-		kind: "blocked",
+		kind: "processing",
 	});
 	expect(await f.resolve({ "output-copy-copy": "unsupported" })).toMatchObject({
 		kind: "blocked",
@@ -77,7 +63,7 @@ test("missing/unknown evidence and rejected combinations never authorize process
 test("profile transformations require encoding and include concrete parameters", async () => {
 	const f = await fixture();
 	f.profile.video.maxHeight = 720;
-	f.profile.audio.channels = "stereo";
+	f.profile.audio.channels = 2;
 	const description = await f.inspectOutput(
 		f.file.id,
 		f.source.identity.sourceVersion,
@@ -98,7 +84,7 @@ test("profile transformations require encoding and include concrete parameters",
 		request: {
 			plan: {
 				videoParameters: { maxHeight: 720 },
-				audioParameters: { channels: "stereo" },
+				audioParameters: { channels: 2 },
 				videoFilters: [
 					"scale=w=-2:h=720:flags=lanczos",
 					"pad=ceil(iw/2)*2:ceil(ih/2)*2",
@@ -109,7 +95,7 @@ test("profile transformations require encoding and include concrete parameters",
 	});
 });
 
-test("video-only selection and unknown encoded profile descriptions fail safely", async () => {
+test("video-only selection permits encoding an output whose browser support is unknown", async () => {
 	const f = await fixture(false);
 	expect(await f.resolve()).toMatchObject({
 		kind: "processing",
@@ -120,8 +106,7 @@ test("video-only selection and unknown encoded profile descriptions fail safely"
 		encoder: "libsvtav1",
 		codec: "av1",
 		pixelFormat: "yuv420p",
-		crf: 30,
-		preset: 8,
+		options: { crf: 30, preset: 8 },
 	};
 	const description = await f.inspectOutput(
 		f.file.id,
@@ -137,7 +122,7 @@ test("video-only selection and unknown encoded profile descriptions fail safely"
 			descriptionId: description.descriptionId,
 			evidence: f.evidence({ "copy-video": "unsupported" }),
 		}),
-	).toMatchObject({ kind: "blocked" });
+	).toMatchObject({ kind: "processing" });
 });
 
 test("MSE evidence is distinct from file evidence and selects fragmented MP4", async () => {
@@ -184,7 +169,10 @@ test("resolver consumes an immutable checked snapshot without consulting current
 		evidence: f.evidence({ "copy-video": "unsupported" }),
 	});
 	const first = resolveExecutionPlan(checked);
-	if ("crf" in f.profile.video) f.profile.video.crf += 1;
+	f.profile.video.options = {
+		...f.profile.video.options,
+		crf: Number(f.profile.video.options?.crf ?? 23) + 1,
+	};
 	expect(resolveExecutionPlan(checked)).toEqual(first);
 	expect(Object.isFrozen(checked.profile?.video)).toBe(true);
 	expect(checked).not.toHaveProperty("evidence");

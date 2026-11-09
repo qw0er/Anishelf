@@ -4,6 +4,11 @@
 
 ### Added
 
+- Add v2 runtime transcode profiles with open encoder options, scoped FFmpeg
+  parameters, audio/video filter chains and runtime capability diagnostics.
+- Reload transcode profiles and automatic preparation presets atomically from
+  Settings, preserving the active catalogs when validation fails.
+
 - Manage prepared copies under Files with filename/path search, availability filters,
   sorting, pagination, storage usage, playback and original-file location links.
 - Delete individual or selected prepared copies with a space estimate, in-use
@@ -16,6 +21,12 @@
   covering profile structure, codec and quality options, and selection.
 
 ### Changed
+
+- Let transcode profiles control stream copying directly and remove the global
+  preparation mode. Keep queued/running execution snapshots and completed copies
+  valid after configuration changes. Custom profile files now require v2.
+- Allow manual preparation when predicted browser support is unknown; validate
+  actual output before publication and negotiate playback against the finished copy.
 
 - Show every active preparation task in the monitor and load inactive history in
   batches of ten. Reflect the active task in the file preparation action and allow

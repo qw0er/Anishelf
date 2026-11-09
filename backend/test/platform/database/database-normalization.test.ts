@@ -478,7 +478,18 @@ test("persists all normalized aggregates, preserves ordered children and survive
 				}),
 			).toThrow();
 			expect(db.catalog.operation("receipt")?.fingerprint).toBe("fp");
-			expect(db.preparation.get("task")?.spec.settings).toEqual(snapshot);
+			expect(db.preparation.get("task")?.spec.settings).toEqual({
+				...snapshot,
+				plan: {
+					...snapshot.plan,
+					videoParameters: {
+						encoder: "libsvtav1",
+						codec: "av1",
+						pixelFormat: "yuv420p",
+						options: { crf: 30, preset: 8 },
+					},
+				},
+			});
 			expect(db.subtitles.getFonts("fonts")?.warnings).toEqual([
 				"first",
 				"second",

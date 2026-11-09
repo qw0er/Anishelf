@@ -91,9 +91,7 @@ export class PreparationWorker {
 		} catch (error) {
 			failure = this.context.closed
 				? "interrupted"
-				: !this.context.profileValid(task)
-					? "profile-changed"
-					: preparationFailure(error, budgetFailure);
+				: preparationFailure(error, budgetFailure);
 		}
 		// Never acknowledge cancellation before the processor's temporary ownership is released.
 		if (processed) await this.context.processing.release(processed.id);

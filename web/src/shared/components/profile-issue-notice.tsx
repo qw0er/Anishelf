@@ -39,7 +39,11 @@ export function ProfileIssueNotice({
 				</Collapsible>
 			)}
 			<p className="mt-2 text-xs text-muted-foreground">
-				{t("profileIssue.fixAndRestart")}
+				{t(
+					kind === "transcode"
+						? "profileIssue.fixAndReload"
+						: "profileIssue.fixAndRestart",
+				)}
 			</p>
 		</div>
 	);

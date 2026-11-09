@@ -1,10 +1,7 @@
 import { Type } from "typebox";
 import { preparationConstraints, rssConstraints } from "../defaults.js";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
-import {
-	PreparationModeSchema,
-	TranscodeProfileIdSchema,
-} from "./transcode-profiles.js";
+import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
 
 export const ScanWarningSummaryDtoSchema = Type.Object(
 	{ count: NonnegativeIntegerSchema, messages: Type.Array(Type.String()) },
@@ -177,7 +174,6 @@ export function createSettingsSchemas() {
 			defaultAcquisitionProfileId: Type.Optional(
 				Type.String({ pattern: "^(builtin|custom):[a-z][a-z0-9-]{0,63}$" }),
 			),
-			preparationMode: Type.Optional(PreparationModeSchema),
 			qbittorrentWebUiUrl: Type.Optional(
 				Type.Union([Type.String({ maxLength: 2048 }), Type.Null()]),
 			),

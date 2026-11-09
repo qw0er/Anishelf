@@ -375,10 +375,10 @@ and Playback assembly, avoiding a construction cycle and cross-module table acce
 
 `settings.json` stores `autoPreparationEnabled` (default false) and
 `autoPreparationPresetId` (default `builtin:web`) as top-level fields. System loads
-`<dataDir>/auto-preparation-presets.yaml` once at startup and combines valid custom
+`<dataDir>/auto-preparation-presets.yaml` at startup and on explicit reload and combines valid custom
 presets with immutable built-ins. Missing files are normal; invalid files expose a
 catalog issue and retain built-ins. A saved missing preset ID is preserved and
-pauses automation. Configuration edits require a restart.
+pauses automation. Configuration edits apply through the explicit profile reload endpoint. Reload stages transcode profiles and automatic presets together, validates references, and atomically publishes them; failure retains the active catalogs.
 
 `GET /api/auto-preparation-presets` returns display metadata, preset availability,
 selected ID and any custom-file issue. Existing settings endpoints save the switch
@@ -410,18 +410,29 @@ language metadata, default flags and the output-to-source audio mapping. Copying
 requires both acceptance and supported packaging, plus the profile's copy permission
 and absence of required transformations. Acceptance does not override profile values.
 
-Encoding profiles provide optional width/frame-rate limits, codec profile/level,
-video bitrate controls, explicit audio channel count and sample rate in addition to
-the existing encoder-specific settings. Reject unsupported declarations and known
-acceptance conflicts. Source-dependent conflicts or required unknown metadata block
-that plan. Untagged conventional 8-bit video is treated as SDR; untagged high-bit-depth
-video remains uncertain. HDR can be copied when accepted and packaging permits it;
-conversion requiring unimplemented tone mapping is blocked.
+Encoding profiles use the v2 contract with open encoder names, scoped scalar option
+mappings and single-stream filter lists. The global preparation mode is removed;
+profiles own copying, with built-ins encoding by default. Platform probes actual
+FFmpeg common/encoder/muxer help, reporting recognized/unsupported/unverified
+options without claiming hardware execution support. Unknown options/private
+subparameters can execute; structural conflicts and confirmed missing components
+cannot. Capability metadata remains in Platform; App injects validation into System.
 
-FFmpeg output is inspected and validated against execution settings and acceptance
-before publication. Actual output descriptions remain authoritative for subsequent
-playback, which still performs client capability negotiation. Background publication
-refreshes available versions without replacing the active player binding.
+Manual preparation permits unknown predicted browser compatibility. Planners retain
+unknown geometry/color/codec descriptors instead of fabricating fixed output facts.
+Single-stream filters preserve the original timeline; complex graphs, additional
+inputs and timeline editing are rejected. Output inspection checks explicit stream
+constraints, dimensions, sample rate, duration and automatic acceptance before
+publication; actual facts remain authoritative for playback. No implicit HDR-to-SDR
+conversion is certified. Publication refreshes versions without replacing the player.
+
+Each new task persists a v2 immutable execution snapshot in `extended_snapshot`.
+Legacy relational projections retain version 1; legacy snapshots are adapted on
+read. Active profile edits/removal do not invalidate queued/running tasks or
+completed copies. Automatic tasks also retain preset eligibility snapshots; disabling
+automation or selecting another preset still cancels obsolete queued work. Effective option/filter order and compiler version participate in
+identity; display metadata does not. Planners obtain current catalogs through
+providers, and automatic evaluation fences profile revisions before admission.
 
 ### Scheduling, persistence and shutdown
 

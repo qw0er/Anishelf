@@ -97,7 +97,7 @@ beforeEach(() => {
 		profiles: [],
 		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
-		preparationMode: "compatible",
+		revision: "test",
 	});
 	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue({
 		tasks: [task],

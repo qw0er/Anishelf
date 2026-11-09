@@ -67,10 +67,13 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 	const database = ApplicationDatabase.open(dataDir);
 	let preparationMode: "fast" | "compatible" = "fast";
 	const compatibility = new MediaPlanningApplication({
-		preparationMode: () => preparationMode,
 		sources: library.sources,
 		inspection,
-		profiles: builtinTranscodeProfiles,
+		profiles: () =>
+			builtinTranscodeProfiles.map((p) => ({
+				...p,
+				copyCompatibleStreams: preparationMode === "fast",
+			})),
 	});
 	const playback = new PlaybackApplication({
 		sources: library.sources,
@@ -95,7 +98,11 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 			planning: compatibility,
 			processing,
 			repository: database.preparation,
-			profiles: builtinTranscodeProfiles,
+			profiles: () =>
+				builtinTranscodeProfiles.map((p) => ({
+					...p,
+					copyCompatibleStreams: preparationMode === "fast",
+				})),
 			dataDir,
 			logger,
 		});

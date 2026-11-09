@@ -1,5 +1,7 @@
 import type {
 	AudioEncoding,
+	EncodingOptions,
+	EncodingValidation,
 	VideoEncoding,
 } from "../../../platform/media/encoding.js";
 import { fingerprint } from "../../../shared/fingerprint.js";
@@ -10,11 +12,13 @@ export interface TranscodeProfile {
 	id: string;
 	name: string;
 	description: string;
-	usage: "preparation";
 	container: "mp4" | "webm" | "matroska" | "mov";
 	copyCompatibleStreams: boolean;
 	video: VideoEncoding;
 	audio: AudioEncoding;
+	globalOptions?: EncodingOptions;
+	inputOptions?: EncodingOptions;
+	muxerOptions?: EncodingOptions;
 }
 
 /** Output policy identity shared by negotiation and persistent cache validation. */
@@ -22,10 +26,27 @@ export function transcodeProfileFingerprint(
 	profile: DeepReadonly<TranscodeProfile>,
 ): string {
 	return fingerprint({
-		usage: profile.usage,
+		compilerVersion: 2,
+		globalOptions: Object.entries(profile.globalOptions ?? {}),
+		inputOptions: Object.entries(profile.inputOptions ?? {}),
+		muxerOptions: Object.entries(profile.muxerOptions ?? {}),
 		container: profile.container,
 		copyCompatibleStreams: profile.copyCompatibleStreams,
-		video: profile.video,
-		audio: profile.audio,
+		video: {
+			...profile.video,
+			options: Object.entries(profile.video.options ?? {}),
+		},
+		audio: {
+			...profile.audio,
+			options: Object.entries(profile.audio.options ?? {}),
+		},
 	});
 }
+
+export type TranscodeProfileValidator = (
+	profiles: DeepReadonly<TranscodeProfile[]>,
+	refresh?: boolean,
+) => Promise<{
+	profiles: TranscodeProfile[];
+	validation: Record<string, EncodingValidation>;
+}>;

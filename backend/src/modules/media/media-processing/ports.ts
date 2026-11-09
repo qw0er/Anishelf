@@ -76,6 +76,7 @@ export interface MediaProcessingApi {
 	initialize(): Promise<void>;
 }
 export interface ProcessingTools {
+	validatePlan?(plan: DeepReadonly<MediaProcessingPlan>): Promise<void>;
 	capabilities(): Promise<ServerMediaCapabilities>;
 	probe(path: string, signal?: AbortSignal): Promise<MediaInfo>;
 }
