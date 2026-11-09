@@ -4,7 +4,10 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { CatalogReviewResponse } from "../../../../shared/api/contracts.js";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
-import { buttonStyles } from "../../../../shared/components/ui/button.js";
+import {
+	Button,
+	buttonStyles,
+} from "../../../../shared/components/ui/button.js";
 import { LoadingState } from "../../../../shared/components/ui/loading-state.js";
 import { PaginationControls } from "../../../../shared/components/ui/pagination-controls.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
@@ -23,10 +26,10 @@ export function ReviewList({
 }) {
 	const { t } = useTranslation();
 	return (
-		<>
+		<div className="surface-panel space-y-4">
 			<nav
 				aria-label={t("review.decision")}
-				className="flex flex-wrap gap-1 rounded-lg border bg-muted/30 p-1.5"
+				className="flex flex-wrap gap-1 border-b pb-4"
 			>
 				{["pending", "confirmed", "rejected"].map((value) => (
 					<Link
@@ -35,7 +38,7 @@ export function ReviewList({
 						aria-current={decision === value ? "page" : undefined}
 						className={buttonStyles(
 							decision === value ? "default" : "ghost",
-							"min-w-0 flex-1 px-3 sm:flex-none",
+							"min-w-0 flex-auto px-3 sm:flex-none",
 						)}
 					>
 						{t(`review.${value}`)}
@@ -51,7 +54,7 @@ export function ReviewList({
 			{query.data && (
 				<>
 					{query.data.items.length ? (
-						<ul className="surface-panel divide-y">
+						<ul className="divide-y">
 							{query.data.items.map((row) => (
 								<li
 									key={row.id}
@@ -116,21 +119,43 @@ export function ReviewList({
 								</li>
 							))}
 						</ul>
-					) : (
+					) : !query.error ? (
 						<EmptyState
+							embedded
 							icon={<ShieldCheck size={24} />}
 							title={t("review.empty")}
+							actions={
+								page > 1 && (
+									<Button
+										variant="outline"
+										onClick={() => {
+											console.debug(
+												"[Review] Returning to the first inventory page.",
+												{ decision },
+											);
+											onPage(1);
+										}}
+									>
+										{t("pagination.first")}
+									</Button>
+								)
+							}
 						/>
-					)}
-					<PaginationControls
-						page={page}
-						fetching={query.isFetching}
-						hasNextPage={query.data.hasNextPage}
-						onPage={onPage}
-						label={t("anime.pagination")}
-					/>
+					) : null}
+					{query.data.items.length > 0 &&
+						(page > 1 || query.data.hasNextPage) && (
+							<div className="border-t pt-4">
+								<PaginationControls
+									page={page}
+									fetching={query.isFetching}
+									hasNextPage={query.data.hasNextPage}
+									onPage={onPage}
+									label={t("anime.pagination")}
+								/>
+							</div>
+						)}
 				</>
 			)}
-		</>
+		</div>
 	);
 }

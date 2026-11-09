@@ -149,6 +149,7 @@ failures and works already present in the user's library or tracking list.
 | P20 | Configure media preparation task concurrency | Partial | Optional | [Fixed single-worker queue; configurable concurrency optional](#delivery-notes-p) | 0.2.0 |
 | P21 | Limit CPU processing capacity per preparation task | Not started | Optional | — | — |
 | P22 | Schedule automatic preparation within permitted time windows | Not started | Optional | — | — |
+| P28 | Validate AVPlayer for broader browser container and codec playback | Not started | Planned | [Feasibility evaluation; adoption pending results](#avplayer-feasibility-validation-p28) | — |
 
 #### Delivery Notes (P)
 
@@ -157,6 +158,46 @@ failures and works already present in the user's library or tracking list.
 - **P12:** **Delivered:** Custom preparation profiles support NVENC and QSV for H.264/HEVC/AV1, and VideoToolbox for H.264/HEVC. **Remaining:** Broader hardware acceleration. **Release record:** 0.2.0 (hardware encoding; partial).
 - **P18:** **Delivered:** Automatic preparation can preserve explicitly accepted HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
+
+#### AVPlayer Feasibility Validation (P28)
+
+Evaluate [libmedia / AVPlayer](https://github.com/zhaohappy/libmedia) as a candidate
+playback engine for playing more original media in the browser and reducing the
+need for server-side preparation. This requirement covers validation and an
+adoption recommendation; it does not commit to replacing the current player or
+promise universal format support. No release is assigned.
+
+- Use real animation samples to distinguish container incompatibility from codec
+  incompatibility. Include MKV with H.264/AAC, HEVC Main/Main 10, H.264 High 10,
+  and representative FLAC/AC-3/DTS audio. Record exact profiles and sample details;
+  unsupported combinations are valid findings, not assumed capabilities.
+- Verify which samples play through WebCodecs, WASM software decoding or MSE,
+  including behavior when a decoding path is unavailable or fails. Test desktop
+  Chromium, Firefox and Safari, plus iOS Safari and Android Chromium, recording
+  browser, OS and device versions. Mark environments that could not be tested.
+- Compare against current native playback and prepared copies. Measure startup,
+  seeking, sustained playback, dropped frames, audio/video synchronization, memory
+  and CPU use, and mobile heat/battery impact where measurable. Confirm bounded
+  buffering and network range reads with large remote files rather than requiring
+  a full-file download before playback.
+- Verify integration with existing player controls, audio-track selection,
+  styled subtitles and fonts, subtitle timing, chapters, playback speed,
+  fullscreen, keyboard controls, saved progress and episode continuation. Record
+  mobile fullscreen and background-playback limitations explicitly.
+- Check WASM loading, worker and security-header requirements against deployment
+  modes, along with dependency licensing and required asset distribution. Capture
+  diagnostic logs for the chosen playback path, decoder failures and fallback,
+  without exposing credentials or signed resource URLs.
+- Preserve a usable path to existing preparation and external-player options when
+  client playback fails or is too slow. Verify cancellation and resource cleanup
+  when seeking, switching tracks, changing episodes or leaving playback.
+
+Acceptance requires a reproducible sample/device results matrix, measured benefits
+and limitations, an integration assessment for the existing Vidstack-based player,
+and a recommendation to adopt, limit to selected cases, or defer AVPlayer. Document
+the proposed playback and fallback design in [Playback design](development/playback.md)
+before scheduling production integration. Library format lists alone do not count
+as playback acceptance evidence.
 
 #### Media Processing Resource Controls (P20–P22)
 

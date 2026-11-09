@@ -656,3 +656,65 @@ test("Review searches the selected source and resets pagination when it changes"
 		).toBe(true),
 	);
 });
+
+test("an empty later Review page hides pagination and offers a route to the first page", async () => {
+	const item = mockReview();
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	fetcher.mockImplementation(async (input, init) => {
+		if (
+			String(input).startsWith("/api/catalog/reviews?") &&
+			new URL(String(input), "http://localhost").searchParams.get("page") ===
+				"2"
+		)
+			return json({ items: [], page: 2, perPage: 20, hasNextPage: false });
+		return fallback(input, init);
+	});
+	const { router } = renderApp("/review?decision=pending&page=2");
+	await screen.findByRole("heading", {
+		name: "No resources in this review category.",
+	});
+	expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Previous" })).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "First page" }));
+	await screen.findByText(item.evidence.originalName);
+	expect(router.state.location.search).toBe("?decision=pending&page=1");
+	expect(screen.queryByRole("button", { name: "First page" })).toBeNull();
+});
+
+test("a failed refresh of empty Review results shows recovery without confirming emptiness", async () => {
+	mockReview();
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	let fail = false;
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input).startsWith("/api/catalog/reviews?")) {
+			if (fail)
+				return json(
+					{
+						error: {
+							code: "CATALOG_UNAVAILABLE",
+							message: "Unavailable",
+							requestId: "review-refresh",
+						},
+					},
+					503,
+				);
+			return json({ items: [], page: 1, perPage: 20, hasNextPage: false });
+		}
+		return fallback(input, init);
+	});
+	renderApp("/review");
+	await screen.findByRole("heading", {
+		name: "No resources in this review category.",
+	});
+	fail = true;
+	await act(async () => {
+		await queryClient.invalidateQueries({ queryKey: ["catalog"] });
+	});
+	await screen.findByRole("alert");
+	expect(
+		screen.queryByRole("heading", {
+			name: "No resources in this review category.",
+		}),
+	).toBeNull();
+	expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+});

@@ -22,6 +22,7 @@ import { queryClient } from "../../../src/shared/api/query-client.js";
 import { toast } from "../../../src/shared/components/ui/toast.js";
 import i18n from "../../../src/shared/i18n.js";
 import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -477,4 +478,44 @@ test("all-failed deletions use an error toast and preserve retryable selections"
 		),
 	);
 	expect(screen.queryByText(/Deleted:.*Failed:/)).toBeNull();
+});
+
+test("an empty later copy page hides selection and pagination while preserving filter recovery", async () => {
+	listing.items = [];
+	listing.page = 2;
+	listing.total = 51;
+	show("/prepared-media?page=2&sort=size");
+	await screen.findByRole("heading", { name: "No matching copies" });
+	expect(screen.queryByRole("button", { name: "Select" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Previous" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+	await waitFor(() =>
+		expect(api.getPreparedMedia).toHaveBeenLastCalledWith(
+			expect.objectContaining({ page: "1", sort: "size" }),
+			expect.anything(),
+		),
+	);
+});
+
+test("manual refresh exposes busy state without hiding copies and re-enables when finished", async () => {
+	show();
+	await screen.findByText("First.mkv");
+	let finish: ((value: PreparedMediaList) => void) | undefined;
+	vi.mocked(api.getPreparedMedia).mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			}),
+	);
+	const refresh = screen.getByRole("button", { name: "Refresh" });
+	fireEvent.click(refresh);
+	await waitFor(() => expect(refresh.getAttribute("aria-busy")).toBe("true"));
+	expect((refresh as HTMLButtonElement).disabled).toBe(true);
+	expect(screen.getByText("First.mkv")).toBeTruthy();
+	const complete = finish;
+	if (!complete) throw Error("Refresh request was not started");
+	await act(async () => complete(structuredClone(listing)));
+	await waitFor(() => expect(refresh.getAttribute("aria-busy")).toBe("false"));
+	expect((refresh as HTMLButtonElement).disabled).toBe(false);
 });

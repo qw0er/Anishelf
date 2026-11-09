@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckSquare, FolderOpen, Play, RefreshCw, Trash2 } from "lucide-react";
+import { FolderOpen, Play, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
@@ -203,19 +203,58 @@ function PreparedMediaInventory({
 						</span>
 					)
 				}
-				actions={
-					<>
+			/>
+			<div className="surface-panel space-y-4">
+				<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b pb-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:grid-cols-[minmax(12rem,1fr)_11rem_10rem_auto]">
+					<Input
+						className="col-span-2 sm:col-span-3 lg:col-span-1"
+						type="search"
+						aria-label={t("preparedMedia.search")}
+						placeholder={t("preparedMedia.search")}
+						maxLength={500}
+						value={input.search}
+						disabled={mutation.isPending}
+						onChange={(event) => change("search", event.target.value)}
+					/>
+					<div className="col-span-2 min-w-0 sm:col-span-1">
+						<NativeSelect
+							aria-label={t("preparedMedia.status")}
+							value={input.status ?? ""}
+							disabled={mutation.isPending}
+							onChange={(event) => change("status", event.target.value)}
+						>
+							<option value="">{t("preparedMedia.all")}</option>
+							{(["ready", "unknown", "unavailable"] as const).map((status) => (
+								<option key={status} value={status}>
+									{t(`preparedMedia.states.${status}`)}
+								</option>
+							))}
+						</NativeSelect>
+					</div>
+					<NativeSelect
+						aria-label={t("preparedMedia.sort")}
+						value={input.sort}
+						disabled={mutation.isPending}
+						onChange={(event) => change("sort", event.target.value)}
+					>
+						<option value="newest">{t("preparedMedia.newest")}</option>
+						<option value="size">{t("preparedMedia.largest")}</option>
+					</NativeSelect>
+					<div className="flex shrink-0 items-center gap-1">
 						{items.length > 0 && (
 							<Button
-								variant="outline"
+								variant="ghost"
+								className="px-2 text-muted-foreground aria-pressed:bg-accent aria-pressed:text-accent-foreground"
 								aria-pressed={selecting}
 								disabled={mutation.isPending}
 								onClick={() => {
+									console.debug("[Prepared media] Selection mode changed.", {
+										selecting: !selecting,
+									});
 									setSelecting((value) => !value);
 									setSelected([]);
 								}}
 							>
-								<CheckSquare size={16} aria-hidden="true" />
 								{t(
 									selecting
 										? "preparedMedia.doneSelecting"
@@ -223,253 +262,252 @@ function PreparedMediaInventory({
 								)}
 							</Button>
 						)}
-						<Button
-							variant="outline"
-							disabled={query.isFetching}
-							onClick={() => void query.refetch()}
-						>
-							<RefreshCw size={16} aria-hidden="true" />
-							{t("preparedMedia.refresh")}
-						</Button>
-					</>
-				}
-			/>
-			<div className="grid gap-2 border-b pb-4 grid-cols-2 sm:grid-cols-[minmax(0,1fr)_11rem_10rem]">
-				<Input
-					type="search"
-					className="col-span-2 sm:col-span-1"
-					aria-label={t("preparedMedia.search")}
-					placeholder={t("preparedMedia.search")}
-					maxLength={500}
-					value={input.search}
-					disabled={mutation.isPending}
-					onChange={(event) => change("search", event.target.value)}
-				/>
-				<NativeSelect
-					aria-label={t("preparedMedia.status")}
-					value={input.status ?? ""}
-					disabled={mutation.isPending}
-					onChange={(event) => change("status", event.target.value)}
-				>
-					<option value="">{t("preparedMedia.all")}</option>
-					{(["ready", "unknown", "unavailable"] as const).map((status) => (
-						<option key={status} value={status}>
-							{t(`preparedMedia.states.${status}`)}
-						</option>
-					))}
-				</NativeSelect>
-				<NativeSelect
-					aria-label={t("preparedMedia.sort")}
-					value={input.sort}
-					disabled={mutation.isPending}
-					onChange={(event) => change("sort", event.target.value)}
-				>
-					<option value="newest">{t("preparedMedia.newest")}</option>
-					<option value="size">{t("preparedMedia.largest")}</option>
-				</NativeSelect>
-			</div>
-			{query.isPending && <p role="status">{t("preparedMedia.loading")}</p>}
-			{query.error && (
-				<div role="alert" className="flex flex-wrap items-center gap-2">
-					<span>
-						{t(getErrorTranslationKey(query.error) ?? "errors.requestFailed")}
-					</span>
-					<Button variant="outline" onClick={() => void query.refetch()}>
-						{t("actions.retry")}
-					</Button>
+						<Tooltip content={t("preparedMedia.refresh")}>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="text-muted-foreground"
+								aria-label={t("preparedMedia.refresh")}
+								aria-busy={query.isFetching}
+								disabled={query.isFetching || mutation.isPending}
+								onClick={() => {
+									console.debug(
+										"[Prepared media] Inventory refresh requested.",
+									);
+									void query.refetch();
+								}}
+							>
+								<RefreshCw
+									size={16}
+									className={
+										query.isFetching ? "motion-safe:animate-spin" : undefined
+									}
+									aria-hidden="true"
+								/>
+							</Button>
+						</Tooltip>
+					</div>
 				</div>
-			)}
-			{query.data && (
-				<>
-					{items.length === 0 ? (
-						!query.error && (
-							<EmptyState
-								icon={<FolderOpen size={24} />}
-								title={t(
-									query.data.usage.count === 0
-										? "preparedMedia.emptyTitle"
-										: "preparedMedia.noMatchesTitle",
-								)}
-								description={t(
-									query.data.usage.count === 0
-										? "preparedMedia.empty"
-										: "preparedMedia.noMatches",
-								)}
-								actions={
-									query.data.usage.count === 0 ? (
-										<Link
-											className={buttonStyles("outline")}
-											to="/directories/root"
-										>
-											{t("preparedMedia.browseFiles")}
-										</Link>
-									) : (
-										<Button variant="outline" onClick={resetFilters}>
-											{t("preparedMedia.resetFilters")}
-										</Button>
-									)
-								}
-							/>
-						)
-					) : (
-						<>
-							{selecting && (
-								<div className="flex flex-wrap items-center justify-between gap-3">
-									<div className="flex min-h-11 items-center gap-2 text-sm">
-										<Checkbox
-											id={`${controlId}-all`}
-											disabled={mutation.isPending || selectable.length === 0}
-											checked={
-												selectable.length > 0 &&
-												chosen.length === selectable.length
-											}
-											indeterminate={
-												chosen.length > 0 && chosen.length < selectable.length
-											}
-											onCheckedChange={(checked) =>
-												setSelected(
-													checked ? selectable.map((item) => item.id) : [],
-												)
-											}
-										/>
-										<label htmlFor={`${controlId}-all`}>
-											{t("preparedMedia.selectPage")}
-										</label>
-									</div>
-									<Button
-										variant="outline"
-										className="text-destructive"
-										disabled={chosen.length === 0 || mutation.isPending}
-										onClick={() => confirm(chosen)}
-									>
-										{t("preparedMedia.deleteSelected", {
-											count: chosen.length,
-										})}
-									</Button>
-								</div>
-							)}
-							<ul className="divide-y rounded-lg border">
-								{items.map((item) => (
-									<li
-										key={item.id}
-										className="flex items-center gap-3 px-3 py-2"
-									>
-										{selecting && (
+				{query.isPending && <p role="status">{t("preparedMedia.loading")}</p>}
+				{query.error && (
+					<div role="alert" className="flex flex-wrap items-center gap-2">
+						<span>
+							{t(getErrorTranslationKey(query.error) ?? "errors.requestFailed")}
+						</span>
+						<Button variant="outline" onClick={() => void query.refetch()}>
+							{t("actions.retry")}
+						</Button>
+					</div>
+				)}
+				{query.data && (
+					<>
+						{items.length === 0 ? (
+							!query.error && (
+								<EmptyState
+									embedded
+									icon={<FolderOpen size={24} />}
+									title={t(
+										query.data.usage.count === 0
+											? "preparedMedia.emptyTitle"
+											: "preparedMedia.noMatchesTitle",
+									)}
+									description={t(
+										query.data.usage.count === 0
+											? "preparedMedia.empty"
+											: "preparedMedia.noMatches",
+									)}
+									actions={
+										query.data.usage.count === 0 ? (
+											<Link
+												className={buttonStyles("outline")}
+												to="/directories/root"
+											>
+												{t("preparedMedia.browseFiles")}
+											</Link>
+										) : (
+											<Button variant="outline" onClick={resetFilters}>
+												{t("preparedMedia.resetFilters")}
+											</Button>
+										)
+									}
+								/>
+							)
+						) : (
+							<>
+								{selecting && (
+									<div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+										<div className="flex min-h-11 items-center gap-2 text-sm">
 											<Checkbox
-												className="size-5 shrink-0"
-												aria-label={t("preparedMedia.select", {
-													name: item.filename,
-												})}
-												checked={chosen.some((chosen) => chosen.id === item.id)}
-												disabled={
-													mutation.isPending || !!item.deleteBlockedReason
+												id={`${controlId}-all`}
+												disabled={mutation.isPending || selectable.length === 0}
+												checked={
+													selectable.length > 0 &&
+													chosen.length === selectable.length
+												}
+												indeterminate={
+													chosen.length > 0 && chosen.length < selectable.length
 												}
 												onCheckedChange={(checked) =>
-													setSelected((previous) =>
-														checked
-															? [...previous, item.id]
-															: previous.filter((id) => id !== item.id),
+													setSelected(
+														checked ? selectable.map((item) => item.id) : [],
 													)
 												}
 											/>
-										)}
-										<div className="min-w-0 flex-1 space-y-1">
-											<Tooltip
-												openOnClick
-												content={
-													<div className="space-y-1 break-all">
-														<p>{item.sourcePath}</p>
-														<p>
-															{new Date(item.createdAtMs).toLocaleString(
-																i18n.language,
-															)}
-														</p>
-													</div>
-												}
-											>
-												<button
-													type="button"
-													className="block w-full truncate rounded text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-													aria-label={item.filename}
-												>
-													{item.filename}
-												</button>
-											</Tooltip>
-											<p className="break-words text-xs text-muted-foreground">
-												{item.profileName} ·{" "}
-												{item.audioStreamIndices.length
-													? t("preparedMedia.audio", {
-															count: item.audioStreamIndices.length,
-														})
-													: t("audioTracks.none")}{" "}
-												· {size(item.sizeBytes)} ·{" "}
-												{t(`preparedMedia.states.${item.status}`)}
-												{item.deleteBlockedReason &&
-													` · ${t(`preparedMedia.blocked.${item.deleteBlockedReason}`)}`}
-											</p>
+											<label htmlFor={`${controlId}-all`}>
+												{t("preparedMedia.selectPage")}
+											</label>
 										</div>
-										<div className="flex shrink-0 items-center">
-											<Tooltip content={t("preparedMedia.watch")}>
-												{item.status === "ready" ? (
-													<Link
-														className={buttonStyles("ghost", undefined, "icon")}
-														aria-label={t("preparedMedia.watch")}
-														to={watchPath(item)}
-													>
-														<Play size={16} aria-hidden="true" />
-													</Link>
-												) : (
-													<Button
-														size="icon"
-														variant="ghost"
-														disabled
-														aria-label={t("preparedMedia.watch")}
-													>
-														<Play size={16} aria-hidden="true" />
-													</Button>
-												)}
-											</Tooltip>
-											<Tooltip content={t("preparedMedia.locate")}>
-												<Link
-													className={buttonStyles("ghost", undefined, "icon")}
-													aria-label={t("preparedMedia.locate")}
-													to={`/files/${encodeURIComponent(item.fileId)}/locate`}
-												>
-													<FolderOpen size={16} aria-hidden="true" />
-												</Link>
-											</Tooltip>
-											<Tooltip content={t("preparedMedia.delete")}>
-												<Button
-													size="icon"
-													variant="ghost"
-													aria-label={t("preparedMedia.delete")}
+										<Button
+											variant="outline"
+											className="text-destructive"
+											disabled={chosen.length === 0 || mutation.isPending}
+											onClick={() => confirm(chosen)}
+										>
+											{t("preparedMedia.deleteSelected", {
+												count: chosen.length,
+											})}
+										</Button>
+									</div>
+								)}
+								<ul className="divide-y">
+									{items.map((item) => (
+										<li
+											key={item.id}
+											className={`grid items-center gap-x-3 gap-y-2 py-3 ${
+												selecting
+													? "grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+													: "grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto]"
+											}`}
+										>
+											{selecting && (
+												<Checkbox
+													className="size-5 shrink-0"
+													aria-label={t("preparedMedia.select", {
+														name: item.filename,
+													})}
+													checked={chosen.some(
+														(chosen) => chosen.id === item.id,
+													)}
 													disabled={
 														mutation.isPending || !!item.deleteBlockedReason
 													}
-													onClick={() => confirm([item])}
+													onCheckedChange={(checked) =>
+														setSelected((previous) =>
+															checked
+																? [...previous, item.id]
+																: previous.filter((id) => id !== item.id),
+														)
+													}
+												/>
+											)}
+											<div className="min-w-0 flex-1 space-y-1">
+												<Tooltip
+													openOnClick
+													content={
+														<div className="space-y-1 break-all">
+															<p>{item.sourcePath}</p>
+															<p>
+																{new Date(item.createdAtMs).toLocaleString(
+																	i18n.language,
+																)}
+															</p>
+														</div>
+													}
 												>
-													<Trash2 size={16} aria-hidden="true" />
-												</Button>
-											</Tooltip>
-										</div>
-									</li>
-								))}
-							</ul>
-						</>
-					)}
-					{(query.data.total > query.data.pageSize || query.data.page > 1) && (
-						<PaginationControls
-							page={query.data.page}
-							fetching={query.isFetching || mutation.isPending}
-							hasNextPage={
-								query.data.page * query.data.pageSize < query.data.total
-							}
-							onPage={(page) => change("page", String(page))}
-							label={t("preparedMedia.title")}
-						/>
-					)}
-				</>
-			)}
+													<button
+														type="button"
+														className="block w-full truncate rounded text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														aria-label={item.filename}
+													>
+														{item.filename}
+													</button>
+												</Tooltip>
+												<p className="break-words text-xs text-muted-foreground">
+													{item.profileName} ·{" "}
+													{item.audioStreamIndices.length
+														? t("preparedMedia.audio", {
+																count: item.audioStreamIndices.length,
+															})
+														: t("audioTracks.none")}{" "}
+													· {size(item.sizeBytes)} ·{" "}
+													{t(`preparedMedia.states.${item.status}`)}
+													{item.deleteBlockedReason &&
+														` · ${t(`preparedMedia.blocked.${item.deleteBlockedReason}`)}`}
+												</p>
+											</div>
+											<div
+												className={`flex items-center justify-end ${selecting ? "col-start-2 sm:col-start-auto" : ""}`}
+											>
+												<Tooltip content={t("preparedMedia.watch")}>
+													{item.status === "ready" ? (
+														<Link
+															className={buttonStyles(
+																"ghost",
+																undefined,
+																"icon",
+															)}
+															aria-label={t("preparedMedia.watch")}
+															to={watchPath(item)}
+														>
+															<Play size={16} aria-hidden="true" />
+														</Link>
+													) : (
+														<Button
+															size="icon"
+															variant="ghost"
+															disabled
+															aria-label={t("preparedMedia.watch")}
+														>
+															<Play size={16} aria-hidden="true" />
+														</Button>
+													)}
+												</Tooltip>
+												<Tooltip content={t("preparedMedia.locate")}>
+													<Link
+														className={buttonStyles("ghost", undefined, "icon")}
+														aria-label={t("preparedMedia.locate")}
+														to={`/files/${encodeURIComponent(item.fileId)}/locate`}
+													>
+														<FolderOpen size={16} aria-hidden="true" />
+													</Link>
+												</Tooltip>
+												<Tooltip content={t("preparedMedia.delete")}>
+													<Button
+														size="icon"
+														variant="ghost"
+														aria-label={t("preparedMedia.delete")}
+														disabled={
+															mutation.isPending || !!item.deleteBlockedReason
+														}
+														onClick={() => confirm([item])}
+													>
+														<Trash2 size={16} aria-hidden="true" />
+													</Button>
+												</Tooltip>
+											</div>
+										</li>
+									))}
+								</ul>
+							</>
+						)}
+						{items.length > 0 &&
+							(query.data.total > query.data.pageSize ||
+								query.data.page > 1) && (
+								<div className="border-t pt-4">
+									<PaginationControls
+										page={query.data.page}
+										fetching={query.isFetching || mutation.isPending}
+										hasNextPage={
+											query.data.page * query.data.pageSize < query.data.total
+										}
+										onPage={(page) => change("page", String(page))}
+										label={t("preparedMedia.title")}
+									/>
+								</div>
+							)}
+					</>
+				)}
+			</div>
 			<Dialog
 				open={confirmation !== null}
 				onOpenChange={(open) => {

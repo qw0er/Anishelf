@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	ChevronRight,
+	CircleMinus,
 	Ellipsis,
 	Pause,
 	Pencil,
@@ -9,8 +10,9 @@ import {
 	Rss,
 	Settings,
 	Trash2,
+	TriangleAlert,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { SubscriptionView } from "../../shared/api/contracts.js";
 import { useQueryScope } from "../../shared/api/queries.js";
@@ -27,19 +29,25 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "../../shared/components/ui/dropdown-menu.js";
+import { StatusBadge } from "../../shared/components/ui/status-badge.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import {
 	type AnimeStatusState,
 	animeStatusQuery,
 	invalidateAnimeQueries,
 } from "../anime/public.js";
-import { DownloadActivityPanel } from "./download-activity.js";
+import {
+	DownloadActivityPanel,
+	SubscriptionIssue,
+} from "./download-activity.js";
 import { downloadKeys } from "./downloads-api.js";
 import { SubscriptionForm } from "./subscription-form.js";
+import { subscriptionStatus } from "./subscription-status.js";
 import {
 	acquisitionProfilesQuery,
 	refreshSubscription,
 	removeSubscription,
+	type SubscriptionListItem,
 	toggleSubscription,
 } from "./subscriptions-api.js";
 import { watchingKey } from "./watching-api.js";
@@ -51,15 +59,25 @@ export function SubscriptionPanel({
 	activityRequested = false,
 	compact = false,
 	onActivityClose,
+	inventory,
 }: {
 	workKey: string;
 	status?: AnimeStatusState;
 	activityRequested?: boolean;
 	compact?: boolean;
+	inventory?: {
+		title: string;
+		view: SubscriptionView;
+		onExclude?: () => void;
+		excludePending?: boolean;
+	};
 	onActivityClose?: () => void;
 }) {
 	const { t, i18n } = useTranslation();
 	const client = useQueryClient();
+	const detailsTrigger = useRef<HTMLButtonElement>(null);
+	const actionsTrigger = useRef<HTMLButtonElement>(null);
+	const editorReturnFocus = useRef<HTMLButtonElement | null>(null);
 	const profiles = useQuery(acquisitionProfilesQuery());
 	const [editor, setEditor] = useState<{
 			current: SubscriptionView["subscription"];
@@ -67,20 +85,16 @@ export function SubscriptionPanel({
 		[activityOpen, setActivityOpen] = useState(false);
 	const fallback = useQuery({
 		...animeStatusQuery(workKey, useQueryScope()),
-		enabled: !status,
+		enabled: !status && !inventory,
 	});
 	const query = status ?? fallback;
-	const view = query.data?.subscription,
+	const view = inventory?.view ?? query.data?.subscription,
 		sub = view?.subscription;
-	const cooling =
-		sub?.error === "rate_limited" && sub.nextAttemptAt > Date.now();
-	const needsAttention =
-		query.isError ||
-		!!(
-			sub?.error &&
-			sub.runState !== "completed" &&
-			sub.error !== "no_eligible_source"
-		);
+	const pending = !inventory && query.isPending;
+	const failed = !inventory && query.isError;
+	const state = subscriptionStatus(sub ?? null);
+	const { cooling } = state;
+	const needsAttention = failed || state.needsAttention;
 
 	let summary = t(
 		sub
@@ -89,11 +103,11 @@ export function SubscriptionPanel({
 	);
 	if (sub?.runState === "completed")
 		summary = t("acquisition.subscription.completed");
-	else if (cooling)
+	else if (cooling && sub)
 		summary = t("acquisition.subscription.cooldownUntil", {
 			time: new Date(sub.nextAttemptAt).toLocaleString(i18n.language),
 		});
-	else if (needsAttention) summary = t("acquisition.activity.needsAttention");
+	else if (needsAttention) summary = state.label;
 	else if (sub && !sub.enabled) summary = t("acquisition.subscription.paused");
 	else if (
 		sub?.management === "watching" &&
@@ -112,25 +126,8 @@ export function SubscriptionPanel({
 			sub.runState && sub.runState !== "active"
 				? watchingReason(sub.runState)
 				: t("acquisition.subscription.automaticManaged");
-	let rowSummary = summary;
-	if (compact) {
-		if (cooling) rowSummary = t("acquisition.manager.cooldown");
-		else if (!needsAttention && sub?.enabled && sub.runState !== "completed") {
-			if (
-				sub.management === "watching" &&
-				sub.runState &&
-				sub.runState !== "active"
-			)
-				rowSummary = watchingReason(sub.runState, true);
-			else if (sub.sourceKind === "automatic")
-				rowSummary = t(
-					sub.error === "no_eligible_source"
-						? "acquisition.manager.waiting"
-						: "acquisition.manager.searching",
-				);
-			else rowSummary = t("acquisition.manager.active");
-		}
-	}
+	const rowSummary = compact ? state.label : summary;
+
 	const updated = async (result?: SubscriptionView) => {
 		await client.cancelQueries({
 			queryKey: ["anime-status"],
@@ -152,7 +149,26 @@ export function SubscriptionPanel({
 							}
 						: undefined,
 			);
+		if (inventory && result) {
+			await client.cancelQueries({
+				queryKey: ["acquisition", "subscription", "list"],
+			});
+			client.setQueryData<SubscriptionListItem[]>(
+				["acquisition", "subscription", "list"],
+				(previous) =>
+					previous?.flatMap((item) =>
+						item.view.subscription?.workKey === workKey
+							? result.subscription
+								? [{ ...item, view: result }]
+								: []
+							: [item],
+					),
+			);
+		}
 		setEditor(null);
+		void client.invalidateQueries({
+			queryKey: ["acquisition", "subscription", "list"],
+		});
 		void client.invalidateQueries({
 			queryKey: ["acquisition", "subscription", workKey],
 		});
@@ -181,14 +197,22 @@ export function SubscriptionPanel({
 				} satisfies SubscriptionView;
 			}
 		},
-		onSuccess: async (result) => {
+		onSuccess: async (result, command) => {
+			console.info("[acquisition] Subscription command completed.", {
+				workKey,
+				command,
+			});
 			await updated(result);
 			toast.add({
 				type: "success",
 				title: t("acquisition.subscription.updated"),
 			});
 		},
-		onError: () => {
+		onError: (_error, command) => {
+			console.warn("[acquisition] Subscription command failed.", {
+				workKey,
+				command,
+			});
 			updated();
 			toast.add({
 				type: "error",
@@ -196,32 +220,73 @@ export function SubscriptionPanel({
 			});
 		},
 	});
+	const feedback = {
+		view: view ?? { subscription: null },
+		onCheckUpdates: () => action.mutate("refresh"),
+		checking: action.isPending,
+		reason: (code: string) =>
+			t(`acquisition.reason.${code}`, {
+				defaultValue: i18n.exists(`acquisition.watching.reasons.${code}`)
+					? watchingReason(code)
+					: t("acquisition.reason.fallback"),
+			}),
+		onConfigure: () => {
+			editorReturnFocus.current = detailsTrigger.current;
+			setActivityOpen(false);
+			onActivityClose?.();
+			setEditor({ current: sub ?? null });
+		},
+	};
+
 	return (
 		<section
 			className={compact ? "min-w-0" : "min-w-0 border-t pt-3"}
 			aria-label={t("acquisition.subscription.aria")}
-			aria-busy={query.isFetching}
+			aria-busy={!inventory && query.isFetching}
 		>
 			<div className="flex min-w-0 items-center justify-between gap-2 text-sm">
+				{compact && (
+					<StatusBadge
+						tone={state.tone}
+						className="min-w-0 gap-1.5 whitespace-normal"
+					>
+						{needsAttention && (
+							<TriangleAlert className="size-3.5 shrink-0" aria-hidden="true" />
+						)}
+						{rowSummary}
+					</StatusBadge>
+				)}
 				<Button
-					variant="ghost"
-					className="min-w-0 justify-start gap-2 px-0"
+					ref={detailsTrigger}
+					variant={compact ? "outline" : "ghost"}
+					className={
+						compact ? "ml-auto shrink-0" : "min-w-0 justify-start gap-2 px-0"
+					}
 					disabled={!sub && !needsAttention}
-					onClick={() => setActivityOpen(true)}
+					onClick={() => {
+						console.debug("[acquisition] Subscription details opened.", {
+							workKey,
+						});
+						setActivityOpen(true);
+					}}
 					aria-label={t("acquisition.subscription.activity")}
 				>
-					<Rss className="size-4 shrink-0" aria-hidden="true" />
+					{!compact && <Rss className="size-4 shrink-0" aria-hidden="true" />}
 					<span
 						role="status"
-						className={`truncate ${needsAttention ? "text-destructive" : ""}`}
+						className={
+							!compact && needsAttention ? "text-destructive" : undefined
+						}
 					>
-						{query.isPending
+						{pending
 							? t("acquisition.subscription.loading")
-							: query.isError && !view
+							: failed && !view
 								? t("acquisition.subscription.unavailable")
-								: rowSummary}
+								: compact
+									? t("acquisition.manager.details")
+									: rowSummary}
 					</span>
-					{(sub || needsAttention) && (
+					{!compact && (sub || needsAttention) && (
 						<ChevronRight
 							className="size-4 shrink-0 text-muted-foreground"
 							aria-hidden="true"
@@ -229,10 +294,13 @@ export function SubscriptionPanel({
 					)}
 				</Button>
 				<div className="flex shrink-0 items-center gap-1">
-					{!sub && !query.isPending && !query.isError && (
+					{!sub && !pending && !failed && (
 						<Button
 							variant="outline"
-							onClick={() => setEditor({ current: sub ?? null })}
+							onClick={(event) => {
+								editorReturnFocus.current = event.currentTarget;
+								setEditor({ current: sub ?? null });
+							}}
 						>
 							{t("acquisition.subscription.subscribe")}
 						</Button>
@@ -242,17 +310,19 @@ export function SubscriptionPanel({
 							<DropdownMenuTrigger
 								render={
 									<Button
+										ref={actionsTrigger}
 										variant="ghost"
 										className="size-9 p-0"
 										aria-label={t("acquisition.subscription.actions")}
-										disabled={action.isPending}
+										disabled={action.isPending || inventory?.excludePending}
+										aria-busy={action.isPending || inventory?.excludePending}
 									/>
 								}
 							>
 								<Ellipsis className="size-4" aria-hidden="true" />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent>
-								{sub.management === "watching" && (
+								{sub.management === "watching" && !inventory && (
 									<DropdownMenuItem
 										onClick={() => {
 											window.location.href = "/subscriptions";
@@ -263,7 +333,10 @@ export function SubscriptionPanel({
 									</DropdownMenuItem>
 								)}
 								<DropdownMenuItem
-									onClick={() => setEditor({ current: sub ?? null })}
+									onClick={() => {
+										editorReturnFocus.current = actionsTrigger.current;
+										setEditor({ current: sub ?? null });
+									}}
 								>
 									<Pencil size={16} aria-hidden="true" />
 									{t(
@@ -298,6 +371,15 @@ export function SubscriptionPanel({
 										)}
 									</DropdownMenuItem>
 								)}
+								{inventory?.onExclude && (
+									<DropdownMenuItem
+										disabled={inventory.excludePending}
+										onClick={inventory.onExclude}
+									>
+										<CircleMinus size={16} aria-hidden="true" />
+										{t("acquisition.watching.exclude")}
+									</DropdownMenuItem>
+								)}
 								{sub.management !== "watching" && (
 									<DropdownMenuItem
 										variant="destructive"
@@ -310,14 +392,14 @@ export function SubscriptionPanel({
 							</DropdownMenuContent>
 						</DropdownMenu>
 					)}
-					{query.isError && !view && (
+					{failed && !view && (
 						<Button variant="ghost" onClick={() => void query.refetch()}>
 							{t("acquisition.subscription.retry")}
 						</Button>
 					)}
 				</div>
 			</div>
-			{query.isError && view && (
+			{failed && view && (
 				<p role="status" className="text-sm text-muted-foreground">
 					{t("acquisition.activity.statusUnavailable")}{" "}
 					{query.dataUpdatedAt > 0 &&
@@ -336,7 +418,13 @@ export function SubscriptionPanel({
 					setEditor(open ? { current: sub ?? null } : null)
 				}
 			>
-				<DialogContent>
+				<DialogContent
+					finalFocus={() =>
+						editorReturnFocus.current?.isConnected
+							? editorReturnFocus.current
+							: detailsTrigger.current
+					}
+				>
 					<DialogHeader>
 						<DialogTitle>
 							{t(
@@ -345,6 +433,11 @@ export function SubscriptionPanel({
 									: "acquisition.subscription.subscribeTitle",
 							)}
 						</DialogTitle>
+						{inventory && (
+							<p className="wrap-anywhere text-sm text-muted-foreground">
+								{inventory.title}
+							</p>
+						)}
 					</DialogHeader>
 					{editor && (
 						<SubscriptionForm
@@ -364,15 +457,29 @@ export function SubscriptionPanel({
 					if (!open) onActivityClose?.();
 				}}
 			>
-				<DialogContent className="max-h-[85dvh] overflow-y-auto">
+				<DialogContent
+					className="max-h-[85dvh] overflow-y-auto"
+					finalFocus={() => (editor ? false : detailsTrigger.current)}
+				>
 					<DialogHeader>
 						<DialogTitle>{t("acquisition.subscription.activity")}</DialogTitle>
+						{inventory && (
+							<p className="wrap-anywhere text-sm text-muted-foreground">
+								{inventory.title}
+							</p>
+						)}
 					</DialogHeader>
 					{sub && (
 						<div className="space-y-4">
 							<p className="font-medium" role="status">
 								{summary}
 							</p>
+							{state.needsAttention && !sub.error && sub.runState && (
+								<p className="text-sm text-muted-foreground">
+									{watchingReason(sub.runState)}
+								</p>
+							)}
+							<SubscriptionIssue {...feedback} />
 							<dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-3 border-y py-4 text-sm">
 								<dt className="text-muted-foreground">
 									{t("acquisition.subscription.policy")}
@@ -391,7 +498,11 @@ export function SubscriptionPanel({
 								<dt className="text-muted-foreground">
 									{t("acquisition.subscription.source")}
 								</dt>
-								<dd className="break-all">{sub.source}</dd>
+								<dd className="break-all">
+									{sub.sourceKind === "automatic"
+										? t("acquisition.subscription.automaticSource")
+										: sub.source}
+								</dd>
 								<dt className="text-muted-foreground">
 									{t("acquisition.subscription.releaseProfile")}
 								</dt>
@@ -411,41 +522,19 @@ export function SubscriptionPanel({
 										: t("acquisition.manager.notChecked")}
 								</dd>
 							</dl>
-							<Button
-								variant="outline"
-								onClick={() => {
-									setActivityOpen(false);
-									onActivityClose?.();
-									setEditor({ current: sub });
-								}}
-							>
-								{t(
-									sub.management === "watching"
-										? "acquisition.subscription.convertToManual"
-										: "acquisition.subscription.edit",
-								)}
-							</Button>
+							{sub.management !== "watching" && (
+								<Button variant="outline" onClick={feedback.onConfigure}>
+									{t("acquisition.subscription.edit")}
+								</Button>
+							)}
 						</div>
 					)}
-					{
-						<DownloadActivityPanel
-							subscriptionOnly
-							workKey={workKey}
-							view={view ?? { subscription: null }}
-							onCheckUpdates={() => action.mutate("refresh")}
-							checking={action.isPending}
-							reason={(code) =>
-								t(`acquisition.reason.${code}`, {
-									defaultValue: t("acquisition.reason.fallback"),
-								})
-							}
-							onConfigure={() => {
-								setActivityOpen(false);
-								onActivityClose?.();
-								setEditor({ current: sub ?? null });
-							}}
-						/>
-					}
+					<DownloadActivityPanel
+						subscriptionOnly
+						showSubscriptionIssue={false}
+						workKey={workKey}
+						{...feedback}
+					/>
 				</DialogContent>
 			</Dialog>
 		</section>

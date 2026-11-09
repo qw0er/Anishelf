@@ -39,6 +39,39 @@ in the associated details or help. Preserve meaningful distinctions between stat
 and keep actionable failures discoverable. Do not rely on truncation to make verbose
 copy fit, and account for longer translations when reviewing labels.
 
+### Surface hierarchy
+
+Give surfaces consistent meaning across pages. Choose a surface according to the
+task it contains, and use shared theme roles rather than page-specific neutral
+colors or arbitrary opacity variations.
+
+- **Page background.** Provides the canvas for page identity, navigation and layout.
+  Keep page titles and page-wide actions outside task panels.
+- **Task panel.** Groups an independently understandable management task or form.
+  Distinguish it from the page background with a subtle neutral tone, a light border
+  and consistent corner treatment in both light and dark themes.
+- **Supporting region.** Holds secondary explanations, previews or supplementary
+  details within a task. Prefer spacing and dividers; use a subdued surface only
+  when the additional grouping helps comprehension.
+
+Keep search, filters, list-scoped commands, results and pagination for one inventory
+within one continuous task panel. Use spacing or dividers between these parts so
+the relationship between controls and affected content remains clear. Ordinary rows
+share the panel surface; avoid giving every row its own card or nesting panels for
+routine field groups. Preserve the task's surface and control placement across
+loading, empty and error states, while hiding commands that do not apply.
+
+Use hover, selection, focus and semantic feedback colors to express interaction or
+state. Keep these meanings distinct from structural surface grouping. Emphasize the
+primary action through its control rather than coloring the entire task region.
+Surface tones should remain restrained, with sufficient contrast for text, controls
+and focus indicators; grouping must also remain understandable through layout and
+boundaries.
+
+Artwork-led browsing can sit directly on the page background. Apply task panels
+where they clarify an independent operation, preserving a consistent surface
+hierarchy without forcing every page into the same layout.
+
 ## Reuse and consistency
 
 Reuse established visual and interaction patterns so users can transfer what they
@@ -84,11 +117,18 @@ Library browsing is search-led. Give artwork room, keep titles readable and make
 playback discoverable. Avoid nested interactive targets. Distinguish viewing progress
 from local availability, and omit unknown counts rather than inventing values.
 
+Place the poster grid directly on the page background, using artwork and spacing to
+organize browsing without an enclosing task panel.
+
 ### Work details
 
 Prioritize the work's identity, playback and episodes. Reveal secondary metadata and
 diagnostics when needed. Keep version-specific actions and recovery beside their
 content, and preserve the Library context when navigating to details.
+
+Let artwork and descriptive content integrate with the page background. Use task
+panels for operation-heavy episode and resource sections, keeping each section's
+controls with its affected content.
 
 Make the next announced broadcast easy to find. Separate future plans from aired
 history, show time-zone context and distinguish cached or unverified information.
@@ -100,6 +140,12 @@ Favor efficient scanning and consistent action placement. Keep full names access
 when visually shortened. Make correction and recovery specific to the affected
 resource, and clearly communicate the scope of destructive operations before
 confirmation. Preserve retryable input when an operation fails.
+
+Use a continuous task panel for file browsing and history inventories, grouping
+their search, filters, rows and pagination. Apply the same structure to original
+files and prepared-copy management. Review may use separate panels for its work
+list and identification editor because they support distinct tasks; organize the
+editor's internal details with spacing and dividers before adding nested surfaces.
 
 Distinguish actionable review work from historical decisions. Explain the scope and
 consequences of re-identification before it starts. Keep background operations
@@ -114,6 +160,11 @@ original files for the former and a filter-reset action for the latter. Empty re
 should not show selection commands or pagination. Manage actual copies independently of the
 background task monitor. Show unfiltered storage totals and make unverified
 availability explicit; a listing must not silently invalidate or clean up copies.
+
+Keep prepared-copy selection and refresh visually secondary within the search and
+filter toolbar. Use a quiet selection toggle and an accessible refresh icon with
+in-place busy feedback. Let controls reflow on narrow screens while keeping search
+and filter labels readable; avoid a separate row of prominent routine commands.
 
 Use compact prepared-copy rows with filename and supporting size, configuration
 and availability; reveal the full source path and generation time on demand. Keep
@@ -132,6 +183,10 @@ readers must explain why removal is blocked.
 Organize settings by user intent, with readable explanations and clear relationships
 between choices. Keep navigation usable on narrow screens and preserve drafts when
 changing categories. Avoid explanations that merely repeat labels.
+
+Use one task panel per independent configuration task. Keep explanations and fields
+together, and separate internal field groups with spacing or dividers rather than
+additional cards.
 
 Keep primary actions together and secondary commands discoverable. Distinguish saved
 configuration from verified connectivity, and keep unresolved setup failures visible.
@@ -178,10 +233,21 @@ Present one understandable subscription summary per work. Prioritize actionable
 failures and stopped states over management metadata. Make details and secondary
 commands discoverable without competing with the work's main actions.
 
+Keep the work title and subscription scope together. Use short, specific state labels
+and an explicitly labeled details action; status text should remain readable without
+being the only way to discover details. Show the affected work in detail and editing
+views. Place exclusion and other secondary management commands in the affected row's
+menu, with a discoverable restoration route. Distinguish temporary source failures
+from configuration blockers without making routine waiting states look like errors.
+
 Treat search and filters as one coherent way to narrow the inventory. Keep their
 relationship clear, allow independent conditions to combine and make resetting them
 easy. Distinguish an empty inventory from a search with no matches, offering a useful
 next action in each case.
+
+Group subscription search, filters, list-scoped commands, rows and pagination in
+one continuous task panel, following the same inventory pattern as Files and
+History. Ordinary subscription rows share the panel surface.
 
 Keep one inventory for manual and automatic subscriptions, with exclusions and restore
 actions associated with the affected work. Keep automation health visible without
@@ -213,6 +279,11 @@ Validate shared patterns in representative contexts before broad adoption. Revie
 light and dark themes across mobile, tablet and desktop sizes, including long titles,
 Chinese filenames, empty/loading/error states and keyboard focus. Automated checks
 alone do not establish visual acceptance.
+
+Review Files and Subscriptions together as representative management inventories
+before extending the surface pattern to other pages. Verify that equivalent tasks
+use the same surface roles, controls remain visibly associated with their content,
+and supporting regions remain distinct from hover, selection and feedback states.
 
 Preserve navigation context, cancellation, drafts and accessibility. Follow
 [frontend ownership](architecture.md#frontend-ownership) and

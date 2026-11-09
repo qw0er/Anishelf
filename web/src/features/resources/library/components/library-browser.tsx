@@ -15,7 +15,6 @@ import {
 import { EmptyState } from "../../../../shared/components/empty-state.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
 import { buttonStyles } from "../../../../shared/components/ui/button.js";
-import { Card, CardContent } from "../../../../shared/components/ui/card.js";
 import { Input } from "../../../../shared/components/ui/input.js";
 import {
 	NativeSelect,
@@ -171,7 +170,7 @@ export default function LibraryBrowser({
 			)}
 			{identificationStatus}
 			{!setupRequired && (
-				<div className="space-y-4">
+				<div className="surface-panel space-y-4">
 					<div className="flex flex-col gap-2 border-b pb-4 sm:flex-row">
 						<Input
 							type="search"
@@ -202,128 +201,121 @@ export default function LibraryBrowser({
 							</NativeSelect>
 						</div>
 					</div>
-					<Card
-						className={
-							listing.children.length === 0
-								? "border-0 bg-transparent py-0"
-								: undefined
-						}
-					>
-						<CardContent
-							className={listing.children.length === 0 ? "px-0" : undefined}
-						>
-							{searching ? (
-								<p role="status">{t("library.searching")}</p>
-							) : term && searchQuery.isError ? (
-								<p role="alert">
-									{t("library.searchFailed")}{" "}
-									<button
-										type="button"
-										className="underline"
-										onClick={() => void searchQuery.refetch()}
+					<div>
+						{term && searchQuery.isError && (
+							<p role="alert" className="mb-3 text-sm">
+								{t("library.searchFailed")}{" "}
+								<button
+									type="button"
+									className="touch-control rounded-sm underline focus-visible:outline-2 focus-visible:outline-ring"
+									onClick={() => void searchQuery.refetch()}
+								>
+									{t("actions.retry")}
+								</button>
+							</p>
+						)}
+						{searching ? (
+							<p role="status">{t("library.searching")}</p>
+						) : !term && listing.children.length === 0 ? (
+							<EmptyState
+								embedded
+								icon={<Folder size={24} />}
+								title={t("library.emptyDirectory")}
+							/>
+						) : children.length === 0 &&
+							term &&
+							searchQuery.isError ? null : children.length === 0 ? (
+							<EmptyState
+								embedded
+								icon={<Folder size={24} />}
+								title={t("library.noSearchResults")}
+							/>
+						) : (
+							<ul className="divide-y">
+								{children.map((entry) => (
+									<li
+										key={entry.id}
+										id={`file-${entry.id}`}
+										ref={
+											hash === `#${encodeURIComponent(`file-${entry.id}`)}`
+												? focusedRow
+												: undefined
+										}
+										tabIndex={-1}
+										className="grid scroll-mt-4 grid-cols-[minmax(0,1fr)_auto] items-center py-2 first:pt-0 last:pb-0 target:rounded-md target:bg-accent target:ring-2 target:ring-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 									>
-										{t("actions.retry")}
-									</button>
-								</p>
-							) : !term && listing.children.length === 0 ? (
-								<EmptyState
-									icon={<Folder size={24} />}
-									title={t("library.emptyDirectory")}
-								/>
-							) : children.length === 0 ? (
-								<EmptyState
-									icon={<Folder size={24} />}
-									title={t("library.noSearchResults")}
-								/>
-							) : (
-								<ul className="divide-y">
-									{children.map((entry) => (
-										<li
-											key={entry.id}
-											id={`file-${entry.id}`}
-											ref={
-												hash === `#${encodeURIComponent(`file-${entry.id}`)}`
-													? focusedRow
-													: undefined
-											}
-											tabIndex={-1}
-											className="grid scroll-mt-4 grid-cols-[minmax(0,1fr)_auto] items-center py-2 first:pt-0 last:pb-0 target:rounded-md target:bg-accent target:ring-2 target:ring-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-										>
-											<Tooltip content={entry.name}>
-												<Link
-													aria-label={entry.name}
-													className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-md px-2 py-3 sm:grid-cols-[1rem_minmax(0,1fr)_auto] hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-													to={
-														entry.kind === "directory"
-															? directoryPath(entry.id)
-															: filePath(entry.id, entry.parentId)
-													}
-												>
-													{entry.kind === "directory" ? (
-														<Folder
-															className="mt-1 self-start"
-															size={16}
-															aria-hidden="true"
-														/>
-													) : (
-														<FileVideo
-															className="mt-1 self-start"
-															size={16}
-															aria-hidden="true"
-														/>
-													)}
-													<span className="min-w-0">
-														<span className="block truncate">{entry.name}</span>
-														{Boolean(paths.get(entry.id)?.length) && (
-															<span className="block truncate text-sm text-muted-foreground">
-																{paths.get(entry.id)?.join(" / ")}
-															</span>
-														)}
-													</span>
-													{entry.kind === "file" && (
-														<span className="col-start-2 text-sm tabular-nums sm:col-start-3 text-muted-foreground">
-															{formatFileSize(entry.sizeBytes, i18n.language)}
-														</span>
-													)}
-												</Link>
-											</Tooltip>
-											{entry.kind === "directory" &&
-												!(
-													listing.directory.id === "root" &&
-													entry.parentId === "root" &&
-													(scan.library?.roots?.length ?? 0) > 1
-												) && (
-													<ResourceOperationMenu
-														onSelect={(action) =>
-															setOperation({ entry, action })
-														}
+										<Tooltip content={entry.name}>
+											<Link
+												aria-label={entry.name}
+												className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-md px-2 py-3 sm:grid-cols-[1rem_minmax(0,1fr)_auto] hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+												to={
+													entry.kind === "directory"
+														? directoryPath(entry.id)
+														: filePath(entry.id, entry.parentId)
+												}
+											>
+												{entry.kind === "directory" ? (
+													<Folder
+														className="mt-1 self-start"
+														size={16}
+														aria-hidden="true"
+													/>
+												) : (
+													<FileVideo
+														className="mt-1 self-start"
+														size={16}
+														aria-hidden="true"
 													/>
 												)}
-											{entry.kind === "file" && (
-												<div className="flex items-center justify-end gap-1 pl-2">
-													{renderFileActions?.({
-														fileId: entry.id,
-														managementMenu: (
-															<ResourceOperationItems
-																onSelect={(action) =>
-																	setOperation({ entry, action })
-																}
-															/>
-														),
-														summary: summaries.data?.files.find(
-															(file) => file.fileId === entry.id,
-														),
-														...compatibility.get(entry.id),
-														onRecheck: compatibility.retry,
-													})}
-												</div>
+												<span className="min-w-0">
+													<span className="block truncate">{entry.name}</span>
+													{Boolean(paths.get(entry.id)?.length) && (
+														<span className="block truncate text-sm text-muted-foreground">
+															{paths.get(entry.id)?.join(" / ")}
+														</span>
+													)}
+												</span>
+												{entry.kind === "file" && (
+													<span className="col-start-2 text-sm tabular-nums sm:col-start-3 text-muted-foreground">
+														{formatFileSize(entry.sizeBytes, i18n.language)}
+													</span>
+												)}
+											</Link>
+										</Tooltip>
+										{entry.kind === "directory" &&
+											!(
+												listing.directory.id === "root" &&
+												entry.parentId === "root" &&
+												(scan.library?.roots?.length ?? 0) > 1
+											) && (
+												<ResourceOperationMenu
+													onSelect={(action) => setOperation({ entry, action })}
+												/>
 											)}
-										</li>
-									))}
-								</ul>
-							)}
-						</CardContent>
-					</Card>
+										{entry.kind === "file" && (
+											<div className="flex items-center justify-end gap-1 pl-2">
+												{renderFileActions?.({
+													fileId: entry.id,
+													managementMenu: (
+														<ResourceOperationItems
+															onSelect={(action) =>
+																setOperation({ entry, action })
+															}
+														/>
+													),
+													summary: summaries.data?.files.find(
+														(file) => file.fileId === entry.id,
+													),
+													...compatibility.get(entry.id),
+													onRecheck: compatibility.retry,
+												})}
+											</div>
+										)}
+									</li>
+								))}
+							</ul>
+						)}
+					</div>
 				</div>
 			)}
 		</section>

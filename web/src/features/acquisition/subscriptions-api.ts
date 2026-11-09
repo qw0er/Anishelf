@@ -5,6 +5,8 @@ import type {
 	SubscriptionView,
 } from "../../shared/api/contracts.js";
 
+export type SubscriptionListItem = { title: string; view: SubscriptionView };
+
 const path = "/api/acquisition/subscriptions";
 export const getSubscription = (
 	workKey: string,
@@ -50,10 +52,6 @@ export const acquisitionProfilesQuery = () => ({
 export const subscriptionListQuery = () => ({
 	queryKey: ["acquisition", "subscription", "list"] as const,
 	queryFn: ({ signal }: { signal: AbortSignal }) =>
-		request<{ title: string; view: SubscriptionView }[]>(
-			`${path}/list`,
-			"GET",
-			{ signal },
-		),
+		request<SubscriptionListItem[]>(`${path}/list`, "GET", { signal }),
 	refetchInterval: 15000,
 });

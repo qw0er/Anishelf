@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { expect, test } from "vitest";
+import { queryClient } from "../../../src/shared/api/query-client.js";
 import {
 	act,
 	fireEvent,
@@ -303,4 +304,45 @@ test("Files shows root entries and an offline warning while healthy roots remain
 	expect(screen.getByTestId("location").textContent).toBe(
 		"/directories/disk-b",
 	);
+});
+
+test("a failed background file search preserves cached results and offers retry", async () => {
+	const fallback = fetcher.getMockImplementation();
+	if (!fallback) throw Error("Missing mock");
+	let fail = false;
+	fetcher.mockImplementation(async (input, init) => {
+		if (fail && String(input).includes("/search?"))
+			return json(
+				{
+					error: {
+						code: "INTERNAL_ERROR",
+						message: "Unavailable",
+						requestId: "search-refresh",
+					},
+				},
+				503,
+			);
+		return fallback(input, init);
+	});
+	renderApp("/directories/season-1");
+	const search = await screen.findByRole("searchbox", {
+		name: "Search names in this directory and subfolders",
+	});
+	fireEvent.change(search, { target: { value: "Episode" } });
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(([path]) => String(path).includes("/search?")),
+		).toBe(true),
+	);
+	await screen.findByRole("link", { name: "Episode 01.mp4" });
+	fail = true;
+	await act(async () => {
+		await queryClient.invalidateQueries({ queryKey: ["directory-search"] });
+	});
+	await screen.findByRole("alert");
+	expect(screen.getByRole("link", { name: "Episode 01.mp4" })).toBeTruthy();
+	expect(screen.queryByText("No names match your search.")).toBeNull();
+	fail = false;
+	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+	await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 });

@@ -57,22 +57,11 @@ export default function HistoryPage() {
 					</Button>
 				}
 			/>
-			<Card
-				className={
-					history.availability === "unknown" || history.items.length === 0
-						? "border-0 bg-transparent py-0"
-						: undefined
-				}
-			>
-				<CardContent
-					className={
-						history.availability === "unknown" || history.items.length === 0
-							? "px-0"
-							: undefined
-					}
-				>
+			<Card>
+				<CardContent>
 					{history.availability === "unknown" || history.items.length === 0 ? (
 						<EmptyState
+							embedded
 							icon={<History size={24} />}
 							title={t(
 								history.availability === "unknown"

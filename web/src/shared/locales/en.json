@@ -1375,7 +1375,25 @@
 			"cooldown": "Cooling down",
 			"waiting": "Waiting",
 			"searching": "Searching",
-			"active": "Active"
+			"active": "Active",
+			"description": "Follow new releases and manage automatic and manual subscriptions.",
+			"inventory": "Subscription inventory",
+			"details": "Details",
+			"restored": "Included in automation.",
+			"excludedSuccess": "Excluded from automation. You can restore it below.",
+			"issues": {
+				"fetch_failed": "Source unreachable",
+				"discovery_unavailable": "Source unavailable",
+				"source_busy": "Source busy",
+				"rate_limited": "Rate limited",
+				"authorization_required": "Review required",
+				"invalid_xml": "Invalid feed",
+				"storage_limit": "History limit reached",
+				"assessment_unavailable": "Metadata unavailable",
+				"acquisition_unavailable": "Acquisition blocked",
+				"profile_unavailable": "Profile unavailable",
+				"source_disabled": "Source disabled"
+			}
 		}
 	},
 	"profileIssue": {
@@ -1388,6 +1406,7 @@
 		"fixAndReload": "Fix the file and choose Reload profiles."
 	},
 	"pagination": {
+		"first": "First page",
 		"label": "Pagination",
 		"previous": "Previous",
 		"next": "Next",

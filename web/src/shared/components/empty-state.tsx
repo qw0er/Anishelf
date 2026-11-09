@@ -12,17 +12,23 @@ export function EmptyState({
 	title,
 	description,
 	actions,
+	embedded = false,
 }: {
 	icon: ReactNode;
 	title: string;
 	description?: string;
 	actions?: ReactNode;
+	embedded?: boolean;
 }) {
 	return (
 		<section aria-label={title}>
 			<Empty
 				aria-label={title}
-				className="rounded-lg border bg-muted/20 py-10 sm:py-14"
+				className={
+					embedded
+						? "py-10 sm:py-14"
+						: "rounded-lg border bg-muted/20 py-10 sm:py-14"
+				}
 			>
 				<EmptyHeader>
 					<EmptyMedia variant="icon" aria-hidden="true">

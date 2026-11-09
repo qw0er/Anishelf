@@ -1354,7 +1354,25 @@
 			"cooldown": "冷却中",
 			"waiting": "等待更新",
 			"searching": "搜索中",
-			"active": "运行中"
+			"active": "运行中",
+			"description": "追踪作品更新，统一管理自动和手动订阅。",
+			"inventory": "订阅列表",
+			"details": "详情",
+			"restored": "已加入自动化。",
+			"excludedSuccess": "已从自动化中排除，可在列表下方恢复。",
+			"issues": {
+				"fetch_failed": "来源无法连接",
+				"discovery_unavailable": "来源不可用",
+				"source_busy": "来源繁忙",
+				"rate_limited": "来源限流",
+				"authorization_required": "待确认",
+				"invalid_xml": "订阅源无效",
+				"storage_limit": "历史记录已满",
+				"assessment_unavailable": "元数据不可用",
+				"acquisition_unavailable": "获取受阻",
+				"profile_unavailable": "配置不可用",
+				"source_disabled": "来源已禁用"
+			}
 		}
 	},
 	"profileIssue": {
@@ -1367,6 +1385,7 @@
 		"fixAndReload": "修复文件后点击“重载配置”。"
 	},
 	"pagination": {
+		"first": "返回首页",
 		"label": "分页",
 		"previous": "上一页",
 		"next": "下一页",

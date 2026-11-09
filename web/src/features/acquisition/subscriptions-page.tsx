@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Filter, Rss, Search, Settings } from "lucide-react";
-import { useId, useState } from "react";
+import { ChevronDown, Rss, Search, Settings } from "lucide-react";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import type { WatchingAutomationStatus } from "../../shared/api/contracts.js";
 import { EmptyState } from "../../shared/components/empty-state.js";
+import { PageHeader } from "../../shared/components/page-header.js";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import { Checkbox } from "../../shared/components/ui/checkbox.js";
 import {
@@ -20,6 +21,7 @@ import {
 import { toast } from "../../shared/components/ui/toast.js";
 import { invalidateAnimeQueries } from "../anime/public.js";
 import { SubscriptionPanel } from "./subscription-panel.js";
+import { subscriptionStatus } from "./subscription-status.js";
 import { subscriptionListQuery } from "./subscriptions-api.js";
 import {
 	overrideWatching,
@@ -45,7 +47,19 @@ export function SubscriptionsPage() {
 				paused: false,
 			});
 		},
-		onSuccess: (status) => {
+		onSuccess: (status, work) => {
+			console.info("[acquisition] Automation membership updated.", {
+				workKey: work.workKey,
+				excluded: !work.excluded,
+			});
+			toast.add({
+				type: "success",
+				title: t(
+					work.excluded
+						? "acquisition.manager.restored"
+						: "acquisition.manager.excludedSuccess",
+				),
+			});
 			client.setQueryData(watchingKey, status);
 			void client.invalidateQueries({ queryKey: watchingKey });
 			void client.invalidateQueries({
@@ -53,25 +67,54 @@ export function SubscriptionsPage() {
 			});
 			void invalidateAnimeQueries(client, "acquisition");
 		},
-		onError: () =>
+		onError: (_error, work) => {
+			console.warn("[acquisition] Automation membership update failed.", {
+				workKey: work.workKey,
+			});
 			toast.add({
 				type: "error",
 				title: t("acquisition.watching.updateFailed"),
-			}),
+			});
+		},
 	});
 	const attentionId = useId();
 	const managementId = useId();
-	const [search, setSearch] = useState("");
-	const [filter, setFilter] = useState("all");
-	const [attention, setAttention] = useState(false);
+	const [params, setParams] = useSearchParams();
+	const search = params.get("search") ?? "";
+	const requestedType = params.get("type");
+	const filter =
+		requestedType === "automatic" || requestedType === "manual"
+			? requestedType
+			: "all";
+	const attention = params.get("attention") === "true";
+	function changeFilter(key: string, value: string) {
+		const next = new URLSearchParams(params);
+		if (value) next.set(key, value);
+		else next.delete(key);
+		setParams(next, { replace: key === "search" });
+	}
 	const query = useQuery(subscriptionListQuery());
 	const filtered = search.trim() !== "" || filter !== "all" || attention;
 	const clearFilters = () => {
-		setSearch("");
-		setFilter("all");
-		setAttention(false);
+		const next = new URLSearchParams(params);
+		for (const key of ["search", "type", "attention"]) next.delete(key);
+		setParams(next);
 	};
-	const excluded = watching.data?.works.filter((work) => work.excluded) ?? [];
+	const excluded =
+		watching.data?.works.filter(
+			(work) =>
+				work.excluded &&
+				filter !== "manual" &&
+				!attention &&
+				work.title
+					.toLocaleLowerCase()
+					.includes(search.trim().toLocaleLowerCase()),
+		) ?? [];
+	const managed = new Map(
+		watching.data?.works
+			.filter((work) => work.managed && !work.excluded)
+			.map((work) => [work.workKey, work]),
+	);
 	const membershipButton = (
 		work: WatchingAutomationStatus["works"][number],
 	) => (
@@ -98,12 +141,7 @@ export function SubscriptionsPage() {
 	const rows = query.data?.filter(
 		({ title, view }) =>
 			title.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) &&
-			(!attention ||
-				!!(
-					view.subscription?.runState !== "completed" &&
-					view.subscription?.error &&
-					view.subscription.error !== "no_eligible_source"
-				)) &&
+			(!attention || subscriptionStatus(view.subscription).needsAttention) &&
 			(filter === "all" ||
 				(filter === "automatic"
 					? view.subscription?.management === "watching"
@@ -111,36 +149,36 @@ export function SubscriptionsPage() {
 	);
 	return (
 		<main className="stack-page">
-			<div className="flex flex-wrap items-center justify-between gap-4">
-				<h1 className="text-2xl font-semibold">
-					{t("acquisition.manager.title")}
-				</h1>
-				<Link
-					className={buttonStyles("outline")}
-					to="/settings?section=downloads"
-				>
-					<Settings className="size-4" aria-hidden="true" />
-					{t("acquisition.watching.settings")}
-				</Link>
-			</div>
-			<div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3 text-sm">
+			<PageHeader
+				title={t("acquisition.manager.title")}
+				description={t("acquisition.manager.description")}
+				actions={
+					<Link
+						className={buttonStyles("outline")}
+						to="/settings?section=downloads"
+					>
+						<Settings className="size-4" aria-hidden="true" />
+						{t("acquisition.watching.settings")}
+					</Link>
+				}
+			/>
+			<div className="flex flex-wrap items-center justify-between gap-2 text-sm">
 				<p
 					className="text-muted-foreground"
 					role={watching.isError ? "alert" : "status"}
 				>
 					{t("acquisition.manager.automation")}:{" "}
-					{watching.data
-						? t(
-								watching.data.enabled
-									? "acquisition.watching.enabled"
-									: "acquisition.watching.disabled",
-							)
-						: t(
-								watching.isError
-									? "acquisition.watching.loadFailed"
-									: "acquisition.watching.loading",
-							)}
-					{watching.data &&
+					{watching.isError
+						? t("acquisition.watching.loadFailed")
+						: watching.data
+							? t(
+									watching.data.enabled
+										? "acquisition.watching.enabled"
+										: "acquisition.watching.disabled",
+								)
+							: t("acquisition.watching.loading")}
+					{!watching.isError &&
+						watching.data &&
 						!["ready", "disabled"].includes(watching.data.reason) &&
 						` · ${watchingReason(watching.data.reason)}`}
 				</p>
@@ -150,180 +188,201 @@ export function SubscriptionsPage() {
 					</Button>
 				)}
 			</div>
-			<div className="flex flex-wrap items-center gap-3">
-				<div className="relative min-w-0 basis-full sm:max-w-sm sm:flex-1 sm:basis-64">
-					<Search
-						className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-						aria-hidden="true"
-					/>
-					<Input
-						className="pl-9"
-						aria-label={t("acquisition.manager.search")}
-						placeholder={t("acquisition.manager.search")}
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-					/>
-				</div>
-				<div className="flex items-center gap-2">
-					<label
-						htmlFor={managementId}
-						className="shrink-0 text-sm font-medium"
-						title={t("acquisition.manager.management")}
-					>
-						<Filter
-							className="size-4 text-muted-foreground"
+			<section
+				className="min-w-0 rounded-lg border bg-card text-card-foreground"
+				aria-label={t("acquisition.manager.inventory")}
+			>
+				<div className="flex flex-wrap items-center gap-3 border-b p-4 sm:p-5">
+					<div className="relative min-w-0 basis-full sm:max-w-sm sm:flex-1 sm:basis-64">
+						<Search
+							className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
 							aria-hidden="true"
 						/>
-						<span className="sr-only">
-							{t("acquisition.manager.management")}
-						</span>
-					</label>
-					<div className="w-36">
-						<NativeSelect
-							id={managementId}
-							value={filter}
-							onChange={(event) => setFilter(event.target.value)}
-						>
-							{["all", "automatic", "manual"].map((value) => (
-								<NativeSelectOption key={value} value={value}>
-									{t(`acquisition.manager.${value}`)}
-								</NativeSelectOption>
-							))}
-						</NativeSelect>
-					</div>
-				</div>
-				<fieldset className="min-w-0">
-					<legend className="sr-only">{t("acquisition.manager.status")}</legend>
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id={attentionId}
-							checked={attention}
-							onCheckedChange={setAttention}
+						<Input
+							className="pl-9"
+							aria-label={t("acquisition.manager.search")}
+							placeholder={t("acquisition.manager.search")}
+							value={search}
+							onChange={(e) => changeFilter("search", e.target.value)}
 						/>
-						<label
-							htmlFor={attentionId}
-							className="touch-control flex cursor-pointer items-center text-sm"
-						>
-							{t("acquisition.manager.onlyAttention")}
-						</label>
 					</div>
-				</fieldset>
-				{filtered && (
-					<Button variant="ghost" onClick={clearFilters}>
-						{t("acquisition.manager.clearFilters")}
-					</Button>
-				)}
-			</div>
-			{query.isPending && (
-				<p role="status">{t("acquisition.subscription.loading")}</p>
-			)}
-			{query.isError && (
-				<div role="alert">
-					{t("acquisition.subscription.unavailable")}
-					<Button variant="ghost" onClick={() => void query.refetch()}>
-						{t("actions.retry")}
-					</Button>
-				</div>
-			)}
-			{!query.isError && rows?.length === 0 && (
-				<EmptyState
-					icon={<Rss />}
-					title={t(
-						filtered
-							? "acquisition.manager.empty"
-							: "acquisition.manager.noSubscriptions",
-					)}
-					actions={
-						filtered ? (
-							<Button variant="outline" onClick={clearFilters}>
-								{t("acquisition.manager.clearFilters")}
-							</Button>
-						) : (
-							<div className="space-y-3 text-center">
-								<p className="text-sm text-muted-foreground">
-									{t("acquisition.manager.emptyHelp")}
-								</p>
-								<Link className={buttonStyles("outline")} to="/">
-									{t("acquisition.manager.browse")}
-								</Link>
-							</div>
-						)
-					}
-				/>
-			)}
-			<div className="divide-y empty:hidden">
-				{rows?.map(
-					({ title, view }) =>
-						view.subscription && (
-							<article
-								className="grid min-w-0 items-center gap-x-6 gap-y-1 py-3 md:grid-cols-[minmax(0,1fr)_minmax(12rem,1fr)_auto]"
-								key={view.subscription.workKey}
+					<div className="flex items-center gap-2">
+						<label
+							htmlFor={managementId}
+							className="shrink-0 text-sm font-medium"
+							title={t("acquisition.manager.management")}
+						>
+							{t("acquisition.manager.management")}
+						</label>
+						<div className="w-36">
+							<NativeSelect
+								id={managementId}
+								value={filter}
+								onChange={(event) =>
+									changeFilter(
+										"type",
+										event.target.value === "all" ? "" : event.target.value,
+									)
+								}
 							>
-								<Link
-									className={buttonStyles(
-										"ghost",
-										"max-w-full justify-start px-2 -ml-2",
-									)}
-									to={`/anime/tracked/${encodeURIComponent(view.subscription.workKey)}`}
-								>
-									<span className="truncate">{title}</span>
-									<ChevronRight
-										className="size-4 shrink-0 text-muted-foreground"
-										aria-hidden="true"
-									/>
-								</Link>
-								<SubscriptionPanel
-									workKey={view.subscription.workKey}
-									compact
-								/>
-								<div className="flex items-center gap-2 text-xs text-muted-foreground">
-									<span>
-										{t(
-											view.subscription.management === "watching"
-												? "acquisition.manager.automatic"
-												: "acquisition.manager.manual",
-										)}
-									</span>
-									{watching.data?.works
-										.filter(
-											(work) =>
-												work.workKey === view.subscription?.workKey &&
-												work.managed &&
-												!work.excluded,
-										)
-										.map((work) => (
-											<div key={work.workKey}>{membershipButton(work)}</div>
-										))}
-								</div>
-							</article>
-						),
-				)}
-			</div>
-			{excluded.length > 0 && (
-				<Collapsible className="border-t pt-4">
-					<CollapsibleTrigger className="text-sm font-medium">
-						{t("acquisition.manager.excluded", { count: excluded.length })}
-					</CollapsibleTrigger>
-					<CollapsibleContent>
-						<div className="divide-y pt-2">
-							{excluded.map((work) => (
-								<div
-									key={work.workKey}
-									className="flex min-w-0 items-center justify-between gap-4 py-2"
-								>
-									<Link
-										className="truncate text-sm"
-										to={`/anime/tracked/${encodeURIComponent(work.workKey)}`}
-									>
-										{work.title}
-									</Link>
-									{membershipButton(work)}
-								</div>
-							))}
+								{["all", "automatic", "manual"].map((value) => (
+									<NativeSelectOption key={value} value={value}>
+										{t(`acquisition.manager.${value}`)}
+									</NativeSelectOption>
+								))}
+							</NativeSelect>
 						</div>
-					</CollapsibleContent>
-				</Collapsible>
-			)}
+					</div>
+					<fieldset className="min-w-0">
+						<legend className="sr-only">
+							{t("acquisition.manager.status")}
+						</legend>
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id={attentionId}
+								checked={attention}
+								onCheckedChange={(checked) =>
+									changeFilter("attention", checked ? "true" : "")
+								}
+							/>
+							<label
+								htmlFor={attentionId}
+								className="touch-control flex cursor-pointer items-center text-sm"
+							>
+								{t("acquisition.manager.onlyAttention")}
+							</label>
+						</div>
+					</fieldset>
+					{filtered && (
+						<Button variant="ghost" onClick={clearFilters}>
+							{t("acquisition.manager.clearFilters")}
+						</Button>
+					)}
+				</div>
+				{query.isPending && (
+					<p className="p-5 text-sm text-muted-foreground" role="status">
+						{t("acquisition.subscription.loading")}
+					</p>
+				)}
+				{query.isError && (
+					<div
+						className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm sm:px-5"
+						role="alert"
+					>
+						{t("acquisition.subscription.unavailable")}
+						<Button variant="ghost" onClick={() => void query.refetch()}>
+							{t("actions.retry")}
+						</Button>
+					</div>
+				)}
+				{!query.isError && rows?.length === 0 && (
+					<div className="p-4 sm:p-5">
+						<EmptyState
+							embedded
+							icon={<Rss />}
+							title={t(
+								filtered
+									? "acquisition.manager.empty"
+									: "acquisition.manager.noSubscriptions",
+							)}
+							actions={
+								filtered ? (
+									<Button variant="outline" onClick={clearFilters}>
+										{t("acquisition.manager.clearFilters")}
+									</Button>
+								) : (
+									<div className="space-y-3 text-center">
+										<p className="text-sm text-muted-foreground">
+											{t("acquisition.manager.emptyHelp")}
+										</p>
+										<Link className={buttonStyles("outline")} to="/">
+											{t("acquisition.manager.browse")}
+										</Link>
+									</div>
+								)
+							}
+						/>
+					</div>
+				)}
+				<div className="divide-y px-4 empty:hidden sm:px-5">
+					{rows?.map(({ title, view }) => {
+						const sub = view.subscription;
+						if (!sub) return null;
+						const work = managed.get(sub.workKey);
+						return (
+							<article
+								key={sub.workKey}
+								aria-label={title}
+								className="grid min-w-0 items-center gap-x-8 gap-y-3 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]"
+							>
+								<div className="min-w-0 space-y-2">
+									<Link
+										className="block w-fit max-w-full rounded-sm text-sm font-semibold leading-6 wrap-anywhere underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+										to={`/anime/tracked/${encodeURIComponent(sub.workKey)}`}
+									>
+										{title}
+									</Link>
+									<p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+										<span>
+											{t(
+												sub.management === "watching"
+													? "acquisition.manager.automatic"
+													: "acquisition.manager.manual",
+											)}
+										</span>
+										<span>
+											{t("acquisition.subscription.fromEpisode", {
+												episode: sub.startEpisode,
+											})}
+										</span>
+									</p>
+								</div>
+								<SubscriptionPanel
+									workKey={sub.workKey}
+									compact
+									inventory={{
+										title,
+										view,
+										...(work && watching.data?.accountId
+											? { onExclude: () => membership.mutate(work) }
+											: {}),
+										excludePending: membership.isPending,
+									}}
+								/>
+							</article>
+						);
+					})}
+				</div>
+				{excluded.length > 0 && (
+					<Collapsible className="border-t p-4 sm:p-5">
+						<CollapsibleTrigger className="group flex min-h-9 items-center gap-2 rounded-sm text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring">
+							<ChevronDown
+								className="size-4 transition-transform group-data-[panel-open]:rotate-180"
+								aria-hidden="true"
+							/>
+							{t("acquisition.manager.excluded", { count: excluded.length })}
+						</CollapsibleTrigger>
+						<CollapsibleContent>
+							<div className="divide-y pt-2">
+								{excluded.map((work) => (
+									<div
+										key={work.workKey}
+										className="flex min-w-0 items-center justify-between gap-4 py-2"
+									>
+										<Link
+											className="text-sm wrap-anywhere underline-offset-4 hover:underline"
+											to={`/anime/tracked/${encodeURIComponent(work.workKey)}`}
+										>
+											{work.title}
+										</Link>
+										{membershipButton(work)}
+									</div>
+								))}
+							</div>
+						</CollapsibleContent>
+					</Collapsible>
+				)}
+			</section>
 		</main>
 	);
 }

@@ -58,6 +58,63 @@ const errorKeys: Record<string, string> = {
 	incomplete_directory_required:
 		"acquisition.activity.errors.incomplete_directory_required",
 };
+type SubscriptionIssueProps = {
+	view: Pick<SubscriptionView, "subscription">;
+	reason(code: string): string;
+	onConfigure(): void;
+	onCheckUpdates?: (() => void) | undefined;
+	checking?: boolean;
+};
+
+export function SubscriptionIssue({
+	view,
+	reason,
+	onConfigure,
+	onCheckUpdates,
+	checking = false,
+}: SubscriptionIssueProps) {
+	const { t } = useTranslation();
+	return (
+		<>
+			{view.subscription?.error &&
+				view.subscription.error !== "no_eligible_source" && (
+					<p role="status" className="text-sm">
+						{reason(view.subscription.error)}{" "}
+						{view.subscription.error === "authorization_required" ? (
+							<Button variant="outline" onClick={onConfigure}>
+								{t(
+									view.subscription.management === "watching"
+										? "acquisition.subscription.convertToManual"
+										: "acquisition.subscription.edit",
+								)}
+							</Button>
+						) : ["source_changed", "source_disabled"].includes(
+								view.subscription.error,
+							) ? (
+							<a className="underline" href="/settings?section=downloads">
+								{t("acquisition.activity.settings")}
+							</a>
+						) : onCheckUpdates && view.subscription.enabled ? (
+							<Button
+								variant="outline"
+								disabled={
+									checking ||
+									(!!view.subscription.runState &&
+										view.subscription.runState !== "active") ||
+									(view.subscription.error === "rate_limited" &&
+										view.subscription.nextAttemptAt > Date.now())
+								}
+								onClick={onCheckUpdates}
+							>
+								{t("acquisition.subscription.checkNow")}
+							</Button>
+						) : null}
+					</p>
+				)}
+		</>
+	);
+}
+
 export function DownloadActivityPanel({
 	workKey,
 	view,
@@ -67,10 +124,12 @@ export function DownloadActivityPanel({
 	checking = false,
 	episode,
 	subscriptionOnly = false,
+	showSubscriptionIssue = true,
 }: {
 	workKey: string;
 	episode?: number;
 	subscriptionOnly?: boolean;
+	showSubscriptionIssue?: boolean;
 	view: Pick<SubscriptionView, "subscription">;
 	reason(code: string): string;
 	onConfigure(): void;
@@ -230,42 +289,15 @@ export function DownloadActivityPanel({
 					</Button>
 				</p>
 			)}
-			{!episode &&
-				view.subscription?.error &&
-				view.subscription.error !== "no_eligible_source" && (
-					<p role="status" className="text-sm">
-						{reason(view.subscription.error)}{" "}
-						{view.subscription.error === "authorization_required" ? (
-							<Button variant="outline" onClick={onConfigure}>
-								{t(
-									view.subscription.management === "watching"
-										? "acquisition.subscription.convertToManual"
-										: "acquisition.subscription.edit",
-								)}
-							</Button>
-						) : ["source_changed", "source_disabled"].includes(
-								view.subscription.error,
-							) ? (
-							<a className="underline" href="/settings?section=downloads">
-								{t("acquisition.activity.settings")}
-							</a>
-						) : onCheckUpdates && view.subscription.enabled ? (
-							<Button
-								variant="outline"
-								disabled={
-									checking ||
-									(!!view.subscription.runState &&
-										view.subscription.runState !== "active") ||
-									(view.subscription.error === "rate_limited" &&
-										view.subscription.nextAttemptAt > Date.now())
-								}
-								onClick={onCheckUpdates}
-							>
-								{t("acquisition.subscription.checkNow")}
-							</Button>
-						) : null}
-					</p>
-				)}
+			{!episode && showSubscriptionIssue && (
+				<SubscriptionIssue
+					view={view}
+					reason={reason}
+					onConfigure={onConfigure}
+					onCheckUpdates={onCheckUpdates}
+					checking={checking}
+				/>
+			)}
 			{!episode && activity?.planningError && (
 				<p role="status" className="text-sm">
 					{t("acquisition.activity.planningFailed")}
