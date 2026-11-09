@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import shlex
+import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -13,6 +13,32 @@ def render_compose(template: str, settings: Settings) -> str:
     """Apply installer settings to the canonical Compose template."""
 
     text = template
+    # These are fixed, two-space-indented entries in our canonical template,
+    # not arbitrary operator-provided YAML. Keep offline generation stdlib-only.
+    optional_entries = {
+        "qbittorrent": settings.qbit,
+        "qbittorrent-init": settings.qbit,
+        "qbittorrent-config": settings.qbit,
+        "qbittorrent-connection": settings.qbit,
+        "qbittorrent-incomplete": settings.qbit,
+        "jackett": settings.jackett,
+        "jackett-init": settings.jackett,
+        "jackett-config": settings.jackett,
+    }
+    for name, enabled in optional_entries.items():
+        if not enabled:
+            text = re.sub(
+                rf"^  {re.escape(name)}:\n.*?(?=^  [\w-]+:|^\S|\Z)",
+                "",
+                text,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+    text = "\n".join(
+        line
+        for line in text.splitlines()
+        if not line.startswith("    profiles:")
+        and _include_bundled_connection(line, settings)
+    ) + "\n"
     if settings.selinux_suffix:
         text = text.replace(":/data/media:rw", ":/data/media:rw,z")
         text = "\n".join(
@@ -61,11 +87,36 @@ def _valid_compose_generation(text: str) -> bool:
     return "ANISHELF_INITIAL_RESOURCE_ROOTS:" in text and "/data/media" in text
 
 
+def _include_bundled_connection(line: str, settings: Settings) -> bool:
+    """Omit Backend hints and credential mounts for services not selected."""
+
+    if not settings.qbit and any(
+        marker in line for marker in (
+            "ANISHELF_QBITTORRENT_API_URL",
+            "ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE",
+            ":/run/anishelf-qbittorrent:",
+        )
+    ):
+        return False
+    if not settings.jackett and any(
+        marker in line for marker in (
+            "ANISHELF_BUNDLED_JACKETT_CONFIG_FILE",
+            ":/run/jackett-config:",
+        )
+    ):
+        return False
+    return True
+
+
 def render_quadlet(name: str, template: str, settings: Settings) -> str:
     """Render and optionally namespace one canonical Quadlet unit."""
 
     lines: list[str] = []
     for original in template.splitlines():
+        if name == "anishelf-backend.container" and not _include_bundled_connection(
+            original, settings
+        ):
+            continue
         line = _translate_unit_line(name, original, settings)
         if settings.selinux_suffix and line.startswith("Volume=anishelf-"):
             if line.endswith((":ro", ":rw")):
@@ -177,72 +228,3 @@ def unit_filename(name: str, test_mode: bool) -> str:
     from .validation import testing_unit_name
 
     return testing_unit_name(name) if test_mode else name
-
-
-def render_management_helper(settings: Settings) -> str:
-    """Render a thin native-command wrapper; daily management needs no Python."""
-    header = """#!/bin/sh
-set -eu
-cd "$(dirname "$0")"
-case "$*" in
-    up|down|update|'update --all') ;;
-    *) echo "Usage: $0 up|down|update [--all]" >&2; exit 2 ;;
-esac
-echo "[anishelf] $*"
-"""
-    if settings.method == "compose":
-        command = [
-            settings.engine, "compose", "--project-name", settings.stack,
-            "--env-file", ".env", "-f", "compose.yaml",
-        ]
-        if settings.qbit:
-            command.extend(["--profile", "qbittorrent"])
-        if settings.jackett:
-            command.extend(["--profile", "jackett"])
-        return header + f"""
-compose() {{ {shlex.join(command)} "$@"; }}
-case "$1" in
-    up) compose up -d ;;
-    down) compose down --remove-orphans ;;
-    update)
-        if [ "${{2:-}}" = --all ]; then
-            compose pull
-            compose up -d
-        else
-            compose pull backend web
-            compose up -d --no-deps backend web
-        fi
-        ;;
-esac
-"""
-
-    optional = []
-    if settings.qbit:
-        optional.append(f"{settings.stack}-qbittorrent")
-    if settings.jackett:
-        optional.append(f"{settings.stack}-jackett")
-    return header + f"""
-case "$1" in
-    up) systemctl --user start {settings.stack}.target ;;
-    down) systemctl --user stop {settings.stack}.target ;;
-    update)
-        services='{settings.stack}-backend {settings.stack}-web'
-        if [ "${{2:-}}" = --all ]; then
-            services="$services {' '.join(optional)}"
-        fi
-        # Read current images from the installed units, including manual tag edits.
-        for service in $services; do
-            image=$(sed -n 's/^Image=//p' {shlex.quote(str(settings.quadlet_dir))}/"$service.container")
-            if [ -z "$image" ]; then
-                echo "[anishelf] Missing Image= in $service.container" >&2
-                exit 1
-            fi
-            podman pull "$image"
-        done
-        # Finish all pulls before restarting any service.
-        set --
-        for service in $services; do set -- "$@" "$service.service"; done
-        systemctl --user restart "$@"
-        ;;
-esac
-"""

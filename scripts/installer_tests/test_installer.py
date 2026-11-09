@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -72,6 +73,7 @@ FAKE_COMMAND = textwrap.dedent(
                 "name": name,
                 "args": args,
                 "tag": os.environ.get("ANISHELF_TAG"),
+                "profiles": os.environ.get("COMPOSE_PROFILES"),
             }) + "\\n")
 
     if name == "getenforce":
@@ -157,16 +159,13 @@ class Fixture:
         env: dict[str, str] | None = None,
         cwd: Path | None = None,
         artifact: bool = False,
-        helper: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         command = [sys.executable]
         command.append(str(ARTIFACT if artifact else SOURCE))
-        if helper:
-            command = [str(self.target / "manage.sh")]
         command.extend(args)
         environment = {
             **os.environ,
-            "PATH": f"{self.bin}:{os.defpath}" if helper else str(self.bin),
+            "PATH": str(self.bin),
             "HOME": str(self.home),
             "XDG_CONFIG_HOME": str(self.config),
             "INSTALL_TEST_TRACE": str(self.trace),
@@ -243,9 +242,76 @@ class RenderTests(unittest.TestCase):
     def setUp(self) -> None:
         self.compose_template = (TEMPLATES / "compose.yaml").read_text(encoding="utf-8")
 
-    def test_compose_defaults_leave_canonical_template_unchanged(self) -> None:
-        rendered = render_compose(self.compose_template, make_settings())
-        self.assertEqual(rendered, self.compose_template)
+    def test_compose_selects_services_and_volumes_without_profiles(self) -> None:
+        for qbit in (False, True):
+            for jackett in (False, True):
+                for test_mode in (False, True):
+                    with self.subTest(qbit=qbit, jackett=jackett, test_mode=test_mode):
+                        rendered = render_compose(
+                            self.compose_template,
+                            make_settings(qbit=qbit, jackett=jackett, test_mode=test_mode),
+                        )
+                        service_text, volume_text = rendered.split("\nvolumes:\n")
+                        expected_services = {"backend", "web"}
+                        expected_volumes = {"anishelf-app", "anishelf-media"}
+                        if qbit:
+                            expected_services.update({"qbittorrent", "qbittorrent-init"})
+                            expected_volumes.update({
+                                "qbittorrent-config", "qbittorrent-connection",
+                                "qbittorrent-incomplete",
+                            })
+                        if jackett:
+                            expected_services.update({"jackett", "jackett-init"})
+                            expected_volumes.add("jackett-config")
+                        self.assertEqual(
+                            set(re.findall(r"^  ([\w-]+):$", service_text, re.MULTILINE)),
+                            expected_services,
+                        )
+                        self.assertEqual(
+                            set(re.findall(r"^  ([\w-]+):$", volume_text, re.MULTILINE)),
+                            expected_volumes,
+                        )
+                        self.assertNotIn("profiles:", rendered)
+                        self.assertEqual("ANISHELF_QBITTORRENT_API_URL:" in rendered, qbit)
+                        self.assertEqual(
+                            "ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE:" in rendered, qbit,
+                        )
+                        self.assertEqual(
+                            "qbittorrent-connection:/run/anishelf-qbittorrent:ro" in rendered, qbit,
+                        )
+                        self.assertEqual("ANISHELF_BUNDLED_JACKETT_CONFIG_FILE:" in rendered, jackett)
+                        self.assertEqual("jackett-config:/run/jackett-config:ro" in rendered, jackett)
+                        if qbit:
+                            self.assertIn(
+                                "qbittorrent-init:\n        condition: service_completed_successfully",
+                                rendered,
+                            )
+                        if jackett:
+                            self.assertIn(
+                                "jackett-init:\n        condition: service_completed_successfully",
+                                rendered,
+                            )
+                        prefix = "anishelf-test" if test_mode else "anishelf"
+                        for volume in expected_volumes:
+                            suffix = volume.removeprefix("anishelf-")
+                            self.assertIn(f"name: {prefix}-{suffix}", volume_text)
+                        self.assertIn("condition: service_healthy", rendered)
+                        self.assertIn("/data/media:rw", rendered)
+
+    def test_quadlet_backend_omits_disabled_connections(self) -> None:
+        template = (TEMPLATES / "quadlet" / "anishelf-backend.container").read_text()
+        for qbit in (False, True):
+            for jackett in (False, True):
+                with self.subTest(qbit=qbit, jackett=jackett):
+                    rendered = render_quadlet(
+                        "anishelf-backend.container", template,
+                        make_settings(qbit=qbit, jackett=jackett),
+                    )
+                    self.assertEqual("ANISHELF_QBITTORRENT_API_URL=" in rendered, qbit)
+                    self.assertEqual("ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE=" in rendered, qbit)
+                    self.assertEqual("Volume=anishelf-qbittorrent-connection.volume:" in rendered, qbit)
+                    self.assertEqual("ANISHELF_BUNDLED_JACKETT_CONFIG_FILE=" in rendered, jackett)
+                    self.assertEqual("Volume=anishelf-jackett-config.volume:" in rendered, jackett)
 
     def test_compose_renders_extra_media_and_selinux(self) -> None:
         settings = make_settings(
@@ -392,98 +458,80 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(settings["public_origin"], "")
         self.assertEqual(settings["image_tag"], "latest")
         self.assertEqual(settings["qbit_port"], 8181)
+        compose = (fixture.target / "compose.yaml").read_text()
+        self.assertNotIn("qbittorrent", compose)
+        self.assertNotIn("jackett", compose)
+        self.assertFalse((fixture.target / "manage.sh").exists())
+        downs = [call for call in fixture.calls() if "down" in call["args"]]
+        self.assertTrue(downs)
+        self.assertTrue(all(
+            "--volumes" not in call["args"] and "-v" not in call["args"] for call in downs
+        ))
 
-    def test_packaged_helper_uses_native_commands_without_python_bundle(self) -> None:
-        fixture = Fixture(self)
-        generated = self.generate(
-            fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
-            "--test", artifact=True,
-        )
-        self.assertEqual(generated.returncode, 0, generated.stderr)
-        self.assertFalse((fixture.target / "manage.pyz").exists())
-        self.assertNotIn("python", (fixture.target / "manage.sh").read_text())
-        # Management works independently of saved parameters and accepts local edits.
-        (fixture.target / "deployment.json").unlink()
-        with (fixture.target / ".env").open("a") as stream:
-            stream.write("# manual configuration edit\n")
-        fixture.cleanup_calls()
-        result = fixture.run(["update"], helper=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        calls = [call for call in fixture.calls() if "compose" in call["args"]]
-        self.assertEqual(len(calls), 2)
-        self.assertTrue(all("anishelf-test" in call["args"] for call in calls))
-        self.assertFalse((fixture.target / "manage.log").exists())
-        self.assertNotEqual(fixture.run(["up", "--all"], helper=True).returncode, 0)
-
-    def test_compose_helper_update_scopes_and_pull_failure(self) -> None:
-        fixture = Fixture(self)
-        generated = self.generate(
-            fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
-            "--qbit", "--jackett", "--image-tag", "v1.4.1",
-        )
-        self.assertEqual(generated.returncode, 0, generated.stderr)
-        fixture.cleanup_calls()
-        result = fixture.run(["update"], helper=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        calls = fixture.calls()
-        pull = next(call for call in calls if "pull" in call["args"])
-        up = next(call for call in calls if "up" in call["args"])
-        self.assertEqual(pull["args"][-3:], ["pull", "backend", "web"])
-        self.assertEqual(up["args"][-5:], ["up", "-d", "--no-deps", "backend", "web"])
-        self.assertIn("qbittorrent", pull["args"])
-        self.assertIn("jackett", pull["args"])
-        fixture.cleanup_calls()
-        result = fixture.run(["update", "--all"], helper=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(any(call["args"][-1:] == ["pull"] for call in fixture.calls()))
-        self.assertTrue(any(call["args"][-2:] == ["up", "-d"] for call in fixture.calls()))
-        fixture.cleanup_calls()
-        failed = fixture.run(["update"], helper=True, env={"INSTALL_TEST_PULL_FAIL": "yes"})
-        self.assertNotEqual(failed.returncode, 0)
-        self.assertFalse(any("up" in call["args"] or "down" in call["args"] for call in fixture.calls()))
+    def test_compose_generation_includes_only_selected_service_settings(self) -> None:
+        for qbit in (False, True):
+            for jackett in (False, True):
+                with self.subTest(qbit=qbit, jackett=jackett):
+                    fixture = Fixture(self)
+                    flags = (["--qbit"] if qbit else []) + (["--jackett"] if jackett else [])
+                    result = self.generate(
+                        fixture, "--engine", "docker",
+                        "--deploy-dir", str(fixture.target), *flags,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    compose = (fixture.target / "compose.yaml").read_text()
+                    env = (fixture.target / ".env").read_text()
+                    self.assertNotIn("profiles:", compose)
+                    self.assertNotIn("COMPOSE_PROFILES", env)
+                    self.assertEqual("  qbittorrent:" in compose, qbit)
+                    self.assertEqual("  jackett:" in compose, jackett)
+                    self.assertEqual("QBITTORRENT_TAG=" in env, qbit)
+                    self.assertEqual("JACKETT_PORT=" in env, jackett)
+                    self.assertFalse((fixture.target / "manage.sh").exists())
 
     @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet generation requires a non-root user")
-    def test_quadlet_helper_reads_current_images_and_updates_selected_services(self) -> None:
-        fixture = Fixture(self)
-        generated = self.generate(
-            fixture, "--engine", "podman", "--deploy-dir", str(fixture.target),
-            "--qbit", "--jackett", "--image-tag", "v1.4.1",
-        )
-        self.assertEqual(generated.returncode, 0, generated.stderr)
-        installed = fixture.config / "containers" / "systemd"
-        installed.mkdir(parents=True)
-        for unit in (fixture.target / "quadlet").glob("*.container"):
-            (installed / unit.name).write_bytes(unit.read_bytes())
-        backend = installed / "anishelf-backend.container"
-        backend.write_text(backend.read_text().replace(":v1.4.1", ":v1.4.2"))
-        fixture.cleanup_calls()
-        updated = fixture.run(["update"], helper=True)
-        self.assertEqual(updated.returncode, 0, updated.stderr)
-        pulls = [call["args"] for call in fixture.calls() if call["name"] == "podman"]
-        self.assertEqual(pulls, [
-            ["pull", "ghcr.io/qw0er/anishelf-backend:v1.4.2"],
-            ["pull", "ghcr.io/qw0er/anishelf-web:v1.4.1"],
-        ])
-        self.assertEqual(fixture.calls()[-1]["args"],
-                         ["--user", "restart", "anishelf-backend.service", "anishelf-web.service"])
-        fixture.cleanup_calls()
-        failed = fixture.run(["update", "--all"], helper=True, env={"INSTALL_TEST_PULL_FAIL": "yes"})
-        self.assertNotEqual(failed.returncode, 0)
-        self.assertFalse(any("restart" in call["args"] for call in fixture.calls()))
-        fixture.cleanup_calls()
-        updated = fixture.run(["update", "--all"], helper=True)
-        self.assertEqual(updated.returncode, 0, updated.stderr)
-        images = [call["args"][1] for call in fixture.calls() if call["name"] == "podman"]
-        self.assertEqual(len(images), 4)
-        self.assertIn("docker.io/linuxserver/qbittorrent:latest", images)
-        self.assertIn("ghcr.io/linuxserver/jackett:latest", images)
-        self.assertEqual(fixture.calls()[-1]["args"][-2:],
-                         ["anishelf-qbittorrent.service", "anishelf-jackett.service"])
-        fixture.cleanup_calls()
-        for action, native in (("down", "stop"), ("up", "start")):
-            result = fixture.run([action], helper=True)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(fixture.calls()[-1]["args"], ["--user", native, "anishelf.target"])
+    def test_quadlet_generation_selects_units_and_reports_native_testing_commands(self) -> None:
+        for qbit in (False, True):
+            for jackett in (False, True):
+                with self.subTest(qbit=qbit, jackett=jackett):
+                    fixture = Fixture(self)
+                    flags = (["--qbit"] if qbit else []) + (["--jackett"] if jackett else [])
+                    result = self.generate(
+                        fixture, "--engine", "podman",
+                        "--deploy-dir", str(fixture.target), "--test", *flags,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    units = fixture.target / "quadlet"
+                    self.assertEqual((units / "anishelf-test-qbittorrent-connection.volume").exists(), qbit)
+                    self.assertEqual((units / "anishelf-test-qbittorrent-init.container").exists(), qbit)
+                    self.assertEqual((units / "anishelf-test-qbittorrent.container").exists(), qbit)
+                    self.assertEqual((units / "anishelf-test-jackett-config.volume").exists(), jackett)
+                    self.assertEqual((units / "anishelf-test-jackett-init.container").exists(), jackett)
+                    self.assertEqual((units / "anishelf-test-jackett.container").exists(), jackett)
+                    self.assertFalse((fixture.target / "manage.sh").exists())
+                    self.assertFalse((fixture.config / "containers").exists())
+                    self.assertIn("Install generated units", result.stderr)
+                    self.assertIn("systemctl --user enable --now anishelf-test.target", result.stderr)
+                    self.assertIn("systemctl --user stop anishelf-test.target", result.stderr)
+                    self.assertIn("journalctl --user -u anishelf-test-backend.service", result.stderr)
+                    update = next(line for line in result.stderr.splitlines() if "Update application" in line)
+                    self.assertIn(
+                        "podman pull ghcr.io/qw0er/anishelf-backend:testing "
+                        "ghcr.io/qw0er/anishelf-web:testing && systemctl --user restart "
+                        "anishelf-test-backend.service anishelf-test-web.service",
+                        update,
+                    )
+                    self.assertNotIn("qbittorrent", update)
+                    self.assertNotIn("jackett", update)
+                    if qbit or jackett:
+                        update_all = next(
+                            line for line in result.stderr.splitlines()
+                            if "Update all configured services" in line
+                        )
+                        self.assertEqual("docker.io/linuxserver/qbittorrent:latest" in update_all, qbit)
+                        self.assertEqual("anishelf-test-qbittorrent.service" in update_all, qbit)
+                        self.assertEqual("ghcr.io/linuxserver/jackett:latest" in update_all, jackett)
+                        self.assertEqual("anishelf-test-jackett.service" in update_all, jackett)
 
     def test_compose_generation_defaults(self) -> None:
         fixture = Fixture(self)
@@ -495,14 +543,16 @@ class InstallerTests(unittest.TestCase):
             str(fixture.target),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(
-            (fixture.target / "compose.yaml").read_text(encoding="utf-8"),
-            (TEMPLATES / "compose.yaml").read_text(encoding="utf-8"),
-        )
+        compose = (fixture.target / "compose.yaml").read_text(encoding="utf-8")
+        self.assertNotIn("profiles:", compose)
+        self.assertNotIn("qbittorrent", compose)
+        self.assertNotIn("jackett", compose)
+        self.assertIn("  backend:", compose)
+        self.assertIn("  web:", compose)
         env = (fixture.target / ".env").read_text(encoding="utf-8")
         self.assertIn("ANISHELF_TAG='latest'", env)
         self.assertIn("ANISHELF_LOG_LEVEL='info'", env)
-        self.assertIn("COMPOSE_PROFILES=''", env)
+        self.assertNotIn("COMPOSE_PROFILES", env)
         self.assertIn("ANISHELF_TRUSTED_PROXIES='loopback,uniquelocal'", env)
         self.assertEqual(
             stat.S_IMODE((fixture.target / ".env").stat().st_mode), 0o600
@@ -511,14 +561,15 @@ class InstallerTests(unittest.TestCase):
             stat.S_IMODE((fixture.target / "install.log").stat().st_mode), 0o600
         )
         self.assertEqual([call["name"] for call in fixture.calls()], ["getenforce"])
-        helper = fixture.target / "manage.sh"
-        self.assertTrue(helper.is_file())
-        self.assertEqual(stat.S_IMODE(helper.stat().st_mode), 0o755)
-        helper_text = helper.read_text(encoding="utf-8")
-        self.assertNotIn("manage.pyz", helper_text)
-        self.assertIn("up|down|update", helper_text)
-        self.assertNotIn("COMPOSE_PROFILES", helper_text)
-        self.assertNotIn("--profile", helper_text)
+        self.assertFalse((fixture.target / "manage.sh").exists())
+        self.assertIn("docker compose up -d", result.stderr)
+        self.assertIn("docker compose down --remove-orphans", result.stderr)
+        self.assertIn(
+            "docker compose pull backend web && docker compose up -d --no-deps backend web",
+            result.stderr,
+        )
+        self.assertIn("docker compose pull && docker compose up -d", result.stderr)
+        self.assertIn("no profiles required", result.stderr)
 
     def test_generate_only_uses_no_temporary_staging_directory(self) -> None:
         fixture = Fixture(self)
@@ -549,84 +600,6 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         env = (fixture.target / ".env").read_text(encoding="utf-8")
         self.assertIn("ANISHELF_BIND_ADDRESS='0.0.0.0'", env)
-
-    def test_compose_manage_script_applies_saved_profiles(self) -> None:
-        fixture = Fixture(self)
-        generated = self.generate(
-            fixture,
-            "--engine",
-            "docker",
-            "--deploy-dir",
-            str(fixture.target),
-            "--qbit",
-            "--jackett",
-        )
-        self.assertEqual(generated.returncode, 0, generated.stderr)
-        fixture.cleanup_calls()
-        environment = {
-            **os.environ,
-            "PATH": f"{fixture.bin}:{os.environ['PATH']}",
-            "INSTALL_TEST_TRACE": str(fixture.trace),
-        }
-        result = subprocess.run(
-            [str(fixture.target / "manage.sh"), "up"],
-            check=False,
-            cwd=str(fixture.target),
-            env=environment,
-            text=True,
-            capture_output=True,
-            timeout=30,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        calls = [
-            call
-            for call in fixture.calls()
-            if call["name"] == "docker" and call["args"][:1] == ["compose"]
-        ]
-        self.assertEqual(len(calls), 1)
-        arguments = calls[-1]["args"]
-        self.assertIn("--profile", arguments)
-        self.assertIn("qbittorrent", arguments)
-        self.assertIn("jackett", arguments)
-        self.assertEqual(
-            arguments[arguments.index("--project-name") + 1], "anishelf"
-        )
-        self.assertEqual(arguments[-2:], ["up", "-d"])
-
-    def test_compose_manage_script_omits_profiles_when_none(self) -> None:
-        fixture = Fixture(self)
-        generated = self.generate(
-            fixture,
-            "--engine",
-            "docker",
-            "--deploy-dir",
-            str(fixture.target),
-        )
-        self.assertEqual(generated.returncode, 0, generated.stderr)
-        fixture.cleanup_calls()
-        environment = {
-            **os.environ,
-            "PATH": f"{fixture.bin}:{os.environ['PATH']}",
-            "INSTALL_TEST_TRACE": str(fixture.trace),
-        }
-        result = subprocess.run(
-            [str(fixture.target / "manage.sh"), "down"],
-            check=False,
-            cwd=str(fixture.target),
-            env=environment,
-            text=True,
-            capture_output=True,
-            timeout=30,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        calls = [
-            call
-            for call in fixture.calls()
-            if call["name"] == "docker" and call["args"][:1] == ["compose"]
-        ]
-        self.assertEqual(len(calls), 1)
-        self.assertNotIn("--profile", calls[-1]["args"])
-        self.assertEqual(calls[-1]["args"][-2:], ["down", "--remove-orphans"])
 
     def test_compose_extra_media_and_selinux(self) -> None:
         fixture = Fixture(self)
@@ -660,7 +633,7 @@ class InstallerTests(unittest.TestCase):
         self.assertNotIn('chown "$${PUID}:$${PGID}" /data/media', compose)
         env = (fixture.target / ".env").read_text(encoding="utf-8")
         self.assertIn(f"ANISHELF_MEDIA_PATH='{media}'", env)
-        self.assertIn("COMPOSE_PROFILES='qbittorrent,jackett'", env)
+        self.assertNotIn("COMPOSE_PROFILES", env)
 
     @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet requires a non-root user")
     def test_quadlet_generation_ports_volumes_and_images(self) -> None:
@@ -712,7 +685,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("PublishPort=127.0.0.1:3300:8080", web)
         self.assertIn("PublishPort=127.0.0.1:9217:9117", jackett)
         self.assertFalse((fixture.config / "containers").exists())
-        self.assertTrue((fixture.target / "manage.sh").exists())
+        self.assertFalse((fixture.target / "manage.sh").exists())
 
     @unittest.skipIf(os.geteuid() == 0, "rootless Quadlet requires a non-root user")
     def test_testing_profile_isolates_quadlet_and_compose(self) -> None:
@@ -913,7 +886,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("No saved installation parameters", result.stderr)
         env = (fixture.target / ".env").read_text(encoding="utf-8")
-        self.assertIn("COMPOSE_PROFILES='qbittorrent,jackett'", env)
+        self.assertNotIn("COMPOSE_PROFILES", env)
         self.assertFalse((fixture.target / "custom.txt").exists())
         backups = [
             path
@@ -951,7 +924,9 @@ class InstallerTests(unittest.TestCase):
             str(fixture.target),
             "--port",
             str(port),
-            env={"ANISHELF_TAG": "wrong-inherited-tag"},
+            "--qbit",
+            "--jackett",
+            env={"ANISHELF_TAG": "wrong-inherited-tag", "COMPOSE_PROFILES": "unrelated"},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = fixture.calls()
@@ -967,6 +942,8 @@ class InstallerTests(unittest.TestCase):
             {"--quiet", "pull", "-d"},
         )
         self.assertTrue(all(call["tag"] is None for call in compose_calls))
+        self.assertTrue(all(call["profiles"] is None for call in compose_calls))
+        self.assertTrue(all("--profile" not in call["args"] for call in compose_calls))
         self.assertIn(
             "Deployment is healthy",
             (fixture.target / "install.log").read_text(encoding="utf-8"),

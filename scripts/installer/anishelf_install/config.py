@@ -49,15 +49,6 @@ class Settings:
         return ":".join(roots)
 
     @property
-    def profiles(self) -> str:
-        profiles: list[str] = []
-        if self.qbit:
-            profiles.append("qbittorrent")
-        if self.jackett:
-            profiles.append("jackett")
-        return ",".join(profiles)
-
-    @property
     def quadlet_dir(self) -> Path:
         return self._config_home() / "containers" / "systemd"
 

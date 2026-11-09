@@ -26,8 +26,12 @@ clearing the connection invalidates old unsent source bindings/references.
 
 ## Bundled service
 
-Select Jackett in the installer, or set `COMPOSE_PROFILES=jackett` in the saved
-Compose `.env` (`qbittorrent,jackett` enables both), then run:
+Select Jackett with `--jackett` when installing, or add it to an existing
+generated deployment with `python3 install.pyz reconfigure DIRECTORY --jackett`.
+The installer generates the service, initializer and Backend connection mount.
+
+For a manually maintained generic Compose template, set `COMPOSE_PROFILES=jackett`
+in its `.env` (`qbittorrent,jackett` enables both), then run:
 
 ```sh
 docker compose up -d

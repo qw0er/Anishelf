@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import tempfile
 from pathlib import Path
@@ -19,7 +20,6 @@ from .errors import InstallerError
 from .log import LOG, log
 from .render import (
     render_compose,
-    render_management_helper,
     render_quadlet,
     unit_filename,
 )
@@ -34,7 +34,6 @@ from .runtime import (
     pull_quadlet_images,
     report_linger,
     run,
-    saved_profiles,
 )
 from .validation import (
     absolute_input,
@@ -87,7 +86,6 @@ class Installer:
         self.existing: dict | None = None
         self.assets: AssetSource | None = None
         self.bundle: dict[str, str] = {}
-        self.bundle_modes: dict[str, int] = {}
         self.backups = BackupManager(args.force)
 
     def cleanup(self) -> None:
@@ -149,9 +147,11 @@ class Installer:
 
         if self.generate_only:
             log("Generation complete; no services or systemd units were changed.")
+            self._report_management()
             return 0
 
         self._start()
+        self._report_management()
         return 0
 
     # ------------------------------------------------------------------
@@ -427,7 +427,6 @@ class Installer:
         self.bundle = {
             ".deployment-profile": deployment_profile(self.settings.test_mode)
         }
-        self.bundle_modes = {"manage.sh": 0o755}
         self.assets = AssetSource()
         self.settings.template_source = self.assets.resolve()
 
@@ -435,7 +434,6 @@ class Installer:
             self._prepare_compose()
         else:
             self._prepare_quadlet()
-        self.bundle["manage.sh"] = render_management_helper(self.settings)
         self.bundle["deployment.json"] = saved_configuration(self.settings)
 
     def _prepare_compose(self) -> None:
@@ -448,6 +446,12 @@ class Installer:
             raise InstallerError(str(error)) from error
         self.bundle["compose.yaml"] = rendered
         self.bundle[".env"] = self._render_env(self.settings)
+        services = ["backend", "web"]
+        if self.settings.qbit:
+            services.extend(["qbittorrent-init", "qbittorrent"])
+        if self.settings.jackett:
+            services.extend(["jackett-init", "jackett"])
+        log(f"Rendered Compose services: {', '.join(services)}; no profiles required.")
 
     def _prepare_quadlet(self) -> None:
         assert self.settings is not None and self.assets is not None
@@ -471,18 +475,23 @@ class Installer:
             ("ANISHELF_PORT", str(settings.app_port)),
             ("ANISHELF_PUBLIC_ORIGIN", settings.public_origin),
             ("ANISHELF_MEDIA_PATH", settings.media_path),
-            ("COMPOSE_PROFILES", settings.profiles),
             ("COMPOSE_PROJECT_NAME", settings.stack),
             ("ANISHELF_DEPLOY_ENGINE", settings.engine),
             ("ANISHELF_TRUSTED_PROXIES", "loopback,uniquelocal"),
             ("ANISHELF_WEB_TRUSTED_PROXIES", settings.web_trusted_proxies),
-            ("QBITTORRENT_WEBUI_PORT", str(settings.qbit_port)),
-            ("QBITTORRENT_PEER_PORT", str(settings.peer_port)),
-            ("JACKETT_PORT", str(settings.jackett_port)),
-            ("QBITTORRENT_BIND_ADDRESS", "127.0.0.1"),
-            ("JACKETT_BIND_ADDRESS", "127.0.0.1"),
-            ("QBITTORRENT_TAG", "latest"),
         ]
+        if settings.qbit:
+            values.extend([
+                ("QBITTORRENT_WEBUI_PORT", str(settings.qbit_port)),
+                ("QBITTORRENT_PEER_PORT", str(settings.peer_port)),
+                ("QBITTORRENT_BIND_ADDRESS", "127.0.0.1"),
+                ("QBITTORRENT_TAG", "latest"),
+            ])
+        if settings.jackett:
+            values.extend([
+                ("JACKETT_PORT", str(settings.jackett_port)),
+                ("JACKETT_BIND_ADDRESS", "127.0.0.1"),
+            ])
         return "".join(f"{key}='{value}'\n" for key, value in values)
 
     def _write_bundle(self) -> None:
@@ -500,7 +509,7 @@ class Installer:
                     raise InstallerError(f"Unsafe bundled path: {relative}")
                 destination = deploy_dir / target
                 destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-                mode = self.bundle_modes.get(relative, 0o600)
+                mode = 0o600
                 descriptor = os.open(
                     destination,
                     os.O_WRONLY | os.O_CREAT | os.O_EXCL,
@@ -643,6 +652,64 @@ class Installer:
         LOG.phase = "checking application health"
         health_check(settings)
 
+    def _report_management(self) -> None:
+        """Print native commands for the actual deployment namespace and images."""
+
+        assert self.settings is not None
+        settings = self.settings
+        if settings.method == "compose":
+            log(f"Manage with Docker Compose from: cd {shlex.quote(str(settings.deploy_dir))}")
+            log("Start: docker compose up -d")
+            log("Stop: docker compose down --remove-orphans")
+            log("Logs / initial password: docker compose logs -f --tail=100 backend web")
+            log(
+                "Update application: docker compose pull backend web && "
+                "docker compose up -d --no-deps backend web"
+            )
+            log("Update all configured services: docker compose pull && docker compose up -d")
+            return
+
+        if self.generate_only:
+            log(
+                f"Install generated units from {settings.deploy_dir / 'quadlet'} "
+                f"into {settings.quadlet_dir}, and {settings.stack}.target into "
+                f"{settings.systemd_dir}; then run systemctl --user daemon-reload."
+            )
+        log("Manage rootless Quadlet as the service account.")
+        log(f"Start: systemctl --user start {settings.stack}.target")
+        log(f"Stop: systemctl --user stop {settings.stack}.target")
+        log("Stopping the target preserves boot startup; disabling it does not stop services.")
+        log(f"Enable boot startup: systemctl --user enable --now {settings.stack}.target")
+        log(f"Disable boot startup: systemctl --user disable {settings.stack}.target")
+        log(
+            f"Logs / initial password: journalctl --user -u {settings.stack}-backend.service "
+            f"-u {settings.stack}-web.service -f"
+        )
+        services = ["backend", "web"]
+        scopes = [("application", list(services))]
+        if settings.qbit:
+            services.append("qbittorrent")
+        if settings.jackett:
+            services.append("jackett")
+        if len(services) > 2:
+            scopes.append(("all configured services", services))
+        for scope, selected in scopes:
+            images = []
+            for service in selected:
+                unit = self.bundle[f"quadlet/{settings.stack}-{service}.container"]
+                image = next(
+                    line.removeprefix("Image=")
+                    for line in unit.splitlines() if line.startswith("Image=")
+                )
+                if image not in images:
+                    images.append(image)
+            units = [f"{settings.stack}-{service}.service" for service in selected]
+            log(
+                f"Update {scope} (generated image tags): "
+                f"{shlex.join(['podman', 'pull', *images])} && "
+                f"{shlex.join(['systemctl', '--user', 'restart', *units])}"
+            )
+
     # ------------------------------------------------------------------
     # Existing deployment commands
     # ------------------------------------------------------------------
@@ -690,7 +757,6 @@ class Installer:
             saved_project = read_single_quoted_env(env_file, "COMPOSE_PROJECT_NAME")
             if saved_project != stack:
                 raise InstallerError("Not a recognized installer Compose bundle.")
-            saved_profiles(deploy_dir)
             if self.args.engine and self.args.engine != saved_engine:
                 raise InstallerError(
                     "Use the original engine to preserve its volumes."

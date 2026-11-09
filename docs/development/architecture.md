@@ -812,11 +812,16 @@ source access, provider scheduling and persistence outlive their consumers.
 
 The installer generates a fresh deployment bundle and delegates to the container
 runtime/systemd. `deployment.json` saves installation choices for reconfiguration;
-explicit flags override those defaults. Both engines receive a thin `manage.sh`
-that calls native commands for startup, shutdown and image updates. Updates use
-current runtime configuration and target Backend/Web unless optional-service
-updates are requested. Application bootstrap owns settings and credentials. Exact
-fields, routes and defaults remain defined by source contracts and policy.
+explicit flags override those defaults. Generated Compose files contain only the
+selected services and initializers, without profiles; unused credential mounts,
+connection hints and volume declarations are omitted. Quadlet generation selects
+the corresponding units and Backend connection mounts. Operators manage deployments
+with native Docker Compose or systemd/Podman commands; the installer prints commands
+for the actual namespace and images, and does not generate a management script.
+Application-only updates target Backend/Web; full updates additionally pull and
+replace the configured optional services. Pulls must succeed before replacement.
+Application bootstrap owns settings and credentials. Exact fields, routes and
+defaults remain defined by source contracts and policy.
 
 Bundled Jackett starts after a one-shot initializer. Only an empty config volume
 receives `/config/.anishelf-bootstrap.json` authorizing first-run Nyaa.si setup.

@@ -41,10 +41,13 @@ a private bundle and delegates startup to Docker Compose or rootless Podman Quad
 It uses only the Python standard library and never prompts. The distributable is
 [`scripts/install.pyz`](../scripts/install.pyz), a zipapp built from
 [`scripts/installer/`](../scripts/installer/). It does not collect credentials.
-Both engines receive a small native-command `manage.sh` supporting `up`, `down`,
-`update` and `update --all`. Daily management needs no Python runtime or installer
-copy. `deployment.json` saves installation choices for reconfiguration defaults;
-explicit flags override them. Runtime configuration can be edited directly, and
+Generated Compose files contain only the selected services and do not use
+profiles. Quadlet bundles likewise include only the selected components and their
+Backend connection mounts. Daily management uses native Docker Compose or
+systemd/Podman commands, with no wrapper script, Python runtime or installer copy.
+The installer prints commands for the generated namespace and image tags.
+`deployment.json` saves installation choices for reconfiguration defaults; explicit
+flags override them. Runtime configuration can be edited directly, and
 those edits must be supplied separately when regenerating configuration.
 Ordinary installation never overwrites deployments;
 explicit `remove DIRECTORY` and `reconfigure DIRECTORY` actions archive saved

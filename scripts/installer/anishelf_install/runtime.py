@@ -19,7 +19,6 @@ from .validation import (
     exists,
     is_regular_file,
     known_unit,
-    read_single_quoted_env,
     unique_backup_path,
 )
 
@@ -140,28 +139,13 @@ def compose_environment() -> dict[str, str]:
     return environment
 
 
-def saved_profiles(deploy_dir: Path) -> str:
-    value = read_single_quoted_env(deploy_dir / ".env", "COMPOSE_PROFILES")
-    if value is None:
-        value = ""
-    if value not in {"", "qbittorrent", "jackett", "qbittorrent,jackett"}:
-        raise InstallerError("Unrecognized saved Compose profiles.")
-    return value
-
-
 def compose_command(
     engine: str,
     stack: str,
     deploy_dir: Path,
     args: list[str],
 ) -> list[str]:
-    profiles = saved_profiles(deploy_dir)
-    prefix: list[str] = []
-    if "qbittorrent" in profiles.split(","):
-        prefix.extend(["--profile", "qbittorrent"])
-    if "jackett" in profiles.split(","):
-        prefix.extend(["--profile", "jackett"])
-    log(f"Compose project={stack}; enabled profiles={profiles or 'none'}")
+    log(f"Compose project={stack}; configuration={deploy_dir / 'compose.yaml'}")
     return [
         engine,
         "compose",
@@ -171,7 +155,6 @@ def compose_command(
         str(deploy_dir / ".env"),
         "-f",
         str(deploy_dir / "compose.yaml"),
-        *prefix,
         *args,
     ]
 

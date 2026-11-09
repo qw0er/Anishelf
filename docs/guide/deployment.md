@@ -56,30 +56,35 @@ SELinux shared labels are automatic when SELinux is enforcing or permissive and
 host media is selected. Use `--selinux-relabel` or `--no-selinux-relabel` to
 override that decision.
 
-Both deployment methods include a small executable `manage.sh` in the deployment
-folder. It calls the native container/systemd commands directly and works from any
-working directory. Daily management does not require Python:
+Manage deployments with native **Docker Compose** or **systemd/Podman** commands;
+no management script or Python runtime is needed for daily operations. The installer
+prints commands for the selected deployment, including its actual namespace and
+image tags. Run Docker commands from the deployment folder with Docker socket
+access (or use `sudo`); run Quadlet commands as the original service account.
 
-```sh
-./manage.sh up
-./manage.sh down
-./manage.sh update
-./manage.sh update --all
-```
+Generated Compose files include only the selected services, their initializers,
+volumes and Backend connection mounts. They do not use Compose profiles. Start with
+`docker compose up -d`, stop and remove containers with
+`docker compose down --remove-orphans`, and view logs with
+`docker compose logs -f --tail=100 backend web`. Volumes and media are preserved.
+Use `reconfigure DIRECTORY --qbit` / `--jackett` to add optional services, or
+`--no-qbit` / `--no-jackett` to remove them.
 
-`up` starts the selected services; `down` stops the whole deployment and preserves
-volumes/media. Compose uses `down --remove-orphans`; Quadlet stops its systemd user
-target without disabling boot startup. `update` pulls and replaces only Backend/Web;
-`--all` also updates the enabled qBittorrent/Jackett services. All selected images
-are pulled before replacement begins, so a pull failure leaves running containers
-in place. The helper prints the action and native command output, and exits on
-command failure. Run it with native Docker access, or as the Quadlet service user.
+For Quadlet, start with `systemctl --user start anishelf.target`, stop with
+`systemctl --user stop anishelf.target`, and view logs with
+`journalctl --user -u anishelf-backend.service -u anishelf-web.service -f`.
+Installation enables the target at boot; stopping it does not disable that setting.
+Use `systemctl --user disable anishelf.target` to disable boot startup, or
+`systemctl --user enable --now anishelf.target` to enable and start it.
+Testing deployments use `anishelf-test.target`, `anishelf-test-*.service` and
+separate configuration/storage instead.
 
-The helper uses the current `.env`/Compose configuration or the installed Quadlet
-units, including manual edits. Moving tags such as `latest` and `testing` can resolve
-to new images; a pinned release stays pinned. Back up application data before
-updating. Image updates do not upgrade deployment templates; use a newer installer
-and `reconfigure` when a release requires template changes.
+See [Compose updates](#manual-updates) and [Quadlet updates](#manual-updates-1) for
+application-only and full-stack updates. Pull all selected images successfully
+before replacing or restarting services. Moving tags such as `latest` and `testing`
+can resolve to new images; a pinned release stays pinned. Back up application data
+before updating. Image updates do not upgrade deployment templates; use a newer
+installer and `reconfigure` when a release requires template changes.
 
 ### Saved installation parameters
 
@@ -91,7 +96,9 @@ allowed, but are not imported back into the saved parameters. When reconfiguring
 pass flags for manual changes you want to preserve.
 
 `reconfigure DIRECTORY` inherits saved parameters, then applies explicit flags and
-validates the replacement before stopping the old stack. Use `--no-qbit` or
+validates the replacement before stopping the old stack. Reconfigure with the
+latest installer to adopt the generated layout and archive any older management
+script with the previous bundle. Use `--no-qbit` or
 `--no-jackett` to disable an optional service, `--managed-media` to replace a host
 media mount with the managed volume, `--clear-extra-media` to remove additional
 mounts, and `--public-origin ''` to clear a fixed origin. Repeated `--extra-media`
@@ -100,7 +107,11 @@ flags replace the saved list. Changing media mounts does not move existing files
 Older bundles without `deployment.json` can still be reconfigured; unspecified
 settings use installer defaults. Review and supply the desired settings explicitly
 for these bundles. Generation-only Quadlet bundles must have their units installed
-before using `manage.sh`; Compose bundles can be started directly.
+and systemd reloaded before starting. Copy the generated `.container`, `.volume` and `.network`
+files from `DIRECTORY/quadlet/` into `${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd/`,
+and its `.target` into `${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/`. Create those
+directories if necessary, then run `systemctl --user daemon-reload` and enable/start
+the generated target. Compose bundles can be started directly from their folder.
 
 Commands:
 
@@ -140,6 +151,8 @@ additionally accept `--force`.
 Save [compose.yaml](../../package/deploy/compose.yaml) and
 [.env.example](../../package/deploy/.env.example) as `compose.yaml` and `.env`
 in a new deployment folder. The repository-root Compose file builds source instead.
+These generic templates retain profiles for optional services; installer-generated
+Compose files already contain the selected services and do not need profiles.
 
 All settings are optional:
 
@@ -166,18 +179,22 @@ password appears once in Backend logs. See [first use](README.md#first-use).
 
 ### Manual updates
 
-Installer-managed deployments can use `./manage.sh update` as described above.
-The commands below are for manually maintained deployments.
-
 [Back up](#backup-and-recovery) first. Set `ANISHELF_TAG` in `.env`:
 
 ```sh
-docker compose pull backend web
-docker compose up -d backend web
+docker compose pull backend web &&
+  docker compose up -d --no-deps backend web
 ```
 
-A bare `docker compose pull` also upgrades enabled optional services. Merge
-required template changes; do not delete volumes.
+To update all configured services, including bundled qBittorrent/Jackett:
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+These commands work for generated and manually maintained deployments. For the
+generic template, enabled profiles select the optional services. Merge required
+template changes; do not delete volumes.
 
 ## Rootless Podman Quadlet
 
@@ -231,18 +248,31 @@ from Backend logs.
 
 ### Manual updates
 
-Installer-managed deployments can use `./manage.sh update` as described above.
-The commands below are for manually maintained deployments.
-
 [Back up](#backup-and-recovery) first. Run as the service account:
 
 ```sh
-podman pull ghcr.io/qw0er/anishelf-backend:latest ghcr.io/qw0er/anishelf-web:latest
-systemctl --user restart anishelf-backend.service anishelf-web.service
+podman pull ghcr.io/qw0er/anishelf-backend:latest ghcr.io/qw0er/anishelf-web:latest &&
+  systemctl --user restart anishelf-backend.service anishelf-web.service
 ```
 
-`anishelf.target` uses `Wants=`, so optional services keep running; refresh older
-`Requires=` units before relying on this. Use the target only for a full-stack stop.
+Use the actual `Image=` values from the installed `.container` files, including
+manual tag changes. If changing `Image=` or other unit configuration, run
+`systemctl --user daemon-reload` before restarting. To update the application and
+both optional services together (omit any service not installed):
+
+```sh
+podman pull ghcr.io/qw0er/anishelf-backend:latest ghcr.io/qw0er/anishelf-web:latest \
+  docker.io/linuxserver/qbittorrent:latest ghcr.io/linuxserver/jackett:latest &&
+  systemctl --user restart anishelf-backend.service anishelf-web.service \
+    anishelf-qbittorrent.service anishelf-jackett.service
+```
+
+The `&&` prevents restarts if image pulling fails. Update the listed container
+services directly; their one-shot initializers remain responsible for bootstrap.
+`anishelf.target` uses `Wants=`, so optional services keep running during an
+application-only restart; refresh older `Requires=` units before relying on this.
+Use `systemctl --user stop anishelf.target` for a full-stack stop. For testing
+bundles, use `testing` application images and `anishelf-test-*.service` names.
 Apply required unit changes; do not delete volumes.
 
 ## Storage and optional services

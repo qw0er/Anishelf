@@ -137,8 +137,6 @@ def unit_order(qbit: bool, jackett: bool) -> list[str]:
         "anishelf.network",
         "anishelf-app.volume",
         "anishelf-media.volume",
-        "anishelf-qbittorrent-connection.volume",
-        "anishelf-jackett-config.volume",
         "anishelf-backend.container",
         "anishelf-web.container",
         "anishelf.target",
@@ -146,6 +144,7 @@ def unit_order(qbit: bool, jackett: bool) -> list[str]:
     if qbit:
         units.extend(
             [
+                "anishelf-qbittorrent-connection.volume",
                 "anishelf-qbittorrent-config.volume",
                 "anishelf-qbittorrent-incomplete.volume",
                 "anishelf-qbittorrent-init.container",
@@ -155,6 +154,7 @@ def unit_order(qbit: bool, jackett: bool) -> list[str]:
     if jackett:
         units.extend(
             [
+                "anishelf-jackett-config.volume",
                 "anishelf-jackett-init.container",
                 "anishelf-jackett.container",
             ]
