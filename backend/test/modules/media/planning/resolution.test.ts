@@ -19,10 +19,21 @@ test.each([
 		"encode",
 	],
 ] as const)(
-	"selects minimum operations: %s",
+	"selects minimum operations for required transformations: %s",
 	async (overrides, mode, video, audio) => {
 		const f = await fixture();
-		const result = await f.resolve(overrides);
+		if (video === "encode") f.profile.video.filters = ["null"];
+		if (audio === "encode") f.profile.audio.filters = ["anull"];
+		const description = await f.inspectOutput(
+			f.file.id,
+			f.source.identity.sourceVersion,
+		);
+		const result = await f.resolveInput({
+			fileId: f.file.id,
+			sourceVersion: description.sourceVersion,
+			descriptionId: description.descriptionId,
+			evidence: f.evidence(overrides),
+		});
 		expect(result).toMatchObject({
 			kind: "processing",
 			mode,
@@ -49,14 +60,13 @@ test("supported originals resolve to direct", async () => {
 	).toMatchObject({ kind: "direct" });
 });
 
-test("unknown copy evidence falls back to encoding; rejected known combinations block", async () => {
+test("file preparation remains possible with unknown or rejected browser evidence", async () => {
 	const f = await fixture();
 	expect(await f.resolve({ "copy-video": "unknown" })).toMatchObject({
 		kind: "processing",
 	});
 	expect(await f.resolve({ "output-copy-copy": "unsupported" })).toMatchObject({
-		kind: "blocked",
-		reason: "output-combination-unverified",
+		kind: "processing",
 	});
 });
 

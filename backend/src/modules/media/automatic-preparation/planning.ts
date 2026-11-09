@@ -11,6 +11,10 @@ import {
 import { filterName } from "../../../platform/media/encoding-policy.js";
 import type { MediaInfo, MediaStream } from "../../../platform/media/model.js";
 import type { MediaProcessingPlan } from "../../../platform/media/specification.js";
+import {
+	matchesAudioTarget,
+	matchesVideoTarget,
+} from "../../../platform/media/stream-copy-policy.js";
 import { fingerprint } from "../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { SourceIdentity } from "../../resources/public.js";
@@ -120,12 +124,6 @@ export function planAutomaticPreparation(
 		acceptsStream(s, preset.accept?.audio),
 	);
 
-	if (
-		videoAcceptance === "unknown" ||
-		audioAcceptance.includes("unknown") ||
-		(preset.accept?.containers?.length && info.container === null)
-	)
-		return block("metadata-unknown");
 	const allAudios = info.streams.filter((s) => s.type === "audio");
 	const originalSuitable =
 		(!preset.accept?.containers?.length ||
@@ -148,15 +146,19 @@ export function planAutomaticPreparation(
 		(profile.video.maxFrameRate !== undefined &&
 			(video.framesPerSecond === null ||
 				video.framesPerSecond > profile.video.maxFrameRate));
-	const copyVideo =
-		(profile.copyCompatibleStreams || profile.video.encoder === "copy") &&
-		!profile.video.filters?.length &&
-		videoAcceptance === "accepted" &&
-		!resize &&
+	const matchedVideo =
 		canMux(profile.container, video.codec, "video") &&
-		(profile.video.encoder !== "copy" ||
-			!profile.video.codec ||
-			profile.video.codec === video.codec);
+		matchesVideoTarget(describeVideo(video as MediaStream), profile.video);
+	const copyVideo =
+		videoAcceptance === "accepted" &&
+		(matchedVideo ||
+			((profile.copyCompatibleStreams || profile.video.encoder === "copy") &&
+				!profile.video.filters?.length &&
+				!resize &&
+				canMux(profile.container, video.codec, "video") &&
+				(profile.video.encoder !== "copy" ||
+					!profile.video.codec ||
+					profile.video.codec === video.codec)));
 	if (profile.video.encoder === "copy" && !copyVideo)
 		return block("forced-video-copy-unavailable");
 	if (!copyVideo && !profile.video.codec) return block("video-codec-required");
@@ -202,17 +204,21 @@ export function planAutomaticPreparation(
 		return block("output-video-rejected");
 	const tracks = audios.map((audio, i) => {
 		const channels = profile.audio.channels ?? audio.channels;
-		const copy =
-			(profile.copyCompatibleStreams || profile.audio.encoder === "copy") &&
-			!profile.audio.filters?.length &&
-			audioAcceptance[i] === "accepted" &&
+		const matched =
 			canMux(profile.container, audio.codec, "audio") &&
-			(profile.audio.encoder !== "copy" ||
-				!profile.audio.codec ||
-				profile.audio.codec === audio.codec) &&
-			channels === audio.channels &&
-			(profile.audio.sampleRate === undefined ||
-				profile.audio.sampleRate === audio.sampleRate);
+			matchesAudioTarget(audio, profile.audio);
+		const copy =
+			audioAcceptance[i] === "accepted" &&
+			(matched ||
+				((profile.copyCompatibleStreams || profile.audio.encoder === "copy") &&
+					!profile.audio.filters?.length &&
+					canMux(profile.container, audio.codec, "audio") &&
+					(profile.audio.encoder !== "copy" ||
+						!profile.audio.codec ||
+						profile.audio.codec === audio.codec) &&
+					channels === audio.channels &&
+					(profile.audio.sampleRate === undefined ||
+						profile.audio.sampleRate === audio.sampleRate)));
 		return {
 			sourceIndex: audio.index,
 			execution: copy
@@ -323,7 +329,7 @@ export function planAutomaticPreparation(
 			: {}),
 	};
 	plan.id = fingerprint({
-		version: "automatic-preparation:2",
+		version: "automatic-preparation:4",
 		source,
 		profileFingerprint,
 		plan,
@@ -340,8 +346,16 @@ export function planAutomaticPreparation(
 		target: "file",
 		mode,
 		reasons: {
-			video: copyVideo ? "preset-accepted" : "preset-encoding-required",
-			audio: encodeAudio ? "preset-encoding-required" : "preset-accepted",
+			video: copyVideo
+				? matchedVideo
+					? "profile-matched"
+					: "preset-accepted"
+				: "preset-encoding-required",
+			audio: encodeAudio
+				? "preset-encoding-required"
+				: audios.every((audio) => matchesAudioTarget(audio, profile.audio))
+					? "profile-matched"
+					: "preset-accepted",
 		},
 		identity: {
 			rootId: source.scopeId,

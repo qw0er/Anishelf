@@ -125,17 +125,17 @@ test("remuxes accepted audio without encoding and encodes rejected video", () =>
 		planAutomaticPreparation(source, media, preset, profile),
 	).toMatchObject({ kind: "processing-required", mode: "transcode-video" });
 });
-test("unknown required facts defer; unconstrained unknown audio remains accepted", () => {
+test("unknown source color facts still block conversion; omitted audio constraints remain unrestricted", () => {
 	const media = info();
 	required(media.streams[0]).pixelFormat = null;
 	expect(
 		planAutomaticPreparation(source, media, preset, profile),
-	).toMatchObject({ kind: "blocked", reason: "metadata-unknown" });
+	).toMatchObject({ kind: "blocked", reason: "hdr-conversion-unverified" });
 	expect(
 		acceptsStream({ ...required(media.streams[1]), codec: null }, []),
 	).toBe("accepted");
 });
-test("HDR conversion is blocked but explicitly accepted HDR can be copied", () => {
+test("matching HDR streams require verified conversion when preset acceptance rejects them", () => {
 	const media = info();
 	required(media.streams[0]).hdr.pq = true;
 	expect(
@@ -269,3 +269,194 @@ test("explicit color filters defer dynamic-range acceptance to the actual output
 		},
 	});
 });
+
+test("target matches remux H264/AAC with compatibility copying disabled", () => {
+	const media = info();
+	media.streams = media.streams.slice(0, 2);
+	const plan = planAutomaticPreparation(source, media, preset, {
+		...profile,
+		copyCompatibleStreams: false,
+	});
+	expect(plan).toMatchObject({
+		kind: "processing-required",
+		mode: "remux",
+		reasons: { video: "profile-matched", audio: "profile-matched" },
+		execution: {
+			plan: {
+				container: "mp4",
+				video: { action: "copy" },
+				audioTracks: [{ sourceIndex: 1, execution: { action: "copy" } }],
+				filters: [],
+			},
+		},
+	});
+});
+
+test("target matching independently copies AAC and encodes PCM", () => {
+	const plan = planAutomaticPreparation(source, info(), preset, {
+		...profile,
+		copyCompatibleStreams: false,
+	});
+	expect(plan).toMatchObject({
+		kind: "processing-required",
+		mode: "transcode-audio",
+		execution: {
+			plan: {
+				video: { action: "copy" },
+				audioTracks: [
+					{ sourceIndex: 1, execution: { action: "copy" } },
+					{ sourceIndex: 3, execution: { action: "encode", codec: "aac" } },
+				],
+			},
+		},
+	});
+});
+
+test("missing metadata matters only when the target explicitly constrains it", () => {
+	const media = info();
+	media.streams = media.streams.slice(0, 2);
+	const audio = required(media.streams[1]);
+	audio.profile = null;
+	audio.channels = null;
+	audio.sampleRate = null;
+	const target = {
+		...profile,
+		copyCompatibleStreams: false,
+		audio: { encoder: "aac", codec: "aac", options: { b: "192k" } },
+	};
+	expect(planAutomaticPreparation(source, media, preset, target)).toMatchObject(
+		{ kind: "processing-required", mode: "remux" },
+	);
+	expect(
+		planAutomaticPreparation(source, media, preset, {
+			...target,
+			audio: { ...target.audio, channels: 2, sampleRate: 48000 },
+		}),
+	).toMatchObject({
+		kind: "processing-required",
+		mode: "transcode-audio",
+		execution: {
+			plan: {
+				audioTracks: [
+					{
+						sourceIndex: 1,
+						execution: { action: "encode" },
+						parameters: { channels: 2, sampleRate: 48000 },
+					},
+				],
+			},
+		},
+	});
+});
+
+test("matching output still cannot violate a declared automatic acceptance constraint", () => {
+	const media = info();
+	media.streams = media.streams.slice(0, 2);
+	const constrained = {
+		...preset,
+		accept: { ...preset.accept, audio: [{ codecs: ["aac"], maxChannels: 2 }] },
+	};
+	expect(
+		planAutomaticPreparation(source, media, constrained, {
+			...profile,
+			copyCompatibleStreams: false,
+		}),
+	).toMatchObject({ kind: "blocked", reason: "output-audio-rejected" });
+	expect(
+		planAutomaticPreparation(source, media, constrained, {
+			...profile,
+			copyCompatibleStreams: false,
+			audio: { ...profile.audio, channels: 2 },
+		}),
+	).toMatchObject({ kind: "processing-required", mode: "transcode-audio" });
+});
+
+test.each(["Main", null])(
+	"automatic acceptance falls back to encoding video profile %s",
+	(sourceProfile) => {
+		const media = info();
+		media.streams = media.streams.slice(0, 2);
+		required(media.streams[0]).profile = sourceProfile;
+		const constrained = {
+			...preset,
+			accept: {
+				...preset.accept,
+				video: [{ codecs: ["h264"], profiles: ["high"] }],
+			},
+		};
+		const target = { ...profile, copyCompatibleStreams: false };
+		const result = planAutomaticPreparation(source, media, constrained, target);
+		expect(result).toMatchObject({
+			kind: "processing-required",
+			mode: "transcode-video",
+			execution: {
+				plan: {
+					video: { action: "encode" },
+					videoParameters: { options: { profile: "high" } },
+					acceptance: constrained.accept,
+				},
+			},
+		});
+		expect(
+			planAutomaticPreparation(source, media, constrained, {
+				...target,
+				video: { encoder: "copy", codec: "h264" },
+			}),
+		).toMatchObject({
+			kind: "blocked",
+			reason: "forced-video-copy-unavailable",
+		});
+	},
+);
+
+test.each(["HE-AAC", null])(
+	"automatic acceptance falls back to encoding audio profile %s per track",
+	(sourceProfile) => {
+		const media = info();
+		media.streams.push({
+			...required(media.streams[1]),
+			index: 4,
+			profile: sourceProfile,
+			default: false,
+		});
+		const constrained = {
+			...preset,
+			accept: {
+				...preset.accept,
+				audio: [{ codecs: ["aac"], profiles: ["lc"] }],
+			},
+		};
+		const target = { ...profile, copyCompatibleStreams: false };
+		const result = planAutomaticPreparation(source, media, constrained, target);
+		expect(result).toMatchObject({
+			kind: "processing-required",
+			mode: "transcode-audio",
+			execution: {
+				plan: {
+					video: { action: "copy" },
+					audioTracks: [
+						{ sourceIndex: 1, execution: { action: "copy" } },
+						{ sourceIndex: 3, execution: { action: "encode" } },
+						{
+							sourceIndex: 4,
+							execution: { action: "encode" },
+							parameters: { options: { profile: "aac_low" } },
+						},
+					],
+					acceptance: constrained.accept,
+				},
+			},
+		});
+		// Exclude the unrelated PCM track so this assertion tests AAC acceptance alone.
+		media.streams = media.streams.filter((stream) => stream.index !== 3);
+		expect(
+			planAutomaticPreparation(source, media, constrained, {
+				...target,
+				audio: { encoder: "copy", codec: "aac" },
+			}),
+		).toMatchObject({
+			kind: "blocked",
+			reason: "forced-audio-copy-unavailable",
+		});
+	},
+);

@@ -25,6 +25,8 @@ test.each([
 	"browser, planner and validator agree on dimensions %sx%s at height %s",
 	async (width, height, maxHeight, expectedWidth, expectedHeight) => {
 		const f = await fixture(true, false, 0, () => "fast", { width, height });
+		// Force encoding independently of browser evidence to exercise output geometry.
+		f.profile.video.maxFrameRate = 1;
 		if (maxHeight === undefined) delete f.profile.video.maxHeight;
 		else f.profile.video.maxHeight = maxHeight;
 		const description = await f.inspectOutput(
@@ -139,7 +141,7 @@ test.each([2, 3])(
 );
 
 test.each([0, 2])(
-	"copy-disabled profile %s encodes both streams regardless of source copy support",
+	"profile %s copies matching codecs independently of encoder options",
 	async (profileIndex) => {
 		const f = await fixture(true, false, profileIndex);
 		const request = {
@@ -167,12 +169,12 @@ test.each([0, 2])(
 			});
 			expect(result).toMatchObject({
 				kind: "processing",
-				mode: "transcode",
+				mode: profileIndex === 0 ? "remux" : "transcode",
 				request: {
 					plan: {
 						container: f.profile.container,
-						video: { action: "encode", encoder: f.profile.video.encoder },
-						audio: { action: "encode", encoder: f.profile.audio.encoder },
+						video: { action: profileIndex === 0 ? "copy" : "encode" },
+						audio: { action: profileIndex === 0 ? "copy" : "encode" },
 					},
 				},
 			});
@@ -192,7 +194,9 @@ test.each([0, 2])(
 		});
 		if (compatible.kind !== "processing" || fast.kind !== "processing")
 			throw new Error("Missing plans");
-		expect(compatible.request.plan.video.action).toBe("encode");
+		expect(compatible.request.plan.video.action).toBe(
+			profileIndex === 0 ? "copy" : "encode",
+		);
 		if (profileIndex === 0) expect(fast.request.plan.video.action).toBe("copy");
 		expect(compatible.profileFingerprint).toBe(fast.profileFingerprint);
 		const rejected = await f.app.check({
@@ -207,7 +211,7 @@ test.each([0, 2])(
 					: null,
 			}),
 		).toMatchObject({
-			kind: "blocked",
+			kind: "processing",
 		});
 	},
 );
@@ -215,16 +219,21 @@ test.each([0, 2])(
 test("planning reads the current profile and rejects stale evidence after a policy edit", async () => {
 	let mode: "compatible" | "fast" = "compatible";
 	const f = await fixture(true, false, 0, () => mode);
+	f.profile.video = { encoder: "libx265", codec: "hevc" };
+	const initialDescription = await f.inspectOutput(
+		f.file.id,
+		f.source.identity.sourceVersion,
+	);
 	const request = {
 		fileId: f.file.id,
 		sourceVersion: f.description.sourceVersion,
-		descriptionId: f.description.descriptionId,
+		descriptionId: initialDescription.descriptionId,
 		output: { profileId: f.profile.id, target: "file" as const },
 		evidence: f.evidence(),
 	};
 	expect(await f.app.plan(request)).toMatchObject({
 		kind: "processing-required",
-		mode: "transcode",
+		mode: "transcode-video",
 	});
 	mode = "fast";
 	await expect(f.app.plan(request)).rejects.toMatchObject({

@@ -1,6 +1,10 @@
 import { canMux } from "../../../../platform/media/acceptance-policy.js";
 import { filterName } from "../../../../platform/media/encoding-policy.js";
 import type { MediaProcessingPlan } from "../../../../platform/media/specification.js";
+import {
+	matchesAudioTarget,
+	matchesVideoTarget,
+} from "../../../../platform/media/stream-copy-policy.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import type { MediaExecutionSpecification } from "../../media-processing/public.js";
@@ -54,6 +58,9 @@ export function resolveExecutionPlan(
 			(video.frameRate === null ||
 				video.frameRate > profile.video.maxFrameRate));
 	const copyCompatibleStreams = profile.copyCompatibleStreams;
+	const matchedVideo =
+		canMux(profile.container, video.codec, "video") &&
+		matchesVideoTarget(video, profile.video);
 	const canCopyVideo =
 		!resize &&
 		output.copyVideo === "supported" &&
@@ -61,10 +68,19 @@ export function resolveExecutionPlan(
 		(profile.video.encoder !== "copy" ||
 			!profile.video.codec ||
 			profile.video.codec === video.codec);
-	if (profile.video.encoder === "copy" && !canCopyVideo)
+	if (
+		profile.video.encoder === "copy" &&
+		!(
+			!resize &&
+			canMux(profile.container, video.codec, "video") &&
+			(!profile.video.codec || profile.video.codec === video.codec)
+		)
+	)
 		return { kind: "blocked", reason: "forced-video-copy-unavailable" };
 	const v =
-		profile.video.encoder === "copy" || (copyCompatibleStreams && canCopyVideo)
+		profile.video.encoder === "copy" ||
+		matchedVideo ||
+		(copyCompatibleStreams && canCopyVideo)
 			? "copy"
 			: "encode";
 	if (v === "encode" && !profile.video.codec)
@@ -79,14 +95,19 @@ export function resolveExecutionPlan(
 				profile.audio.channels === audio.channels) &&
 			(profile.audio.sampleRate === undefined ||
 				profile.audio.sampleRate === audio.sampleRate) &&
-			(evidence?.copyAudio ?? output.copyAudio) === "supported" &&
 			canMux(profile.container, audio.codec, "audio") &&
 			(profile.audio.encoder !== "copy" ||
 				!profile.audio.codec ||
 				profile.audio.codec === audio.codec);
+		const matched =
+			canMux(profile.container, audio.codec, "audio") &&
+			matchesAudioTarget(audio, profile.audio);
 		const copy =
 			(profile.audio.encoder === "copy" && canCopy) ||
-			(copyCompatibleStreams && canCopy);
+			matched ||
+			(copyCompatibleStreams &&
+				canCopy &&
+				(evidence?.copyAudio ?? output.copyAudio) === "supported");
 		return {
 			sourceIndex: audio.index,
 			default: audio.default ?? audio.index === input.defaultAudioStreamIndex,
@@ -112,7 +133,11 @@ export function resolveExecutionPlan(
 		return { kind: "blocked", reason: "audio-codec-required" };
 	if (v === "encode" && video.hdr && !profile.video.filters?.length)
 		return { kind: "blocked", reason: "hdr-conversion-unverified" };
-	if (!forcePreparation && output.combinations[`${v}-${a}`] === "unsupported")
+	if (
+		!forcePreparation &&
+		output.target === "media-source" &&
+		output.combinations[`${v}-${a}`] === "unsupported"
+	)
 		return { kind: "blocked", reason: "output-combination-unverified" };
 	const videoFilters =
 		v === "encode" ? videoEncodingFilters(video, profile.video) : [];
@@ -179,7 +204,7 @@ export function resolveExecutionPlan(
 			: {}),
 	};
 	plan.id = fingerprint({
-		version: "preparation-execution:4",
+		version: "preparation-execution:6",
 		source: {
 			fileId: input.fileId,
 			root: input.scopeId,
@@ -204,7 +229,11 @@ export function resolveExecutionPlan(
 		reasons: {
 			video:
 				v === "copy"
-					? "browser-supported"
+					? profile.video.encoder === "copy"
+						? "explicit-copy"
+						: matchedVideo
+							? "profile-matched"
+							: "browser-supported"
 					: resize
 						? "profile-size-required"
 						: !copyCompatibleStreams
@@ -213,7 +242,11 @@ export function resolveExecutionPlan(
 			audio: !audio
 				? "no-audio-stream"
 				: a === "copy"
-					? "browser-supported"
+					? profile.audio.encoder === "copy"
+						? "explicit-copy"
+						: audios.every((audio) => matchesAudioTarget(audio, profile.audio))
+							? "profile-matched"
+							: "browser-supported"
 					: profile.audio.channels ||
 							profile.audio.sampleRate ||
 							profile.audio.filters?.length

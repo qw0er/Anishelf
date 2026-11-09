@@ -173,6 +173,8 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				"1.5",
 				"-c:v",
 				"libx264",
+				"-profile:v",
+				"main",
 				"-pix_fmt",
 				"yuv420p",
 				"-c:a",
@@ -223,6 +225,12 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			sourceVersion: source.identity.sourceVersion,
 			output: { profileId: profile.id, target: "file" },
 		});
+		// Target High/5.1 options are encode-only; copying must preserve this Main source.
+		expect(description.video?.profile).toBe("Main");
+		expect(profile.video.options).toMatchObject({
+			profile: "high",
+			level: "5.1",
+		});
 		async function packets(path: string, selector: string) {
 			const result = await run(ffprobe, [
 				"-v",
@@ -254,7 +262,12 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			"transcode-video",
 			"transcode",
 		] as const) {
-			profile.copyCompatibleStreams = mode !== "transcode";
+			profile.copyCompatibleStreams =
+				mode === "transcode-video" || mode === "transcode-audio";
+			profile.video.filters =
+				mode === "transcode" || mode === "transcode-video" ? ["null"] : [];
+			profile.audio.filters =
+				mode === "transcode" || mode === "transcode-audio" ? ["anull"] : [];
 			description = await compatibility.inspect({
 				fileId: file.id,
 				sourceVersion: source.identity.sourceVersion,
@@ -268,6 +281,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 					descriptionId: description.descriptionId,
 					evidence: description.queries.map((query) => {
 						const supported =
+							mode !== "remux" &&
 							!query.id.startsWith("original") &&
 							!(query.id === "copy-video" && mode === "transcode-video") &&
 							!(
@@ -303,8 +317,13 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				true,
 				false,
 			]);
-			if (result.request.plan.video.action === "copy")
+			if (result.request.plan.video.action === "copy") {
+				expect(
+					output.info.streams.find((stream) => stream.type === "video")
+						?.profile,
+				).toBe("Main");
 				expect(await packets(output.output.path, "v")).toEqual(inputPackets.v);
+			}
 			if (result.request.plan.audio.action === "copy")
 				expect(
 					await Promise.all(
@@ -375,6 +394,8 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				code: "ENOENT",
 			});
 		}
+		delete profile.video.filters;
+		delete profile.audio.filters;
 		profile.video.maxHeight = 60;
 		profile.audio.channels = 2;
 		const resizedDescription = await compatibility.inspect({

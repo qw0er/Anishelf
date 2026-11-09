@@ -22,6 +22,13 @@
 
 ### Changed
 
+- Copy streams already matching the target codec and explicitly configured output
+  constraints independently of browser compatibility. Remux matching H.264/AAC MKV
+  files into MP4 and encode only nonmatching tracks; omitted constraints do not
+  require matching. All encoder options, including profile and level, apply only
+  when encoding. Automatic preparation falls back to encoding when a copied stream
+  would fail preset acceptance or its acceptance is unknown; forced copying blocks.
+
 - Let transcode profiles control stream copying directly and remove the global
   preparation mode. Keep queued/running execution snapshots and completed copies
   valid after configuration changes. Custom profile files now require v2.

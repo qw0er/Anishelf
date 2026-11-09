@@ -28,17 +28,20 @@ test("queued work shares bounded capacity and cancellation waits for cleanup bef
 	await vi.waitFor(async () =>
 		expect((await f.preparation.get(id)).status).toBe("processing"),
 	);
-	const next = await taskId(
-		f.preparation.create(await f.input({ "copy-audio": "unsupported" })),
-	);
+	required(f.profiles[0]).audio.filters = ["anull"];
+	const next = await taskId(f.preparation.create(await f.input()));
+	expect(next).not.toBe(id);
 	expect((await f.preparation.get(next)).status).toBe("queued");
-	await expect(
-		f.preparation.create(await f.input({ "copy-video": "unsupported" })),
-	).rejects.toMatchObject({ code: "PREPARATION_BUSY" });
+	required(f.profiles[0]).video.filters = ["null"];
+	await expect(f.preparation.create(await f.input())).rejects.toMatchObject({
+		code: "PREPARATION_BUSY",
+	});
 	expect((await f.preparation.cancel(next)).status).toBe("cancelled");
 	expect((await f.preparation.cancel(id)).status).toBe("cancelled");
 	expect((await f.preparation.get(id)).resource).toBeNull();
 	blocked = false;
+	delete required(f.profiles[0]).video.filters;
+	delete required(f.profiles[0]).audio.filters;
 	const { fileId: _fileId, ...retry } = await f.input();
 	await f.preparation.retry(id, retry);
 	expect((await completed(f, id)).status).toBe("ready");
@@ -50,9 +53,10 @@ test("slow planning does not block unrelated reads or queued cancellation", asyn
 	await vi.waitFor(async () =>
 		expect((await f.preparation.get(active)).status).toBe("processing"),
 	);
-	const next = await taskId(
-		f.preparation.create(await f.input({ "copy-audio": "unsupported" })),
-	);
+	required(f.profiles[0]).audio.filters = ["anull"];
+	const next = await taskId(f.preparation.create(await f.input()));
+	expect(next).not.toBe(active);
+	expect((await f.preparation.get(next)).status).toBe("queued");
 	const gate = barrier();
 	const entered = barrier();
 	const original = f.planning.plan.bind(f.planning);
@@ -84,9 +88,9 @@ test("a slow ready-file validation does not block cancellation of another task",
 		await taskId(f.preparation.create(await f.input())),
 	);
 	block = true;
-	const active = await taskId(
-		f.preparation.create(await f.input({ "copy-audio": "unsupported" })),
-	);
+	required(f.profiles[0]).audio.filters = ["anull"];
+	const active = await taskId(f.preparation.create(await f.input()));
+	expect(active).not.toBe(ready.id);
 	await vi.waitFor(async () =>
 		expect((await f.preparation.get(active)).status).toBe("processing"),
 	);

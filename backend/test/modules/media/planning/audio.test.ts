@@ -110,7 +110,7 @@ test("audio selection binds evidence and execution identity, preserving requeste
 	}
 });
 
-test("copy-disabled video-only profiles encode video without inventing audio work", async () => {
+test("target-matching video-only profiles copy video without inventing audio work", async () => {
 	const f = await fixture(false);
 	const checked = await f.app.check({
 		fileId: f.file.id,
@@ -128,7 +128,7 @@ test("copy-disabled video-only profiles encode video without inventing audio wor
 		}),
 	).toMatchObject({
 		kind: "processing",
-		mode: "transcode-video",
-		request: { audioStreamIndices: [], plan: { video: { action: "encode" } } },
+		mode: "remux",
+		request: { audioStreamIndices: [], plan: { video: { action: "copy" } } },
 	});
 });

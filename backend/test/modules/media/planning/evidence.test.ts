@@ -129,13 +129,13 @@ test("media planning validates evidence without opening history or claiming reso
 		),
 	).toMatchObject({ kind: "processing-required" });
 
-	const blocked = await f.app.plan({
+	const matched = await f.app.plan({
 		...input,
 		evidence: f.evidence({ "copy-video": "unknown" }),
 	});
-	expect(blocked).toMatchObject({
+	expect(matched).toMatchObject({
 		kind: "processing-required",
-		execution: { plan: { video: { action: "encode" } } },
+		execution: { plan: { video: { action: "copy" } } },
 	});
 	f.app.close();
 	await expect(f.app.plan(input)).rejects.toMatchObject({

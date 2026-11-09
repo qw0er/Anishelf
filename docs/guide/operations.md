@@ -76,7 +76,10 @@ restart. Network filesystems need deployment-specific watcher checks. See
 
 Choose a built-in or [custom v2 transcode profile](transcode-profiles.md) under
 Settings → Playback. The profile owns stream copying, encoding parameters and
-filters; there is no global compatibility/fast mode. Built-ins encode by default.
+filters; there is no global compatibility/fast mode. Streams matching the target
+codec and explicitly configured output constraints can be copied independently of
+browser evidence. Built-ins disable compatibility-based copying, but still reuse
+matching streams. Encoding parameters apply only to streams that need encoding.
 Use Reload profiles after editing transcode or automatic-preparation YAML files.
 A failed reload preserves both active catalogs and reports the issue.
 

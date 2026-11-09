@@ -103,6 +103,17 @@ export class MediaPlanningApplication implements MediaPlanningApi {
 				"PLAYBACK_CONFLICT",
 				"Source changed during media planning.",
 			);
+		this.options.logger?.debug(
+			{
+				event: "media.preparation_plan_resolved",
+				fileId: input.fileId,
+				profileId: checked.profile?.id,
+				profileFingerprint: resolved.profileFingerprint,
+				mode: resolved.mode,
+				reasons: resolved.reasons,
+			},
+			"Preparation streams resolved against compatibility and explicit target constraints.",
+		);
 		return freeze({
 			kind: "processing-required",
 			target: output.target,

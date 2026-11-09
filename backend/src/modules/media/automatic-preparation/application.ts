@@ -321,6 +321,19 @@ export class AutomaticPreparationApplication {
 			this.retryAt = Math.min(this.retryAt, demand.nextAttemptAtMs);
 			return;
 		}
+		this.options.logger.debug(
+			{
+				event: "automatic_preparation.plan_resolved",
+				fileId,
+				presetId: preset.id,
+				profileId: profile.id,
+				revision,
+				executionPlanId: planned.identity.executionPlanId,
+				mode: planned.mode,
+				reasons: planned.reasons,
+			},
+			"Automatic preparation plan resolved.",
+		);
 		const existing = repository.find(planned.identity.executionPlanId);
 		if (
 			!force &&

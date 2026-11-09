@@ -300,6 +300,7 @@ export class PreparationApplication implements PreparationApi {
 		context.logger.info(
 			{
 				event: "preparation.queued",
+				reasons: task.spec.settings.reasons,
 				profileId: task.profileId,
 				profileFingerprint: task.spec.profileFingerprint,
 				executionPlanId: task.spec.executionPlanId,

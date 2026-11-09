@@ -65,14 +65,22 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 		tools,
 	});
 	const database = ApplicationDatabase.open(dataDir);
-	let preparationMode: "fast" | "compatible" = "fast";
+	let encodeStreams = false;
 	const compatibility = new MediaPlanningApplication({
 		sources: library.sources,
 		inspection,
 		profiles: () =>
 			builtinTranscodeProfiles.map((p) => ({
 				...p,
-				copyCompatibleStreams: preparationMode === "fast",
+				copyCompatibleStreams: !encodeStreams,
+				video: {
+					...p.video,
+					filters: encodeStreams ? ["null"] : [],
+				},
+				audio: {
+					...p.audio,
+					filters: encodeStreams ? ["anull"] : [],
+				},
 			})),
 	});
 	const playback = new PlaybackApplication({
@@ -101,7 +109,15 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 			profiles: () =>
 				builtinTranscodeProfiles.map((p) => ({
 					...p,
-					copyCompatibleStreams: preparationMode === "fast",
+					copyCompatibleStreams: !encodeStreams,
+					video: {
+						...p.video,
+						filters: encodeStreams ? ["null"] : [],
+					},
+					audio: {
+						...p.audio,
+						filters: encodeStreams ? ["anull"] : [],
+					},
 				})),
 			dataDir,
 			logger,
@@ -171,7 +187,7 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 			progressSessionResponse.json<PlaybackSessionResponse>();
 		const starts = vi.spyOn(required(processing), "start");
 		for (const mode of ["remux", "transcode"] as const) {
-			preparationMode = mode === "transcode" ? "compatible" : "fast";
+			encodeStreams = mode === "transcode";
 			const description = await compatibility.inspect({
 				fileId: file.id,
 				sourceVersion: source.identity.sourceVersion,

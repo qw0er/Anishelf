@@ -7,7 +7,8 @@ profiles:
     name: HEVC Quality
     description: High-quality 10-bit HEVC copy with stereo audio.
     container: mp4
-    # Defaults to false. Filters always require encoding.
+    # Defaults to false: disable compatibility copying. Matching targets still copy.
+    # User filters always require encoding.
     copyCompatibleStreams: false
     # Optional globalOptions / inputOptions use the same scalar mapping as options.
     video:
@@ -16,6 +17,7 @@ profiles:
       codec: hevc
       pixelFormat: yuv420p10le
       maxHeight: 1080
+      # All options (including profile/level) apply only when encoding.
       options:
         preset: slow
         crf: 20

@@ -406,19 +406,32 @@ Evaluation reuses acceptable originals and completed assets satisfying the selec
 source-audio scope. Otherwise it derives a completed-file plan using the referenced
 transcode profile. The plan records per-source-index audio actions and parameters,
 so one output can copy some tracks while encoding others. Preserve source order,
-language metadata, default flags and the output-to-source audio mapping. Copying
-requires both acceptance and supported packaging, plus the profile's copy permission
-and absence of required transformations. Acceptance does not override profile values.
+language metadata, default flags and the output-to-source audio mapping.
+Compatibility copying requires acceptance, supported packaging, the profile's copy
+permission and no required transformations. Independently, target-matching copying
+requires the same codec and every explicitly declared output constraint, without
+browser evidence. Missing source values for a configured constraint encode instead;
+unconfigured attributes and all encoder options do not constrain this path.
+Automatic copying additionally requires accepted preset evidence; rejected or
+unknown acceptance falls back to encoding, while forced copying blocks. Known
+encoded-output conflicts still block planning, and actual output must pass
+acceptance before publication.
 
 Encoding profiles use the v2 contract with open encoder names, scoped scalar option
 mappings and single-stream filter lists. The global preparation mode is removed;
-profiles own copying, with built-ins encoding by default. Platform probes actual
+profiles own compatibility copying; built-ins also copy target-matching streams.
+Platform probes actual
 FFmpeg common/encoder/muxer help, reporting recognized/unsupported/unverified
 options without claiming hardware execution support. Unknown options/private
 subparameters can execute; structural conflicts and confirmed missing components
 cannot. Capability metadata remains in Platform; App injects validation into System.
 
-Manual preparation permits unknown predicted browser compatibility. Planners retain
+Manual file preparation permits unknown/rejected predicted browser compatibility.
+A shared Platform policy compares codec and explicit structural constraints:
+pixel format, dimensions/frame-rate bounds and audio channels/sample rate. Encoder
+options, including profile and level, apply only to encoded streams. Preset
+acceptance independently checks copied stream profiles, levels and other limits.
+Planners retain
 unknown geometry/color/codec descriptors instead of fabricating fixed output facts.
 Single-stream filters preserve the original timeline; complex graphs, additional
 inputs and timeline editing are rejected. Output inspection checks explicit stream

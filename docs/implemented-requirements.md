@@ -254,7 +254,14 @@ Queued/running jobs retain immutable execution snapshots; published output facts
 remain authoritative for playback. Unknown predicted browser compatibility permits
 manual preparation, with actual-output checks before publication. V1 configuration
 files require manual migration; legacy database records and completed copies remain
-readable. See [Transcode profiles](guide/transcode-profiles.md).
+readable. Target-matching copying is independent of browser compatibility and the
+compatibility-copy switch: same codec plus only explicitly configured output
+constraints, with per-track encoding on mismatch or missing required metadata.
+All encoder options, including profile and level, apply only to encoded streams.
+Automatic presets still require accepted copied streams: rejected or unknown
+acceptance falls back to encoding, and forced copying blocks instead. Actual
+outputs must pass acceptance before publication. See
+[Transcode profiles](guide/transcode-profiles.md).
 
 #### Prepared-media File Management (P27)
 

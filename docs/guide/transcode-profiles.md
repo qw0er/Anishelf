@@ -116,15 +116,51 @@ there is no automatically inserted tone mapping.
 
 ## Copying and built-ins
 
+Copying is decided separately for video and each retained audio track. Two paths
+can avoid encoding:
+
+1. **Compatibility copying:** `copyCompatibleStreams: true` preserves a stream
+   supported by browser evidence (manual preparation) or the automatic preset,
+   when packaging and required transformations allow it. The encoding codec can
+   differ because it is only the fallback for this path.
+2. **Target matching:** independently of that switch and browser evidence, copy a
+   stream already matching the target codec and every explicitly declared output
+   constraint. Missing optional constraints impose no restriction; unknown source
+   values for declared constraints require encoding.
+
+Target codec is always compared, including when inferred from the encoder. Video
+compares only explicitly supplied `pixelFormat`, `maxWidth`, `maxHeight` and
+`maxFrameRate`; audio compares explicit `channels` and `sampleRate`. Bounds allow
+smaller dimensions/frame rates; they do not require exact equality. No defaults
+are inserted for omitted structural fields.
+
+Both paths require a supported target container and no necessary transformation.
+A user filter always requires encoding. The entire `options` mapping applies only
+when encoding, including `profile`, `level`, `crf`, `preset`, `tune`, `b` and private
+encoder parameters. These options do not constrain copying. For example, AAC 128k
+can be copied with `options.b: 192k`, and H.264 Main can be copied with encoding
+fallback options `profile: high` and `level: 5.1`. Copying preserves the source
+profile, level and bitrate. To require processing even when formats match, specify
+the actual transformation/filter.
+
+An MKV containing matching H.264 and AAC can therefore be remuxed into MP4 even
+with `copyCompatibleStreams: false` and unknown/rejected browser evidence. Only
+nonmatching tracks are encoded. Automatic preparation additionally requires each
+copied stream to satisfy `preset.accept`. Rejected or unknown acceptance falls back
+to encoding; for example, an AAC LC acceptance rule requires encoding an HE-AAC
+source even when the target codec is AAC. Forced copying blocks instead of falling
+back. Known conflicts with the encoded output still block planning, and actual
+output must pass acceptance again before publication. Browser support is checked
+separately against the finished asset, not certified by target matching.
+
 `encoder: copy` requires copying and rejects encoding parameters, filters or
-transformations on that stream. If the stream cannot be copied, planning fails with
-an explicit reason. `copyCompatibleStreams: true` permits opportunistic per-stream
-copying when packaging, compatibility and required transformations allow it;
-otherwise the named encoder is used. A user filter always requires encoding.
+transformations on that stream. It checks packaging and any explicit codec
+constraint without requiring browser evidence; an impossible copy blocks the plan.
 
 The global compatibility/fast preparation mode has been removed. Legacy
 `preparationMode` settings are ignored and removed on the next settings write.
-Built-ins encode by default:
+Built-ins disable compatibility copying, but still copy matching target streams.
+Their encoding parameters, used only when encoding is needed, are:
 
 | ID | Container | Video | Audio |
 | --- | --- | --- | --- |
@@ -169,6 +205,6 @@ express `maxBitrateKbps` with explicit `maxrate` and `bufsize`; move `profile`,
 Replace `channels: stereo` with `channels: 2`; omit `channels: preserve` and replace
 `channelCount` with `channels`. Video bounds and `sampleRate` remain structural.
 
-Set `copyCompatibleStreams` deliberately: it now controls copying directly without
-a separate global mode. Reload both profile files together after updating their
+Set `copyCompatibleStreams` deliberately: it controls compatibility-based copying
+without a global mode. Target-matching copying remains available when it is false. Reload both profile files together after updating their
 references. No automatic v1 file migration is performed.
