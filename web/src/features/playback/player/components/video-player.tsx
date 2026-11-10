@@ -285,30 +285,25 @@ export default function VideoPlayer({
 			? active.asset.video.width / active.asset.video.height
 			: 16 / 9;
 	return (
-		<>
-			<section
-				ref={surface}
-				className="anishelf-player relative mx-auto w-full bg-black"
-				style={{ "--player-aspect-ratio": aspectRatio } as CSSProperties}
-				aria-label={displayTitle}
+		<section
+			ref={surface}
+			className="anishelf-player relative mx-auto w-full bg-black"
+			style={{ "--player-aspect-ratio": aspectRatio } as CSSProperties}
+			aria-label={displayTitle}
+		>
+			<div ref={container} className="h-full w-full" />
+			<div ref={overlay} className="anishelf-continuation-overlay" />
+			<button
+				type="button"
+				className="anishelf-player-exit min-h-11 rounded-md bg-black/80 px-3 text-sm text-white focus-visible:outline-2 focus-visible:outline-white"
+				onClick={() =>
+					playerRef.current?.dispatchEvent(
+						new CustomEvent("movi-fullscreen-request", { cancelable: true }),
+					)
+				}
 			>
-				<div ref={container} className="h-full w-full" />
-				<div ref={overlay} className="anishelf-continuation-overlay" />
-				<button
-					type="button"
-					className="anishelf-player-exit min-h-11 rounded-md bg-black/80 px-3 text-sm text-white focus-visible:outline-2 focus-visible:outline-white"
-					onClick={() =>
-						playerRef.current?.dispatchEvent(
-							new CustomEvent("movi-fullscreen-request", { cancelable: true }),
-						)
-					}
-				>
-					{t("player.exitFullscreen")}
-				</button>
-			</section>
-			<p className="text-xs text-muted-foreground">
-				{t("player.subtitleLimitations")}
-			</p>
-		</>
+				{t("player.exitFullscreen")}
+			</button>
+		</section>
 	);
 }

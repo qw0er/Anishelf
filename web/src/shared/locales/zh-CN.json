@@ -252,7 +252,6 @@
 			"countdown_other": "将在 {{count}} 秒后继续播放…",
 			"playBlocked": "请点击播放以继续，浏览器未能自动开始播放。"
 		},
-		"subtitleLimitations": "ASS/SSA 字幕以基础文本显示，不保留样式、特效和内嵌字体。",
 		"exitFullscreen": "退出全屏"
 	},
 	"anime": {
