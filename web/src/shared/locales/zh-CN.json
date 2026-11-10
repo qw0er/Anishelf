@@ -151,7 +151,7 @@
 		"pathsHelp": "使用互不重叠的服务器绝对路径。添加目录后保存即可开始扫描。移除所有目录将返回初始设置。",
 		"newPathLabel": "新资源目录路径",
 		"addPath": "添加目录",
-		"deletePath": "移除目录",
+		"deletePath": "移除",
 		"removePath": "移除目录 {{path}}",
 		"duplicatePath": "此目录已在列表中。",
 		"noPaths": "尚未添加资源目录。",
@@ -1284,8 +1284,8 @@
 				"paused": "已暂停",
 				"active": "正在获取发布"
 			},
-			"progressDescription": "新订阅从 AniList 观看进度的下一集开始。例如，进度为 3 时从第 4 集开始。",
-			"beginningDescription": "新订阅从第 1 集开始，包含之前的集数。已在本地可用的剧集会直接复用。",
+			"progressDescription": "从 AniList 观看进度的下一集开始。",
+			"beginningDescription": "包含之前的集数，复用本地文件。",
 			"shortReasons": {
 				"disabled": "已禁用",
 				"ready": "已启用",

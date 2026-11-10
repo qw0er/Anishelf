@@ -48,16 +48,13 @@ export function ResourcePathList({
 					className="max-h-64 min-w-0 space-y-2 overflow-auto"
 				>
 					{entries.map((path) => (
-						<li
-							key={path}
-							className="action-row flex-nowrap min-w-0 items-center gap-2"
-						>
+						<li key={path} className="action-row min-w-0">
 							<Tooltip content={path} openOnClick>
 								<Input
 									readOnly
 									value={path}
 									aria-label={path}
-									className="min-w-0 flex-1"
+									className="min-w-0 flex-1 basis-48"
 								/>
 							</Tooltip>
 							<ActionButton
@@ -66,7 +63,7 @@ export function ResourcePathList({
 								label={t("settingsPage.removePath", { path })}
 								type="button"
 								variant="ghost"
-								className="w-24 shrink-0"
+								className="w-32 shrink-0 [&>span]:whitespace-nowrap"
 								disabled={disabled}
 								onClick={() => {
 									const next = entries.filter((entry) => entry !== path);
@@ -89,10 +86,10 @@ export function ResourcePathList({
 			<label htmlFor="new-resource-path" className="sr-only">
 				{t("settingsPage.newPathLabel")}
 			</label>
-			<div className="flex min-w-0 items-center gap-2">
+			<div className="flex min-w-0 flex-wrap items-center gap-2">
 				<Input
 					id="new-resource-path"
-					className="min-w-0 flex-1"
+					className="min-w-0 flex-1 basis-48"
 					value={draft}
 					placeholder={t("settingsPage.pathPlaceholder")}
 					disabled={disabled || entries.length >= 64}
@@ -117,7 +114,7 @@ export function ResourcePathList({
 					shortLabel={t("actions.add")}
 					type="button"
 					variant="outline"
-					className="w-24 shrink-0"
+					className="w-32 shrink-0 [&>span]:whitespace-nowrap"
 					disabled={disabled || !draft.trim() || entries.length >= 64}
 					onClick={addPath}
 				/>
