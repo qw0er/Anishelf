@@ -13,7 +13,6 @@ export interface TranscodeProfile {
 	name: string;
 	description: string;
 	container: "mp4" | "webm" | "matroska" | "mov";
-	copyCompatibleStreams: boolean;
 	video: VideoEncoding;
 	audio: AudioEncoding;
 	globalOptions?: EncodingOptions;
@@ -31,7 +30,6 @@ function _transcodeProfileFingerprint(
 		inputOptions: Object.entries(profile.inputOptions ?? {}),
 		muxerOptions: Object.entries(profile.muxerOptions ?? {}),
 		container: profile.container,
-		copyCompatibleStreams: profile.copyCompatibleStreams,
 		video: {
 			...profile.video,
 			options: Object.entries(profile.video.options ?? {}),

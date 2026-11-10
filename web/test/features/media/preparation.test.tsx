@@ -22,7 +22,7 @@ const task: PreparationTaskResponse = {
 	fileId: "file",
 	filename: "Episode.mkv",
 	sourceVersion: "v1",
-	profileId: "builtin:manual",
+	profileId: "builtin:balanced",
 	mode: "transcode",
 	reasons: { video: "encoding-required", audio: "encoding-required" },
 	status: "failed",
@@ -43,8 +43,8 @@ beforeEach(() => {
 	vi.spyOn(settings, "getTranscodeProfiles").mockResolvedValue({
 		profiles: [
 			{
-				id: "builtin:manual",
-				name: "Matroska",
+				id: "builtin:balanced",
+				name: "Balanced",
 				description: "Manual copy",
 				container: "matroska",
 				source: "builtin",
@@ -53,7 +53,7 @@ beforeEach(() => {
 				validation: { status: "recognized", issues: [] },
 			},
 		],
-		selectedProfileId: "builtin:manual",
+		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
 		revision: "test",
 	});
@@ -93,7 +93,7 @@ test("manual preparation submits a concrete command without browser evidence", a
 	await waitFor(() => expect(api.createPreparation).toHaveBeenCalled());
 	expect(vi.mocked(api.createPreparation).mock.calls[0]?.slice(0, 2)).toEqual([
 		"file",
-		{ sourceVersion: "v1", profileId: "builtin:manual" },
+		{ sourceVersion: "v1", profileId: "builtin:balanced" },
 	]);
 });
 test("explicit silent output remains distinct from all audio tracks", async () => {
@@ -113,7 +113,7 @@ test("explicit silent output remains distinct from all audio tracks", async () =
 	await waitFor(() => expect(api.createPreparation).toHaveBeenCalled());
 	expect(vi.mocked(api.createPreparation).mock.calls[0]?.[1]).toEqual({
 		sourceVersion: "v1",
-		profileId: "builtin:manual",
+		profileId: "builtin:balanced",
 		audioStreamIndices: [],
 	});
 });
@@ -127,7 +127,7 @@ test("retry sends the original task intent without compatibility negotiation", a
 		"task",
 		{
 			sourceVersion: "v1",
-			profileId: "builtin:manual",
+			profileId: "builtin:balanced",
 			audioStreamIndices: [2],
 		},
 	]);

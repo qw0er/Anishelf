@@ -127,7 +127,9 @@ export class MediaPlanningApplication {
 				event: "media.manual_plan_compiled",
 				fileId: input.fileId,
 				profileId: profile.id,
+				container: profile.container,
 				mode: resolved.mode,
+				reasons: resolved.reasons,
 			},
 			"Manual preparation plan compiled.",
 		);

@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.6.0
+
+### Changed
+
+- Replace the Web playback engine with Movi Player, including its playback,
+  audio, subtitle and chapter controls. Existing viewing history and progress
+  remain shared across original files and prepared copies.
+- Make media preparation an explicit action. Playback no longer predicts browser
+  compatibility, automatically starts preparation or selects a prepared copy;
+  choose the original or a completed copy in playback options.
+- Use a Matroska H.264/AAC profile by default for new manual preparations,
+  preserving embedded subtitles, font attachments and chapters. Existing profiles
+  and completed copies remain available; older copies do not gain missing tracks.
+- Align resource directory actions with the rest of the interface.
+
+### Removed
+
+- Remove automatic preparation and its presets and settings. Unfinished legacy
+  automatic tasks are cancelled during migration; interrupted commands can be
+  retried manually. Legacy automatic preparation settings are ignored and removed
+  on the next settings save.
+- Remove server-side embedded subtitle and font extraction. Movi renders embedded
+  subtitles and supports external subtitles, but full ASS/SSA styling, effects and
+  embedded fonts are unavailable. External ASS/SSA retains text and timing only.
+  Use an external player when full subtitle fidelity is required.
+
+Browser, device, codec and subtitle support varies; playback of every file is not
+guaranteed. See the [manual preparation guide](https://github.com/qw0er/Anishelf/blob/main/docs/guide/manual-preparation.md).
+
 ## 1.5.1
 
 ### Added

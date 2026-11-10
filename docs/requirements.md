@@ -36,7 +36,7 @@ implementation choice as a new requirement. Future features specify outcomes and
 acceptance boundaries without selecting their technical solution in advance.
 Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-The repository is at version 1.5.0; 1.5.1 is the planned next release. Later and Optional items remain future work.
+The current release is 1.5.1; 1.6.0 is the planned next release. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
@@ -148,8 +148,8 @@ failures and works already present in the user's library or tracking list.
 
 #### Delivery Notes (P)
 
-- **P08:** **Current:** Embedded subtitles are decoded by Movi in the browser; matching VTT/SRT/ASS/SSA sidecars remain selectable. Server extraction is retired. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts in the former renderer).
-- **P09:** **Current:** Movi's built-in renderer supplies basic subtitle rendering. External ASS/SSA retains text and timing but discards styles, drawings and effects; full ASS/SSA styling and embedded fonts are unavailable. No alternative renderer is included. **Remaining:** Full styled subtitle/font fidelity and bitmap compatibility. **Release record:** 0.2.0 (styles and fallback fonts in the former renderer); 0.2.6 (embedded fonts in the former renderer).
+- **P08:** **Current:** Embedded subtitles are decoded by Movi in the browser; matching VTT/SRT/ASS/SSA sidecars remain selectable. Server extraction is retired. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts in the former renderer); 1.6.0 (client rendering replaces server extraction).
+- **P09:** **Current:** Movi's built-in renderer supplies basic subtitle rendering. External ASS/SSA retains text and timing but discards styles, drawings and effects; full ASS/SSA styling and embedded fonts are unavailable. No alternative renderer is included. **Remaining:** Full styled subtitle/font fidelity and bitmap compatibility. **Release record:** 0.2.0 (styles and fallback fonts in the former renderer); 0.2.6 (embedded fonts in the former renderer); 1.6.0 (basic Movi rendering).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
 #### Media Processing Resource Controls (P20–P21)
@@ -176,7 +176,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 #### Deferred Subtitle Requirements (P16)
 
-P16 has no assigned release. See [P15 embedded fonts](implemented-requirements.md#embedded-fonts-p15).
+P16 has no assigned release. See [P15 embedded fonts](implemented-requirements.md#embedded-fonts-p15) for the retired font-rendering behavior.
 
 - **P16 Bitmap extraction:** extract supported PGS/VobSub subtitles in their native
   format, preserving required paired files and access restrictions. Explain when

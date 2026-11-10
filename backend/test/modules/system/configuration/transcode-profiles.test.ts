@@ -41,14 +41,13 @@ test("built-ins use the shared schema and missing external files create no confi
 		),
 	).toBe(true);
 	expect(service.transcodeProfiles.map((profile) => profile.id)).toEqual([
-		"builtin:manual",
 		"builtin:balanced",
 		"builtin:fast",
 		"builtin:efficient",
 		"builtin:compact",
 	]);
 	expect(transcodeProfileCatalog(service)).toMatchObject({
-		selectedProfileId: "builtin:manual",
+		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
 	});
 	expect(service.settings).toEqual({ resourceRoots: [] });
@@ -87,7 +86,7 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 	expect(reload.settings.defaultTranscodeProfileId).toBe("custom:small");
 	await reload.selectTranscodeProfile(null);
 	expect(transcodeProfileCatalog(reload)).toMatchObject({
-		selectedProfileId: "builtin:manual",
+		selectedProfileId: "builtin:balanced",
 		selectionAvailable: true,
 	});
 	expect(reload.settings.defaultTranscodeProfileId).toBeUndefined();
@@ -98,6 +97,10 @@ test.each([
 	stringify({ version: 1, profiles: [] }),
 	stringify({ version: 2, profiles: [builtinTranscodeProfiles[0]] }),
 	stringify({ version: 2, profiles: [customProfile(), customProfile()] }),
+	stringify({
+		version: 2,
+		profiles: [{ ...customProfile(), copyCompatibleStreams: true }],
+	}),
 	stringify({
 		version: 2,
 		profiles: [{ ...customProfile(), usage: "preparation" }],
@@ -145,7 +148,6 @@ test("open encoders and options are retained without a fixed parameter whitelist
 			profiles: [
 				{
 					...customProfile(),
-					copyCompatibleStreams: undefined,
 					video: {
 						encoder: "new_encoder",
 						options: {
@@ -160,7 +162,6 @@ test("open encoders and options are retained without a fixed parameter whitelist
 		}),
 	);
 	expect(value[0]).toMatchObject({
-		copyCompatibleStreams: false,
 		video: { encoder: "new_encoder", codec: "", options: { new_quality: 17 } },
 		audio: { encoder: "copy" },
 	});

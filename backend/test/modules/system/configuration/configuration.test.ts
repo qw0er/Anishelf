@@ -185,7 +185,7 @@ test("settings updates preserve prior snapshots and persist explicit preparation
 	};
 	await service.update(next);
 	expect(previous.settings.resourceRoots).toEqual([root]);
-	expect(previous.settings.defaultTranscodeProfileId).toBe("builtin:manual");
+	expect(previous.settings.defaultTranscodeProfileId).toBe("builtin:balanced");
 	expect(service.snapshot.settings).toMatchObject(next);
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),

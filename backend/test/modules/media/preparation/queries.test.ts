@@ -186,7 +186,7 @@ test("summaries retain snapshotted tasks across profile edits and filter resourc
 	const profile = required(
 		f.profiles.find((profile) => profile.id === task.profileId),
 	);
-	profile.copyCompatibleStreams = !profile.copyCompatibleStreams;
+	profile.video.maxHeight = 720;
 	expect(
 		(await f.application.summaries([ready.fileId])).files[0]?.versions,
 	).toEqual(

@@ -56,7 +56,6 @@ export const TranscodeProfileSchema = Type.Object(
 		name: text(),
 		description: text(),
 		container,
-		copyCompatibleStreams: Type.Optional(Type.Boolean()),
 		globalOptions: Type.Optional(EncodingOptionsSchema),
 		inputOptions: Type.Optional(EncodingOptionsSchema),
 		muxerOptions: Type.Optional(EncodingOptionsSchema),

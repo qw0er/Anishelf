@@ -79,8 +79,8 @@ manual command. `POST /api/files/:id/preparations` accepts `sourceVersion`,
 `[]` creates silent output. There is no direct-play shortcut or browser negotiation.
 Retry revalidates source/configuration; a changed plan creates a replacement task.
 
-The new default profile is Matroska (`builtin:manual`). New commands retain subtitle
-tracks, font attachments, chapters and track metadata. A custom container with
+The default profile is Balanced (`builtin:balanced`), using Matroska. New commands
+retain subtitle tracks, font attachments, chapters and track metadata. A custom container with
 embedded subtitles/attachments is conservatively rejected unless it is Matroska;
 no content is silently dropped or converted. Output inspection validates preservation
 before publication. Profile changes never invalidate completed bytes.

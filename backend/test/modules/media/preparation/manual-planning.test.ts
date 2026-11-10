@@ -67,3 +67,40 @@ test("stale source versions cannot create a preparation plan", async () => {
 	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
 	expect(f.processing.start).not.toHaveBeenCalled();
 });
+
+test.each([
+	["h264", "aac", "remux"],
+	["hevc", "aac", "transcode-video"],
+	["h264", "opus", "transcode-audio"],
+	["hevc", "opus", "transcode"],
+])(
+	"manual targets %s/%s resolve to %s regardless of Matroska mux support",
+	async (videoCodec, audioCodec, mode) => {
+		const f = await fixture();
+		const input = await f.input();
+		const profile = f.profiles[0];
+		if (!profile) throw new Error("Missing profile");
+		profile.video.codec = videoCodec;
+		profile.video.encoder = videoCodec === "hevc" ? "libx265" : "libx264";
+		profile.audio.codec = audioCodec;
+		profile.audio.encoder = audioCodec === "opus" ? "libopus" : "aac";
+		expect(await f.planning.plan(input)).toMatchObject({
+			kind: "processing-required",
+			mode,
+		});
+	},
+);
+
+test("explicit copy preserves source codecs without a target codec", async () => {
+	const f = await fixture();
+	const input = await f.input();
+	const profile = f.profiles[0];
+	if (!profile) throw new Error("Missing profile");
+	profile.video = { encoder: "copy", codec: "" };
+	profile.audio = { encoder: "copy", codec: "" };
+	expect(await f.planning.plan(input)).toMatchObject({
+		kind: "processing-required",
+		mode: "remux",
+		reasons: { video: "explicit-copy", audio: "explicit-copy" },
+	});
+});

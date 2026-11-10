@@ -71,7 +71,6 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 		profiles: () =>
 			builtinTranscodeProfiles.map((p) => ({
 				...p,
-				copyCompatibleStreams: !encodeStreams,
 				video: {
 					...p.video,
 					filters: encodeStreams ? ["null"] : [],
@@ -108,7 +107,6 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 			profiles: () =>
 				builtinTranscodeProfiles.map((p) => ({
 					...p,
-					copyCompatibleStreams: !encodeStreams,
 					video: {
 						...p.video,
 						filters: encodeStreams ? ["null"] : [],

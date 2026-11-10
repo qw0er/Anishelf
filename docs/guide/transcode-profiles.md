@@ -26,7 +26,6 @@ profiles:
     name: HEVC Quality
     description: High-quality 10-bit HEVC copy.
     container: mp4
-    copyCompatibleStreams: false
     video:
       encoder: libx265
       codec: hevc
@@ -59,7 +58,6 @@ mapping keys/IDs, multiple YAML documents and unsupported versions are rejected.
 | Field | Contract |
 | --- | --- |
 | `container` | Required: `mp4`, `webm`, `matroska`, or `mov` |
-| `copyCompatibleStreams` | Optional boolean; default `false` |
 | `globalOptions` | Optional FFmpeg global option mapping |
 | `inputOptions` | Optional input decoder/demuxer option mapping, before `-i` |
 | `video` / `audio` | Required stream encoding descriptions |
@@ -106,24 +104,18 @@ outside this contract.
 Custom filters can make output geometry and color characteristics unknown before
 execution. Unknown browser compatibility does not prevent manual preparation.
 Publication checks the actual FFprobe output, explicit output constraints, retained
-tracks, duration and automatic-preset acceptance. Playback then negotiates the
+tracks and duration. Playback then negotiates the
 actual completed asset with the client. Successful encoding is not a browser
 playability guarantee. No configuration declaration certifies HDR-to-SDR conversion;
 there is no automatically inserted tone mapping.
 
 ## Copying and built-ins
 
-Copying is decided separately for video and each retained audio track. Two paths
-can avoid encoding:
-
-1. **Compatibility copying:** `copyCompatibleStreams: true` preserves a stream
-   supported by browser evidence (manual preparation) or the automatic preset,
-   when packaging and required transformations allow it. The encoding codec can
-   differ because it is only the fallback for this path.
-2. **Target matching:** independently of that switch and browser evidence, copy a
-   stream already matching the target codec and every explicitly declared output
-   constraint. Missing optional constraints impose no restriction; unknown source
-   values for declared constraints require encoding.
+Copying is decided separately for video and each retained audio track. A stream
+already matching the target codec and every explicitly declared output constraint
+is copied; otherwise the configured encoder is used. Missing optional constraints
+impose no restriction; unknown source values for declared constraints require
+encoding. Browser capability evidence is not an input to manual preparation.
 
 Target codec is always compared, including when inferred from the encoder. Video
 compares only explicitly supplied `pixelFormat`, `maxWidth`, `maxHeight` and
@@ -131,7 +123,7 @@ compares only explicitly supplied `pixelFormat`, `maxWidth`, `maxHeight` and
 smaller dimensions/frame rates; they do not require exact equality. No defaults
 are inserted for omitted structural fields.
 
-Both paths require a supported target container and no necessary transformation.
+Copying requires a supported target container and no necessary transformation.
 A user filter always requires encoding. The entire `options` mapping applies only
 when encoding, including `profile`, `level`, `crf`, `preset`, `tune`, `b` and private
 encoder parameters. These options do not constrain copying. For example, AAC 128k
@@ -140,9 +132,9 @@ fallback options `profile: high` and `level: 5.1`. Copying preserves the source
 profile, level and bitrate. To require processing even when formats match, specify
 the actual transformation/filter.
 
-An MKV containing matching H.264 and AAC can therefore be remuxed into MP4 even
-with `copyCompatibleStreams: false` and unknown/rejected browser evidence. Only
-nonmatching tracks are encoded.
+Matching H.264 and AAC streams can therefore be remuxed without encoding. Only
+nonmatching tracks are encoded. Container selection must also satisfy the subtitle
+and attachment preservation policy.
 
 `encoder: copy` requires copying and rejects encoding parameters, filters or
 transformations on that stream. It checks packaging and any explicit codec
@@ -150,15 +142,16 @@ constraint without requiring browser evidence; an impossible copy blocks the pla
 
 The global compatibility/fast preparation mode has been removed. Legacy
 `preparationMode` settings are ignored and removed on the next settings write.
-Built-ins disable compatibility copying, but still copy matching target streams.
-Their encoding parameters, used only when encoding is needed, are:
+Built-ins copy matching target streams.
+All four built-ins use Matroska to retain embedded subtitles, font attachments
+and chapters. Their encoding parameters, used only when encoding is needed, are:
 
 | ID | Container | Video | Audio |
 | --- | --- | --- | --- |
-| `builtin:balanced` | MP4 | libx264, CRF 23, medium, High/5.1, yuv420p | AAC LC, 192k |
-| `builtin:fast` | MP4 | libx264, CRF 23, veryfast, High/5.1, yuv420p | AAC LC, 192k |
-| `builtin:efficient` | WebM | libvpx-vp9, CRF 32, cpu-used 4, b 0, yuv420p | Opus, 128k |
-| `builtin:compact` | WebM | libvpx-vp9, CRF 32, cpu-used 2, b 0, yuv420p | Opus, 128k |
+| `builtin:balanced` | MKV | libx264, CRF 23, medium, High/5.1, yuv420p | AAC LC, 192k |
+| `builtin:fast` | MKV | libx264, CRF 23, veryfast, High/5.1, yuv420p | AAC LC, 192k |
+| `builtin:efficient` | MKV | libvpx-vp9, CRF 32, cpu-used 4, b 0, yuv420p | Opus, 128k |
+| `builtin:compact` | MKV | libvpx-vp9, CRF 32, cpu-used 2, b 0, yuv420p | Opus, 128k |
 
 `defaultTranscodeProfileId` remains in `settings.json`, defaulting to
 `builtin:balanced`. Cache budgets remain separate from encoding profiles.
@@ -194,6 +187,8 @@ express `maxBitrateKbps` with explicit `maxrate` and `bufsize`; move `profile`,
 Replace `channels: stereo` with `channels: 2`; omit `channels: preserve` and replace
 `channelCount` with `channels`. Video bounds and `sampleRate` remain structural.
 
-Set `copyCompatibleStreams` deliberately: it controls compatibility-based copying
-without a global mode. Target-matching copying remains available when it is false. Restart Backend after updating both profile files and their
-references. No automatic v1 file migration is performed.
+Remove the retired `copyCompatibleStreams` field from existing v2 files as well;
+unknown fields are rejected. Matching target streams copy automatically. Use
+`encoder: copy` when the source codec must be preserved instead of converted to a
+target codec. Restart Backend after updating the profile file and its references.
+No automatic v1 file migration is performed.

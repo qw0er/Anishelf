@@ -80,7 +80,7 @@ test("manual Matroska preparation preserves subtitles, fonts, chapters and dispo
 		const video = info.streams.find((s) => s.type === "video");
 		const audios = info.streams.filter((s) => s.type === "audio");
 		const profile = builtinTranscodeProfiles.find(
-			(p) => p.id === "builtin:manual",
+			(p) => p.id === "builtin:balanced",
 		);
 		if (!video || !profile) throw new Error("Missing video/profile fixture");
 		const result = resolveExecutionPlan({

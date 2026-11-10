@@ -216,12 +216,9 @@ see the [current playback direction](requirements.md#movi-player-and-manual-prep
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | P03 | Select or disable external VTT/SRT/ASS/SSA subtitles | Complete | — | — | 0.2.0 |
-| P05 | Choose a playback strategy based on media and client capabilities | Complete | — | — | 0.2.0 |
-| P06 | Remux media when only the container is incompatible | Complete | — | — | 0.2.0 |
+| P06 | Remux matching streams during manual preparation | Complete | — | Subject to profile and container constraints | 0.2.0 |
 | P07 | Prepare full-file Web-compatible copies with seeking and avoid unnecessary re-encoding | Complete | — | Completed-file preparation, reuse, cancellation, retry and recovery | 0.2.0 |
 | P12 | Hardware-accelerated transcoding | Complete | — | [Hardware encoding through custom FFmpeg profiles](#delivery-notes-p) | 0.2.0 |
-| P15 | Extract, validate and load embedded font attachments | Complete | — | Validated embedded TTF/OTF fonts for styled subtitles | 0.2.6 |
-| P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Complete | — | [Preset-based background preparation and recovery](#delivery-notes-p) | 1.4.0 |
 | P10 | Select audio tracks | Complete | — | — | 0.2.0 |
 | P23 | Adjust subtitle timing | Complete | — | — | 0.2.0 |
 | P24 | Change playback speed | Complete | — | — | 0.2.0 |
@@ -229,13 +226,13 @@ see the [current playback direction](requirements.md#movi-player-and-manual-prep
 | P27 | Improve prepared-media file management | Complete | — | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | 1.5.0 |
 | P11 | Next-episode navigation and automatic continuation | Complete | — | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
 | P13 | Chapter navigation | Complete | — | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
-| P28 | Validate Movi Player for broader browser container and codec playback | Complete | — | [Integration and recorded smoke validation](development/movi.md#recorded-smoke-validation) | — |
+| P28 | Validate Movi Player for broader browser container and codec playback | Complete | — | [Integration and recorded smoke validation](development/movi.md#recorded-smoke-validation) | 1.6.0 |
 
 #### Delivery Notes (P)
 
-- **P08:** **Delivered:** Text-track discovery, selection, extraction and delivery; font attachments. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts).
-- **P09:** **Delivered:** Styled ASS/SSA, fallback fonts and embedded TTF/OTF support. **Remaining:** Bitmap subtitle compatibility; extraction is Later under P16, while rendering, OCR and burn-in remain unassigned. **Release record:** 0.2.0 (styles and fallback fonts); 0.2.6 (embedded fonts).
-- **P17:** Preset-based evaluation of existing and new resources, per-track processing, reuse and persistent recovery. **Release record:** 1.4.0; 1.4.1 (10-bit SDR video in the Web preset).
+- **P05:** Capability-based playback negotiation was delivered in 0.2.0 and retired in 1.6.0. Users explicitly choose the original or a prepared copy.
+- **P08–P09:** Current subtitle behavior, remaining work and release history are recorded in the [playback inventory](requirements.md#delivery-notes-p).
+- **P17:** Preset-based automatic preparation was delivered in 1.4.0 and retired in 1.6.0. Preparation is manual.
 - **P11:** Consecutive local regular episodes, explicit version choice and opt-in browser-local continuation with cancellable countdown.
 - **P12:** Custom preparation profiles can select FFmpeg hardware encoders. Availability depends on the server's FFmpeg build, hardware and drivers. **Release record:** 0.2.0 (hardware encoding).
 - **P18:** Preparation can preserve HDR streams when packaging permits. **Release record:** 1.4.0 (HDR stream preservation; partial).
@@ -258,18 +255,14 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 Preparation profiles now use the v2 runtime configuration contract: open FFmpeg
 encoders/options, scoped parameters, single-stream filters, profile-owned copying,
 startup-only file loading, and field-level capability diagnostics.
-Queued/running jobs retain immutable execution snapshots; published output facts
-remain authoritative for playback. Unknown predicted browser compatibility permits
-manual preparation, with actual-output checks before publication. V1 configuration
-files require manual migration; legacy database records and completed copies remain
-readable. Target-matching copying is independent of browser compatibility and the
-compatibility-copy switch: same codec plus only explicitly configured output
-constraints, with per-track encoding on mismatch or missing required metadata.
-All encoder options, including profile and level, apply only to encoded streams.
-Automatic presets still require accepted copied streams: rejected or unknown
-acceptance falls back to encoding, and forced copying blocks instead. Actual
-outputs must pass acceptance before publication. See
-[Transcode profiles](guide/transcode-profiles.md). **Release record:** 1.5.1 (v2 profiles and target-matching copying).
+Preparation uses immutable execution snapshots and validates output before
+publication. V1 profile files require manual migration; completed copies remain
+available. Matching streams may be copied according to profile and container
+constraints; encoder options apply when encoding. Since 1.6.0, preparation is
+manual and does not use browser capability predictions. New copies preserve
+subtitles, fonts and chapters, with Matroska as the default container. See
+[Transcode profiles](guide/transcode-profiles.md) and [Manual preparation](guide/manual-preparation.md).
+**Release record:** 1.5.1 (v2 profiles and target-matching copying); 1.6.0 (manual preparation and preservation).
 
 #### Prepared-media File Management (P27)
 
@@ -294,7 +287,7 @@ not evicted when the budget is lowered.
 Untracked disk files, temporary processing output and task-history management are
 outside this inventory.
 
-#### Preparation Monitor and Retry (P17, O08)
+#### Preparation Monitor and Retry (O08)
 
 The floating preparation monitor lists every queued, processing or cancelling task
 and loads inactive history in batches of ten. It reports active, failed and total
@@ -753,7 +746,7 @@ for media access. Technical authentication and proxy design belong in
 
 #### Embedded fonts (P15)
 
-- **P15 Embedded fonts:** use valid embedded TTF/OTF fonts for ASS/SSA subtitles,
-  including external subtitles and playback of prepared copies. Font failures must
-  preserve usable subtitles with fallback feedback and retry. Exact missing-font
-  diagnosis and broad browser compatibility certification remain unverified.
+P15 previously supported embedded TTF/OTF fonts for ASS/SSA subtitles. The former
+font extraction and rendering path was retired in 1.6.0; Movi does not render embedded
+fonts. Prepared files can retain font attachments for external players. Full font
+rendering remains part of the unassigned P09 subtitle fidelity scope.

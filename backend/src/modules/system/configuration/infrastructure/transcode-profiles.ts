@@ -82,7 +82,6 @@ export function parseTranscodeProfiles(source: string): TranscodeProfile[] {
 	}
 	return value.profiles.map((profile) => ({
 		...profile,
-		copyCompatibleStreams: profile.copyCompatibleStreams ?? false,
 		video: { ...profile.video, codec: profile.video.codec ?? "" },
 		audio: { ...profile.audio, codec: profile.audio.codec ?? "" },
 	}));

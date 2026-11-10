@@ -9,8 +9,9 @@ preparation profile in Settings. Select which audio tracks to retain when offere
 all source audio tracks are retained by default. Tasks can be monitored, cancelled,
 retried and completed copies deleted from the prepared-media page.
 
-The default **Matroska** profile creates H.264/AAC MKV while retaining embedded
-subtitles, font attachments and chapters. Existing profiles keep their IDs/settings.
+The default **Balanced** profile creates H.264/AAC MKV while retaining embedded
+subtitles, font attachments and chapters. All four built-in profiles use Matroska
+and retain their encoding settings.
 Custom containers that cannot satisfy the preservation policy are rejected before
 work starts; choose Matroska rather than losing subtitles silently.
 

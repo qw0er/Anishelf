@@ -62,16 +62,9 @@ export function resolveExecutionPlan(
 		(profile.video.maxFrameRate !== undefined &&
 			(video.frameRate === null ||
 				video.frameRate > profile.video.maxFrameRate));
-	const copyCompatibleStreams = profile.copyCompatibleStreams;
 	const matchedVideo =
 		canMux(profile.container, video.codec, "video") &&
 		matchesVideoTarget(video, profile.video);
-	const canCopyVideo =
-		!resize &&
-		canMux(profile.container, video.codec, "video") &&
-		(profile.video.encoder !== "copy" ||
-			!profile.video.codec ||
-			profile.video.codec === video.codec);
 	if (
 		profile.video.encoder === "copy" &&
 		!(
@@ -82,11 +75,7 @@ export function resolveExecutionPlan(
 	)
 		return { kind: "blocked", reason: "forced-video-copy-unavailable" };
 	const v =
-		profile.video.encoder === "copy" ||
-		matchedVideo ||
-		(copyCompatibleStreams && canCopyVideo)
-			? "copy"
-			: "encode";
+		profile.video.encoder === "copy" || matchedVideo ? "copy" : "encode";
 	if (v === "encode" && !profile.video.codec)
 		return { kind: "blocked", reason: "video-codec-required" };
 	const tracks = audios.map((audio) => {
@@ -103,10 +92,7 @@ export function resolveExecutionPlan(
 		const matched =
 			canMux(profile.container, audio.codec, "audio") &&
 			matchesAudioTarget(audio, profile.audio);
-		const copy =
-			(profile.audio.encoder === "copy" && canCopy) ||
-			matched ||
-			(copyCompatibleStreams && canCopy);
+		const copy = (profile.audio.encoder === "copy" && canCopy) || matched;
 		return {
 			sourceIndex: audio.index,
 			default: audio.default ?? audio.index === input.defaultAudioStreamIndex,
@@ -225,29 +211,21 @@ export function resolveExecutionPlan(
 				v === "copy"
 					? profile.video.encoder === "copy"
 						? "explicit-copy"
-						: matchedVideo
-							? "profile-matched"
-							: "container-supported"
+						: "profile-matched"
 					: resize
 						? "profile-size-required"
-						: !copyCompatibleStreams
-							? "profile-encoding-required"
-							: "encoding-required",
+						: "profile-encoding-required",
 			audio: !audio
 				? "no-audio-stream"
 				: a === "copy"
 					? profile.audio.encoder === "copy"
 						? "explicit-copy"
-						: audios.every((audio) => matchesAudioTarget(audio, profile.audio))
-							? "profile-matched"
-							: "container-supported"
+						: "profile-matched"
 					: profile.audio.channels ||
 							profile.audio.sampleRate ||
 							profile.audio.filters?.length
 						? "profile-stereo-required"
-						: !copyCompatibleStreams
-							? "profile-encoding-required"
-							: "encoding-required",
+						: "profile-encoding-required",
 		},
 		request: {
 			fileId: input.fileId,

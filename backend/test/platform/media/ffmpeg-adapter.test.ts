@@ -266,8 +266,6 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			"transcode-video",
 			"transcode",
 		] as const) {
-			profile.copyCompatibleStreams =
-				mode === "transcode-video" || mode === "transcode-audio";
 			profile.video.filters =
 				mode === "transcode" || mode === "transcode-video" ? ["null"] : [];
 			profile.audio.filters =
@@ -353,7 +351,12 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			if (mode === "remux") {
 				const fragmented = await processing.start({
 					...result.request,
-					plan: { ...result.request.plan, delivery: "media-source" },
+					plan: {
+						...result.request.plan,
+						container: "mp4",
+						outputFormat: "mp4",
+						delivery: "media-source",
+					},
 				}).completion;
 				expect(
 					(await readFile(fragmented.output.path)).includes(
@@ -386,7 +389,6 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				.map((stream) => stream.channels),
 		).toEqual([2, 2]);
 		await processing.release(resizedOutput.id);
-		profile.copyCompatibleStreams = false;
 		profile.video.filters = ["hqdn3d=1.5:1.5:6:6"];
 		profile.video.options = {
 			...profile.video.options,
