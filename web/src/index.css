@@ -647,102 +647,57 @@
 	}
 }
 
-/* Keep upstream AVPlayer controls inside the app's narrow playback surface. */
+/* Keep the complete picture visible and application portals in the fullscreen tree. */
 .anishelf-player {
-	/* Upstream hides the footer by translating it below the video. Clip both axes. */
-	overflow: clip;
+	aspect-ratio: var(--player-aspect-ratio);
 	max-width: calc(75vh * var(--player-aspect-ratio));
 	max-height: 75vh;
 }
-.anishelf-player:fullscreen {
+.anishelf-player movi-player {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.anishelf-player:fullscreen,
+.anishelf-player[data-viewport-fullscreen] {
 	width: 100%;
 	height: 100%;
 	max-width: none;
 	max-height: none;
+	aspect-ratio: auto;
 }
-/* Use the upstream visibility state so overlays share its inactivity timer. */
-.anishelf-player[data-playing="true"]:not([data-controls-open="true"]):not(
-		:has(:focus-visible)
-	):has(.avplayer-ui-container[data-bar-show="0"])
-	.anishelf-player-overlay-controls {
-	opacity: 0;
+.anishelf-player[data-viewport-fullscreen] {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	width: 100dvw;
+	height: 100dvh;
+}
+.anishelf-continuation-overlay {
+	position: absolute;
+	right: 1rem;
+	bottom: 5rem;
+	left: 1rem;
+	z-index: 20;
 	pointer-events: none;
+	color: white;
 }
-/* Keep controls reachable while paused or navigating them with the keyboard. */
-.anishelf-player:is(
-		[data-playing="false"],
-		[data-controls-open="true"],
-		:has(:focus-visible)
-	)
-	.avplayer-ui-container[data-bar-show="0"] {
-	cursor: auto;
+.anishelf-continuation-overlay > * {
+	width: fit-content;
+	margin-left: auto;
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	background: rgb(0 0 0 / 85%);
+	pointer-events: auto;
 }
-.anishelf-player:is(
-		[data-playing="false"],
-		[data-controls-open="true"],
-		:has(:focus-visible)
-	)
-	.avplayer-ui-container[data-bar-show="0"]
-	.avplayer-ui-player {
-	cursor: auto;
-}
-.anishelf-player:is(
-		[data-playing="false"],
-		[data-controls-open="true"],
-		:has(:focus-visible)
-	)
-	.avplayer-ui-container[data-bar-show="0"]
-	.avplayer-ui-footer,
-.anishelf-player:is(
-		[data-playing="false"],
-		[data-controls-open="true"],
-		:has(:focus-visible)
-	)
-	.avplayer-ui-container[data-bar-show="0"]
-	.avplayer-ui-footer
-	.avplayer-ui-progress-container {
-	transform: none;
-}
-.anishelf-player .avplayer-ui-loading-message {
+.anishelf-player-exit {
 	display: none;
+	position: absolute;
+	top: 0.75rem;
+	right: 0.75rem;
+	z-index: 30;
 }
-.anishelf-player .avplayer-ui-footer-right {
-	gap: 0.5rem;
-}
-@media (max-width: 480px) {
-	.anishelf-player {
-		--libmedia-ui-control-height: 32px;
-	}
-	.anishelf-player
-		.avplayer-ui-container
-		.avplayer-ui-footer
-		.avplayer-ui-control
-		.avplayer-ui-control-item:has(
-			.avplayer-ui-control-volume,
-			.avplayer-ui-control-loop,
-			.avplayer-ui-control-pip,
-			.avplayer-ui-control-play-rate
-		) {
-		display: none;
-	}
-	.anishelf-player .avplayer-ui-control-item {
-		margin: 0 2px;
-		min-width: 0;
-	}
-	.anishelf-player .avplayer-ui-control-timer {
-		font-size: 11px;
-		padding-inline: 4px;
-	}
-	.anishelf-player .avplayer-ui-control-timer .avplayer-ui-time-label {
-		min-width: 0;
-	}
-	.anishelf-player .avplayer-ui-control-subtitle-track-value {
-		font-size: 12px;
-	}
-	.anishelf-player .avplayer-ui-footer {
-		padding-inline: 4px;
-	}
-	.anishelf-player .avplayer-ui-footer-right {
-		gap: 0;
-	}
+.anishelf-player:fullscreen .anishelf-player-exit,
+.anishelf-player[data-viewport-fullscreen] .anishelf-player-exit {
+	display: block;
 }

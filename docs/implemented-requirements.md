@@ -207,6 +207,12 @@ Available episode versions expose Show in Files through their file action menu. 
 
 ### 2.3 Web Playback and Subtitles
 
+The release records below describe delivered capabilities at their first release.
+Current playback uses Movi's built-in renderer: ASS/SSA text remains available, but
+full styling/effects and embedded font rendering are not retained. Compatibility
+negotiation, automatic preparation and server subtitle/font extraction are retired;
+see the [current playback direction](requirements.md#movi-player-and-manual-preparation-direction).
+
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | P03 | Select or disable external VTT/SRT/ASS/SSA subtitles | Complete | — | — | 0.2.0 |

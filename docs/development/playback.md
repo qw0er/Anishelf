@@ -7,7 +7,7 @@
 Resources owns original-file identities, source versions and confined reads. Media owns
 inspection, explicit preparation commands and published files. Playback owns the
 selected resource binding, source-level progress, sessions and completion observations.
-The browser's AVPlayer UI owns decoding, rendering, audio/subtitle tracks and controls.
+Movi Player owns browser decoding, rendering, audio/subtitle tracks and controls.
 
 Media contains `inspection`, `preparation/planning`, `preparation/execution`,
 `artifacts`, `subtitles` and a catalog read model. Planning compiles user intent; it
@@ -28,8 +28,10 @@ unverified original trial. Access/version failures still prevent delivery.
 
 Each completed asset describes actual inspected bytes, independent of current
 profile settings. Output audio positions map back to source stream indices.
-AVPlayer's stream IDs are translated through its stream inventory; they are not
-assumed to equal FFprobe indices. Version links remain source/version-bound.
+Movi's core audio track IDs identify FFmpeg stream indices in the loaded asset;
+the adapter maps those through the asset's audio inventory back to source indices.
+Language-keyed selection is not used, so same-language tracks remain distinct.
+Version links remain source/version-bound.
 
 Runtime failures retain the selected binding and show an explicit retry action.
 They do not start processing or persist a browser incompatibility verdict.
@@ -39,8 +41,9 @@ its own inventory when opened, and users explicitly choose newly prepared copies
 ## Frontend lifecycle
 
 `PlaybackClock` exposes time and duration in milliseconds, playback state, events
-and play/seek operations without an HTMLVideoElement dependency. AVPlayer's event
-adapter handles Canvas, WebCodecs and MSE paths. Source/media time mappings preserve
+and play/seek operations without an HTMLVideoElement dependency. Movi's core uses
+seconds; the adapter converts at this boundary and translates its state and seek
+events into the application lifecycle. Source/media time mappings preserve
 one resume history across originals and prepared copies. Title and audio changes do
 not recreate the selected file's player; navigation detaches listeners and destroys it.
 
@@ -53,10 +56,12 @@ Only natural source completion can mark the whole source watched.
 
 ## Subtitles
 
-AVPlayer reads embedded subtitle tracks and font attachments from the selected bytes.
-The application registers bounded font attachments with the browser and releases
-them when the player is destroyed; see [libmedia integration](libmedia.md) for the
-pinned runtime adapter and upstream subtitle limitations.
+Movi reads embedded subtitle tracks from the selected bytes and renders them with
+its built-in renderer. Full ASS/SSA styling, positioning, karaoke and embedded font
+registration are not retained. External ASS/SSA is parsed in the browser into text
+and timed cues, with style and drawing instructions removed. VTT/SRT uses Movi's
+native external subtitle support. See [Movi Player integration](movi.md) for the
+pinned runtime adapter and subtitle limitations.
 The backend only discovers matching sidecars and reads bounded text through confined
 resource access. Content URLs carry both video and subtitle versions. Missing or
 changed sidecars cannot bypass source access fencing. No embedded extraction,
@@ -91,7 +96,7 @@ Retired generated subtitle/font directories are cleaned on startup.
 
 ## Runtime distribution and validation
 
-See [libmedia integration](libmedia.md) for pinned resources and build instructions.
+See [Movi Player integration](movi.md) for pinned resources and build instructions.
 Acceptance covers real file playback, Range/seek, audio identity, sidecars, progress,
 manual preparation/recovery and preservation of subtitle/font/chapter data.
 Native browser prediction APIs are not acceptance evidence. Validate real media and

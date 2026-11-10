@@ -15,7 +15,6 @@ export type {
 	CatalogReviewItem,
 	CatalogReviewResponse,
 	CatalogSourceResponse,
-	ChaptersResponse,
 	DirectoryResponse,
 	DirectorySearchResponse,
 	DownloadActivity,

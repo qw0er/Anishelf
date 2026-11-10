@@ -4,7 +4,7 @@ A personal anime library and browser player with AniList tracking and automatic
 subscription downloads.
 
 - Poster library with automatic identification and manual association review.
-- AVPlayer browser playback, client subtitles and manual media preparation.
+- Movi Player browser playback, client subtitles and manual media preparation.
 - Playback history, resume and external-player links.
 - AniList lists, viewing progress and Watching-based subscription creation.
 - Unified subscriptions, qBittorrent downloads and verified library ingestion.

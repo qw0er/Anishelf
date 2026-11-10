@@ -108,7 +108,11 @@ module.exports = {
 			name: "no-unresolved-source-imports",
 			severity: "error",
 			from: { path: "^(backend|web)/src" },
-			to: { couldNotResolve: true },
+			to: {
+				couldNotResolve: true,
+				// Vite resolves this exported npm asset; its query is not a JS module specifier.
+				pathNot: "^movi-player/movi\\.wasm\\?url$",
+			},
 		},
 		{
 			name: "no-runtime-cycles",

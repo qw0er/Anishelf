@@ -140,38 +140,38 @@ failures and works already present in the user's library or tracking list.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial | Later | [Text subtitles and fonts supported; bitmap extraction pending](#delivery-notes-p) | 0.2.0 |
-| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial | Unassigned | [Styled ASS/SSA and fonts supported; bitmap compatibility pending](#delivery-notes-p) | 0.2.0 |
+| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial | Later | [Client subtitle rendering; server extraction retired](#delivery-notes-p) | 0.2.0 |
+| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial | Unassigned | [Basic ASS/SSA text; full styles and embedded fonts unavailable with Movi](#delivery-notes-p) | 0.2.0 |
 | P14 | Begin playback during conversion, with seeking and synchronized subtitles/progress | Not started | Later | — | — |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Not started | Later | — | — |
 | P12 | Hardware-accelerated transcoding | Partial | Optional | [Hardware encoding profiles supported; broader acceleration optional](#delivery-notes-p) | 0.2.0 |
 | P18 | HDR playback and conversion handling | Partial | Optional | [Accepted HDR streams preserved; conversion and broader handling optional](#delivery-notes-p) | 1.4.0 |
 | P20 | Configure media preparation task concurrency | Partial | Optional | [Fixed single-worker queue; configurable concurrency optional](#delivery-notes-p) | 0.2.0 |
 | P21 | Limit CPU processing capacity per preparation task | Not started | Optional | — | — |
-| P22 | Automatic preparation | — | Out of scope | Retired in the AVPlayer/manual-preparation design | — |
-| P28 | Validate AVPlayer for broader browser container and codec playback | Not started | Planned | [Feasibility evaluation; adoption pending results](#avplayer-feasibility-validation-p28) | — |
+| P22 | Automatic preparation | — | Out of scope | Retired in the client-playback/manual-preparation design | — |
+| P28 | Validate Movi Player for broader browser container and codec playback | Partial | Ongoing validation | [Movi integration; browser/device validation remains](#movi-player-validation-p28) | — |
 
 #### Delivery Notes (P)
 
-- **P08:** **Delivered:** Text-track discovery, selection, extraction and delivery; font attachments. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts).
-- **P09:** **Delivered:** Styled ASS/SSA, fallback fonts and embedded TTF/OTF support. **Remaining:** Bitmap subtitle compatibility; extraction is Later under P16, while rendering, OCR and burn-in remain unassigned. **Release record:** 0.2.0 (styles and fallback fonts); 0.2.6 (embedded fonts).
+- **P08:** **Current:** Embedded subtitles are decoded by Movi in the browser; matching VTT/SRT/ASS/SSA sidecars remain selectable. Server extraction is retired. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts in the former renderer).
+- **P09:** **Current:** Movi's built-in renderer supplies basic subtitle rendering. External ASS/SSA retains text and timing but discards styles, drawings and effects; full ASS/SSA styling and embedded fonts are unavailable. No alternative renderer is included. **Remaining:** Full styled subtitle/font fidelity and bitmap compatibility. **Release record:** 0.2.0 (styles and fallback fonts in the former renderer); 0.2.6 (embedded fonts in the former renderer).
 - **P12:** **Delivered:** Custom preparation profiles support NVENC and QSV for H.264/HEVC/AV1, and VideoToolbox for H.264/HEVC. **Remaining:** Broader hardware acceleration. **Release record:** 0.2.0 (hardware encoding; partial).
 - **P18:** **Delivered:** Preparation can preserve HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
-#### AVPlayer Feasibility Validation (P28)
+#### Movi Player Validation (P28)
 
-Evaluate [libmedia / AVPlayer](https://github.com/zhaohappy/libmedia) as a candidate
-playback engine for playing more original media in the browser and reducing the
-need for server-side preparation. This requirement covers validation and an
-adoption recommendation; it does not commit to replacing the current player or
-promise universal format support. No release is assigned.
+The browser integration uses [Movi Player](https://github.com/MrUjjwalG/movi-player)
+0.4.1 with its built-in controls and renderer. It replaces the former playback
+engine while preserving explicit original/prepared asset selection, progress and
+manual preparation. The integration does not promise universal format support;
+browser/device coverage and performance require measured validation.
 
 - Use real animation samples to distinguish container incompatibility from codec
   incompatibility. Include MKV with H.264/AAC, HEVC Main/Main 10, H.264 High 10,
   and representative FLAC/AC-3/DTS audio. Record exact profiles and sample details;
   unsupported combinations are valid findings, not assumed capabilities.
-- Verify which samples play through WebCodecs, WASM software decoding or MSE,
+- Verify which samples play through WebCodecs or WASM software decoding,
   including behavior when a decoding path is unavailable or fails. Test desktop
   Chromium, Firefox and Safari, plus iOS Safari and Android Chromium, recording
   browser, OS and device versions. Mark environments that could not be tested.
@@ -181,9 +181,11 @@ promise universal format support. No release is assigned.
   buffering and network range reads with large remote files rather than requiring
   a full-file download before playback.
 - Verify integration with existing player controls, audio-track selection,
-  styled subtitles and fonts, subtitle timing, chapters, playback speed,
+  basic subtitle rendering, subtitle timing, chapters, playback speed,
   fullscreen, keyboard controls, saved progress and episode continuation. Record
-  mobile fullscreen and background-playback limitations explicitly.
+  mobile fullscreen and background-playback limitations explicitly. Record ASS/SSA
+  style/effect and embedded-font limitations; basic text playback does not establish
+  full subtitle fidelity.
 - Check WASM loading, worker and security-header requirements against deployment
   modes, along with dependency licensing and required asset distribution. Capture
   diagnostic logs for the chosen playback path, decoder failures and fallback,
@@ -193,11 +195,11 @@ promise universal format support. No release is assigned.
   when seeking, switching tracks, changing episodes or leaving playback.
 
 Acceptance requires a reproducible sample/device results matrix, measured benefits
-and limitations, an integration assessment for the existing Vidstack-based player,
-and a recommendation to adopt, limit to selected cases, or defer AVPlayer. Document
-the proposed playback and fallback design in [Playback design](development/playback.md)
-before scheduling production integration. Library format lists alone do not count
-as playback acceptance evidence.
+and limitations, and regression evidence for the existing progress and continuation
+flows. The integration and explicit recovery design is recorded in
+[Playback design](development/playback.md) and
+[Movi Player integration](development/movi.md). Library format lists alone do not
+count as playback acceptance evidence.
 
 #### Media Processing Resource Controls (P20–P21)
 
@@ -527,14 +529,16 @@ behavior, impact, reproduction conditions and verification evidence as they beco
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 
-## AVPlayer and manual preparation direction
+## Movi Player and manual preparation direction
 
-The current implementation replaces native browser compatibility negotiation with
-AVPlayer UI playback. Users explicitly choose original files or prepared copies.
+The current implementation uses Movi Player for client playback without browser
+compatibility negotiation. Users explicitly choose original files or prepared copies.
 Preparation is manual; automatic preparation, server embedded-subtitle extraction
 and font preparation are retired. The server still probes preparation input/output
 and validates tools, container constraints and source access. New copies preserve
 subtitles, fonts and chapters, using Matroska by default. Browser/device performance
 and subtitle fidelity require actual sample validation; support lists do not certify
-universal playback. This direction supersedes earlier compatibility-driven preparation
-and automatic-processing-window requirements.
+universal playback. Built-in ASS/SSA rendering does not preserve full styles,
+effects or embedded fonts; external ASS/SSA is reduced to text and timing. This
+direction supersedes earlier compatibility-driven preparation,
+automatic-processing-window and full client-font-rendering requirements.

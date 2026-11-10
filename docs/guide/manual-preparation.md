@@ -1,6 +1,6 @@
 # Manual preparation
 
-Play the original file with AVPlayer, or explicitly choose a completed copy from
+Play the original file with Movi Player, or explicitly choose a completed copy from
 playback options. Playback never starts a preparation job or chooses a copy from a
 browser compatibility prediction.
 
@@ -17,6 +17,10 @@ work starts; choose Matroska rather than losing subtitles silently.
 [Transcode profiles](transcode-profiles.md) describe video/audio encoding. Matching
 streams may be copied according to profile rules and container constraints, without
 browser capability checks. FFmpeg encoders and filters must exist on the server.
+
+Preserving subtitles and fonts in a prepared file does not certify browser subtitle
+fidelity. Movi's built-in renderer displays basic ASS/SSA text; full styles, effects
+and embedded fonts are not supported. Use an external player when those are needed.
 
 Existing copies survive profile changes/removal. Older copies created without
 embedded subtitles remain unchanged; use the original or explicitly prepare a new

@@ -242,7 +242,9 @@
 			"countdown_one": "Continuing in {{count}} second…",
 			"countdown_other": "Continuing in {{count}} seconds…",
 			"playBlocked": "Press Play to continue. Your browser could not start playback automatically."
-		}
+		},
+		"subtitleLimitations": "ASS/SSA subtitles use basic text rendering. Styling, effects and embedded fonts are not preserved.",
+		"exitFullscreen": "Exit fullscreen"
 	},
 	"actions": {
 		"details": "Details",

@@ -153,11 +153,13 @@ export default function FilePlayer({
 							displayTitle={title}
 							active={active}
 							sourceVersion={source.sourceVersion}
+							playbackReady={playback.restored}
 							onFullscreenChange={setFullscreen}
 							onContinuationOverlay={setContinuationOverlay}
 							onEndedChange={(ended) => setEndedAsset(ended ? activeKey : null)}
 							onMedia={playback.attach}
 							onPlaybackFailure={selection.failed}
+							onPlaybackRecovered={selection.recovered}
 							onAudioChange={(index) => selectAudio(String(index))}
 						/>
 					</QueryScope>

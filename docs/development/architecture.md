@@ -327,8 +327,9 @@ See [WI10 delivery and validation](../implemented-requirements.md#library-and-de
 ## Media and playback collaboration
 
 Media compiles and executes explicit manual preparation commands; Playback binds
-existing bytes and owns source-level viewing progress. AVPlayer UI handles browser
-demux/decode, controls, embedded subtitles and fonts. No browser capability evidence
+existing bytes and owns source-level viewing progress. Movi Player handles browser
+demux/decode, controls and embedded subtitles. Its built-in renderer does not preserve
+full ASS/SSA styling or embedded fonts. No browser capability evidence
 crosses a module boundary, and playback never creates preparation work.
 
 Media organizes inspection, preparation/planning, preparation/execution, artifacts,
@@ -342,7 +343,7 @@ The frontend adapter exposes milliseconds and lifecycle events without requiring
 video element. Explicit file/version selection, audio source/output mapping, source
 time, progress retry/order and completion observations remain application behavior.
 Runtime failures retain the selected resource; users retry or choose another file.
-See [playback](playback.md) and [libmedia integration](libmedia.md).
+See [playback](playback.md) and [Movi Player integration](movi.md).
 
 ## Playback Completion Observation
 

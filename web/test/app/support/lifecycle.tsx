@@ -1,4 +1,4 @@
-import "../../support/mock-avplayer.js";
+import "../../support/mock-movi.js";
 import { afterEach, beforeEach, vi } from "vitest";
 import { queryClient } from "../../../src/shared/api/query-client.js";
 import { toast } from "../../../src/shared/components/ui/toast.js";

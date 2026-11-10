@@ -165,5 +165,5 @@ export function usePlaybackSession(
 		},
 		[],
 	);
-	return { session: state.session, attach };
+	return { session: state.session, restored: state.restored, attach };
 }

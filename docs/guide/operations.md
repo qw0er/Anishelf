@@ -170,7 +170,8 @@ changes to the same paths from other applications during these commands.
 
 ## Playback and preparation
 
-AVPlayer handles client playback and embedded subtitles. Preparation is manual only;
+Movi Player handles client playback and embedded subtitles. Its built-in renderer
+does not preserve full ASS/SSA styles, effects or embedded fonts. Preparation is manual only;
 see [manual preparation](manual-preparation.md). The default Matroska profile preserves
 subtitles, fonts and chapters. Legacy automatic preparation keys are ignored and are
 removed on the next settings save.

@@ -80,5 +80,6 @@ export function usePlaybackSelection(
 		failed: (failure: PlaybackFailure) => {
 			setRuntimeFailure(failure);
 		},
+		recovered: () => setRuntimeFailure(null),
 	};
 }

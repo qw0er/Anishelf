@@ -1,59 +1,61 @@
 import type { MediaTimeline } from "@anishelf/backend/contracts/media";
-import type AVPlayerUI from "@libmedia/avplayer-ui";
-import { type CSSProperties, useEffect, useRef, useState } from "react";
+import type { MoviElement } from "movi-player/element";
+import wasmUrl from "movi-player/movi.wasm?url";
+import { type CSSProperties, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
-import { discoverSubtitles } from "../../../media/public.js";
-import { AVPlayerClock, decoderResource, loadPlayer } from "../avplayer.js";
-import { type PlayerChapter, playerChapters } from "../chapters.js";
 import type { PlaybackClock } from "../engine.js";
-import { registerEmbeddedFonts } from "../fonts.js";
-import type { PlaybackFailure } from "../runtime.js";
-import { ChapterMenu } from "./chapter-menu.js";
+import { bindFullscreen } from "../fullscreen.js";
+import { loadPlayer, MoviClock } from "../movi.js";
+import { type PlaybackFailure, playbackFailure } from "../runtime.js";
+import { prepareExternalSubtitles } from "../subtitles.js";
+
 export default function VideoPlayer({
 	fileId,
 	displayTitle,
 	active,
 	sourceVersion,
+	playbackReady = true,
 	onMedia,
 	onEndedChange,
 	onFullscreenChange,
 	onContinuationOverlay,
 	onPlaybackFailure,
+	onPlaybackRecovered,
 	onAudioChange,
 }: {
 	fileId: string;
 	displayTitle: string;
 	active: ActivePlayback;
 	sourceVersion: string;
+	playbackReady?: boolean;
 	onMedia?(clock: PlaybackClock | null, timeline: MediaTimeline): void;
 	onEndedChange?(ended: boolean): void;
 	onFullscreenChange?(fullscreen: boolean): void;
 	onContinuationOverlay?(element: HTMLDivElement | null): void;
 	onPlaybackFailure?(failure: PlaybackFailure): void;
+	onPlaybackRecovered?(): void;
 	onAudioChange?(index: number): void;
 }) {
-	const { i18n, t } = useTranslation();
+	const { t } = useTranslation();
 	const container = useRef<HTMLDivElement>(null);
-	const fullscreenContainer = useRef<HTMLElement>(null);
-	const [hasSubtitles, setHasSubtitles] = useState(false);
-	const [chapters, setChapters] = useState<PlayerChapter[]>([]);
-	const [chapterMenuOpen, setChapterMenuOpen] = useState(false);
-	const [playing, setPlaying] = useState(false);
-	const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
-	const subtitlesEnabledRef = useRef(true);
-	const current = useRef(active);
-	current.current = active;
-	const playerRef = useRef<AVPlayerUI | null>(null);
-	const clockRef = useRef<AVPlayerClock | null>(null);
-	const mutedVolume = useRef<number | null>(null);
+	const surface = useRef<HTMLElement>(null);
+	const overlay = useRef<HTMLDivElement>(null);
+	const playerRef = useRef<MoviElement | null>(null);
+	const syncAudioRef = useRef<
+		((audio: ActivePlayback["audio"]) => void) | null
+	>(null);
+	const silentVolume = useRef<number | null>(null);
+	const current = useRef({ active, playbackReady, displayTitle, t });
+	current.current = { active, playbackReady, displayTitle, t };
 	const callbacks = useRef({
 		onMedia,
 		onEndedChange,
 		onFullscreenChange,
 		onContinuationOverlay,
 		onPlaybackFailure,
+		onPlaybackRecovered,
 		onAudioChange,
 	});
 	callbacks.current = {
@@ -62,332 +64,251 @@ export default function VideoPlayer({
 		onFullscreenChange,
 		onContinuationOverlay,
 		onPlaybackFailure,
+		onPlaybackRecovered,
 		onAudioChange,
 	};
 	const bindingKey = `${active.asset.id}:${active.asset.revision}:${active.resource.url}`;
-
 	useEffect(() => {
-		const binding = current.current;
+		const host = container.current;
+		const shell = surface.current;
+		if (!host || !shell) return;
+		const binding = current.current.active;
 		if (
 			`${binding.asset.id}:${binding.asset.revision}:${binding.resource.url}` !==
 			bindingKey
 		)
 			return;
-		const host = container.current;
-		if (!host) return;
-		host.inert = true;
-		setHasSubtitles(false);
-		setChapters([]);
-		setChapterMenuOpen(false);
-		setPlaying(false);
-		let cancelled = false;
-		let player: AVPlayerUI | undefined;
-		let clock: AVPlayerClock | undefined;
-		let releaseFonts: (() => void) | undefined;
-		const abort = new AbortController();
 		const timeline = binding.resource.timeline;
+		const abort = new AbortController();
+		let player: MoviElement | undefined;
+		let clock: MoviClock | undefined;
+		let subtitles:
+			| Awaited<ReturnType<typeof prepareExternalSubtitles>>
+			| undefined;
+		let releaseFullscreen: (() => void) | undefined;
 		let notified = false;
+		let failed = false;
+		let loadedTimer: ReturnType<typeof setTimeout> | undefined;
 		const fail = (error?: unknown) => {
-			if (cancelled || notified) return;
+			if (abort.signal.aborted || notified) return;
 			notified = true;
-			const code =
-				typeof error === "object" &&
-				error !== null &&
-				"code" in error &&
-				typeof error.code === "number"
-					? error.code
-					: null;
-			const failure: PlaybackFailure = {
-				code,
-				kind:
-					code === 2
-						? "network"
-						: code === 3
-							? "decode"
-							: code === 4
-								? "unsupported"
-								: "unknown",
-			};
+			failed = true;
+			const failure = playbackFailure(error);
 			toast.add({
 				id: `video-playback:${fileId}`,
 				type: "error",
-				title: t(`player.failures.${failure.kind}`),
+				title: current.current.t(`player.failures.${failure.kind}`),
 			});
-			console.warn("[playback] AVPlayer failed.", {
+			console.warn("[playback] Movi Player failed.", {
 				fileId,
 				assetId: binding.asset.id,
 			});
 			callbacks.current.onPlaybackFailure?.(failure);
 		};
-		const fullscreen = () =>
-			callbacks.current.onFullscreenChange?.(
-				Boolean(document.fullscreenElement),
-			);
-		document.addEventListener("fullscreenchange", fullscreen);
-		callbacks.current.onContinuationOverlay?.(host);
-		void (async () => {
-			const Player = await loadPlayer();
-			if (cancelled) return;
-			try {
-				localStorage.setItem(
-					"libmedia_system_language",
-					i18n.language.startsWith("zh") ? "chinese" : "english",
-				);
-			} catch {}
-			player = new Player({
-				container: host,
-				fullscreenDom: fullscreenContainer.current ?? host,
-				ui: {
-					hasFolder: false,
-					// Upstream ties control auto-hide to the folder's folded state.
-					folderFolded: true,
-					hasHeader: false,
-					hasFooter: true,
-				},
-				getWasm: decoderResource,
-				enableWebCodecs: true,
-				enableHardware: true,
-				// In 1.3.1, subtitle packets cannot cross the non-shared Worker heap.
-				enableWorker: false,
-				findBestStream: (streams, mediaType) => {
-					const type = ["Video", "Audio", "Data", "Subtitle", "Attachment"][
-						mediaType
-					];
-					const choices =
-						player
-							?.getStreams()
-							.filter(
-								(s) => s.mediaType === type && (s.disposition & 1024) === 0,
-							) ?? [];
-					const requested =
-						mediaType === 1
-							? current.current.audio?.streamIndex
-							: mediaType === 0
-								? current.current.asset.video?.index
-								: undefined;
-					const chosen =
-						choices.find((s) => s.index === requested) ??
-						choices.find((s) => (s.disposition & 1) !== 0) ??
-						choices.find((s) => (s.disposition & 1024) === 0);
-					// Upstream accepts an absent stream, although its callback type excludes undefined.
-					return streams.find(
-						(s) => s.id === chosen?.id,
-					) as (typeof streams)[number];
-				},
-			});
-
-			const updateSubtitles = () => {
-				// Upstream starts subtitle rendering after emitting some playback events.
-				queueMicrotask(() => {
-					if (cancelled || !player) return;
-					setHasSubtitles(
-						player
-							.getStreams()
-							.some((stream) => stream.mediaType === "Subtitle"),
-					);
-					if (!subtitlesEnabledRef.current) player.setSubtitleEnable(false);
-				});
-			};
-			for (const event of ["played", "seeked", "changed", "streamUpdate"])
-				player.on(event, updateSubtitles);
-			player.on("error", fail);
-			player.on("played", () => setPlaying(true));
-			for (const event of ["paused", "ended", "stopped", "error"])
-				player.on(event, () => setPlaying(false));
-			player.on("ended", () => callbacks.current.onEndedChange?.(true));
-			player.on("played", () => callbacks.current.onEndedChange?.(false));
-			player.on("changed", () => {
-				if (!player) return;
-				const id = player.getSelectedAudioStreamId();
-				const index = player.getStreams().find((s) => s.id === id)?.index;
-				const track = current.current.asset.audioTracks.find(
-					(t) => t.stream.index === index,
-				);
-				if (
-					track &&
-					track.sourceStreamIndex !== current.current.audio?.sourceStreamIndex
-				)
-					callbacks.current.onAudioChange?.(track.sourceStreamIndex);
-			});
-			const sidecars = await discoverSubtitles(fileId, {
-				signal: abort.signal,
-			}).catch(() => null);
-			if (cancelled) return;
-			const externalSubtitles =
-				sidecars?.sourceVersion === sourceVersion
-					? (
-							await Promise.all(
-								sidecars.tracks
-									.filter(
-										(track) => track.origin === "external" && track.format,
-									)
-									.map(async (track) => {
-										try {
-											const response = await fetch(
-												`/api/files/${encodeURIComponent(fileId)}/subtitles/${encodeURIComponent(track.id)}/content?${new URLSearchParams({ sourceVersion, subtitleVersion: track.sourceVersion })}`,
-												{ credentials: "same-origin", signal: abort.signal },
-											);
-											if (!response.ok)
-												throw new Error("Subtitle unavailable.");
-											return {
-												// Upstream detects text formats from the filename; content URLs have no extension.
-												source: new File(
-													[await response.blob()],
-													`subtitle.${track.format}`,
-												),
-												title: track.label ?? track.name,
-												lang: track.language ?? "",
-											};
-										} catch {
-											if (!cancelled)
-												console.warn(
-													"[playback] A sidecar subtitle could not be loaded.",
-													{ fileId, trackId: track.id },
-												);
-											return null;
-										}
-									}),
-							)
-						).filter((track) => track !== null)
-					: [];
-			if (cancelled) return;
-			await player.load(new URL(binding.resource.url, location.origin).href, {
-				http: { credentials: "same-origin" },
-				externalSubtitles,
-			});
-			if (cancelled) return;
-			releaseFonts = await registerEmbeddedFonts(player);
-			if (cancelled) {
-				releaseFonts();
+		const syncAudio = (audio: ActivePlayback["audio"]) => {
+			if (!player?.player) return;
+			if (!audio) {
+				if (current.current.active.asset.audioTracks.length) {
+					silentVolume.current ??= player.volume;
+					player.volume = 0;
+				}
 				return;
 			}
-			if (current.current.audio) {
-				const stream = player
-					.getStreams()
-					.find((s) => s.index === current.current.audio?.streamIndex);
-				if (stream) await player.selectAudio(stream.id);
-			} else if (current.current.asset.audioTracks.length) {
-				mutedVolume.current = player.getVolume();
-				player.setVolume(0);
+			if (silentVolume.current !== null) {
+				player.volume = silentVolume.current;
+				silentVolume.current = null;
 			}
-			if (cancelled) return;
-			playerRef.current = player;
-			updateSubtitles();
-			clock = new AVPlayerClock(player);
-			clockRef.current = clock;
-			const loadedChapters = playerChapters(player.getChapters());
-			setChapters(loadedChapters);
-			clock.readyState = 1;
+			if (
+				player.player.trackManager.getActiveAudioTrack()?.id !==
+					audio.streamIndex &&
+				!player.player.selectAudioTrack(audio.streamIndex)
+			)
+				fail();
+		};
+		syncAudioRef.current = syncAudio;
+		const detachClock = () => {
+			clearTimeout(loadedTimer);
+			clock?.dispose();
+			clock = undefined;
+			callbacks.current.onMedia?.(null, timeline);
+			if (player) player.inert = true;
+		};
+		const attachLoaded = () => {
+			if (abort.signal.aborted || !player?.player) return;
+			if (clock?.player === player.player) return;
+			detachClock();
+			notified = false;
+			subtitles?.attach(player);
+			syncAudio(current.current.active.audio);
+			clock = new MoviClock(player, player.player);
 			clock.addEventListener("error", fail);
 			callbacks.current.onMedia?.(clock, timeline);
-			host.inert = false;
-			console.info("[playback] AVPlayer loaded.", {
+			player.inert = !current.current.playbackReady;
+			console.info("[playback] Movi Player loaded.", {
 				fileId,
 				assetId: binding.asset.id,
-				language: i18n.language,
-				controlsAutoHide: true,
-				chapterCount: loadedChapters.length,
+				chapterCount: player.player.getChapters().length,
 			});
+		};
+		const loaded = () => {
+			const core = player?.player;
+			clearTimeout(loadedTimer);
+			// Movi starts its internal opening-frame seek AFTER loadeddata. Restore after
+			// that startup work so it cannot overwrite the application's saved position.
+			loadedTimer = setTimeout(() => {
+				if (player?.player === core) attachLoaded();
+			}, 0);
+		};
+		const stateChanged = () => {
+			const core = player?.player;
+			if (failed && core?.getState() === "playing") {
+				failed = false;
+				notified = false;
+				toast.close(`video-playback:${fileId}`);
+				callbacks.current.onPlaybackRecovered?.();
+				console.info("[playback] Movi playback recovered.", {
+					fileId,
+					assetId: binding.asset.id,
+				});
+			}
+			if (clock && clock.player !== core) detachClock();
+			// Upstream software recovery can replace a core without another loadeddata.
+			if (
+				!clock &&
+				core &&
+				["ready", "paused", "playing"].includes(core.getState())
+			)
+				loaded();
+		};
+		const errorDisplay = (event: Event) => {
+			const detail = (
+				event as CustomEvent<{ title?: string; message?: string }>
+			).detail;
+			fail(new Error(`${detail?.title ?? ""} ${detail?.message ?? ""}`));
+		};
+		const audioChanged = () => {
+			// Initial default-track events must not overwrite the requested source track.
+			if (!clock || abort.signal.aborted) return;
+			const index = player?.player?.trackManager.getActiveAudioTrack()?.id;
+			const track = current.current.active.asset.audioTracks.find(
+				(item) => item.stream.index === index,
+			);
+			if (
+				track &&
+				track.sourceStreamIndex !==
+					current.current.active.audio?.sourceStreamIndex
+			)
+				callbacks.current.onAudioChange?.(track.sourceStreamIndex);
+		};
+		const ended = () => callbacks.current.onEndedChange?.(true);
+		const play = () => callbacks.current.onEndedChange?.(false);
+		void (async () => {
+			const module = await loadPlayer();
+			if (abort.signal.aborted) return;
+			subtitles = await prepareExternalSubtitles(
+				fileId,
+				sourceVersion,
+				timeline,
+				abort.signal,
+			);
+			if (abort.signal.aborted) {
+				subtitles.dispose();
+				return;
+			}
+			player = new module.MoviElement();
+			// The pinned element otherwise injects a Google Fonts stylesheet on its
+			// next animation frame. Keep player chrome self-contained with system fonts.
+			const fontStyle = document.createElement("style");
+			fontStyle.setAttribute("data-movi-font", "");
+			player.shadowRoot?.append(fontStyle);
+			playerRef.current = player;
+			player.inert = true;
+			for (const attribute of ["controls", "playsinline", "noerrorscreen"])
+				player.setAttribute(attribute, "");
+			player.setAttribute("persist", "none");
+			player.setAttribute("wasmurl", wasmUrl);
+			player.setAttribute("sw", "auto");
+			player.setAttribute("title", current.current.displayTitle);
+			player.setAttribute("crossorigin", "use-credentials");
+			player.className = "h-full w-full";
+			player.addEventListener("loadstart", detachClock);
+			player.addEventListener("loadeddata", loaded);
+			player.addEventListener("statechange", stateChanged);
+			player.addEventListener("error", fail);
+			player.addEventListener("errordisplay", errorDisplay);
+			player.addEventListener("ended", ended);
+			player.addEventListener("play", play);
+			player.addEventListener("audiotrackchange", audioChanged);
+			releaseFullscreen = bindFullscreen(player, shell, (full) =>
+				callbacks.current.onFullscreenChange?.(full),
+			);
+			player.append(...subtitles.tracks);
+			player.setAttribute(
+				"src",
+				new URL(binding.resource.url, location.origin).href,
+			);
+			callbacks.current.onContinuationOverlay?.(overlay.current);
+			host.append(player);
 		})().catch(fail);
 		return () => {
-			cancelled = true;
 			abort.abort();
-			document.removeEventListener("fullscreenchange", fullscreen);
-			callbacks.current.onMedia?.(null, timeline);
+			detachClock();
+			subtitles?.dispose();
+			releaseFullscreen?.();
 			callbacks.current.onContinuationOverlay?.(null);
+			if (player) {
+				player.removeEventListener("loadstart", detachClock);
+				player.removeEventListener("loadeddata", loaded);
+				player.removeEventListener("statechange", stateChanged);
+				player.removeEventListener("error", fail);
+				player.removeEventListener("errordisplay", errorDisplay);
+				player.removeEventListener("ended", ended);
+				player.removeEventListener("play", play);
+				player.removeEventListener("audiotrackchange", audioChanged);
+				player.src = null;
+				player.remove();
+			}
 			playerRef.current = null;
-			clockRef.current = null;
-			mutedVolume.current = null;
-			clock?.dispose();
-			releaseFonts?.();
-			void player?.destroy().catch(() => {});
+			syncAudioRef.current = null;
+			silentVolume.current = null;
 		};
-		// The engine binds bytes once. Track changes are applied below without replacing the clock/session.
-	}, [fileId, sourceVersion, i18n.language, bindingKey, t]);
-
+	}, [fileId, sourceVersion, bindingKey]);
 	useEffect(() => {
 		const player = playerRef.current;
 		if (!player) return;
-		const audio = active.audio;
-		if (!audio) {
-			mutedVolume.current ??= player.getVolume();
-			player.setVolume(0);
-			return;
-		}
-		if (mutedVolume.current !== null) {
-			player.setVolume(mutedVolume.current);
-			mutedVolume.current = null;
-		}
-		const stream = player
-			.getStreams()
-			.find((s) => s.index === audio.streamIndex);
-		if (stream && stream.id !== player.getSelectedAudioStreamId())
-			void player.selectAudio(stream.id).catch(() =>
-				callbacks.current.onPlaybackFailure?.({
-					kind: "unknown",
-					code: null,
-				}),
-			);
-	}, [active.audio]);
-
+		player.inert = !playbackReady;
+		player.setAttribute("title", displayTitle);
+		syncAudioRef.current?.(active.audio);
+	}, [active.audio, playbackReady, displayTitle]);
 	const aspectRatio =
 		active.asset.video?.width && active.asset.video.height
 			? active.asset.video.width / active.asset.video.height
 			: 16 / 9;
 	return (
-		<section
-			ref={fullscreenContainer}
-			className="anishelf-player relative mx-auto w-full bg-black"
-			data-playing={playing}
-			data-controls-open={chapterMenuOpen}
-			style={
-				{ aspectRatio, "--player-aspect-ratio": aspectRatio } as CSSProperties
-			}
-			aria-label={displayTitle}
-		>
-			<div className="h-full w-full" ref={container} />
-			<div className="anishelf-player-overlay-controls absolute top-3 right-3 z-20 flex gap-2">
-				{chapters.length > 0 && (
-					<ChapterMenu
-						chapters={chapters}
-						container={fullscreenContainer.current}
-						onOpenChange={setChapterMenuOpen}
-						onSelect={(chapter, index) => {
-							if (!clockRef.current) return;
-							clockRef.current.currentTimeMs = chapter.startMs;
-							console.info("[playback] Chapter selected.", {
-								fileId,
-								index,
-								startMs: chapter.startMs,
-							});
-						}}
-					/>
-				)}
-				{hasSubtitles && (
-					<button
-						type="button"
-						className="min-h-11 rounded-md border border-white/30 bg-black/80 px-3 text-sm text-white hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-						onClick={() => {
-							const player = playerRef.current;
-							if (!player) return;
-							const enabled = !subtitlesEnabledRef.current;
-							player.setSubtitleEnable(enabled);
-							subtitlesEnabledRef.current = enabled;
-							setSubtitlesEnabled(enabled);
-							console.info("[playback] Subtitle visibility changed.", {
-								fileId,
-								enabled,
-							});
-						}}
-					>
-						{t(
-							subtitlesEnabled
-								? "player.hideSubtitles"
-								: "player.showSubtitles",
-						)}
-					</button>
-				)}
-			</div>
-		</section>
+		<>
+			<section
+				ref={surface}
+				className="anishelf-player relative mx-auto w-full bg-black"
+				style={{ "--player-aspect-ratio": aspectRatio } as CSSProperties}
+				aria-label={displayTitle}
+			>
+				<div ref={container} className="h-full w-full" />
+				<div ref={overlay} className="anishelf-continuation-overlay" />
+				<button
+					type="button"
+					className="anishelf-player-exit min-h-11 rounded-md bg-black/80 px-3 text-sm text-white focus-visible:outline-2 focus-visible:outline-white"
+					onClick={() =>
+						playerRef.current?.dispatchEvent(
+							new CustomEvent("movi-fullscreen-request", { cancelable: true }),
+						)
+					}
+				>
+					{t("player.exitFullscreen")}
+				</button>
+			</section>
+			<p className="text-xs text-muted-foreground">
+				{t("player.subtitleLimitations")}
+			</p>
+		</>
 	);
 }
