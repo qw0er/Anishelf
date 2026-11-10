@@ -108,6 +108,9 @@ test("periodic cleanup preserves valid copies and retries unavailable roots", as
 	vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 	await f.restart();
 	await vi.advanceTimersByTimeAsync(preparationPolicy.cleanupIntervalMs);
+	// The timer starts an asynchronous filesystem sweep; wait for it to finish
+	// and schedule the next sweep before changing the source or its root.
+	await vi.waitFor(() => expect(vi.getTimerCount()).toBe(1));
 	expect(
 		f.database.preparation.artifact(required(ready.artifactId)),
 	).toBeDefined();
@@ -116,6 +119,10 @@ test("periodic cleanup preserves valid copies and retries unavailable roots", as
 		.spyOn(f.library.sources, "openResources")
 		.mockRejectedValue(new DomainError("RESOURCE_ROOT_UNAVAILABLE", "Offline"));
 	await vi.advanceTimersByTimeAsync(preparationPolicy.cleanupIntervalMs);
+	await vi.waitFor(() => {
+		expect(open).toHaveBeenCalled();
+		expect(vi.getTimerCount()).toBe(1);
+	});
 	expect(
 		f.database.preparation.artifact(required(ready.artifactId)),
 	).toBeDefined();
