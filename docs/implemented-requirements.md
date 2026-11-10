@@ -219,6 +219,7 @@ see the [current playback direction](requirements.md#movi-player-and-manual-prep
 | P05 | Choose a playback strategy based on media and client capabilities | Complete | — | — | 0.2.0 |
 | P06 | Remux media when only the container is incompatible | Complete | — | — | 0.2.0 |
 | P07 | Prepare full-file Web-compatible copies with seeking and avoid unnecessary re-encoding | Complete | — | Completed-file preparation, reuse, cancellation, retry and recovery | 0.2.0 |
+| P12 | Hardware-accelerated transcoding | Complete | — | [Hardware encoding through custom FFmpeg profiles](#delivery-notes-p) | 0.2.0 |
 | P15 | Extract, validate and load embedded font attachments | Complete | — | Validated embedded TTF/OTF fonts for styled subtitles | 0.2.6 |
 | P17 | Automatically prepare full-file Web-compatible copies in the background before playback | Complete | — | [Preset-based background preparation and recovery](#delivery-notes-p) | 1.4.0 |
 | P10 | Select audio tracks | Complete | — | — | 0.2.0 |
@@ -228,6 +229,7 @@ see the [current playback direction](requirements.md#movi-player-and-manual-prep
 | P27 | Improve prepared-media file management | Complete | — | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | 1.5.0 |
 | P11 | Next-episode navigation and automatic continuation | Complete | — | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
 | P13 | Chapter navigation | Complete | — | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
+| P28 | Validate Movi Player for broader browser container and codec playback | Complete | — | [Integration and recorded smoke validation](development/movi.md#recorded-smoke-validation) | — |
 
 #### Delivery Notes (P)
 
@@ -235,8 +237,8 @@ see the [current playback direction](requirements.md#movi-player-and-manual-prep
 - **P09:** **Delivered:** Styled ASS/SSA, fallback fonts and embedded TTF/OTF support. **Remaining:** Bitmap subtitle compatibility; extraction is Later under P16, while rendering, OCR and burn-in remain unassigned. **Release record:** 0.2.0 (styles and fallback fonts); 0.2.6 (embedded fonts).
 - **P17:** Preset-based evaluation of existing and new resources, per-track processing, reuse and persistent recovery. **Release record:** 1.4.0; 1.4.1 (10-bit SDR video in the Web preset).
 - **P11:** Consecutive local regular episodes, explicit version choice and opt-in browser-local continuation with cancellable countdown.
-- **P12:** **Delivered:** Custom preparation profiles support NVENC and QSV for H.264/HEVC/AV1, and VideoToolbox for H.264/HEVC. **Remaining:** Broader hardware acceleration. **Release record:** 0.2.0 (hardware encoding; partial).
-- **P18:** **Delivered:** Preparation can preserve HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
+- **P12:** Custom preparation profiles can select FFmpeg hardware encoders. Availability depends on the server's FFmpeg build, hardware and drivers. **Release record:** 0.2.0 (hardware encoding).
+- **P18:** Preparation can preserve HDR streams when packaging permits. **Release record:** 1.4.0 (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
 The player prioritizes video and common playback controls on desktop and narrow screens.
