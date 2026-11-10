@@ -271,6 +271,8 @@ evaluation (WI15) and media identification during scanning (WI16).
 | C11 | Mobile picture-in-picture playback | Not started | Optional | — | — |
 | C13 | Mobile background playback | Not started | Optional | — | — |
 | C14 | Mobile offline viewing | Not started | Optional | — | — |
+| C15 | Desktop offline caching and viewing | Not started | Unassigned | — | — |
+| C16 | Adapt Web playback fullscreen for iPhone | Not started | Unassigned | — | — |
 | C12 | Casting | Not started | Optional | — | — |
 
 Desktop clients should provide library management and acquisition alongside playback;
@@ -279,6 +281,9 @@ authenticated server connection for server-backed operations. Cross-client progr
 must account for concurrent and delayed updates (W12); native playback integrations
 must report progress before they can support reliable continuation (C05). Offline
 viewing and advanced playback capabilities are not part of the initial client scope.
+Desktop and mobile offline viewing should allow users to cache selected media for
+playback without a server connection. iPhone fullscreen playback should use the
+available platform behavior and keep playback controls usable.
 A TV application is outside the planned scope.
 
 The proposed implementation and staged validation are in the
@@ -301,11 +306,14 @@ The proposed implementation and staged validation are in the
 | O09 | Support multiple users and permissions | Not started | Optional | — | — |
 | O19 | In-app editor for hand-written configuration files | Not started | Later | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
 | O23 | Support multi-node deployments | Not started | Unassigned | — | — |
+| O24 | Separate cache and persistent data storage locations | Not started | Unassigned | — | — |
 
 #### Delivery Notes (O)
 
 - **O05:** **Delivered:** Durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention. **Remaining:** Broader product history. **Release record:** 1.0.0 (acquisition; partial).
 - **O19:** Edit and validate supported custom profile files, including acquisition and transcode profiles.
+- **O24:** Allow cache and persistent application data to be stored separately so
+  cache cleanup does not remove persistent data.
 
 #### Configuration File Editor (O19)
 
