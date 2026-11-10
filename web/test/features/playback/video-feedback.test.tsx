@@ -9,7 +9,6 @@ import { preparedActive } from "../../support/playback-fixture.js";
 import {
 	act,
 	cleanup,
-	fireEvent,
 	render,
 	waitFor,
 } from "../../support/query-test-utils.js";
@@ -159,39 +158,25 @@ test("playback interaction stays inert until the application session finishes re
 	await waitFor(() => expect(element.inert).toBe(false));
 });
 
-test("fullscreen takeover preserves the continuation target in the app surface", async () => {
-	const onFullscreenChange = vi.fn();
-	const onContinuationOverlay = vi.fn();
-	const view = render(
-		<VideoPlayer
-			{...props}
-			onFullscreenChange={onFullscreenChange}
-			onContinuationOverlay={onContinuationOverlay}
-		/>,
-	);
+test("leaves fullscreen requests to the player without changing the app surface", async () => {
+	const view = render(<VideoPlayer {...props} />);
 	const { element } = await mounted();
 	const request = new CustomEvent("movi-fullscreen-request", {
 		cancelable: true,
+		bubbles: true,
+		composed: true,
 		detail: { active: false },
 	});
 	await act(async () => {
 		element.dispatchEvent(request);
 	});
-	expect(request.defaultPrevented).toBe(true);
-	await waitFor(() =>
-		expect(onFullscreenChange).toHaveBeenLastCalledWith(true),
-	);
-	expect(element.setHostFullscreen).toHaveBeenLastCalledWith(true);
-	const target = onContinuationOverlay.mock.calls.at(-1)?.[0];
-	expect(view.getByRole("region", { name: "Episode" }).contains(target)).toBe(
-		true,
-	);
-	await act(async () => {
-		document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-	});
-	await waitFor(() =>
-		expect(onFullscreenChange).toHaveBeenLastCalledWith(false),
-	);
+	expect(request.defaultPrevented).toBe(false);
+	expect(element.setHostFullscreen).not.toHaveBeenCalled();
+	expect(
+		view
+			.getByRole("region", { name: "Episode" })
+			.hasAttribute("data-viewport-fullscreen"),
+	).toBe(false);
 });
 
 test("a core replacement detaches the old clock and binds the new generation", async () => {
@@ -215,16 +200,9 @@ test("a core replacement detaches the old clock and binds the new generation", a
 	);
 });
 
-test("unmount clears the source and detaches the clock and continuation target", async () => {
+test("unmount clears the source and detaches the clock", async () => {
 	const onMedia = vi.fn();
-	const onContinuationOverlay = vi.fn();
-	const view = render(
-		<VideoPlayer
-			{...props}
-			onMedia={onMedia}
-			onContinuationOverlay={onContinuationOverlay}
-		/>,
-	);
+	const view = render(<VideoPlayer {...props} onMedia={onMedia} />);
 	const { element, core } = await mounted();
 	await waitFor(() => expect(onMedia).toHaveBeenCalled());
 	view.unmount();
@@ -232,7 +210,6 @@ test("unmount clears the source and detaches the clock and continuation target",
 		null,
 		preparedActive.resource.timeline,
 	);
-	expect(onContinuationOverlay).toHaveBeenLastCalledWith(null);
 	expect(element.src).toBeNull();
 	expect(element.player).toBeNull();
 	expect(element.isConnected).toBe(false);
@@ -358,33 +335,4 @@ test("successful recovery clears the application failure without replacing the s
 	await act(async () => core.setState("playing"));
 	expect(onPlaybackRecovered).toHaveBeenCalledTimes(1);
 	expect(MockMoviElement.instances).toEqual([element]);
-});
-
-test("the fullscreen exit control remains usable while the player is inert after a load failure", async () => {
-	const onFullscreenChange = vi.fn();
-	const view = render(
-		<VideoPlayer {...props} onFullscreenChange={onFullscreenChange} />,
-	);
-	const { element } = await mounted();
-	await act(async () => {
-		element.dispatchEvent(
-			new CustomEvent("movi-fullscreen-request", { cancelable: true }),
-		);
-	});
-	await waitFor(() =>
-		expect(onFullscreenChange).toHaveBeenLastCalledWith(true),
-	);
-	await act(async () => {
-		element.dispatchEvent(new Event("loadstart"));
-		element.dispatchEvent(
-			new CustomEvent("error", { detail: new Error("Network failed") }),
-		);
-	});
-	expect(element.inert).toBe(true);
-	const exit = view.getByRole("button", { name: "Exit fullscreen" });
-	expect(element.contains(exit)).toBe(false);
-	fireEvent.click(exit);
-	await waitFor(() =>
-		expect(onFullscreenChange).toHaveBeenLastCalledWith(false),
-	);
 });

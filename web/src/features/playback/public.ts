@@ -8,7 +8,6 @@ export interface PlaybackUiSlots {
 		fileId: string;
 		sourceVersion: string;
 		ended: boolean;
-		overlayTarget?: HTMLElement | null | undefined;
 	}): ReactNode;
 	renderViewing?(input: { fileId: string; sourceVersion: string }): ReactNode;
 	renderPreparation(input: {

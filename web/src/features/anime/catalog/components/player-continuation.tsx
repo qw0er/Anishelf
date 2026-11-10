@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { SkipForward } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQueryScope } from "../../../../shared/api/queries.js";
@@ -28,12 +27,10 @@ export function PlayerContinuation({
 	fileId,
 	sourceVersion,
 	ended,
-	overlayTarget,
 }: {
 	fileId: string;
 	sourceVersion: string;
 	ended: boolean;
-	overlayTarget?: HTMLElement | null | undefined;
 }) {
 	const scope = useQueryScope();
 	const source = useQuery(sourceQuery(fileId, scope));
@@ -90,7 +87,6 @@ export function PlayerContinuation({
 			number={context.nextNumber}
 			versions={next?.versions ?? []}
 			ended={ended}
-			overlayTarget={overlayTarget}
 		/>
 	);
 }
@@ -101,14 +97,12 @@ function ContinuationControls({
 	number,
 	versions,
 	ended,
-	overlayTarget,
 }: {
 	episodeId: string;
 	workId: string;
 	number: number;
 	versions: Version[];
 	ended: boolean;
-	overlayTarget?: HTMLElement | null | undefined;
 }) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
@@ -177,11 +171,6 @@ function ContinuationControls({
 	}, [counting, remaining, only, play]);
 	const countdown = (
 		<div className="flex flex-wrap items-center gap-2">
-			{overlayTarget && only && (
-				<Button onClick={() => play(only, "manual")}>
-					{t("player.continuation.next", { number })}
-				</Button>
-			)}
 			<p role="status" className="text-sm">
 				{t("player.continuation.countdown", { count: remaining })}
 			</p>
@@ -225,8 +214,7 @@ function ContinuationControls({
 					{t("player.continuation.choose")}
 				</p>
 			)}
-			{counting &&
-				(overlayTarget ? createPortal(countdown, overlayTarget) : countdown)}
+			{counting && countdown}
 			<Dialog open={choosing} onOpenChange={setChoosing}>
 				<DialogContent>
 					<DialogTitle>{t("anime.chooseVersion")}</DialogTitle>

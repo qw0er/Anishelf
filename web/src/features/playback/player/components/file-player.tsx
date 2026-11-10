@@ -60,9 +60,6 @@ export default function FilePlayer({
 		(!source || displayTitle.sourceVersion === source.sourceVersion)
 			? displayTitle.title
 			: data.file.name;
-	const [fullscreen, setFullscreen] = useState(false);
-	const [continuationOverlay, setContinuationOverlay] =
-		useState<HTMLDivElement | null>(null);
 	const [endedAsset, setEndedAsset] = useState<string | null>(null);
 	const activeKey = active
 		? `${active.asset.id}:${active.asset.revision}`
@@ -154,8 +151,6 @@ export default function FilePlayer({
 							active={active}
 							sourceVersion={source.sourceVersion}
 							playbackReady={playback.restored}
-							onFullscreenChange={setFullscreen}
-							onContinuationOverlay={setContinuationOverlay}
 							onEndedChange={(ended) => setEndedAsset(ended ? activeKey : null)}
 							onMedia={playback.attach}
 							onPlaybackFailure={selection.failed}
@@ -189,7 +184,6 @@ export default function FilePlayer({
 							fileId: data.file.id,
 							sourceVersion: source.sourceVersion,
 							ended: Boolean(activeKey && endedAsset === activeKey),
-							overlayTarget: fullscreen ? continuationOverlay : null,
 						})}
 					<PlaybackActionsMenu
 						key={`actions:${data.file.id}`}

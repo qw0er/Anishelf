@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import type { PlaybackClock } from "../engine.js";
-import { bindFullscreen } from "../fullscreen.js";
 import { loadPlayer, MoviClock } from "../movi.js";
 import { type PlaybackFailure, playbackFailure } from "../runtime.js";
 import { prepareExternalSubtitles } from "../subtitles.js";
@@ -19,8 +18,6 @@ export default function VideoPlayer({
 	playbackReady = true,
 	onMedia,
 	onEndedChange,
-	onFullscreenChange,
-	onContinuationOverlay,
 	onPlaybackFailure,
 	onPlaybackRecovered,
 	onAudioChange,
@@ -32,16 +29,12 @@ export default function VideoPlayer({
 	playbackReady?: boolean;
 	onMedia?(clock: PlaybackClock | null, timeline: MediaTimeline): void;
 	onEndedChange?(ended: boolean): void;
-	onFullscreenChange?(fullscreen: boolean): void;
-	onContinuationOverlay?(element: HTMLDivElement | null): void;
 	onPlaybackFailure?(failure: PlaybackFailure): void;
 	onPlaybackRecovered?(): void;
 	onAudioChange?(index: number): void;
 }) {
 	const { t } = useTranslation();
 	const container = useRef<HTMLDivElement>(null);
-	const surface = useRef<HTMLElement>(null);
-	const overlay = useRef<HTMLDivElement>(null);
 	const playerRef = useRef<MoviElement | null>(null);
 	const syncAudioRef = useRef<
 		((audio: ActivePlayback["audio"]) => void) | null
@@ -52,8 +45,6 @@ export default function VideoPlayer({
 	const callbacks = useRef({
 		onMedia,
 		onEndedChange,
-		onFullscreenChange,
-		onContinuationOverlay,
 		onPlaybackFailure,
 		onPlaybackRecovered,
 		onAudioChange,
@@ -61,8 +52,6 @@ export default function VideoPlayer({
 	callbacks.current = {
 		onMedia,
 		onEndedChange,
-		onFullscreenChange,
-		onContinuationOverlay,
 		onPlaybackFailure,
 		onPlaybackRecovered,
 		onAudioChange,
@@ -70,8 +59,7 @@ export default function VideoPlayer({
 	const bindingKey = `${active.asset.id}:${active.asset.revision}:${active.resource.url}`;
 	useEffect(() => {
 		const host = container.current;
-		const shell = surface.current;
-		if (!host || !shell) return;
+		if (!host) return;
 		const binding = current.current.active;
 		if (
 			`${binding.asset.id}:${binding.asset.revision}:${binding.resource.url}` !==
@@ -85,7 +73,6 @@ export default function VideoPlayer({
 		let subtitles:
 			| Awaited<ReturnType<typeof prepareExternalSubtitles>>
 			| undefined;
-		let releaseFullscreen: (() => void) | undefined;
 		let notified = false;
 		let failed = false;
 		let loadedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -148,6 +135,7 @@ export default function VideoPlayer({
 				fileId,
 				assetId: binding.asset.id,
 				chapterCount: player.player.getChapters().length,
+				fullscreenOwner: "movi",
 			});
 		};
 		const loaded = () => {
@@ -239,23 +227,17 @@ export default function VideoPlayer({
 			player.addEventListener("ended", ended);
 			player.addEventListener("play", play);
 			player.addEventListener("audiotrackchange", audioChanged);
-			releaseFullscreen = bindFullscreen(player, shell, (full) =>
-				callbacks.current.onFullscreenChange?.(full),
-			);
 			player.append(...subtitles.tracks);
 			player.setAttribute(
 				"src",
 				new URL(binding.resource.url, location.origin).href,
 			);
-			callbacks.current.onContinuationOverlay?.(overlay.current);
 			host.append(player);
 		})().catch(fail);
 		return () => {
 			abort.abort();
 			detachClock();
 			subtitles?.dispose();
-			releaseFullscreen?.();
-			callbacks.current.onContinuationOverlay?.(null);
 			if (player) {
 				player.removeEventListener("loadstart", detachClock);
 				player.removeEventListener("loadeddata", loaded);
@@ -286,13 +268,11 @@ export default function VideoPlayer({
 			: 16 / 9;
 	return (
 		<section
-			ref={surface}
 			className="anishelf-player relative mx-auto w-full bg-black"
 			style={{ "--player-aspect-ratio": aspectRatio } as CSSProperties}
 			aria-label={displayTitle}
 		>
 			<div ref={container} className="h-full w-full" />
-			<div ref={overlay} className="anishelf-continuation-overlay" />
 		</section>
 	);
 }

@@ -57,13 +57,7 @@ function seed(versions = 1) {
 	});
 	return detail;
 }
-function Harness({
-	ended,
-	overlayTarget,
-}: {
-	ended: boolean;
-	overlayTarget?: HTMLElement | null | undefined;
-}) {
+function Harness({ ended }: { ended: boolean }) {
 	const location = useLocation();
 	return (
 		<>
@@ -73,24 +67,19 @@ function Harness({
 			</output>
 			<output data-testid="autoplay">{String(location.state?.autoPlay)}</output>
 			{location.pathname === "/files/file-1" && (
-				<PlayerContinuation
-					fileId="file-1"
-					sourceVersion="v1"
-					ended={ended}
-					overlayTarget={overlayTarget}
-				/>
+				<PlayerContinuation fileId="file-1" sourceVersion="v1" ended={ended} />
 			)}
 		</>
 	);
 }
-function tree(ended = false, overlayTarget?: HTMLElement | null) {
+function tree(ended = false) {
 	return (
 		<MemoryRouter
 			initialEntries={[
 				"/files/file-1?anime=work-1&episode=ep-1&library=%2F%3Fsearch%3DFrieren&audio=9&asset=old",
 			]}
 		>
-			<Harness ended={ended} overlayTarget={overlayTarget} />
+			<Harness ended={ended} />
 		</MemoryRouter>
 	);
 }
@@ -275,32 +264,6 @@ test("disabling the shared preference cancels the active countdown and re-enabli
 	expect(screen.getByTestId("destination").textContent).toContain(
 		"/files/file-1?",
 	);
-});
-
-test("fullscreen moves the countdown presentation while preserving its timer and cancellation", async () => {
-	seed();
-	localStorage.setItem(preferenceKey, "true");
-	const overlay = document.createElement("div");
-	document.body.append(overlay);
-	try {
-		vi.useFakeTimers();
-		const view = render(tree(true));
-		await act(async () => {
-			await vi.advanceTimersByTimeAsync(3000);
-		});
-		view.rerender(tree(true, overlay));
-		expect(within(overlay).getByText("Continuing in 7 seconds…")).toBeTruthy();
-		fireEvent.click(within(overlay).getByRole("button", { name: "Cancel" }));
-		view.rerender(tree(true));
-		await act(async () => {
-			await vi.advanceTimersByTimeAsync(11000);
-		});
-		expect(screen.getByTestId("destination").textContent).toContain(
-			"/files/file-1?",
-		);
-	} finally {
-		overlay.remove();
-	}
 });
 
 test("a target revision change cancels an active countdown", async () => {
