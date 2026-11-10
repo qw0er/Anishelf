@@ -156,7 +156,7 @@ failures and works already present in the user's library or tracking list.
 - **P08:** **Delivered:** Text-track discovery, selection, extraction and delivery; font attachments. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts).
 - **P09:** **Delivered:** Styled ASS/SSA, fallback fonts and embedded TTF/OTF support. **Remaining:** Bitmap subtitle compatibility; extraction is Later under P16, while rendering, OCR and burn-in remain unassigned. **Release record:** 0.2.0 (styles and fallback fonts); 0.2.6 (embedded fonts).
 - **P12:** **Delivered:** Custom preparation profiles support NVENC and QSV for H.264/HEVC/AV1, and VideoToolbox for H.264/HEVC. **Remaining:** Broader hardware acceleration. **Release record:** 0.2.0 (hardware encoding; partial).
-- **P18:** **Delivered:** Automatic preparation can preserve explicitly accepted HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
+- **P18:** **Delivered:** Preparation can preserve HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
 #### AVPlayer Feasibility Validation (P28)
@@ -199,16 +199,13 @@ the proposed playback and fallback design in [Playback design](development/playb
 before scheduling production integration. Library format lists alone do not count
 as playback acceptance evidence.
 
-#### Media Processing Resource Controls (P20–P22)
+#### Media Processing Resource Controls (P20–P21)
 
 Allow an administrator to limit the impact of media preparation on the server:
 
 - Configure how many preparation tasks may run concurrently and limit CPU processing
   capacity per task where the selected processing method supports it. Show when a
   requested limit cannot be enforced; do not imply an exact CPU usage percentage.
-- Configure permitted processing windows for automatic preparation. Work outside a
-  window waits until the next window; manual preparation remains available. Define
-  what happens to running work when a window closes before enabling this control.
 - Expose configured limits and queued, running and waiting states, including why a
   task is waiting. Validate settings and retain the last valid configuration across
   invalid changes and restart.
@@ -378,9 +375,8 @@ validation or write failure. Built-in profiles remain read-only.
 
 #### Configuration File Loading
 
-Read `settings.json`, `acquisition-profiles.yaml`, `transcode-profiles.yaml` and
-`auto-preparation-presets.yaml` from the application data directory at Backend
-startup. External file edits, including atomic file replacement, take effect only
+Read `settings.json`, `acquisition-profiles.yaml` and `transcode-profiles.yaml`
+from the application data directory at Backend startup. External file edits, including atomic file replacement, take effect only
 after restarting Backend. There is no automatic file watching or manual reload
 command. Configuration-file hot reload is outside the current scope.
 

@@ -1,18 +1,15 @@
 # Transcode Profiles
 
 Transcode profiles describe completed-file encoding. They do not select resources
-or audio tracks: manual preparation and automatic preparation presets own those
-choices. Built-in and administrator-authored profiles use the same v2 schema,
+or audio tracks: manual preparation owns those choices. Built-in and administrator-authored profiles use the same v2 schema,
 planner and FFmpeg compiler.
 
 ## Configuration and activation
 
 Copy the [example](../examples/transcode-profiles-example.yaml) to
 `<dataDir>/transcode-profiles.yaml`. Only `version: 2` is accepted. The application
-never rewrites this file. Restart Backend after editing this file or
-`auto-preparation-presets.yaml`. Both files are read at startup, with preset
-references checked against the loaded transcode profiles. There is no automatic
-file watcher or manual reload command.
+never rewrites this file. Restart Backend after editing it. The file is read at
+startup; there is no automatic file watcher or manual reload command.
 
 Missing files use built-ins. Invalid files at startup report an issue and retain
 built-ins. A saved
@@ -145,13 +142,7 @@ the actual transformation/filter.
 
 An MKV containing matching H.264 and AAC can therefore be remuxed into MP4 even
 with `copyCompatibleStreams: false` and unknown/rejected browser evidence. Only
-nonmatching tracks are encoded. Automatic preparation additionally requires each
-copied stream to satisfy `preset.accept`. Rejected or unknown acceptance falls back
-to encoding; for example, an AAC LC acceptance rule requires encoding an HE-AAC
-source even when the target codec is AAC. Forced copying blocks instead of falling
-back. Known conflicts with the encoded output still block planning, and actual
-output must pass acceptance again before publication. Browser support is checked
-separately against the finished asset, not certified by target matching.
+nonmatching tracks are encoded.
 
 `encoder: copy` requires copying and rejects encoding parameters, filters or
 transformations on that stream. It checks packaging and any explicit codec

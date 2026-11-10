@@ -83,7 +83,7 @@ filters; there is no global compatibility/fast mode. Streams matching the target
 codec and explicitly configured output constraints can be copied independently of
 container and profile constraints. Built-ins disable browser-based copying, but still reuse
 matching streams. Encoding parameters apply only to streams that need encoding.
-Restart Backend after editing transcode or automatic-preparation YAML files.
+Restart Backend after editing transcode profile YAML files.
 Invalid custom files report a startup issue and fall back to built-ins.
 
 Playable originals use direct playback. New requests use the active profile;

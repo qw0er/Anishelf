@@ -230,7 +230,7 @@ Available episode versions expose Show in Files through their file action menu. 
 - **P17:** Preset-based evaluation of existing and new resources, per-track processing, reuse and persistent recovery. **Release record:** 1.4.0; 1.4.1 (10-bit SDR video in the Web preset).
 - **P11:** Consecutive local regular episodes, explicit version choice and opt-in browser-local continuation with cancellable countdown.
 - **P12:** **Delivered:** Custom preparation profiles support NVENC and QSV for H.264/HEVC/AV1, and VideoToolbox for H.264/HEVC. **Remaining:** Broader hardware acceleration. **Release record:** 0.2.0 (hardware encoding; partial).
-- **P18:** **Delivered:** Automatic preparation can preserve explicitly accepted HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
+- **P18:** **Delivered:** Preparation can preserve HDR streams when packaging permits. **Remaining:** Validated HDR-to-SDR conversion and broader HDR handling. **Release record:** 1.4.0 (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
 The player prioritizes video and common playback controls on desktop and narrow screens.
@@ -281,8 +281,8 @@ and a retry action until dismissed. Filesystem deletion failures preserve metada
 so cleanup can be retried. Listing never probes media or invalidates copies; playback
 continues to validate source identity and output through the existing access path.
 
-The visible inventory refreshes periodically and after cleanup. Automatic preparation
-can recreate deleted copies; valid copies are not evicted when the budget is lowered.
+The visible inventory refreshes periodically and after cleanup. Valid copies are
+not evicted when the budget is lowered.
 Untracked disk files, temporary processing output and task-history management are
 outside this inventory.
 
@@ -294,52 +294,6 @@ counts, refreshes on demand and keeps completed tasks available for playback. Re
 a task whose preparation profile is no longer current creates a replacement task with
 the requested profile; a changed source still requires a new preparation. File actions
 reflect the active task and can cancel it. **Release record:** 1.5.0.
-
-#### Automatic Background Pre-transcoding (P17)
-
-Users can enable automatic preparation and select a playback preset in Settings →
-Playback. It is disabled by default and covers both existing resources and newly
-discovered or changed files. Checks run without an open browser. Preparation must
-not start merely because a user opens playback or replace an active playback asset.
-
-- **Selection:** provide built-in Web and Web · Conservative presets and optional
-  administrator-defined presets. Display them as descriptive radio cards, consistent
-  with the manual preparation profiles. Put the section description below its title.
-  Built-in preset names and descriptions remain English in every interface language;
-  custom text is displayed as authored.
-- **Defaults:** Web accepts MP4/WebM, H.264/VP9 8-bit or 10-bit 4:2:0 SDR video and unrestricted
-  audio formats. Web · Conservative accepts MP4, H.264 8-bit 4:2:0 SDR video in the
-  supported profile set, and AAC LC audio. Both retain all audio tracks and impose
-  no resolution, frame-rate, channel-count or sample-rate ceiling.
-- **Custom policy:** allow filtering by resource root, relative path and file viewing
-  state; selecting all, default, matching-language or no audio; and defining accepted
-  containers and alternative video/audio specifications. Omitted constraints mean
-  unrestricted. Encoding parameters are selected separately from acceptance rules.
-- **Reuse and conversion:** reuse suitable originals, completed copies and equivalent
-  pending work. Otherwise copy accepted streams when packaging allows, encode only
-  the streams requiring conversion, and preserve selected audio order and language
-  mappings. A copy may combine copied and encoded audio tracks. Audio acceptance
-  does not certify that the output container can carry that audio format.
-- **Availability:** the custom file is optional. Invalid custom configuration keeps
-  built-ins usable and exposes a configuration issue. Preserve unavailable saved
-  selections and pause automation rather than silently changing the selected preset.
-- **Lifecycle:** show automatic task provenance, progress and failures in the existing
-  task monitor. Support cancellation and server-planned retry. Manual work takes
-  priority. Disabling automation or switching presets cancels obsolete queued
-  automatic-only work, lets running work finish and retains completed copies.
-  Cancelled tasks and deleted copies remain eligible for a later automatic check.
-- **Recovery and limits:** retry transient failures with persistent backoff, reevaluate
-  incomplete automatic work after restart, fence changed sources and preserve valid
-  completed copies. Honor cache and free-space budgets without silently evicting
-  valid copies. Preserve original files and playback history.
-- **Validation:** defer work when required metadata is unknown and validate actual
-  output before publication. HDR-to-SDR conversion remains blocked without a
-  validated tone-mapping policy. Presets describe preparation requirements; actual
-  playback continues to check the client's capabilities.
-
-See the [architecture](development/architecture.md#automatic-media-preparation) for
-module boundaries and the [operator guide](guide/manual-preparation.md) for exact
-configuration fields and examples.
 
 #### Subtitles and Embedded Extraction (P03, Partial P08–P09)
 
@@ -710,7 +664,7 @@ the web build and available offline. The existing update check discovers newer r
 
 #### Delivery Notes (O)
 
-- **O04:** Shared Settings sections for resource roots, playback/manual and automatic preparation, external players, acquisition services, tracking account, security and About. **Release record:** 1.0.3 (settings scope); 1.5.0 (immediate single-value saves).
+- **O04:** Shared Settings sections for resource roots, playback/manual preparation, external players, acquisition services, tracking account, security and About. **Release record:** 1.0.3 (settings scope); 1.5.0 (immediate single-value saves).
 - **O05:** **Delivered:** Durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention. **Remaining:** Broader product history. **Release record:** 1.0.0 (acquisition; partial).
 - **O07:** Single-password access, persistent sign-in, protected mutations, login limits, local recovery and 24-hour file-specific media links; secure sessions through an HTTPS proxy. **Release record:** 0.3.3; 1.0.1 (secure proxy sessions).
 - **O12:** **Delivered:** stdout/file/both routing. **Excluded:** automatic log-output fallback and destination recovery after failure; these are outside the current scope, not planned remainder. **Release record:** 0.2.6; 1.0.0 (simplified).

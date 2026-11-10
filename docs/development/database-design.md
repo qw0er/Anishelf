@@ -197,13 +197,3 @@ old copies recover it once on demand. Ordered source audio provenance remains in
 the immutable preparation snapshot and is paired with the actual output stream
 order by the prepared-media catalog. Playback does not inspect execution settings.
 Completed copies retain their original facts when encoding profiles change.
-
-## Automatic preparation persistence
-
-Migration `0017_automatic_preparation` adds a nullable extended execution snapshot
-and relational demand ownership columns to preparation tasks, plus `automatic_preparation_demands`
-with relational attempt counts, retry deadlines and observed failure revisions. Legacy
-tasks default to manual origin and retain their relational snapshots. Extended
-snapshots preserve individual audio actions and encoding parameters across restart.
-Existing published artifacts are preserved. Demand records distinguish automatic
-preset identity from manual ownership; queue ordering prioritizes manual requests.
