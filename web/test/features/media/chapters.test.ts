@@ -1,5 +1,30 @@
 import { expect, test } from "vitest";
-import { chapterCues } from "../../../src/features/playback/player/chapters.js";
+import {
+	chapterCues,
+	playerChapters,
+} from "../../../src/features/playback/player/chapters.js";
+
+test("engine chapters use rational asset timestamps, sorted starts and optional titles", () => {
+	const chapter = {
+		id: 1n,
+		start: 90090n,
+		end: 180000n,
+		timeBase: { num: 1, den: 90000 },
+		metadata: { title: " Main " },
+	};
+	expect(
+		playerChapters([
+			chapter,
+			{ ...chapter, id: 2n, start: 0n, metadata: { title: " " } },
+			{ ...chapter, start: -90000n },
+			{ ...chapter, timeBase: { num: 1, den: 0 } },
+			{ ...chapter, start: 9007199254740992000000n },
+		]),
+	).toEqual([
+		{ id: "2", startMs: 0, title: null },
+		{ id: "1", startMs: 1001, title: "Main" },
+	]);
+});
 
 test("maps source chapters to direct and shifted prepared timelines", () => {
 	const chapters = [

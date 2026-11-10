@@ -6,9 +6,11 @@ import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { discoverSubtitles } from "../../../media/public.js";
 import { AVPlayerClock, decoderResource, loadPlayer } from "../avplayer.js";
+import { type PlayerChapter, playerChapters } from "../chapters.js";
 import type { PlaybackClock } from "../engine.js";
 import { registerEmbeddedFonts } from "../fonts.js";
 import type { PlaybackFailure } from "../runtime.js";
+import { ChapterMenu } from "./chapter-menu.js";
 export default function VideoPlayer({
 	fileId,
 	displayTitle,
@@ -36,12 +38,15 @@ export default function VideoPlayer({
 	const container = useRef<HTMLDivElement>(null);
 	const fullscreenContainer = useRef<HTMLElement>(null);
 	const [hasSubtitles, setHasSubtitles] = useState(false);
+	const [chapters, setChapters] = useState<PlayerChapter[]>([]);
+	const [chapterMenuOpen, setChapterMenuOpen] = useState(false);
 	const [playing, setPlaying] = useState(false);
 	const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
 	const subtitlesEnabledRef = useRef(true);
 	const current = useRef(active);
 	current.current = active;
 	const playerRef = useRef<AVPlayerUI | null>(null);
+	const clockRef = useRef<AVPlayerClock | null>(null);
 	const mutedVolume = useRef<number | null>(null);
 	const callbacks = useRef({
 		onMedia,
@@ -72,6 +77,8 @@ export default function VideoPlayer({
 		if (!host) return;
 		host.inert = true;
 		setHasSubtitles(false);
+		setChapters([]);
+		setChapterMenuOpen(false);
 		setPlaying(false);
 		let cancelled = false;
 		let player: AVPlayerUI | undefined;
@@ -267,6 +274,9 @@ export default function VideoPlayer({
 			playerRef.current = player;
 			updateSubtitles();
 			clock = new AVPlayerClock(player);
+			clockRef.current = clock;
+			const loadedChapters = playerChapters(player.getChapters());
+			setChapters(loadedChapters);
 			clock.readyState = 1;
 			clock.addEventListener("error", fail);
 			callbacks.current.onMedia?.(clock, timeline);
@@ -276,6 +286,7 @@ export default function VideoPlayer({
 				assetId: binding.asset.id,
 				language: i18n.language,
 				controlsAutoHide: true,
+				chapterCount: loadedChapters.length,
 			});
 		})().catch(fail);
 		return () => {
@@ -285,6 +296,7 @@ export default function VideoPlayer({
 			callbacks.current.onMedia?.(null, timeline);
 			callbacks.current.onContinuationOverlay?.(null);
 			playerRef.current = null;
+			clockRef.current = null;
 			mutedVolume.current = null;
 			clock?.dispose();
 			releaseFonts?.();
@@ -327,34 +339,55 @@ export default function VideoPlayer({
 			ref={fullscreenContainer}
 			className="anishelf-player relative mx-auto w-full bg-black"
 			data-playing={playing}
+			data-controls-open={chapterMenuOpen}
 			style={
 				{ aspectRatio, "--player-aspect-ratio": aspectRatio } as CSSProperties
 			}
 			aria-label={displayTitle}
 		>
 			<div className="h-full w-full" ref={container} />
-			{hasSubtitles && (
-				<button
-					type="button"
-					className="anishelf-player-subtitle-toggle absolute top-3 right-3 z-20 min-h-11 rounded-md border border-white/30 bg-black/80 px-3 text-sm text-white hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-					onClick={() => {
-						const player = playerRef.current;
-						if (!player) return;
-						const enabled = !subtitlesEnabledRef.current;
-						player.setSubtitleEnable(enabled);
-						subtitlesEnabledRef.current = enabled;
-						setSubtitlesEnabled(enabled);
-						console.info("[playback] Subtitle visibility changed.", {
-							fileId,
-							enabled,
-						});
-					}}
-				>
-					{t(
-						subtitlesEnabled ? "player.hideSubtitles" : "player.showSubtitles",
-					)}
-				</button>
-			)}
+			<div className="anishelf-player-overlay-controls absolute top-3 right-3 z-20 flex gap-2">
+				{chapters.length > 0 && (
+					<ChapterMenu
+						chapters={chapters}
+						container={fullscreenContainer.current}
+						onOpenChange={setChapterMenuOpen}
+						onSelect={(chapter, index) => {
+							if (!clockRef.current) return;
+							clockRef.current.currentTimeMs = chapter.startMs;
+							console.info("[playback] Chapter selected.", {
+								fileId,
+								index,
+								startMs: chapter.startMs,
+							});
+						}}
+					/>
+				)}
+				{hasSubtitles && (
+					<button
+						type="button"
+						className="min-h-11 rounded-md border border-white/30 bg-black/80 px-3 text-sm text-white hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+						onClick={() => {
+							const player = playerRef.current;
+							if (!player) return;
+							const enabled = !subtitlesEnabledRef.current;
+							player.setSubtitleEnable(enabled);
+							subtitlesEnabledRef.current = enabled;
+							setSubtitlesEnabled(enabled);
+							console.info("[playback] Subtitle visibility changed.", {
+								fileId,
+								enabled,
+							});
+						}}
+					>
+						{t(
+							subtitlesEnabled
+								? "player.hideSubtitles"
+								: "player.showSubtitles",
+						)}
+					</button>
+				)}
+			</div>
 		</section>
 	);
 }

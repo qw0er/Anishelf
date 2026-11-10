@@ -73,6 +73,9 @@ class MockAVPlayer {
 		this.emit("seeked");
 	}
 	async selectAudio() {}
+	getChapters() {
+		return [];
+	}
 	getSelectedAudioStreamId() {
 		return 1;
 	}

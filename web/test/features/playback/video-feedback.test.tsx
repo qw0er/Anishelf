@@ -18,6 +18,7 @@ import "../../../src/shared/i18n.js";
 const load = vi.fn<AVPlayerUI["load"]>(async () => {}),
 	destroy = vi.fn(async () => {}),
 	select = vi.fn(async () => {}),
+	seek = vi.fn(async (_position: bigint) => {}),
 	subtitleVisibility = vi.fn(),
 	volume = vi.fn();
 let listeners: Map<string, Set<(...args: unknown[]) => void>>;
@@ -39,6 +40,10 @@ class Player {
 	load = load;
 	destroy = destroy;
 	selectAudio = select;
+	seek = seek;
+	getChapters(): ReturnType<AVPlayerUI["getChapters"]> {
+		return [];
+	}
 	setSubtitleEnable = subtitleVisibility;
 	setVolume = volume;
 	getVolume() {
@@ -88,6 +93,48 @@ const props = {
 	sourceVersion: "v1",
 	active: preparedActive,
 };
+test("chapter menu seeks in asset time and stays inside the fullscreen surface", async () => {
+	vi.spyOn(Player.prototype, "getChapters").mockReturnValue([
+		{
+			id: 1n,
+			start: 0n,
+			end: 45000n,
+			timeBase: { num: 1, den: 1000 },
+			metadata: { title: "Opening" },
+		},
+		{
+			id: 2n,
+			start: 45000n,
+			end: 60000n,
+			timeBase: { num: 1, den: 1000 },
+			metadata: {},
+		},
+	]);
+	const view = render(<VideoPlayer {...props} />);
+	fireEvent.click(await view.findByRole("button", { name: "Chapters" }));
+	const chapter = await view.findByRole("menuitem", { name: "0:45 Chapter 2" });
+	expect(playerOptions.fullscreenDom?.contains(chapter)).toBe(true);
+	expect(
+		view
+			.getByRole("region", { name: "Episode" })
+			.getAttribute("data-controls-open"),
+	).toBe("true");
+	fireEvent.click(chapter);
+	await waitFor(() => expect(seek).toHaveBeenCalledWith(45000n));
+	await waitFor(() =>
+		expect(
+			view
+				.getByRole("region", { name: "Episode" })
+				.getAttribute("data-controls-open"),
+		).toBe("false"),
+	);
+	expect(load).toHaveBeenCalledTimes(1);
+});
+test("files without chapters have no chapter menu", async () => {
+	const view = render(<VideoPlayer {...props} />);
+	await view.findByRole("button", { name: "Hide subtitles" });
+	expect(view.queryByRole("button", { name: "Chapters" })).toBeNull();
+});
 test("subtitles can be hidden and restored using controls inside the fullscreen surface", async () => {
 	const view = render(<VideoPlayer {...props} />);
 	const hide = await view.findByRole("button", { name: "Hide subtitles" });

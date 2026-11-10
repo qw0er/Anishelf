@@ -661,27 +661,43 @@
 	max-height: none;
 }
 /* Use the upstream visibility state so overlays share its inactivity timer. */
-.anishelf-player[data-playing="true"]:not(:has(:focus-visible)):has(
-		.avplayer-ui-container[data-bar-show="0"]
-	)
-	.anishelf-player-subtitle-toggle {
+.anishelf-player[data-playing="true"]:not([data-controls-open="true"]):not(
+		:has(:focus-visible)
+	):has(.avplayer-ui-container[data-bar-show="0"])
+	.anishelf-player-overlay-controls {
 	opacity: 0;
 	pointer-events: none;
 }
 /* Keep controls reachable while paused or navigating them with the keyboard. */
-.anishelf-player:is([data-playing="false"], :has(:focus-visible))
+.anishelf-player:is(
+		[data-playing="false"],
+		[data-controls-open="true"],
+		:has(:focus-visible)
+	)
 	.avplayer-ui-container[data-bar-show="0"] {
 	cursor: auto;
 }
-.anishelf-player:is([data-playing="false"], :has(:focus-visible))
+.anishelf-player:is(
+		[data-playing="false"],
+		[data-controls-open="true"],
+		:has(:focus-visible)
+	)
 	.avplayer-ui-container[data-bar-show="0"]
 	.avplayer-ui-player {
 	cursor: auto;
 }
-.anishelf-player:is([data-playing="false"], :has(:focus-visible))
+.anishelf-player:is(
+		[data-playing="false"],
+		[data-controls-open="true"],
+		:has(:focus-visible)
+	)
 	.avplayer-ui-container[data-bar-show="0"]
 	.avplayer-ui-footer,
-.anishelf-player:is([data-playing="false"], :has(:focus-visible))
+.anishelf-player:is(
+		[data-playing="false"],
+		[data-controls-open="true"],
+		:has(:focus-visible)
+	)
 	.avplayer-ui-container[data-bar-show="0"]
 	.avplayer-ui-footer
 	.avplayer-ui-progress-container {

@@ -213,6 +213,7 @@
 		"chaptersLoadFailed": "Chapters could not be loaded. You can keep watching.",
 		"retryChapters": "Retry chapters",
 		"chapters": "Chapters",
+		"chapterNumber": "Chapter {{number}}",
 		"noMatchingAsset": "No available version has confirmed playback support for the selected audio. Choose a version to try or prepare a copy.",
 		"assetSelection": "Playback version",
 		"automaticAsset": "Automatic selection",

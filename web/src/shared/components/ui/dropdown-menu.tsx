@@ -35,16 +35,19 @@ export function DropdownMenuSubTrigger(props: Menu.SubmenuTrigger.Props) {
 export function DropdownMenuContent({
 	children,
 	submenu = false,
+	container,
 }: {
 	children: React.ReactNode;
 	submenu?: boolean;
+	container?: HTMLElement | null;
 }) {
 	return (
-		<Menu.Portal keepMounted>
+		<Menu.Portal keepMounted container={container}>
 			<Menu.Positioner
 				align={submenu ? "start" : "end"}
 				side={submenu ? "right" : "bottom"}
 				sideOffset={4}
+				collisionBoundary={container ?? undefined}
 				className="z-50"
 			>
 				<Menu.Popup

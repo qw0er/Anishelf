@@ -223,6 +223,7 @@
 		"chaptersLoadFailed": "无法加载章节，您可以继续观看。",
 		"retryChapters": "重试加载章节",
 		"chapters": "章节",
+		"chapterNumber": "第 {{number}} 章",
 		"assetSelection": "播放版本",
 		"automaticAsset": "自动选择",
 		"currentAsset": "当前播放",
