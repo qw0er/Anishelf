@@ -190,6 +190,8 @@
 		"templateHelpLabel": "URL template help"
 	},
 	"player": {
+		"hideSubtitles": "Hide subtitles",
+		"showSubtitles": "Show subtitles",
 		"options": "Playback options",
 		"more": "More",
 		"audio": "Audio",

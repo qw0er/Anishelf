@@ -200,6 +200,8 @@
 		"refresh": "刷新播放记录"
 	},
 	"player": {
+		"hideSubtitles": "关闭字幕",
+		"showSubtitles": "显示字幕",
 		"options": "播放选项",
 		"more": "更多",
 		"audio": "音频",

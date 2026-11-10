@@ -1,6 +1,6 @@
 import type { MediaTimeline } from "@anishelf/backend/contracts/media";
 import type AVPlayerUI from "@libmedia/avplayer-ui";
-import { useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
@@ -34,6 +34,11 @@ export default function VideoPlayer({
 }) {
 	const { i18n, t } = useTranslation();
 	const container = useRef<HTMLDivElement>(null);
+	const fullscreenContainer = useRef<HTMLElement>(null);
+	const [hasSubtitles, setHasSubtitles] = useState(false);
+	const [playing, setPlaying] = useState(false);
+	const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
+	const subtitlesEnabledRef = useRef(true);
 	const current = useRef(active);
 	current.current = active;
 	const playerRef = useRef<AVPlayerUI | null>(null);
@@ -66,6 +71,8 @@ export default function VideoPlayer({
 		const host = container.current;
 		if (!host) return;
 		host.inert = true;
+		setHasSubtitles(false);
+		setPlaying(false);
 		let cancelled = false;
 		let player: AVPlayerUI | undefined;
 		let clock: AVPlayerClock | undefined;
@@ -122,8 +129,14 @@ export default function VideoPlayer({
 			} catch {}
 			player = new Player({
 				container: host,
-				fullscreenDom: host,
-				ui: { hasFolder: false, hasHeader: false, hasFooter: true },
+				fullscreenDom: fullscreenContainer.current ?? host,
+				ui: {
+					hasFolder: false,
+					// Upstream ties control auto-hide to the folder's folded state.
+					folderFolded: true,
+					hasHeader: false,
+					hasFooter: true,
+				},
 				getWasm: decoderResource,
 				enableWebCodecs: true,
 				enableHardware: true,
@@ -156,7 +169,24 @@ export default function VideoPlayer({
 				},
 			});
 
+			const updateSubtitles = () => {
+				// Upstream starts subtitle rendering after emitting some playback events.
+				queueMicrotask(() => {
+					if (cancelled || !player) return;
+					setHasSubtitles(
+						player
+							.getStreams()
+							.some((stream) => stream.mediaType === "Subtitle"),
+					);
+					if (!subtitlesEnabledRef.current) player.setSubtitleEnable(false);
+				});
+			};
+			for (const event of ["played", "seeked", "changed", "streamUpdate"])
+				player.on(event, updateSubtitles);
 			player.on("error", fail);
+			player.on("played", () => setPlaying(true));
+			for (const event of ["paused", "ended", "stopped", "error"])
+				player.on(event, () => setPlaying(false));
 			player.on("ended", () => callbacks.current.onEndedChange?.(true));
 			player.on("played", () => callbacks.current.onEndedChange?.(false));
 			player.on("changed", () => {
@@ -235,6 +265,7 @@ export default function VideoPlayer({
 			}
 			if (cancelled) return;
 			playerRef.current = player;
+			updateSubtitles();
 			clock = new AVPlayerClock(player);
 			clock.readyState = 1;
 			clock.addEventListener("error", fail);
@@ -244,6 +275,7 @@ export default function VideoPlayer({
 				fileId,
 				assetId: binding.asset.id,
 				language: i18n.language,
+				controlsAutoHide: true,
 			});
 		})().catch(fail);
 		return () => {
@@ -292,15 +324,37 @@ export default function VideoPlayer({
 			: 16 / 9;
 	return (
 		<section
+			ref={fullscreenContainer}
 			className="anishelf-player relative mx-auto w-full bg-black"
-			style={{
-				aspectRatio,
-				maxWidth: `${75 * aspectRatio}vh`,
-				maxHeight: "75vh",
-			}}
+			data-playing={playing}
+			style={
+				{ aspectRatio, "--player-aspect-ratio": aspectRatio } as CSSProperties
+			}
 			aria-label={displayTitle}
 		>
 			<div className="h-full w-full" ref={container} />
+			{hasSubtitles && (
+				<button
+					type="button"
+					className="anishelf-player-subtitle-toggle absolute top-3 right-3 z-20 min-h-11 rounded-md border border-white/30 bg-black/80 px-3 text-sm text-white hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+					onClick={() => {
+						const player = playerRef.current;
+						if (!player) return;
+						const enabled = !subtitlesEnabledRef.current;
+						player.setSubtitleEnable(enabled);
+						subtitlesEnabledRef.current = enabled;
+						setSubtitlesEnabled(enabled);
+						console.info("[playback] Subtitle visibility changed.", {
+							fileId,
+							enabled,
+						});
+					}}
+				>
+					{t(
+						subtitlesEnabled ? "player.hideSubtitles" : "player.showSubtitles",
+					)}
+				</button>
+			)}
 		</section>
 	);
 }

@@ -6,12 +6,19 @@ import * as media from "../../../src/features/media/subtitles/api.js";
 import * as engine from "../../../src/features/playback/player/avplayer.js";
 import VideoPlayer from "../../../src/features/playback/player/components/video-player.js";
 import { preparedActive } from "../../support/playback-fixture.js";
-import { cleanup, render, waitFor } from "../../support/query-test-utils.js";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	waitFor,
+} from "../../support/query-test-utils.js";
 import "../../../src/shared/i18n.js";
 
 const load = vi.fn<AVPlayerUI["load"]>(async () => {}),
 	destroy = vi.fn(async () => {}),
 	select = vi.fn(async () => {}),
+	subtitleVisibility = vi.fn(),
 	volume = vi.fn();
 let listeners: Map<string, Set<(...args: unknown[]) => void>>;
 let constructors = 0;
@@ -32,6 +39,7 @@ class Player {
 	load = load;
 	destroy = destroy;
 	selectAudio = select;
+	setSubtitleEnable = subtitleVisibility;
 	setVolume = volume;
 	getVolume() {
 		return 0.7;
@@ -80,6 +88,65 @@ const props = {
 	sourceVersion: "v1",
 	active: preparedActive,
 };
+test("subtitles can be hidden and restored using controls inside the fullscreen surface", async () => {
+	const view = render(<VideoPlayer {...props} />);
+	const hide = await view.findByRole("button", { name: "Hide subtitles" });
+	expect(playerOptions.fullscreenDom?.contains(hide)).toBe(true);
+	fireEvent.click(hide);
+	expect(subtitleVisibility).toHaveBeenLastCalledWith(false);
+	fireEvent.click(view.getByRole("button", { name: "Show subtitles" }));
+	expect(subtitleVisibility).toHaveBeenLastCalledWith(true);
+	expect(load).toHaveBeenCalledTimes(1);
+});
+test("enables upstream auto-hide and keeps controls visible outside active playback", async () => {
+	const view = render(<VideoPlayer {...props} />);
+	await view.findByRole("button", { name: "Hide subtitles" });
+	expect(playerOptions.ui).toMatchObject({
+		hasFolder: false,
+		folderFolded: true,
+	});
+	const surface = view.getByRole("region", { name: "Episode" });
+	expect(surface.getAttribute("data-playing")).toBe("false");
+	for (const event of ["paused", "ended", "stopped", "error"]) {
+		await act(async () => {
+			for (const listener of listeners.get("played") ?? []) listener();
+		});
+		expect(surface.getAttribute("data-playing")).toBe("true");
+		await act(async () => {
+			for (const listener of listeners.get(event) ?? []) listener();
+		});
+		expect(surface.getAttribute("data-playing")).toBe("false");
+	}
+});
+test("hidden subtitles stay hidden after the engine restarts rendering", async () => {
+	const view = render(<VideoPlayer {...props} />);
+	fireEvent.click(await view.findByRole("button", { name: "Hide subtitles" }));
+	for (const event of ["played", "seeked", "changed", "streamUpdate"]) {
+		subtitleVisibility.mockClear();
+		await act(async () => {
+			for (const listener of listeners.get(event) ?? []) listener();
+			// Upstream may start rendering synchronously after delivering the event.
+			subtitleVisibility(true);
+		});
+		expect(subtitleVisibility).toHaveBeenLastCalledWith(false);
+	}
+	expect(view.getByRole("button", { name: "Show subtitles" })).toBeTruthy();
+});
+test("subtitle controls appear when a track is added to a file without subtitles", async () => {
+	const streams = Player.prototype.getStreams;
+	const getStreams = vi
+		.spyOn(Player.prototype, "getStreams")
+		.mockReturnValue([]);
+	const onMedia = vi.fn();
+	const view = render(<VideoPlayer {...props} onMedia={onMedia} />);
+	await waitFor(() => expect(onMedia).toHaveBeenCalled());
+	expect(view.queryByRole("button", { name: "Hide subtitles" })).toBeNull();
+	getStreams.mockImplementation(streams);
+	await act(async () => {
+		for (const listener of listeners.get("streamUpdate") ?? []) listener();
+	});
+	expect(view.getByRole("button", { name: "Hide subtitles" })).toBeTruthy();
+});
 test("loads selected bytes with same-origin credentials and no compatibility requests", async () => {
 	render(<VideoPlayer {...props} />);
 	await waitFor(() => expect(load).toHaveBeenCalled());
