@@ -377,6 +377,65 @@ Details and acceptance criteria may be refined as decisions are made.
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
 | WI15 | Improve evidence-based decisions and their evaluation | Partial | Unassigned | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
 | WI16 | Identify media by its actual contents | Not started | Unassigned | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
+| WI17 | Decouple automatic subscriptions from saved release profiles | Not started | Unassigned | [Automatic subscription profile selection](#automatic-subscription-profile-selection-wi17) | — |
+| WI18 | Schedule subscription searches around airing information | Not started | Unassigned | [Airing-aware subscription searches](#airing-aware-subscription-searches-wi18) | — |
+
+#### Airing-aware Subscription Searches (WI18)
+
+Reduce unnecessary source discovery and refreshes for automatic subscriptions when
+reliable metadata shows that the work has not premiered or the next relevant episode
+has not aired. Schedule the next automatic check around the known airing time, with
+a configurable or documented allowance for release delays. Do not repeatedly search
+at the normal retry interval throughout a known pre-airing window. Show when the next
+check is expected and why the subscription is waiting.
+
+Keep the subscription and its accepted starting episode intact while waiting. Search
+promptly when the waiting period ends, airing information changes or a user explicitly
+requests Check updates. A manual check must work even before the scheduled airing;
+normal identity, selection and authorization checks still apply. Allow a low-frequency
+check for early releases when waiting for a future episode, with its cadence and
+tradeoffs documented. Never infer a precise air time from a date-only value.
+
+If airing data is missing, stale, ambiguous or unavailable, retain a bounded fallback
+search schedule rather than suppressing acquisition indefinitely. Cached metadata
+must not be presented as certain when its freshness is unknown. A provider outage
+must not erase subscription state. Multiple outstanding episodes or backlog require
+searches for already aired episodes even when a later episode is upcoming. Manual
+subscriptions retain their current behavior in the initial scope.
+
+Validate unreleased works, upcoming and already aired episodes, backlogs, early
+releases, date-only and missing data, metadata changes and outages, manual checks,
+restart recovery and the transition to a scheduled check. Record waiting and search
+decisions in diagnostics without claiming that airing implies resource availability.
+
+#### Automatic Subscription Profile Selection (WI17)
+
+Watching-created subscriptions follow the current global default acquisition profile
+instead of pinning the profile selected when they were created. Changing the default
+applies to existing and future automatic subscriptions without requiring another
+Watching activation preview solely because the profile changed. Show the effective
+profile and make its global-default relationship clear in subscription settings.
+
+On upgrade, convert existing Watching-created subscriptions to follow the global
+default, including subscriptions created under an earlier default. Preserve their
+starting episodes, sources, ownership, exclusions, pause and completion states, and
+history. Manual subscriptions retain their existing explicit overrides or default
+behavior; editing an automatic subscription continues to follow the documented
+ownership conversion rules. A per-automatic-subscription profile override is outside
+the initial scope.
+
+Re-evaluate unreserved choices against the new effective profile. Downloads already
+reserved or submitted retain their selection. An unavailable or invalid effective
+profile must stop new selections with an actionable explanation rather than silently
+choosing another profile. A profile change during discovery or selection must fence
+stale work so that an old decision cannot create a new reservation. Preserve the
+existing account, source, destination and backlog authorization boundaries; changes
+to those boundaries still require confirmation where currently required.
+
+Validate existing and newly created automatic subscriptions, migration from saved
+profiles, manual subscriptions, profile changes during in-flight work, unavailable
+profiles, unreserved candidates and reserved or submitted downloads. Record the
+effective profile and relevant selection or invalidation reasons in diagnostics.
 
 #### Matching Improvements from Real Failures (L16)
 
