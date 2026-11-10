@@ -242,8 +242,7 @@
 			"countdown_one": "Continuing in {{count}} second…",
 			"countdown_other": "Continuing in {{count}} seconds…",
 			"playBlocked": "Press Play to continue. Your browser could not start playback automatically."
-		},
-		"exitFullscreen": "Exit fullscreen"
+		}
 	},
 	"actions": {
 		"details": "Details",

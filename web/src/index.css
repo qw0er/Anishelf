@@ -690,14 +690,3 @@
 	background: rgb(0 0 0 / 85%);
 	pointer-events: auto;
 }
-.anishelf-player-exit {
-	display: none;
-	position: absolute;
-	top: 0.75rem;
-	right: 0.75rem;
-	z-index: 30;
-}
-.anishelf-player:fullscreen .anishelf-player-exit,
-.anishelf-player[data-viewport-fullscreen] .anishelf-player-exit {
-	display: block;
-}
