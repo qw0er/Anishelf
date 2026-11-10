@@ -444,6 +444,12 @@
 			"recognized": "Options recognized",
 			"unsupported": "Unsupported",
 			"unverified": "Not fully verified"
+		},
+		"published": "Pre-transcoded copy published.",
+		"reasons": {
+			"subtitle-preservation-requires-matroska": "Choose a Matroska profile to retain embedded subtitles and fonts.",
+			"subtitle-copy-unavailable": "An embedded subtitle codec cannot be copied to the selected container. The original remains available.",
+			"attachment-name-missing": "An embedded attachment has no filename and cannot be safely retained."
 		}
 	},
 	"anime": {

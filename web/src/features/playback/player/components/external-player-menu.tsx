@@ -3,7 +3,6 @@ import {
 	ChevronRight,
 	Ellipsis,
 	ExternalLink,
-	Info,
 	Link2,
 	RefreshCw,
 	Settings,
@@ -121,12 +120,10 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 export function PlaybackActionsMenu({
 	fileId,
 	onOptions,
-	onCompatibility,
 	onRetry,
 }: {
 	fileId: string;
 	onOptions?(): void;
-	onCompatibility?(): void;
 	onRetry?(): void;
 }) {
 	const { t } = useTranslation();
@@ -147,12 +144,6 @@ export function PlaybackActionsMenu({
 				</DropdownMenuTrigger>
 			</Tooltip>
 			<DropdownMenuContent>
-				{onCompatibility && (
-					<DropdownMenuItem onClick={onCompatibility}>
-						<Info size={16} aria-hidden="true" />
-						{t("compatibility.showInfo")}
-					</DropdownMenuItem>
-				)}
 				{onOptions && (
 					<DropdownMenuItem onClick={onOptions}>
 						<Settings size={16} aria-hidden="true" />

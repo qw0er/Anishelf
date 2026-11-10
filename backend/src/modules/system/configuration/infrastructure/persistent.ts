@@ -88,21 +88,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		defaultMetadataProvider !== "bangumi"
 	)
 		throw new DomainError("CONFIG_INVALID", "Invalid defaultMetadataProvider.");
-	const autoPreparationEnabled = settings.autoPreparationEnabled;
-	const autoPreparationPresetId = settings.autoPreparationPresetId;
-	if (
-		autoPreparationEnabled !== undefined &&
-		typeof autoPreparationEnabled !== "boolean"
-	)
-		throw new DomainError(
-			"CONFIG_INVALID",
-			"autoPreparationEnabled must be boolean.",
-		);
-	if (
-		autoPreparationPresetId !== undefined &&
-		!Check(TranscodeProfileIdSchema, autoPreparationPresetId)
-	)
-		throw new DomainError("CONFIG_INVALID", "Invalid autoPreparationPresetId.");
 	const rssInterval = settings.rssRefreshIntervalMinutes;
 	if (
 		rssInterval !== undefined &&
@@ -188,12 +173,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		...(defaultMetadataProvider === undefined
 			? {}
 			: { defaultMetadataProvider }),
-		...(autoPreparationEnabled === undefined
-			? {}
-			: { autoPreparationEnabled: autoPreparationEnabled as boolean }),
-		...(autoPreparationPresetId === undefined
-			? {}
-			: { autoPreparationPresetId: autoPreparationPresetId as string }),
 		...(typeof acquisitionId === "string"
 			? { defaultAcquisitionProfileId: acquisitionId }
 			: {}),

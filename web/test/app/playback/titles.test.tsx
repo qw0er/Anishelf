@@ -30,7 +30,7 @@ test.each([
 
 test("late title corrections update the existing video without restarting playback", async () => {
 	renderApp("/files/file-1");
-	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	const video = await screen.findByRole("region", { name: "Episode 01.mp4" });
 	await act(async () => {
 		queryClient.setQueriesData(
 			{
@@ -44,7 +44,9 @@ test("late title corrections update the existing video without restarting playba
 		name: "Local Frieren — Episode 1, Episode 2",
 	});
 	expect(
-		screen.getByLabelText("Video: Local Frieren — Episode 1, Episode 2"),
+		screen.getByRole("region", {
+			name: "Local Frieren — Episode 1, Episode 2",
+		}),
 	).toBe(video);
 });
 
@@ -63,7 +65,7 @@ test.each(["version-old", "unavailable"])(
 				: json({ ...playbackTitleFixture(), sourceVersion: status });
 		});
 		renderApp("/files/file-1");
-		await screen.findByLabelText("Video: Episode 01.mp4");
+		await screen.findByRole("region", { name: "Episode 01.mp4" });
 		expect(
 			screen.getByRole("heading", { name: "Episode 01.mp4" }),
 		).toBeTruthy();

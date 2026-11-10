@@ -15,7 +15,7 @@ import {
 } from "../../../../shared/components/ui/native-select.js";
 import { audioTrackLabel } from "../../../media/public.js";
 import { getPlaybackOptions } from "../api.js";
-import { canSelectNativeAudio } from "../runtime.js";
+
 export function PlaybackVersionSelection({
 	source,
 	audioStreamIndex,
@@ -46,7 +46,6 @@ export function PlaybackVersionSelection({
 					fileId: source.fileId,
 					sourceVersion: source.sourceVersion,
 					audioStreamIndex,
-					canSelectAudio: canSelectNativeAudio(),
 					...(selectedAssetId === "auto" ? {} : { assetId: selectedAssetId }),
 				},
 				{ signal: boundedSignal(signal) },

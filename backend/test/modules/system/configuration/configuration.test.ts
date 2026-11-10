@@ -185,7 +185,7 @@ test("settings updates preserve prior snapshots and persist explicit preparation
 	};
 	await service.update(next);
 	expect(previous.settings.resourceRoots).toEqual([root]);
-	expect(previous.settings.defaultTranscodeProfileId).toBe("builtin:balanced");
+	expect(previous.settings.defaultTranscodeProfileId).toBe("builtin:manual");
 	expect(service.snapshot.settings).toMatchObject(next);
 	expect(
 		JSON.parse(await readFile(join(dataDir, "settings.json"), "utf8")),
@@ -409,7 +409,7 @@ test("subtitle reads use the supplied chunk size and still detect a growing sour
 		await growing.release();
 	}
 });
-test.each(["readChunkBytes", "extractionConcurrency"] as const)(
+test.each(["readChunkBytes", "maximumBytes"] as const)(
 	"rejects invalid subtitle %s",
 	(key) => {
 		const policy = structuredClone(subtitlePolicy) as SubtitlePolicy;

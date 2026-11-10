@@ -41,13 +41,14 @@ test("built-ins use the shared schema and missing external files create no confi
 		),
 	).toBe(true);
 	expect(service.transcodeProfiles.map((profile) => profile.id)).toEqual([
+		"builtin:manual",
 		"builtin:balanced",
 		"builtin:fast",
 		"builtin:efficient",
 		"builtin:compact",
 	]);
 	expect(transcodeProfileCatalog(service)).toMatchObject({
-		selectedProfileId: "builtin:balanced",
+		selectedProfileId: "builtin:manual",
 		selectionAvailable: true,
 	});
 	expect(service.settings).toEqual({ resourceRoots: [] });
@@ -86,7 +87,7 @@ test("external profiles merge into an immutable startup snapshot and choices sur
 	expect(reload.settings.defaultTranscodeProfileId).toBe("custom:small");
 	await reload.selectTranscodeProfile(null);
 	expect(transcodeProfileCatalog(reload)).toMatchObject({
-		selectedProfileId: "builtin:balanced",
+		selectedProfileId: "builtin:manual",
 		selectionAvailable: true,
 	});
 	expect(reload.settings.defaultTranscodeProfileId).toBeUndefined();
@@ -195,17 +196,11 @@ test("external profile, preset and settings edits apply only to a new startup sn
 	await service.refreshTranscodeValidation();
 	expect(service.transcodeRevision).toBe(revision);
 	expect(service.settings.defaultTranscodeProfileId).toBe("custom:small");
-	expect(service.autoPreparationPresets.some((p) => p.id === preset.id)).toBe(
-		true,
-	);
 	expect(transcodeProfileCatalog(service).selectionAvailable).toBe(true);
 	const restarted = await load();
 	expect(restarted.transcodeRevision).not.toBe(revision);
 	expect(restarted.settings.defaultTranscodeProfileId).toBe("builtin:fast");
 	expect(restarted.transcodeProfiles.some((p) => p.id === "custom:small")).toBe(
-		false,
-	);
-	expect(restarted.autoPreparationPresets.some((p) => p.id === preset.id)).toBe(
 		false,
 	);
 });

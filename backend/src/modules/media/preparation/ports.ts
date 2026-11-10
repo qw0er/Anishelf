@@ -1,16 +1,14 @@
 import type { MediaInfo } from "../../../platform/media/model.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
-	CompatibilityCheckRequest,
 	MediaPlanningResult,
-} from "../media-planning/public.js";
-import type { AutomaticDemandRecord } from "./snapshot.js";
+	PreparationRequest,
+} from "./planning/public.js";
 
 /** Preparation only requires a read-only, source-bound planning decision. */
 export interface PreparationPlanner {
 	plan(
-		input: CompatibilityCheckRequest & { fileId: string },
-		options?: { forcePreparation: boolean },
+		input: PreparationRequest & { fileId: string },
 	): Promise<DeepReadonly<MediaPlanningResult>>;
 }
 
@@ -22,8 +20,6 @@ export interface PreparationStore {
 		sourceVersion: string,
 		profileFingerprint: string,
 	): PreparationTask[];
-	getAutomaticDemand?(id: string): AutomaticDemandRecord | undefined;
-	saveAutomaticDemand?(value: AutomaticDemandRecord): void;
 	list(
 		limit?: number,
 		fileId?: string,

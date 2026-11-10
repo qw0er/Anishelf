@@ -7,20 +7,19 @@ import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import type {
-	PlaybackOptionsResponse,
 	PlaybackSelectionResponse,
 	PlaybackSessionResponse,
 } from "../../../../src/contracts/http.js";
-import { MediaAssetsApplication } from "../../../../src/modules/media/media-assets/application.js";
-import { MediaInspectionApplication } from "../../../../src/modules/media/media-inspection/application.js";
-import { MediaPlanningApplication } from "../../../../src/modules/media/media-planning/application/planning.js";
-import { MediaProcessingApplication } from "../../../../src/modules/media/media-processing/application/processing.js";
+import { MediaAssetsApplication } from "../../../../src/modules/media/catalog.js";
+import { MediaInspectionApplication } from "../../../../src/modules/media/inspection/application.js";
 import type { PreparationApplication } from "../../../../src/modules/media/preparation/application/preparation.js";
 import { createPreparationApplication } from "../../../../src/modules/media/preparation/create.js";
+import { MediaProcessingApplication } from "../../../../src/modules/media/preparation/execution/application/processing.js";
 import {
 	preparationStartResponse,
 	preparationTaskResponse,
 } from "../../../../src/modules/media/preparation/http/presenters.js";
+import { MediaPlanningApplication } from "../../../../src/modules/media/preparation/planning/application/planning.js";
 import { PlaybackSelectionApplication } from "../../../../src/modules/playback/playback-selection/application/selection.js";
 import { PlaybackApplication } from "../../../../src/modules/playback/progress/application/playback.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
@@ -188,29 +187,9 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 		const starts = vi.spyOn(required(processing), "start");
 		for (const mode of ["remux", "transcode"] as const) {
 			encodeStreams = mode === "transcode";
-			const description = await compatibility.inspect({
-				fileId: file.id,
-				sourceVersion: source.identity.sourceVersion,
-				output: { profileId: profile.id, target: "file" },
-			});
 			const request = {
-				sourceVersion: description.sourceVersion,
-				descriptionId: description.descriptionId,
-				output: { profileId: profile.id, target: "file" as const },
-				evidence: description.queries.map((query) => {
-					const status = query.id.startsWith("original")
-						? ("unsupported" as const)
-						: ("supported" as const);
-					return {
-						id: query.id,
-						status,
-						reason:
-							status === "supported"
-								? ("browser-supported" as const)
-								: ("browser-rejected" as const),
-						smooth: null,
-					};
-				}),
+				sourceVersion: source.identity.sourceVersion,
+				profileId: profile.id,
 			};
 			const response = await required(app).inject({
 				method: "POST",
@@ -229,27 +208,6 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 			);
 			const task = preparationTaskResponse(await required(preparation).get(id));
 			expect(task.mode).toBe(mode);
-			const failedResourceIds = (
-				await required(preparation).list(file.id)
-			).tasks.flatMap((view) =>
-				view.artifact && view.artifact.id !== task.artifactId
-					? [view.artifact.id]
-					: [],
-			);
-			const optionsResponse = await required(app).inject({
-				method: "POST",
-				url: "/api/playback/options",
-				headers,
-				payload: {
-					fileId: file.id,
-					sourceVersion: source.identity.sourceVersion,
-					failedResourceIds,
-					canSelectAudio: false,
-				},
-			});
-			expect(optionsResponse.statusCode).toBe(200);
-			const options = optionsResponse.json<PlaybackOptionsResponse>();
-
 			const selectionResponse = await required(app).inject({
 				method: "POST",
 				url: "/api/playback/selection",
@@ -257,24 +215,7 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 				payload: {
 					fileId: file.id,
 					sourceVersion: source.identity.sourceVersion,
-					failedResourceIds,
-					canSelectAudio: false,
-					evidence: options.assets.map((inspection) => ({
-						assetId: inspection.asset.id,
-						descriptionId: inspection.descriptionId,
-						evidence: inspection.queries.map((query) => ({
-							id: query.id,
-							status:
-								inspection.asset.kind === "original"
-									? "unsupported"
-									: "supported",
-							reason:
-								inspection.asset.kind === "original"
-									? "browser-rejected"
-									: "browser-supported",
-							smooth: null,
-						})),
-					})),
+					assetId: task.artifactId,
 				},
 			});
 			expect(selectionResponse.statusCode, selectionResponse.body).toBe(200);

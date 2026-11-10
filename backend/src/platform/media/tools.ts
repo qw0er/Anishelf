@@ -8,19 +8,9 @@ import { captureRuntimeEnvironment } from "../environment.js";
 import { detectMediaCapabilities } from "./capabilities.js";
 import type { ServerMediaCapabilities } from "./capability-model.js";
 import { codecDescriptor } from "./codec-descriptor.js";
-import {
-	type MediaToolsConfig,
-	type MediaToolsPolicy,
-	subtitleExtractionPolicy,
-} from "./config.js";
-import { extractAttachment, extractSubtitle } from "./extraction.js";
-import type {
-	ExtractedSubtitle,
-	MediaContainer,
-	MediaInfo,
-	SubtitleFormat,
-	ToolStatus,
-} from "./model.js";
+import type { MediaToolsConfig, MediaToolsPolicy } from "./config.js";
+
+import type { MediaContainer, MediaInfo, ToolStatus } from "./model.js";
 import { parseMediaInfo, probeRecord } from "./probe-parser.js";
 
 export { parseMediaInfo } from "./probe-parser.js";
@@ -66,7 +56,6 @@ export class MediaTools {
 		},
 		policy: DeepReadonly<MediaToolsPolicy> = {
 			mediaTools: mediaToolPolicy,
-			subtitles: subtitleExtractionPolicy,
 		},
 		environment = captureRuntimeEnvironment().executableSearch,
 		logger?: Logger,
@@ -305,40 +294,5 @@ export class MediaTools {
 			}
 		}
 		return info;
-	}
-
-	async extractAttachment(
-		path: string,
-		streamIndex: number,
-		options: { maximumBytes: number; signal?: AbortSignal },
-	): Promise<Buffer> {
-		return extractAttachment(
-			{
-				executable: (tool) => this.executable(tool),
-				probe: (path, signal) => this.probe(path, signal),
-				policy: this.policy,
-				logger: this.logger,
-			},
-			path,
-			streamIndex,
-			options,
-		);
-	}
-	async extractSubtitle(
-		path: string,
-		streamIndex: number,
-		options: { format?: SubtitleFormat; signal?: AbortSignal } = {},
-	): Promise<ExtractedSubtitle> {
-		return extractSubtitle(
-			{
-				executable: (tool) => this.executable(tool),
-				probe: (path, signal) => this.probe(path, signal),
-				policy: this.policy,
-				logger: this.logger,
-			},
-			path,
-			streamIndex,
-			options,
-		);
 	}
 }

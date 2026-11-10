@@ -45,6 +45,9 @@ export function readPreparationTasks(
 				.map((item) => item.value),
 			plan: {
 				container: row.snapshotPlanContainer,
+				...(row.snapshotPlanPreserveSubtitles
+					? { preserveSubtitles: true }
+					: {}),
 				...(row.snapshotPlanDelivery !== null
 					? {
 							delivery:
@@ -311,6 +314,8 @@ export function writePreparationTasks(
 			snapshotReasonsAudio: value?.snapshot?.reasons?.audio,
 			snapshotVideoStreamIndex: value?.snapshot?.videoStreamIndex,
 			snapshotPlanContainer: value?.snapshot?.plan?.container,
+			snapshotPlanPreserveSubtitles:
+				value.snapshot.plan.preserveSubtitles ?? false,
 			snapshotPlanDelivery: value?.snapshot?.plan?.delivery ?? null,
 			snapshotPlanOutputFormat: value?.snapshot?.plan?.outputFormat,
 			snapshotPlanVideoAction: value?.snapshot?.plan?.video?.action,

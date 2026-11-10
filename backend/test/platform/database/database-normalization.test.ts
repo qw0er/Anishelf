@@ -31,9 +31,9 @@ import {
 } from "../../../src/modules/anime/external-works/tracking/infrastructure/records.js";
 import type { IdentificationResult } from "../../../src/modules/anime/identification/public.js";
 import { writePreparationTasks } from "../../../src/modules/media/preparation/infrastructure/records.js";
-import { writeSubtitleFontSets } from "../../../src/modules/media/subtitles/infrastructure/records.js";
 import { writePlaybackCompletions } from "../../../src/modules/playback/progress/infrastructure/records.js";
 import { writeAuthSessions } from "../../../src/modules/system/authentication/infrastructure/records.js";
+import { writeSubtitleFontSets } from "../../support/legacy-subtitle-records.js";
 
 const cleanup: (() => unknown)[] = [];
 afterEach(async () => {
@@ -490,10 +490,6 @@ test("persists all normalized aggregates, preserves ordered children and survive
 					},
 				},
 			});
-			expect(db.subtitles.getFonts("fonts")?.warnings).toEqual([
-				"first",
-				"second",
-			]);
 			expect(
 				JSON.parse(db.playback.completions()[0]?.context ?? "null"),
 			).toEqual(context);
@@ -561,7 +557,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 					"SELECT count(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> '__drizzle_migrations'",
 				)
 				.get(),
-		).toEqual({ count: 71 });
+		).toEqual({ count: 70 });
 	} finally {
 		inspected.close();
 	}

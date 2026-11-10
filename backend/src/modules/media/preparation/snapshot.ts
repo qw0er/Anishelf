@@ -1,3 +1,4 @@
+import type { AutoPreparationPreset } from "../../../contracts/auto-preparation.js";
 import type { MediaProcessingPlan } from "../../../platform/media/specification.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 
@@ -9,22 +10,12 @@ export interface PreparationSettingsSnapshot {
 	videoStreamIndex: number;
 	audioStreamIndices: readonly number[];
 	plan: Omit<DeepReadonly<MediaProcessingPlan>, "id">;
-	automaticPreset?: DeepReadonly<
-		import("../../../contracts/auto-preparation.js").AutoPreparationPreset
-	>;
+	automaticPreset?: DeepReadonly<AutoPreparationPreset>;
 }
 
 export interface PreparationDemand {
 	origin: "manual" | "automatic";
 	presetId?: string;
 	presetFingerprint?: string;
-	presetSnapshot?: DeepReadonly<
-		import("../../../contracts/auto-preparation.js").AutoPreparationPreset
-	>;
-}
-export interface AutomaticDemandRecord {
-	id: string;
-	failures: number;
-	nextAttemptAtMs: number;
-	taskUpdatedAtMs?: number;
+	presetSnapshot?: DeepReadonly<AutoPreparationPreset>;
 }

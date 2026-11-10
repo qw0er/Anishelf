@@ -14,9 +14,6 @@ test("file rows offer a dropdown menu for copying without opening playback", asy
 	await screen.findByRole("link", { name: "Season 1" });
 	expect(screen.queryByRole("button", { name: "Copy media link" })).toBeNull();
 	fireEvent.click(screen.getByRole("link", { name: "Season 1" }));
-	await screen.findByRole("button", {
-		name: "This browser reports support for this file.",
-	});
 	const trigger = await screen.findByRole("button", { name: "File actions" });
 	fireEvent.click(trigger);
 	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));

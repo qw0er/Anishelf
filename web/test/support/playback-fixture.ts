@@ -6,7 +6,6 @@ export function required<T>(value: T | null | undefined): T {
 
 import type {
 	ActivePlayback,
-	AssetCompatibility,
 	MediaAsset,
 	PlaybackOptionsResponse,
 	PlaybackSelectionResponse,
@@ -96,30 +95,14 @@ export const originalAsset: MediaAsset = {
 		sourceStreamIndex: stream.index,
 	})),
 };
-const supported = { status: "supported" as const, reason: "browser-supported" };
-export const compatibility: AssetCompatibility = {
-	overall: supported,
-	container: supported,
-	video: supported,
-	audio: supported,
-	warnings: [],
-};
 export const originalChoice = {
 	asset: originalAsset,
 	audio: { streamIndex: 1, sourceStreamIndex: 1, position: 0 },
-	compatibility: {
-		...compatibility,
-		overall: {
-			status: "unknown" as const,
-			reason: "native-track-selection-uncertain",
-		},
-	},
-	unavailableReason: "native-track-selection-uncertain",
+	unavailableReason: null,
 };
 export const preparedChoice = {
 	asset: preparedAsset,
 	audio: { streamIndex: 1, sourceStreamIndex: 1, position: 0 },
-	compatibility,
 	unavailableReason: null,
 };
 export const preparedActive: ActivePlayback = {
@@ -148,7 +131,6 @@ export function selection(
 		resolvedAudioStreamIndex: 1,
 		choices: [originalChoice, preparedChoice],
 		active,
-		pending: false,
 		reason: active ? null : "no-playable-asset",
 	};
 }
@@ -156,20 +138,9 @@ export function options(): PlaybackOptionsResponse {
 	return {
 		source,
 		resolvedAudioStreamIndex: 1,
-		pending: false,
 		assets: [originalAsset, preparedAsset].map((asset) => ({
 			asset,
-			descriptionId: asset.revision,
 			audio: { streamIndex: 1, sourceStreamIndex: 1, position: 0 },
-			queries: [
-				{
-					id: "combined",
-					type: "file",
-					contentType: `${asset.mimeType}; codecs="${asset.video?.codecString}"`,
-					video: null,
-					audio: null,
-				},
-			],
 		})),
 	};
 }

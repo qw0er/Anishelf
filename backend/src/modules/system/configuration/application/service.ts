@@ -8,13 +8,11 @@ import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
 import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
-import type { AutoPreparationPreset } from "../domain/auto-preparation.js";
 import type { DeploymentConfig, PersistentSettings } from "../domain/model.js";
 import {
 	defaultTranscodeProfileId,
 	type TranscodeProfile,
 } from "../domain/transcode-profiles.js";
-import { loadAutoPreparationPresets } from "../infrastructure/auto-preparation.js";
 import { loadDeploymentConfig } from "../infrastructure/deployment.js";
 import { PersistentConfiguration } from "../infrastructure/persistent.js";
 import { loadTranscodeProfiles } from "../infrastructure/transcode-profiles.js";
@@ -40,7 +38,6 @@ export class ConfigurationService {
 	get transcodeRevision(): string {
 		return fingerprint({
 			profiles: this.transcodeProfiles,
-			presets: this.autoPreparationPresets,
 		});
 	}
 	async configureTranscodeValidation(
@@ -75,8 +72,6 @@ export class ConfigurationService {
 		readonly environment: RuntimeEnvironment,
 		public transcodeProfiles: DeepReadonly<TranscodeProfile[]>,
 		public transcodeProfileIssue: ProfileCatalogIssue | undefined,
-		public autoPreparationPresets: DeepReadonly<AutoPreparationPreset[]>,
-		public autoPreparationIssue: ProfileCatalogIssue | undefined,
 	) {
 		this.current = this.resolve();
 	}
@@ -90,18 +85,12 @@ export class ConfigurationService {
 			deployment.initialQbittorrentWebUiUrl,
 		);
 		const transcode = await loadTranscodeProfiles(deployment.dataDir);
-		const automatic = await loadAutoPreparationPresets(
-			deployment.dataDir,
-			transcode.profiles,
-		);
 		return new ConfigurationService(
 			deployment,
 			persistent,
 			captureRuntimeEnvironment(env),
 			transcode.profiles,
 			transcode.issue,
-			automatic.presets,
-			automatic.issue,
 		);
 	}
 	get settings(): Readonly<PersistentSettings> {
@@ -161,17 +150,6 @@ export class ConfigurationService {
 			throw new DomainError(
 				"INVALID_REQUEST",
 				"Select an existing transcode profile.",
-			);
-		if (
-			next.autoPreparationPresetId !== undefined &&
-			next.autoPreparationPresetId !== current.autoPreparationPresetId &&
-			!this.autoPreparationPresets.some(
-				(p) => p.id === next.autoPreparationPresetId,
-			)
-		)
-			throw new DomainError(
-				"INVALID_REQUEST",
-				"Select an existing automatic preparation preset.",
 			);
 		return next;
 	}

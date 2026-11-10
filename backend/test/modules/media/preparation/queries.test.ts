@@ -3,7 +3,7 @@ import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { expect, test, vi } from "vitest";
-import { PreparedMediaFiles } from "../../../../src/modules/media/preparation/infrastructure/files.js";
+import { PreparedMediaFiles } from "../../../../src/modules/media/artifacts/files.js";
 import { updateResourceSettings } from "../../../support/settings.js";
 
 import {

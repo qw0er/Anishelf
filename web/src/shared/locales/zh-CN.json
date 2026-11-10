@@ -658,6 +658,12 @@
 			"recognized": "参数已识别",
 			"unsupported": "不支持",
 			"unverified": "尚未完整验证"
+		},
+		"published": "已生成预转码副本。",
+		"reasons": {
+			"subtitle-preservation-requires-matroska": "请选择 Matroska 配置以保留内嵌字幕和字体。",
+			"subtitle-copy-unavailable": "内嵌字幕编码无法原样保留到目标容器中，仍可播放原文件。",
+			"attachment-name-missing": "内嵌附件缺少文件名，无法安全保留。"
 		}
 	},
 	"trackingAccount": {

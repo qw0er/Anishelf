@@ -1,11 +1,11 @@
 import type { MediaExecutionProgress } from "../../../../platform/media/events.js";
 import { DomainError } from "../../../../shared/errors.js";
-import type { ProcessedMedia } from "../../media-processing/public.js";
+import type { PreparationArtifacts } from "../../artifacts/public.js";
 import type {
 	PreparationFailureReason,
 	PreparationTask,
 } from "../domain/model.js";
-import type { PreparationArtifacts } from "./artifacts.js";
+import type { ProcessedMedia } from "../execution/public.js";
 import type { PreparationContext } from "./context.js";
 import { preparationFailure } from "./failures.js";
 
@@ -22,14 +22,6 @@ export class PreparationWorker {
 		let failure: PreparationFailureReason | undefined;
 		try {
 			signal.throwIfAborted();
-			if (
-				task.demand?.origin === "automatic" &&
-				this.context.automaticGuard &&
-				!(await this.context.automaticGuard(task))
-			) {
-				await this.artifacts.finishFailure(task.id, "cancelled", null);
-				return;
-			}
 			await this.context.source(task);
 			const disk =
 				(await this.context.files.availableBytes()) -

@@ -338,7 +338,7 @@ not start merely because a user opens playback or replace an active playback ass
   playback continues to check the client's capabilities.
 
 See the [architecture](development/architecture.md#automatic-media-preparation) for
-module boundaries and the [operator guide](guide/automatic-preparation.md) for exact
+module boundaries and the [operator guide](guide/manual-preparation.md) for exact
 configuration fields and examples.
 
 #### Subtitles and Embedded Extraction (P03, Partial P08–P09)

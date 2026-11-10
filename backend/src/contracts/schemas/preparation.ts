@@ -1,12 +1,8 @@
 import { Type } from "typebox";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
-import { AudioStreamSelectionSchema } from "./compatibility.js";
 import { FilePlaybackResourceSchema } from "./media.js";
-import {
-	DirectPlaybackPlanSchema,
-	PlaybackTokenSchema,
-	SourceVersionSchema,
-} from "./playback.js";
+import { AudioStreamSelectionSchema } from "./media-description.js";
+import { PlaybackTokenSchema, SourceVersionSchema } from "./playback.js";
 
 const statuses = {
 	queued: "queued",
@@ -101,10 +97,6 @@ export const PreparationTaskSchema = Type.Object(
 );
 export const PreparationStartResponseSchema = Type.Union([
 	Type.Object(
-		{ kind: Type.Literal("direct"), plan: DirectPlaybackPlanSchema },
-		{ additionalProperties: false },
-	),
-	Type.Object(
 		{ kind: Type.Literal("blocked"), reason: Type.String() },
 		{ additionalProperties: false },
 	),
@@ -147,6 +139,15 @@ export const PreparationSummaryResponseSchema = Type.Object(
 				{ additionalProperties: false },
 			),
 		),
+	},
+	{ additionalProperties: false },
+);
+
+export const PreparationRequestSchema = Type.Object(
+	{
+		sourceVersion: SourceVersionSchema,
+		profileId: Type.String({ minLength: 1, maxLength: 128 }),
+		audioStreamIndices: Type.Optional(AudioStreamSelectionSchema),
 	},
 	{ additionalProperties: false },
 );

@@ -2,11 +2,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { expect, test, vi } from "vitest";
-import { MediaAssetsApplication } from "../../../../src/modules/media/media-assets/application.js";
-import {
-	InvalidPreparedMediaError,
-	PreparedMediaFiles,
-} from "../../../../src/modules/media/preparation/infrastructure/files.js";
+import { PreparedMediaFiles } from "../../../../src/modules/media/artifacts/files.js";
+import { InvalidPreparedMediaError } from "../../../../src/modules/media/artifacts/public.js";
+import { MediaAssetsApplication } from "../../../../src/modules/media/catalog.js";
 
 import {
 	completed,

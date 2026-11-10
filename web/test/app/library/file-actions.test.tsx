@@ -27,9 +27,6 @@ test("single-version anime rows reuse Files commands without leaving detail or o
 	expect(play.getAttribute("href")).toContain("version=source-v1");
 	expect(play.getAttribute("href")).toContain("episode=ep-1");
 	expect(play.getAttribute("href")).toContain("library=%2F%3Fquery%3DFrieren");
-	await screen.findByRole("button", {
-		name: "This browser reports support for this file.",
-	});
 	fireEvent.click(screen.getByRole("button", { name: "File actions" }));
 	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
 	for (const name of [
@@ -54,7 +51,7 @@ test("single-version anime rows reuse Files commands without leaving detail or o
 	).toBe(false);
 	expect(
 		fetcher.mock.calls.some(([url]) =>
-			String(url).includes("compatibility?sourceVersion=source-v1"),
+			String(url).includes("preparation-source?sourceVersion=source-v1"),
 		),
 	).toBe(true);
 });
@@ -114,13 +111,6 @@ test("multi-version menus act on the chosen file and omit unavailable file actio
 	expect(
 		within(chosen).getByRole("link", { name: "Play" }).getAttribute("href"),
 	).toContain("version=source-v2");
-	await waitFor(() =>
-		expect(
-			within(chosen).getByRole("button", {
-				name: "This browser reports support for this file.",
-			}),
-		).toBeTruthy(),
-	);
 	fireEvent.click(within(chosen).getByRole("button", { name: "File actions" }));
 	expect(
 		(
@@ -143,7 +133,7 @@ test("multi-version menus act on the chosen file and omit unavailable file actio
 	).toBe(false);
 });
 
-test("a changed Catalog source disables its file menu while preserving the version-pinned Web link", async () => {
+test("a changed Catalog source keeps the version-pinned Web link and rejects preparation facts", async () => {
 	const detail = animeFixture();
 	const episode = detail.episodes[0];
 	if (!episode) throw Error("Missing episode");
@@ -151,7 +141,7 @@ test("a changed Catalog source disables its file menu while preserving the versi
 	mockAnime(detail);
 	const fallback = requiredFetch(fetcher.getMockImplementation());
 	fetcher.mockImplementation(async (input, init) =>
-		String(input).includes("compatibility?sourceVersion=source-v1")
+		String(input).includes("preparation-source?sourceVersion=source-v1")
 			? json(
 					{
 						error: {
@@ -165,13 +155,15 @@ test("a changed Catalog source disables its file menu while preserving the versi
 			: fallback(input, init),
 	);
 	renderApp("/anime/work-1");
-	await screen.findByRole("button", {
-		name: "Compatibility could not be checked. You can retry or try the original file.",
-	});
-	expect(
-		screen.getByRole<HTMLButtonElement>("button", { name: "File actions" })
-			.disabled,
-	).toBe(true);
+	fireEvent.click(await screen.findByRole("button", { name: "File actions" }));
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(([url]) =>
+				String(url).includes("preparation-source?sourceVersion=source-v1"),
+			),
+		).toBe(true),
+	);
+
 	expect(
 		screen.getByRole("link", { name: "Play: Episode 1" }).getAttribute("href"),
 	).toContain("version=source-v1");

@@ -3,10 +3,7 @@ import type {
 	PlaybackSessionResponse,
 	SettingsResponse,
 } from "../../../src/shared/api/contracts.js";
-import {
-	compatibility as assetCompatibility,
-	preparedAsset,
-} from "../../support/playback-fixture.js";
+import { preparedAsset } from "../../support/playback-fixture.js";
 import { trackingProvider } from "../../support/tracking-fixture.js";
 
 import {
@@ -25,6 +22,13 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 			expiresAt: Date.now() + 86400000,
 		});
 	const path = String(input);
+	if (path.includes("/preparation-source"))
+		return json({
+			fileId: path.split("/")[3],
+			sourceVersion: "version",
+			audioTracks: [],
+			defaultAudioStreamIndex: null,
+		});
 	if (path.startsWith("/api/files/file-1/chapters?"))
 		return json({ sourceVersion: "version", chapters: [] });
 	if (
@@ -80,20 +84,6 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 			selectedProfileId: "builtin:general",
 			selectionAvailable: true,
 		});
-	if (path === "/api/auto-preparation-presets")
-		return json({
-			presets: [
-				{
-					id: "builtin:web",
-					name: "Web",
-					description: "Web playback",
-					source: "builtin",
-					available: true,
-				},
-			],
-			selectedPresetId: "builtin:web",
-			selectionAvailable: true,
-		});
 	if (path === "/api/transcode-profiles")
 		return json({
 			profiles: [
@@ -127,63 +117,6 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 				},
 			],
 		});
-	if (path.startsWith("/api/preparations/"))
-		return json(
-			appFixture.preparationTasks.find((task) => path.endsWith(task.id)),
-		);
-	if (path.startsWith("/api/files/file-1/compatibility")) {
-		if (init?.method === "POST") {
-			const decision = {
-				status: appFixture.compatibilityStatus,
-				reason:
-					appFixture.compatibilityStatus === "supported"
-						? "browser-supported"
-						: "browser-rejected",
-			};
-			return json({
-				fileId: "file-1",
-				sourceVersion:
-					init?.method === "POST"
-						? JSON.parse(String(init.body)).sourceVersion
-						: (new URL(path, "http://localhost").searchParams.get(
-								"sourceVersion",
-							) ?? "version"),
-				rulesVersion: "4",
-				direct: decision,
-				container: decision,
-				video: decision,
-				audio: decision,
-				selectedVideo: null,
-				defaultAudioStreamIndex: null,
-				selectedAudioStreamIndices: [],
-				audioTracks: [],
-				output: JSON.parse(String(init.body)).output
-					? { combinations: { "copy-copy": "supported" } }
-					: null,
-				warnings: [],
-			});
-		}
-		return json({
-			fileId: "file-1",
-			sourceVersion:
-				init?.method === "POST"
-					? JSON.parse(String(init.body)).sourceVersion
-					: (new URL(path, "http://localhost").searchParams.get(
-							"sourceVersion",
-						) ?? "version"),
-			rulesVersion: "4",
-			container: "mp4",
-			descriptionId: "a".repeat(64),
-			output: null,
-			video: null,
-			defaultAudioStreamIndex: null,
-			selectedAudioStreamIndices: [],
-			audioTracks: [],
-			multipleTracks: false,
-			queries: [],
-		});
-	}
-
 	if (path === "/api/playback/options" || path === "/api/playback/selection") {
 		const intent = JSON.parse(String(init?.body));
 		const source = {
@@ -226,7 +159,7 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 			return json({
 				source,
 				resolvedAudioStreamIndex: null,
-				pending: false,
+
 				assets: assets.map((asset, index) => ({
 					asset,
 					descriptionId: (index ? "b" : "a").repeat(64),
@@ -234,41 +167,20 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 					queries: [],
 				})),
 			});
-		const choices = assets.map((asset) => {
-			const decision =
-				asset.kind === "prepared"
-					? { status: "supported" as const, reason: "browser-supported" }
-					: {
-							status: appFixture.compatibilityStatus,
-							reason:
-								appFixture.compatibilityStatus === "supported"
-									? "browser-supported"
-									: appFixture.compatibilityStatus === "unknown"
-										? "browser-uncertain"
-										: "browser-rejected",
-						};
-			return {
-				asset,
-				audio: null,
-				compatibility: { ...assetCompatibility, overall: decision },
-				unavailableReason: intent.failedResourceIds?.includes(asset.id)
-					? "asset-playback-failed"
-					: decision.status === "supported"
-						? null
-						: decision.reason,
-			};
-		});
-		const selected = choices.find(
-			(choice) =>
-				(!intent.assetId || choice.asset.id === intent.assetId) &&
-				!intent.failedResourceIds?.includes(choice.asset.id) &&
-				(choice.compatibility.overall.status === "supported" ||
-					intent.allowUnverified),
+		const choices = assets.map((asset) => ({
+			asset,
+			audio: null,
+			unavailableReason: null,
+		}));
+		const selected = choices.find((c) =>
+			intent.assetId
+				? c.asset.id === intent.assetId
+				: c.asset.kind === "original",
 		);
 		return json({
 			source,
 			resolvedAudioStreamIndex: null,
-			pending: false,
+
 			choices,
 			active: selected
 				? {

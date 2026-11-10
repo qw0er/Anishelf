@@ -8,8 +8,6 @@ export function settingsResponse(
 		resourceRoots: settings.resourceRoots,
 		titleDisplayPreference: settings.titleDisplayPreference ?? "native",
 		defaultMetadataProvider: settings.defaultMetadataProvider ?? "anilist",
-		autoPreparationEnabled: settings.autoPreparationEnabled ?? false,
-		autoPreparationPresetId: settings.autoPreparationPresetId ?? "builtin:web",
 		...(settings.defaultAcquisitionProfileId === undefined
 			? {}
 			: { defaultAcquisitionProfileId: settings.defaultAcquisitionProfileId }),

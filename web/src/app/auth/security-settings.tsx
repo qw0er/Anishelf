@@ -1,7 +1,6 @@
 import { KeyRound, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { clearCompatibilityCache } from "../../features/media/public.js";
 import { clearAuthToken, request } from "../../shared/api/client.js";
 import { queryClient } from "../../shared/api/query-client.js";
 import { ActionButton } from "../../shared/components/ui/action-button.js";
@@ -25,7 +24,6 @@ export function SecuritySettings() {
 	const leave = async () => {
 		clearAuthToken();
 		queryClient.clear();
-		await clearCompatibilityCache();
 		window.location.replace("/login");
 	};
 	return (

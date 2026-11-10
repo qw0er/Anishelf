@@ -95,8 +95,6 @@ test("settings responses expose only the public setting for setup and configured
 			resourceRoots,
 			defaultMetadataProvider: "anilist",
 			titleDisplayPreference: "native",
-			autoPreparationEnabled: false,
-			autoPreparationPresetId: "builtin:web",
 		});
 	}
 });

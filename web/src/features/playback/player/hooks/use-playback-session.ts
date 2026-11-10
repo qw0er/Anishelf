@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { interactionDefaults } from "../../../../shared/config/interaction-defaults.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
+import type { PlaybackClock } from "../engine.js";
 import type { PlaybackPolicy } from "../policy.js";
 import {
 	isRetryablePlaybackError,
@@ -58,7 +59,7 @@ export function usePlaybackSession(
 	const [state, setState] = useState(initialState);
 	const autoPlayAttempted = useRef(false);
 	const controllerRef = useRef<PlaybackSessionController | null>(null);
-	const videoRef = useRef<HTMLVideoElement | null>(null);
+	const videoRef = useRef<PlaybackClock | null>(null);
 	const timelineRef = useRef<MediaTimeline>(originalTimeline());
 	useEffect(() => {
 		const notificationId = `playback-progress:${fileId}`;
@@ -155,7 +156,7 @@ export function usePlaybackSession(
 
 	const attach = useCallback(
 		(
-			video: HTMLVideoElement | null,
+			video: PlaybackClock | null,
 			timeline: MediaTimeline = originalTimeline(),
 		) => {
 			videoRef.current = video;

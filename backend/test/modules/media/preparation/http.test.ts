@@ -46,7 +46,7 @@ test("HTTP only delivers completed media, supports ranges/HEAD, rejects arbitrar
 		headers,
 	});
 	expect(head.statusCode).toBe(200);
-	expect(head.headers["content-type"]).toBe("video/mp4");
+	expect(head.headers["content-type"]).toBe("video/x-matroska");
 	expect(head.headers["content-length"]).toBe("10");
 	expect(head.body).toBe("");
 	const status = await f.app.inject({

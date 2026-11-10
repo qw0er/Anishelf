@@ -10,7 +10,7 @@
 | Backend startup options | Environment variables below | Backend restart |
 | Media roots, preparation mode/cache, subscription defaults | Anishelf Settings | On save; active tasks retain their initial limits |
 | Custom acquisition profiles | YAML in the app data directory | Backend restart |
-| Transcode profiles / automatic preparation presets | YAML in the app data directory | Backend restart |
+| Transcode profiles | YAML in the app data directory | Backend restart |
 
 Containers use `/data/app` for state and `/data/media` for initial media. Source
 installations default to the OS user data directory; set `ANISHELF_DATA_DIR` to keep
@@ -81,7 +81,7 @@ Choose a built-in or [custom v2 transcode profile](transcode-profiles.md) under
 Settings → Playback. The profile owns stream copying, encoding parameters and
 filters; there is no global compatibility/fast mode. Streams matching the target
 codec and explicitly configured output constraints can be copied independently of
-browser evidence. Built-ins disable compatibility-based copying, but still reuse
+container and profile constraints. Built-ins disable browser-based copying, but still reuse
 matching streams. Encoding parameters apply only to streams that need encoding.
 Restart Backend after editing transcode or automatic-preparation YAML files.
 Invalid custom files report a startup issue and fall back to built-ins.
@@ -167,3 +167,10 @@ Backend needs directory write/search permissions. Read-only mounts remain usable
 for browsing/playback but reject mutation commands. Move/Delete uses Node filesystem APIs and requires no external filesystem tools.
 An existing move destination is rejected before the operation. Avoid concurrent
 changes to the same paths from other applications during these commands.
+
+## Playback and preparation
+
+AVPlayer handles client playback and embedded subtitles. Preparation is manual only;
+see [manual preparation](manual-preparation.md). The default Matroska profile preserves
+subtitles, fonts and chapters. Legacy automatic preparation keys are ignored and are
+removed on the next settings save.

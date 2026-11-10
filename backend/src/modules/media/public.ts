@@ -1,16 +1,10 @@
 export type {
-	AssetInspection,
 	MediaAsset,
 	MediaAssetCatalog,
 	PlaybackSource,
-} from "./media-assets/public.js";
-export type {
-	CompatibilityEvidence,
-	CompatibilityQuery,
-	CompatibilityResult,
-} from "./media-planning/public.js";
+} from "./assets.js";
 
-import type { MediaAssetCatalog } from "./media-assets/public.js";
+import type { MediaAssetCatalog } from "./assets.js";
 export interface MediaApi {
 	listPlaybackAssets(
 		fileId: string,

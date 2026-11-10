@@ -4,7 +4,6 @@ export type {
 	SettingsStore,
 	TranscodeProfile,
 } from "./configuration/public.js";
-export { transcodeProfileFingerprint } from "./configuration/public.js";
 
 import type { RuntimeEnvironment } from "../../platform/environment.js";
 import type { DeepReadonly } from "../../shared/policy.js";
@@ -29,10 +28,6 @@ export interface SystemApi extends SettingsStore {
 	): Promise<void>;
 	refreshTranscodeValidation?(): Promise<void>;
 
-	readonly autoPreparationPresets?: DeepReadonly<
-		import("../../contracts/auto-preparation.js").AutoPreparationPreset[]
-	>;
-	readonly autoPreparationIssue?: ProfileCatalogIssue | undefined;
 	onSettingsChanged?(listener: () => void): () => void;
 	readonly deployment: DeepReadonly<DeploymentConfig>;
 	readonly environment: RuntimeEnvironment;

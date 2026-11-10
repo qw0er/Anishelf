@@ -12,8 +12,3 @@ export const playbackPolicy: PlaybackPolicy = Object.freeze({
 	progressRetryMaximumMs: 60000,
 	progressSeekDelayMs: 500,
 });
-export const playbackInteractionPolicy = Object.freeze({
-	seekStepSeconds: 5,
-	playerLoad: "eager" as const,
-	playerPreload: "metadata" as const,
-});

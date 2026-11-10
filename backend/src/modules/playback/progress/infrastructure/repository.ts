@@ -49,53 +49,6 @@ export class PlaybackRepository {
 		private readonly policy: DeepReadonly<PlaybackPolicy> = playbackPolicy,
 	) {}
 
-	viewingStates(
-		sources: readonly SourceIdentity[],
-	): Record<
-		string,
-		import("../../../../contracts/auto-preparation.js").ViewingState
-	> {
-		const states: Record<
-			string,
-			import("../../../../contracts/auto-preparation.js").ViewingState
-		> = Object.fromEntries(sources.map((s) => [s.fileId, "unwatched"]));
-		for (let offset = 0; offset < sources.length; offset += 100) {
-			const chunk = sources.slice(offset, offset + 100);
-			const rows = this.store
-				.select({ source: mediaSources, progress: playbackProgress })
-				.from(mediaSources)
-				.innerJoin(
-					playbackProgress,
-					eq(mediaSources.id, playbackProgress.sourceId),
-				)
-				.where(
-					inArray(
-						mediaSources.fileId,
-						chunk.map((s) => s.fileId),
-					),
-				)
-				.all();
-			for (const { source, progress } of rows) {
-				if (
-					!chunk.some(
-						(s) =>
-							s.fileId === source.fileId &&
-							s.scopeId === source.rootId &&
-							s.sourceVersion === source.sourceVersion,
-					) ||
-					progress.lastViewedAtMs === null
-				)
-					continue;
-				states[source.fileId] =
-					progress.durationMs &&
-					progress.positionMs / progress.durationMs >=
-						this.policy.completionRatio
-						? "completed"
-						: "in-progress";
-			}
-		}
-		return states;
-	}
 	completions(sourceId?: string, pendingOnly = false): CompletionRecord[] {
 		return this.store
 			.select()

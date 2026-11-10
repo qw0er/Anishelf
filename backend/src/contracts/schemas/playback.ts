@@ -36,7 +36,8 @@ export const OpenPlaybackRequestSchema = Type.Object(
 	{ fileId: ResourceIdSchema },
 	{ additionalProperties: false },
 );
-export const DirectPlaybackPlanSchema = Type.Object(
+
+const DirectPlaybackPlanSchema = Type.Object(
 	{ mode: Type.Literal("direct"), resource: FilePlaybackResourceSchema },
 	{ additionalProperties: false },
 );

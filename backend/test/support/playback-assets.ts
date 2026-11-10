@@ -69,6 +69,5 @@ export function catalog(): MediaAssetCatalog {
 			defaultAudioStreamIndex: 1,
 		},
 		assets: [original, asset()],
-		pendingAudioSelections: [],
 	};
 }

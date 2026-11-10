@@ -63,6 +63,11 @@ export const preparationTasks = sqliteTable(
 		snapshotReasonsVideo: text("snapshot_reasons_video").notNull(),
 		snapshotReasonsAudio: text("snapshot_reasons_audio").notNull(),
 		snapshotVideoStreamIndex: integer("snapshot_video_stream_index").notNull(),
+		snapshotPlanPreserveSubtitles: integer("snapshot_plan_preserve_subtitles", {
+			mode: "boolean",
+		})
+			.notNull()
+			.default(false),
 		snapshotPlanContainer: text("snapshot_plan_container").notNull(),
 		snapshotPlanDelivery: text("snapshot_plan_delivery", {
 			enum: ["file", "media-source"],
@@ -282,14 +287,4 @@ export const preparationTasksSnapshotPlanVideoFilters = sqliteTable(
 			table.ordinalIndex,
 		),
 	],
-);
-
-export const automaticPreparationDemands = sqliteTable(
-	"automatic_preparation_demands",
-	{
-		id: text("id").primaryKey().notNull(),
-		failures: integer("failures").notNull(),
-		nextAttemptAtMs: integer("next_attempt_at_ms").notNull(),
-		taskUpdatedAtMs: integer("task_updated_at_ms"),
-	},
 );

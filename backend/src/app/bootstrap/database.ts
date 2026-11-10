@@ -47,7 +47,6 @@ export class ApplicationDatabase {
 	readonly metadata: AnimePersistence["metadata"];
 	readonly catalog: AnimePersistence["catalog"];
 	readonly playback: PlaybackPersistence["playback"];
-	readonly subtitles: MediaPersistence["subtitles"];
 	readonly inspections: MediaPersistence["inspections"];
 	readonly preparation: MediaPersistence["preparation"];
 	private constructor(
@@ -68,7 +67,6 @@ export class ApplicationDatabase {
 		this.trackingOperations = anime.trackingOperations;
 		this.metadata = anime.metadata;
 		this.playback = playback.playback;
-		this.subtitles = media.subtitles;
 		this.preparation = media.preparation;
 		this.inspections = media.inspections;
 	}

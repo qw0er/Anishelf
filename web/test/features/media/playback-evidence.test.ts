@@ -1,3 +1,4 @@
+import { clockFor } from "../playback/support/playback-session-fixture.js";
 // @vitest-environment happy-dom
 
 import { expect, test } from "vitest";
@@ -11,27 +12,27 @@ test("normal time excludes resume, seeks, buffering and long gaps, and uses wall
 	const video = document.createElement("video");
 	const evidence = new PlaybackEvidence();
 	video.currentTime = 40;
-	evidence.sample(video, false, 0);
+	evidence.sample(clockFor(video), false, 0);
 	video.currentTime = 90;
-	evidence.sample(video, true, 1000);
+	evidence.sample(clockFor(video), true, 1000);
 	video.currentTime = 91;
-	evidence.sample(video, true, 2000);
+	evidence.sample(clockFor(video), true, 2000);
 	expect(evidence.normalPlayedMs).toBe(1000);
 	video.currentTime = 150;
-	evidence.sample(video, true, 3000);
+	evidence.sample(clockFor(video), true, 3000);
 	expect(evidence.normalPlayedMs).toBe(1000);
 	evidence.reset();
 	video.playbackRate = 2;
-	evidence.sample(video, true, 4000);
+	evidence.sample(clockFor(video), true, 4000);
 	video.currentTime = 152;
-	evidence.sample(video, true, 5000);
+	evidence.sample(clockFor(video), true, 5000);
 	expect(evidence.normalPlayedMs).toBe(2000);
-	evidence.sample(video, false, 6000);
+	evidence.sample(clockFor(video), false, 6000);
 	video.currentTime = 154;
-	evidence.sample(video, true, 7000);
+	evidence.sample(clockFor(video), true, 7000);
 	expect(evidence.normalPlayedMs).toBe(2000);
 	video.currentTime = 180;
-	evidence.sample(video, true, 20000);
+	evidence.sample(clockFor(video), true, 20000);
 	expect(evidence.normalPlayedMs).toBe(2000);
 });
 

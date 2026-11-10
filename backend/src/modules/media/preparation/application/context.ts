@@ -4,16 +4,17 @@ import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../../resources/public.js";
 import type { TranscodeProfile } from "../../../system/public.js";
-import type { MediaProcessingApi } from "../../media-processing/public.js";
+import type { PreparedMediaFiles } from "../../artifacts/public.js";
 import type { PreparationTask } from "../domain/model.js";
-import type { PreparedMediaFiles } from "../infrastructure/files.js";
+import type { MediaProcessingApi } from "../execution/public.js";
 import type { PreparationPolicy } from "../policy.js";
 import type { PreparationStore } from "../ports.js";
+import { preparationFailure } from "./failures.js";
 
 /** Per-application dependencies and shutdown guard; no shared global registry. */
 export class PreparationContext {
 	closed = false;
-	automaticGuard?: (task: PreparationTask) => Promise<boolean>;
+	failure = preparationFailure;
 	constructor(
 		readonly repository: PreparationStore,
 		readonly sources: ResourceAccessApi,

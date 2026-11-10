@@ -22,7 +22,7 @@ export interface TranscodeProfile {
 }
 
 /** Output policy identity shared by negotiation and persistent cache validation. */
-export function transcodeProfileFingerprint(
+function _transcodeProfileFingerprint(
 	profile: DeepReadonly<TranscodeProfile>,
 ): string {
 	return fingerprint({

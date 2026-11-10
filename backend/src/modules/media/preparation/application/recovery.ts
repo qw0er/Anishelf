@@ -1,4 +1,4 @@
-import type { PreparationArtifacts } from "./artifacts.js";
+import type { PreparationArtifacts } from "../../artifacts/public.js";
 import type { PreparationContext } from "./context.js";
 /** Startup reconciliation never restarts incomplete commands implicitly. */
 export class PreparationRecovery {
@@ -13,7 +13,10 @@ export class PreparationRecovery {
 		);
 		for (const task of this.context.repository.list()) {
 			if (["queued", "processing", "cancelling"].includes(task.state.status))
-				await this.artifacts.invalidate(task, "interrupted");
+				await this.artifacts.invalidate(
+					task,
+					task.demand?.origin === "automatic" ? "cancelled" : "interrupted",
+				);
 			else if (
 				task.state.status === "ready" &&
 				!valid.has(task.spec.executionPlanId)

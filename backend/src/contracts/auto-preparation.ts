@@ -1,4 +1,4 @@
-export type ViewingState = "unwatched" | "in-progress" | "completed";
+type ViewingState = "unwatched" | "in-progress" | "completed";
 export interface VideoAcceptance {
 	codecs?: string[];
 	pixelFormats?: string[];

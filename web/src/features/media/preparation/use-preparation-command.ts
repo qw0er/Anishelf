@@ -11,7 +11,7 @@ import {
 	type PreparationSource,
 } from "./audio-tracks.js";
 import { usePreparationContext } from "./context.js";
-import { negotiatePreparation } from "./negotiation.js";
+
 import { usePreparationAction } from "./use-preparations.js";
 
 export function usePreparationCommand({
@@ -20,7 +20,6 @@ export function usePreparationCommand({
 	tasks,
 	audioStreamIndices,
 	onPrepared,
-	onRecheck,
 	onComplete,
 }: {
 	fileId: string;
@@ -28,7 +27,7 @@ export function usePreparationCommand({
 	tasks?: PreparationTaskResponse[];
 	audioStreamIndices?: number[];
 	onPrepared?(task: PreparationTaskResponse): void;
-	onRecheck(): void;
+	onRecheck?(): void;
 	onComplete(): void;
 }) {
 	const { t } = useTranslation();
@@ -68,13 +67,15 @@ export function usePreparationCommand({
 	function start() {
 		if (!profile || pending || task?.status === "ready") return;
 		void action.run(async (signal) => {
-			const body = await negotiatePreparation(
-				fileId,
-				profile,
-				signal,
+			if (!sourceVersion)
+				throw new Error(
+					"Source information is unavailable. Refresh and retry.",
+				);
+			const body = {
 				sourceVersion,
-				audioStreamIndices,
-			);
+				profileId: profile,
+				...(audioStreamIndices !== undefined ? { audioStreamIndices } : {}),
+			};
 			if (task && (task.status === "failed" || task.status === "cancelled")) {
 				const retried = await retryPreparation(task.id, body, { signal });
 				if (signal.aborted) return;
@@ -87,11 +88,10 @@ export function usePreparationCommand({
 			if (response.kind === "task") {
 				onPrepared?.(response.task);
 				onComplete();
-			} else if (response.kind === "direct") onRecheck();
-			else
+			} else
 				toast.add({
 					type: "warning",
-					title: t(`compatibility.reasons.${response.reason}`, {
+					title: t(`preparation.reasons.${response.reason}`, {
 						defaultValue: t("preparation.blocked"),
 					}),
 				});

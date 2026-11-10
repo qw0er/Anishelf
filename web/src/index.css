@@ -646,3 +646,51 @@
 		padding-inline: 1rem;
 	}
 }
+
+/* Keep upstream AVPlayer controls inside the app's narrow playback surface. */
+.anishelf-player {
+	overflow-x: clip;
+}
+.anishelf-player .avplayer-ui-loading-message {
+	display: none;
+}
+.anishelf-player .avplayer-ui-footer-right {
+	gap: 0.5rem;
+}
+@media (max-width: 480px) {
+	.anishelf-player {
+		--libmedia-ui-control-height: 32px;
+	}
+	.anishelf-player
+		.avplayer-ui-container
+		.avplayer-ui-footer
+		.avplayer-ui-control
+		.avplayer-ui-control-item:has(
+			.avplayer-ui-control-volume,
+			.avplayer-ui-control-loop,
+			.avplayer-ui-control-pip,
+			.avplayer-ui-control-play-rate
+		) {
+		display: none;
+	}
+	.anishelf-player .avplayer-ui-control-item {
+		margin: 0 2px;
+		min-width: 0;
+	}
+	.anishelf-player .avplayer-ui-control-timer {
+		font-size: 11px;
+		padding-inline: 4px;
+	}
+	.anishelf-player .avplayer-ui-control-timer .avplayer-ui-time-label {
+		min-width: 0;
+	}
+	.anishelf-player .avplayer-ui-control-subtitle-track-value {
+		font-size: 12px;
+	}
+	.anishelf-player .avplayer-ui-footer {
+		padding-inline: 4px;
+	}
+	.anishelf-player .avplayer-ui-footer-right {
+		gap: 0;
+	}
+}

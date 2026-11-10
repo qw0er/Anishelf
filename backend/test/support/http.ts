@@ -4,12 +4,11 @@ import { registerCatalogRoutes } from "../../src/modules/anime/anime-catalog/htt
 import type { AnimeCatalogApi } from "../../src/modules/anime/anime-catalog/public.js";
 import { registerMetadataRoutes } from "../../src/modules/anime/external-works/metadata/http/metadata.js";
 import type { MetadataApi } from "../../src/modules/anime/external-works/metadata/public.js";
-import type { MediaInspectionApplication } from "../../src/modules/media/media-inspection/application.js";
-import { registerChapterRoutes } from "../../src/modules/media/media-inspection/http/chapters.js";
-import type { MediaPlanningApplication } from "../../src/modules/media/media-planning/application/planning.js";
-import { registerMediaPlanningRoutes } from "../../src/modules/media/media-planning/http/planning.js";
+import type { MediaInspectionApplication } from "../../src/modules/media/inspection/application.js";
+import { registerChapterRoutes } from "../../src/modules/media/inspection/http/chapters.js";
 import type { PreparationApplication } from "../../src/modules/media/preparation/application/preparation.js";
 import { registerPreparationRoutes } from "../../src/modules/media/preparation/http/preparation.js";
+import type { MediaPlanningApplication } from "../../src/modules/media/preparation/planning/application/planning.js";
 import type { SubtitleApplication } from "../../src/modules/media/subtitles/application/subtitles.js";
 import { registerSubtitleRoutes } from "../../src/modules/media/subtitles/http/subtitles.js";
 import { subtitlePolicy } from "../../src/modules/media/subtitles/policy.js";
@@ -51,7 +50,7 @@ export function createHttpApp(options: {
 	/** Bootstrap can own shutdown of shared dependencies. */
 	closeDependencies?: () => Promise<void>;
 }) {
-	let ownedSubtitles = options.subtitles;
+	let _ownedSubtitles = options.subtitles;
 	return createProtocolHttpApp({
 		config: options.config,
 		logger: options.logger,
@@ -82,7 +81,7 @@ export function createHttpApp(options: {
 								subtitles: { ...subtitlePolicy, ...library.policy.subtitles },
 							},
 						});
-					ownedSubtitles = subtitles;
+					_ownedSubtitles = subtitles;
 					registerSubtitleRoutes(app, subtitles);
 					registerSettingsRoutes(app, fixtureSettings(library));
 				}
@@ -99,8 +98,6 @@ export function createHttpApp(options: {
 				if (options.playbackSelection)
 					registerPlaybackSelectionRoutes(app, options.playbackSelection);
 				if (options.inspection) registerChapterRoutes(app, options.inspection);
-				if (options.mediaPlanning)
-					registerMediaPlanningRoutes(app, options.mediaPlanning);
 				if (options.preparation) {
 					const preparation = options.preparation;
 
@@ -115,7 +112,6 @@ export function createHttpApp(options: {
 				await options.preparation?.close();
 				options.playback?.close();
 				options.mediaPlanning?.close();
-				await ownedSubtitles?.close();
 				await options.library?.close();
 			}),
 	});

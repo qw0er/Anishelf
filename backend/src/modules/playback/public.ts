@@ -11,11 +11,6 @@ import type {
 	SavePlaybackProgressResult,
 } from "./progress/domain/model.js";
 export interface PlaybackApi {
-	viewingStates?(
-		sources: readonly import("../resources/public.js").SourceIdentity[],
-	): Promise<
-		Record<string, import("../../contracts/auto-preparation.js").ViewingState>
-	>;
 	open(id: string): Promise<PlaybackSession>;
 	save(input: SavePlaybackProgress): Promise<SavePlaybackProgressResult>;
 	release(token: string): void;

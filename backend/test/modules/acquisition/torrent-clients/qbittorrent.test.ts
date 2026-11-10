@@ -89,8 +89,6 @@ test("Configuration validates and persists the direct browser URL", async () => 
 	expect(saved.json()).toEqual({
 		defaultMetadataProvider: "anilist",
 		titleDisplayPreference: "native",
-		autoPreparationEnabled: false,
-		autoPreparationPresetId: "builtin:web",
 		resourceRoots: [],
 		qbittorrentWebUiUrl: "https://downloads.example.com/qbt/",
 	});

@@ -236,4 +236,4 @@ publish test tags.
 See [packaging](../../package/README.md#publication-flow). CI does not establish browser
 codec support or production deployment acceptance.
 
-Automatic background copies: [configuration and behavior](../guide/automatic-preparation.md).
+Automatic background copies: [configuration and behavior](../guide/manual-preparation.md).

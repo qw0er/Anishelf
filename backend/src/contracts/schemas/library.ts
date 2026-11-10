@@ -156,8 +156,6 @@ export function createSettingsSchemas() {
 			defaultMetadataProvider: Type.Optional(
 				Type.Union([Type.Literal("anilist"), Type.Literal("bangumi")]),
 			),
-			autoPreparationEnabled: Type.Optional(Type.Boolean()),
-			autoPreparationPresetId: Type.Optional(TranscodeProfileIdSchema),
 			rssRefreshIntervalMinutes: Type.Optional(
 				Type.Integer({
 					minimum: rssConstraints.minimumRefreshIntervalMinutes,
@@ -199,8 +197,6 @@ export function createSettingsSchemas() {
 			defaultMetadataProvider: Type.Optional(
 				Type.Union([Type.Literal("anilist"), Type.Literal("bangumi")]),
 			),
-			autoPreparationEnabled: Type.Optional(Type.Boolean()),
-			autoPreparationPresetId: Type.Optional(TranscodeProfileIdSchema),
 			rssRefreshIntervalMinutes: Type.Optional(
 				Type.Integer({
 					minimum: rssConstraints.minimumRefreshIntervalMinutes,

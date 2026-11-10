@@ -123,16 +123,18 @@ test.each(["source-v1", "older-source"])(
 				: fallback(input, init),
 		);
 		renderApp("/anime/work-1");
-		const label =
+		const status =
 			sourceVersion === "source-v1"
-				? "Pre-transcoded copy published."
-				: "This file is not supported by this browser.";
-		const status = await screen.findByRole("button", { name: label });
+				? await screen.findByRole("button", {
+						name: "Pre-transcoded copy published.",
+					})
+				: null;
+		const play = await screen.findByRole("link", { name: "Play: Episode 1" });
 		const menu = screen.getByRole("button", { name: "File actions" });
-		const play = screen.getByRole("link", { name: "Play: Episode 1" });
-		expect(
-			status.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING,
-		).toBeTruthy();
+		if (status)
+			expect(
+				status.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING,
+			).toBeTruthy();
 		expect(
 			menu.compareDocumentPosition(play) & Node.DOCUMENT_POSITION_FOLLOWING,
 		).toBeTruthy();

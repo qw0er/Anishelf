@@ -70,22 +70,6 @@ export type SubtitleDiscoveryResponse = Static<
 	typeof schemas.SubtitleDiscoveryResponseSchema
 >;
 
-export type SubtitlePreparationResponse = Static<
-	typeof schemas.SubtitlePreparationResponseSchema
->;
-
-export type CompatibilityInspection = Static<
-	typeof schemas.CompatibilityInspectionSchema
->;
-export type CompatibilityCheckRequest = Static<
-	typeof schemas.CompatibilityCheckRequestSchema
->;
-export type CompatibilityResult = Static<
-	typeof schemas.CompatibilityResultSchema
->;
-export type CompatibilityQuery = CompatibilityInspection["queries"][number];
-export type CompatibilityEvidence =
-	CompatibilityCheckRequest["evidence"][number];
 export type CompatibilityVideoStream = Static<
 	typeof schemas.VideoStreamDescriptionSchema
 >;
@@ -254,9 +238,7 @@ export type UpdateCheck = Static<typeof schemas.UpdateCheckSchema>;
 
 export type MediaAsset = Static<typeof schemas.MediaAssetSchema>;
 export type PlaybackSource = Static<typeof schemas.PlaybackSourceSchema>;
-export type AssetCompatibility = Static<
-	typeof schemas.AssetCompatibilitySchema
->;
+
 export type AssetInspection = Static<typeof schemas.AssetInspectionSchema>;
 export type ActivePlayback = Static<typeof schemas.ActivePlaybackSchema>;
 export type PlaybackAssetChoice = Static<
@@ -268,10 +250,6 @@ export type ResourceCommandResult = Static<
 	typeof schemas.ResourceCommandResultSchema
 >;
 
-export type AutoPreparationCatalog = Static<
-	typeof import("./schemas/auto-preparation.js").AutoPreparationCatalogSchema
->;
-
 export type PreparedMediaQuery = Static<
 	typeof schemas.PreparedMediaQuerySchema
 >;
@@ -279,4 +257,8 @@ export type PreparedMediaItem = Static<typeof schemas.PreparedMediaItemSchema>;
 export type PreparedMediaList = Static<typeof schemas.PreparedMediaListSchema>;
 export type PreparedMediaDeleteResponse = Static<
 	typeof schemas.PreparedMediaDeleteResponseSchema
+>;
+
+export type PreparationRequest = Static<
+	typeof schemas.PreparationRequestSchema
 >;

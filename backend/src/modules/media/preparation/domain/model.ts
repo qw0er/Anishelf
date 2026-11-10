@@ -63,7 +63,6 @@ export interface PreparationView {
 	availability: "ready" | "unknown" | "unavailable";
 }
 export type PreparationCreation =
-	| { kind: "direct"; fileId: string; mimeType: string }
 	| { kind: "blocked"; reason: string }
 	| { kind: "task"; view: PreparationView };
 export interface PreparedArtifact {

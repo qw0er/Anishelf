@@ -1,6 +1,5 @@
 export const settingsKeys = {
 	settings: ["settings"] as const,
-	automaticPresets: ["automatic-preparation-presets"] as const,
 	profiles: ["profiles"] as const,
 };
 
@@ -22,12 +21,4 @@ export const profilesQuery = () =>
 		queryKey: settingsKeys.profiles,
 		queryFn: ({ signal }) =>
 			api.getTranscodeProfiles({ signal: boundedSignal(signal) }),
-	});
-
-export const automaticPresetsQuery = () =>
-	queryOptions({
-		queryKey: settingsKeys.automaticPresets,
-		staleTime: 5 * 60_000,
-		queryFn: ({ signal }) =>
-			api.getAutoPreparationPresets({ signal: boundedSignal(signal) }),
 	});

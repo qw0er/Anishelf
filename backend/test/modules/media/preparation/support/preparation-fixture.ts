@@ -6,22 +6,22 @@ import pino from "pino";
 import { afterEach, expect, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../../src/app/bootstrap/database.js";
 import type {
-	CompatibilityCheckRequest,
+	PreparationRequest,
 	PreparationStartResponse,
 } from "../../../../../src/contracts/http.js";
-import { MediaInspectionApplication } from "../../../../../src/modules/media/media-inspection/application.js";
-import { MediaPlanningApplication } from "../../../../../src/modules/media/media-planning/application/planning.js";
+import { MediaInspectionApplication } from "../../../../../src/modules/media/inspection/application.js";
+import type { PreparationApplication } from "../../../../../src/modules/media/preparation/application/preparation.js";
+import { createPreparationApplication } from "../../../../../src/modules/media/preparation/create.js";
 import type {
 	MediaExecutionRequest,
 	MediaProcessingApi,
 	ProcessedMedia,
-} from "../../../../../src/modules/media/media-processing/public.js";
-import type { PreparationApplication } from "../../../../../src/modules/media/preparation/application/preparation.js";
-import { createPreparationApplication } from "../../../../../src/modules/media/preparation/create.js";
+} from "../../../../../src/modules/media/preparation/execution/public.js";
 import {
 	preparationStartResponse,
 	preparationTaskResponse,
 } from "../../../../../src/modules/media/preparation/http/presenters.js";
+import { MediaPlanningApplication } from "../../../../../src/modules/media/preparation/planning/application/planning.js";
 import { preparationPolicy } from "../../../../../src/modules/media/preparation/policy.js";
 import { PlaybackApplication } from "../../../../../src/modules/playback/progress/application/playback.js";
 import { LibraryIndex } from "../../../../../src/modules/resources/library/infrastructure/index.js";
@@ -216,37 +216,16 @@ export async function fixture(
 		playback.close();
 	});
 	async function input(
-		overrides: Record<string, "supported" | "unsupported" | "unknown"> = {},
-	): Promise<CompatibilityCheckRequest & { fileId: string }> {
+		_overrides: Record<string, string> = {},
+	): Promise<PreparationRequest & { fileId: string }> {
 		const source = await library.sources.resolveSource(file.id);
-		const description = await compatibility.inspect({
-			fileId: file.id,
-			sourceVersion: source.identity.sourceVersion,
-			output: { profileId: required(profiles[0]).id, target: "file" },
-		});
 		return {
 			fileId: file.id,
-			sourceVersion: description.sourceVersion,
-			descriptionId: description.descriptionId,
-			output: { profileId: required(profiles[0]).id, target: "file" },
-			evidence: description.queries.map((query) => {
-				const status =
-					overrides[query.id] ??
-					(query.id.startsWith("original") ? "unsupported" : "supported");
-				return {
-					id: query.id,
-					status,
-					reason:
-						status === "supported"
-							? "browser-supported"
-							: status === "unsupported"
-								? "browser-rejected"
-								: "browser-uncertain",
-					smooth: null,
-				};
-			}),
+			sourceVersion: source.identity.sourceVersion,
+			profileId: required(profiles[0]).id,
 		};
 	}
+
 	return {
 		inspection,
 		probe,
@@ -267,7 +246,7 @@ export async function fixture(
 		},
 		get preparation() {
 			return {
-				create: async (input: CompatibilityCheckRequest & { fileId: string }) =>
+				create: async (input: PreparationRequest & { fileId: string }) =>
 					preparationStartResponse(await preparation.create(input)),
 				get: async (id: string) =>
 					preparationTaskResponse(await preparation.get(id)),
@@ -278,7 +257,7 @@ export async function fixture(
 				}),
 				cancel: async (id: string) =>
 					preparationTaskResponse(await preparation.cancel(id)),
-				retry: async (id: string, input: CompatibilityCheckRequest) =>
+				retry: async (id: string, input: PreparationRequest) =>
 					preparationTaskResponse(await preparation.retry(id, input)),
 				openArtifact: preparation.openArtifact.bind(preparation),
 				deleteArtifact: preparation.deleteArtifact.bind(preparation),

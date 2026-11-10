@@ -4,7 +4,8 @@ import type {
 } from "../../contracts/auto-preparation.js";
 import type { DeepReadonly } from "../../shared/policy.js";
 import type { MediaStream } from "./model.js";
-export type Acceptance = "accepted" | "rejected" | "unknown";
+
+type Acceptance = "accepted" | "rejected" | "unknown";
 export function normalizeMediaProfile(value: string): string {
 	return value
 		.toLowerCase()
@@ -15,7 +16,7 @@ export function normalizeMediaProfile(value: string): string {
 		.replace(/^high(10|422|444)$/, "high-$1")
 		.replace(/^main10$/, "main-10");
 }
-export function dynamicRange(stream: DeepReadonly<MediaStream>): string | null {
+function dynamicRange(stream: DeepReadonly<MediaStream>): string | null {
 	if (stream.hdr.hlg) return "hlg";
 	if (stream.hdr.pq) return "hdr10";
 	if (stream.hdr.sideDataTypes.length) return null;
@@ -47,7 +48,7 @@ export function codecLevel(
 	if (codec === "av1") return 2 + Math.floor(level / 4) + (level % 4) / 10;
 	return null;
 }
-export function acceptsStream(
+function _acceptsStream(
 	stream: DeepReadonly<MediaStream>,
 	candidates: DeepReadonly<(VideoAcceptance | AudioAcceptance)[]> | undefined,
 ): Acceptance {

@@ -6,7 +6,7 @@ import type {
 	PreparedMediaDeleteResponse,
 	PreparedMediaList,
 } from "../../../../src/contracts/http.js";
-import { PreparedMediaFiles } from "../../../../src/modules/media/preparation/infrastructure/files.js";
+import { PreparedMediaFiles } from "../../../../src/modules/media/artifacts/files.js";
 import {
 	completed,
 	fixture,

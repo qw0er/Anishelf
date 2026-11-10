@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
-import { clearCompatibilityCache } from "../../features/media/public.js";
 import { clearAuthToken, request } from "../../shared/api/client.js";
 import { queryClient } from "../../shared/api/query-client.js";
 import { Button } from "../../shared/components/ui/button.js";
@@ -32,7 +31,6 @@ export function LoginPage() {
 							{ password: normalizedPassword },
 						);
 						queryClient.clear();
-						await clearCompatibilityCache();
 						clearAuthToken();
 						window.location.replace(
 							loginReturnPath(params.get("returnTo"), window.location.origin),

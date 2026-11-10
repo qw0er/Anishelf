@@ -1,11 +1,11 @@
 import type { TFunction } from "i18next";
 import type {
-	CompatibilityResult,
+	PlaybackSource,
 	PreparationTaskResponse,
 } from "../../../shared/api/contracts.js";
 
 export function audioTrackLabel(
-	track: CompatibilityResult["audioTracks"][number]["stream"],
+	track: PlaybackSource["audioTracks"][number],
 	position: number,
 	t: TFunction,
 	locale: string,
@@ -38,7 +38,7 @@ export function audioTrackLabel(
 
 export interface PreparationSource {
 	sourceVersion: string;
-	audioTracks: CompatibilityResult["audioTracks"][number]["stream"][];
+	audioTracks: PlaybackSource["audioTracks"][number][];
 }
 
 /** Missing selection means all source tracks, never an arbitrary prepared subset. */

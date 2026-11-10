@@ -3,12 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { MediaInspectionApplication } from "../../../../src/modules/media/media-inspection/application.js";
+import { MediaInspectionApplication } from "../../../../src/modules/media/inspection/application.js";
 import {
 	type MediaInspectionPolicy,
 	mediaInspectionPolicy,
-} from "../../../../src/modules/media/media-inspection/policy.js";
-import { MediaInspectionBusyError } from "../../../../src/modules/media/media-inspection/public.js";
+} from "../../../../src/modules/media/inspection/policy.js";
 import type { LibraryApplication } from "../../../../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../../../../src/modules/resources/resource-access/infrastructure/access.js";
@@ -22,7 +21,6 @@ import { MemoryInspectionStore } from "../../../support/inspection-store.js";
 import { createLibraryModule } from "../../../support/library.js";
 import { updateResourceSettings } from "../../../support/settings.js";
 import { settingsStore } from "../../../support/settings-store.js";
-import { createSubtitleApplication } from "../../../support/subtitles.js";
 
 const info: MediaInfo = {
 	format: "matroska",
@@ -88,31 +86,6 @@ function deferredProbe() {
 	);
 	return (result = info) => finish(result);
 }
-
-test("shares one probe between subtitle discovery and another consumer", async () => {
-	policy.probeConcurrency = 1;
-	expect(probe).not.toHaveBeenCalled();
-	const finish = deferredProbe();
-	const subtitles = createSubtitleApplication({
-		sources: library.sources,
-		inspection,
-	});
-	const discovery = subtitles.discoverSubtitles(fileId());
-	await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
-	const otherConsumer = inspection.inspect(fileId());
-	const busy = inspection.inspect(fileId(1));
-	await expect(busy).rejects.toBeInstanceOf(MediaInspectionBusyError);
-	// A consumer does not own or shut down the shared service.
-	await subtitles.close();
-	finish();
-	await expect(discovery).resolves.toMatchObject({ warnings: [] });
-	await expect(otherConsumer).resolves.toMatchObject({ info });
-	expect(probe).toHaveBeenCalledTimes(1);
-	const result = await inspection.inspect(fileId());
-	result.info.tags = { changed: "consumer mutation" };
-	expect((await inspection.inspect(fileId())).info.tags).toEqual({});
-	expect(probe).toHaveBeenCalledTimes(1);
-});
 
 test("reprobes replacements and rejects a missing file even with cached metadata", async () => {
 	const first = await inspection.inspect(fileId());

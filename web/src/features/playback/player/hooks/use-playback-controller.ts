@@ -5,7 +5,7 @@ import type {
 	MediaAsset,
 } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
-import { originalCompatibilityKey } from "../../../media/public.js";
+
 import { parseAudioSelection } from "../playback-params.js";
 import { playbackPolicy } from "../policy.js";
 import { usePlaybackSelection } from "./use-playback-selection.js";
@@ -16,7 +16,11 @@ export function usePlaybackController(data: FileResponse, autoPlay = false) {
 	const audio = searchParams.get("audio");
 	const parsed = useMemo(() => parseAudioSelection(audio), [audio]);
 	const playback = usePlaybackSession(data.file.id, playbackPolicy, autoPlay);
-	const scope = originalCompatibilityKey(data.file);
+	const scope = JSON.stringify([
+		data.file.id,
+		data.file.sizeBytes,
+		data.file.modifiedAt,
+	]);
 	const selected = usePlaybackSelection(
 		data.file.id,
 		searchParams.get("version") ?? playback.session?.sourceVersion,

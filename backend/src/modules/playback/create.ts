@@ -42,11 +42,6 @@ export function createPlaybackModule(options: {
 		logger,
 	});
 	const api: PlaybackApi = {
-		viewingStates: async (sources) => {
-			if (!database.playback.viewingStates)
-				throw new Error("Viewing state lookup unavailable.");
-			return database.playback.viewingStates(sources);
-		},
 		open: playback.open.bind(playback),
 		save: playback.save.bind(playback),
 		release: playback.release.bind(playback),

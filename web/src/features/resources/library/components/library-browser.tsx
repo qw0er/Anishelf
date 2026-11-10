@@ -22,10 +22,7 @@ import {
 } from "../../../../shared/components/ui/native-select.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { directoryPath, filePath } from "../../../../shared/navigation.js";
-import {
-	summariesQuery,
-	useDirectoryCompatibility,
-} from "../../../media/public.js";
+import { summariesQuery } from "../../../media/public.js";
 import type { FileActionSlot } from "../../public.js";
 import { searchDirectory } from "../api.js";
 import { formatFileSize } from "../format-file-size.js";
@@ -111,10 +108,6 @@ export default function LibraryBrowser({
 		...summariesQuery(scope, ids),
 		enabled: ids.length > 0,
 	});
-	const compatibility = useDirectoryCompatibility(
-		visibleListing,
-		JSON.stringify([scan.settings?.resourceRoots, scan.library?.revision]),
-	);
 	const setupRequired = scan.settings?.resourceRoots.length === 0;
 	const children = [...visibleListing.children];
 	if (sort !== "default") {
@@ -308,8 +301,6 @@ export default function LibraryBrowser({
 													summary: summaries.data?.files.find(
 														(file) => file.fileId === entry.id,
 													),
-													...compatibility.get(entry.id),
-													onRecheck: compatibility.retry,
 												})}
 											</div>
 										)}

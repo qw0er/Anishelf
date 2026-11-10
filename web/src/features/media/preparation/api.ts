@@ -1,7 +1,7 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
-	CompatibilityCheckRequest,
 	PreparationListResponse,
+	PreparationRequest,
 	PreparationStartResponse,
 	PreparationSummaryResponse,
 	PreparationTaskResponse,
@@ -25,7 +25,7 @@ export function getPreparations(
 }
 export function createPreparation(
 	fileId: string,
-	body: CompatibilityCheckRequest,
+	body: PreparationRequest,
 	options?: RequestOptions,
 ): Promise<PreparationStartResponse> {
 	return request(
@@ -48,7 +48,7 @@ export function cancelPreparation(
 }
 export function retryPreparation(
 	id: string,
-	body: CompatibilityCheckRequest | Record<string, never>,
+	body: PreparationRequest | Record<string, never>,
 	options?: RequestOptions,
 ): Promise<PreparationTaskResponse> {
 	return request(
@@ -101,4 +101,16 @@ export function deletePreparedMediaBatch(
 	options?: RequestOptions,
 ): Promise<PreparedMediaDeleteResponse> {
 	return request("/api/prepared-media/delete", "POST", options, { ids });
+}
+
+export function getPreparationSource(
+	fileId: string,
+	options?: RequestOptions,
+	sourceVersion?: string,
+): Promise<import("../../../shared/api/contracts.js").PlaybackSource> {
+	return request(
+		`/api/files/${encodeURIComponent(fileId)}/preparation-source${sourceVersion ? `?${new URLSearchParams({ sourceVersion })}` : ""}`,
+		"GET",
+		options,
+	);
 }

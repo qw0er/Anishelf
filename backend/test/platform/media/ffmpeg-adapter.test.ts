@@ -5,10 +5,9 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import pino from "pino";
 import { expect, test } from "vitest";
-import { MediaInspectionApplication } from "../../../src/modules/media/media-inspection/application.js";
-import { MediaPlanningApplication } from "../../../src/modules/media/media-planning/application/planning.js";
-import { resolveExecutionPlan } from "../../../src/modules/media/media-planning/public.js";
-import { MediaProcessingApplication } from "../../../src/modules/media/media-processing/application/processing.js";
+import { MediaInspectionApplication } from "../../../src/modules/media/inspection/application.js";
+import { MediaProcessingApplication } from "../../../src/modules/media/preparation/execution/application/processing.js";
+import { MediaPlanningApplication } from "../../../src/modules/media/preparation/planning/application/planning.js";
 import { LibraryIndex } from "../../../src/modules/resources/library/infrastructure/index.js";
 import {
 	builtinTranscodeProfiles,
@@ -201,9 +200,9 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			sources: library.sources,
 			tools,
 		});
-		const profile = structuredClone(builtinTranscodeProfiles[0]) as
-			| TranscodeProfile
-			| undefined;
+		const profile = structuredClone(
+			builtinTranscodeProfiles.find((p) => p.id === "builtin:balanced"),
+		) as TranscodeProfile | undefined;
 		if (!profile) throw new Error("Missing profile");
 		const compatibility = new MediaPlanningApplication({
 			sources: library.sources,
@@ -220,17 +219,22 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			executor: adapter,
 			dataDir: root,
 		});
-		let description = await compatibility.inspect({
-			fileId: file.id,
-			sourceVersion: source.identity.sourceVersion,
-			output: { profileId: profile.id, target: "file" },
-		});
-		// Target High/5.1 options are encode-only; copying must preserve this Main source.
-		expect(description.video?.profile).toBe("Main");
-		expect(profile.video.options).toMatchObject({
-			profile: "high",
-			level: "5.1",
-		});
+		async function compile() {
+			if (!file || !profile) throw new Error("Missing source or profile");
+			const planned = await compatibility.plan({
+				fileId: file?.id,
+				sourceVersion: source.identity.sourceVersion,
+				profileId: profile?.id,
+			});
+			if (planned.kind !== "processing-required")
+				throw new Error("No processing plan");
+			return {
+				kind: "processing" as const,
+				mode: planned.mode,
+				request: planned.execution,
+			};
+		}
+
 		async function packets(path: string, selector: string) {
 			const result = await run(ffprobe, [
 				"-v",
@@ -268,35 +272,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				mode === "transcode" || mode === "transcode-video" ? ["null"] : [];
 			profile.audio.filters =
 				mode === "transcode" || mode === "transcode-audio" ? ["anull"] : [];
-			description = await compatibility.inspect({
-				fileId: file.id,
-				sourceVersion: source.identity.sourceVersion,
-				output: { profileId: profile.id, target: "file" },
-			});
-			const result = resolveExecutionPlan(
-				await compatibility.check({
-					output: { profileId: profile.id, target: "file" },
-					fileId: file.id,
-					sourceVersion: source.identity.sourceVersion,
-					descriptionId: description.descriptionId,
-					evidence: description.queries.map((query) => {
-						const supported =
-							mode !== "remux" &&
-							!query.id.startsWith("original") &&
-							!(query.id === "copy-video" && mode === "transcode-video") &&
-							!(
-								query.id.startsWith("copy-audio") && mode === "transcode-audio"
-							);
-						return {
-							id: query.id,
-							status: supported ? "supported" : "unsupported",
-							reason: supported ? "browser-supported" : "browser-rejected",
-							smooth: null,
-						};
-					}),
-				}),
-				true,
-			);
+			const result = await compile();
 			expect(result).toMatchObject({ kind: "processing", mode });
 			if (result.kind !== "processing") throw new Error("No plan");
 			const output = await processing.start(result.request).completion;
@@ -398,32 +374,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 		delete profile.audio.filters;
 		profile.video.maxHeight = 60;
 		profile.audio.channels = 2;
-		const resizedDescription = await compatibility.inspect({
-			fileId: file.id,
-			sourceVersion: source.identity.sourceVersion,
-			output: { profileId: profile.id, target: "file" },
-		});
-		const encodedQuery = resizedDescription.queries.find(
-			(query) => query.id === "output-encode-encode",
-		);
-		expect(encodedQuery?.video).toMatchObject({ width: 106, height: 60 });
-		expect(encodedQuery?.audio?.channels).toBe(2);
-		const resized = resolveExecutionPlan(
-			await compatibility.check({
-				fileId: file.id,
-				sourceVersion: source.identity.sourceVersion,
-				descriptionId: resizedDescription.descriptionId,
-				output: { profileId: profile.id, target: "file" },
-				evidence: resizedDescription.queries.map((query) => ({
-					id: query.id,
-					status: query.id.startsWith("original") ? "unsupported" : "supported",
-					reason: query.id.startsWith("original")
-						? "browser-rejected"
-						: "browser-supported",
-					smooth: null,
-				})),
-			}),
-		);
+		const resized = await compile();
 		if (resized.kind !== "processing") throw new Error("No resized plan");
 		const resizedOutput = await processing.start(resized.request).completion;
 		expect(
@@ -443,26 +394,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 		};
 		profile.audio.filters = ["loudnorm=I=-16:TP=-1.5:LRA=11"];
 		profile.audio.sampleRate = 48000;
-		const advancedDescription = await compatibility.inspect({
-			fileId: file.id,
-			sourceVersion: source.identity.sourceVersion,
-			output: { profileId: profile.id, target: "file" },
-		});
-		const advanced = resolveExecutionPlan(
-			await compatibility.check({
-				fileId: file.id,
-				sourceVersion: source.identity.sourceVersion,
-				descriptionId: advancedDescription.descriptionId,
-				output: { profileId: profile.id, target: "file" },
-				evidence: advancedDescription.queries.map((query) => ({
-					id: query.id,
-					status: "unknown" as const,
-					reason: "incomplete-description" as const,
-					smooth: null,
-				})),
-			}),
-			true,
-		);
+		const advanced = await compile();
 		if (advanced.kind !== "processing") throw new Error("No advanced plan");
 		const validation = await tools.validateProfiles([profile]);
 		expect(validation.validation[profile.id]?.status).toBe("unverified");

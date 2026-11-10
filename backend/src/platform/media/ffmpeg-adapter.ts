@@ -26,6 +26,7 @@ export function compileFfmpegArguments(
 	input: string,
 	output: string,
 	options: MediaProcessingOptions,
+	info?: MediaInfo,
 ): string[] {
 	const { plan } = options;
 	const invalid = (message: string): never => {
@@ -113,12 +114,34 @@ export function compileFfmpegArguments(
 		"-map",
 		`0:${options.videoStreamIndex}`,
 		"-map_metadata",
-		"-1",
+		plan.preserveSubtitles ? "0" : "-1",
 		"-map_chapters",
-		"-1",
-		"-sn",
+		plan.preserveSubtitles ? "0" : "-1",
 		"-dn",
 	);
+	if (plan.preserveSubtitles)
+		args.push("-map", "0:s?", "-map", "0:t?", "-c:s", "copy", "-c:t", "copy");
+	else args.push("-sn");
+
+	if (plan.preserveSubtitles) {
+		args.push("-map_metadata:s:v:0", `0:s:${options.videoStreamIndex}`);
+		for (const type of ["subtitle", "attachment"]) {
+			for (const [position, stream] of (
+				info?.streams.filter((s) => s.type === type) ?? []
+			).entries()) {
+				const spec = type === "subtitle" ? "s" : "t";
+				args.push(`-map_metadata:s:${spec}:${position}`, `0:s:${stream.index}`);
+				if (type === "subtitle")
+					args.push(
+						`-disposition:s:${position}`,
+						[stream.default ? "default" : "", stream.forced ? "forced" : ""]
+							.filter(Boolean)
+							.join("+") || "0",
+					);
+			}
+		}
+	}
+
 	if (plan.video.action === "copy") {
 		if (plan.videoParameters || plan.videoFilters?.length || plan.h264Level)
 			invalid("Copied video cannot have encoding settings.");
@@ -247,7 +270,7 @@ export class FfmpegExecutionAdapter {
 				"INVALID_INPUT",
 				"FFmpeg input must be a regular file.",
 			);
-		const args = compileFfmpegArguments(input, output, options);
+		const args = compileFfmpegArguments(input, output, options, info);
 		const child = startMediaProcess(
 			ffmpeg.path,
 			args,

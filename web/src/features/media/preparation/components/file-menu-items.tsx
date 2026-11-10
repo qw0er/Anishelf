@@ -1,26 +1,30 @@
+import { useQuery } from "@tanstack/react-query";
 import { RefreshCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { CompatibilityResult } from "../../../../shared/api/contracts.js";
 import { DropdownMenuItem } from "../../../../shared/components/ui/dropdown-menu.js";
 import { deletePreparedMedia } from "../api.js";
 import { usePreparationContext } from "../context.js";
+import { preparationSourceQuery } from "../queries.js";
 import { usePreparationAction } from "../use-preparations.js";
 import { PreparationButton } from "./preparation-button.js";
 
 export function PreparationFileMenuItems({
 	fileId,
+	sourceVersion,
+	enabled = true,
 	list,
-	...compatibility
 }: {
 	fileId: string;
+	sourceVersion?: string | undefined;
+	enabled?: boolean;
 	list: ReturnType<
 		typeof import("../use-file-preparations.js").useFilePreparations
 	>;
-	loading: boolean;
-	result: CompatibilityResult | null;
-	error: unknown;
-	onRecheck(): void;
 }) {
+	const source = useQuery({
+		...preparationSourceQuery(fileId, sourceVersion),
+		enabled,
+	});
 	const { t } = useTranslation();
 	const preparation = usePreparationContext();
 	const action = usePreparationAction();
@@ -36,17 +40,8 @@ export function PreparationFileMenuItems({
 		<>
 			<PreparationButton
 				fileId={fileId}
-				source={
-					compatibility.result
-						? {
-								sourceVersion: compatibility.result.sourceVersion,
-								audioTracks: compatibility.result.audioTracks.map(
-									({ stream }) => stream,
-								),
-							}
-						: null
-				}
-				onRecheck={compatibility.onRecheck}
+				source={source.data ?? null}
+				onRecheck={() => void source.refetch()}
 				menuItem
 				tasks={tasks}
 			/>

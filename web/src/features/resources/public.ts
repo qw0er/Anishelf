@@ -5,19 +5,12 @@ export { directoryQuery, libraryQuery } from "./library/queries.js";
 export { fileQuery } from "./resource-access/queries.js";
 
 import type { ReactNode } from "react";
-import type {
-	CompatibilityResult,
-	PreparationSummaryResponse,
-} from "../../shared/api/contracts.js";
+import type { PreparationSummaryResponse } from "../../shared/api/contracts.js";
 
 interface FileActionState {
 	fileId: string;
 	managementMenu?: ReactNode;
 	summary?: PreparationSummaryResponse["files"][number] | undefined;
-	loading: boolean;
-	result: CompatibilityResult | null;
-	error: unknown;
-	onRecheck(): void;
 }
 export type FileActionSlot = (state: FileActionState) => ReactNode;
 

@@ -25,7 +25,7 @@ export function PreparationButton({
 }: {
 	fileId: string;
 	source: PreparationSource | null;
-	onRecheck(): void;
+	onRecheck?(): void;
 	menuItem?: boolean;
 	audioStreamIndices?: number[];
 	showLabel?: boolean;
@@ -61,7 +61,7 @@ export function PreparationButton({
 			...(tasks ? { tasks } : {}),
 			...(selection !== undefined ? { audioStreamIndices: selection } : {}),
 			...(onPrepared ? { onPrepared } : {}),
-			onRecheck,
+			...(onRecheck ? { onRecheck } : {}),
 			onComplete: () => setDialogOpen(false),
 		});
 

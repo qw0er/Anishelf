@@ -7,7 +7,7 @@ import { ApplicationDatabase } from "../../src/app/bootstrap/database.js";
 import { initializeMediaTools } from "../../src/app/bootstrap/media-tools.js";
 import { createAnimeModule } from "../../src/modules/anime/create.js";
 import { createMediaModule } from "../../src/modules/media/create.js";
-import { mediaProcessingPolicy } from "../../src/modules/media/media-processing/policy.js";
+import { mediaProcessingPolicy } from "../../src/modules/media/preparation/execution/policy.js";
 import { createPlaybackModule } from "../../src/modules/playback/create.js";
 import { createResourcesModule } from "../../src/modules/resources/create.js";
 import { libraryPolicy } from "../../src/modules/resources/library/policy.js";

@@ -18,6 +18,7 @@ import {
 	releasePlaybackSession,
 	savePlaybackProgress,
 } from "./api.js";
+import type { PlaybackClock } from "./engine.js";
 import type { PlaybackPolicy } from "./policy.js";
 
 export interface PlaybackSessionState {
@@ -56,7 +57,7 @@ export class PlaybackSessionController {
 	private evidence = new PlaybackEvidence();
 	private naturalEnd = false;
 	private playing = false;
-	private video: HTMLVideoElement | null = null;
+	private video: PlaybackClock | null = null;
 	private timeline: MediaTimeline = originalTimeline();
 	private metadataReady = false;
 	private position: Position | null = null;
@@ -121,7 +122,7 @@ export class PlaybackSessionController {
 	}
 
 	attach(
-		video: HTMLVideoElement | null,
+		video: PlaybackClock | null,
 		timeline: MediaTimeline = originalTimeline(),
 	): void {
 		this.sampleEvidence();
@@ -181,8 +182,7 @@ export class PlaybackSessionController {
 				duration === null
 					? this.timeline.sourceOriginMs === 0 &&
 						this.timeline.mediaOriginMs === 0
-					: sourceTimeMs(video.currentTime * 1000, this.timeline) >=
-						duration - 1000;
+					: sourceTimeMs(video.currentTimeMs, this.timeline) >= duration - 1000;
 			this.queueSave(true);
 		};
 		const events: [string, () => void][] = [
@@ -284,24 +284,24 @@ export class PlaybackSessionController {
 		)
 			return;
 		const duration =
-			Number.isFinite(video.duration) && video.duration > 0
-				? video.duration
+			Number.isFinite(video.durationMs) && video.durationMs > 0
+				? video.durationMs
 				: null;
 		const target =
 			duration === null
 				? mediaTimeMs(
 						this.position?.positionMs ?? session.progress.positionMs,
 						this.timeline,
-					) / 1000
+					)
 				: Math.min(
 						mediaTimeMs(
 							this.position?.positionMs ?? session.progress.positionMs,
 							this.timeline,
-						) / 1000,
+						),
 						duration,
 					);
 		try {
-			video.currentTime = target;
+			video.currentTimeMs = target;
 			if (!video.seeking) this.finishRestore();
 		} catch (cause) {
 			this.publish({ error: { operation: "load", cause } });
@@ -329,15 +329,15 @@ export class PlaybackSessionController {
 			this.timeline.sourceDurationMs ??
 			(this.timeline.sourceOriginMs === 0 &&
 			this.timeline.mediaOriginMs === 0 &&
-			Number.isFinite(video.duration) &&
-			video.duration > 0
-				? Math.round(video.duration * 1000)
+			Number.isFinite(video.durationMs) &&
+			video.durationMs > 0
+				? Math.round(video.durationMs)
 				: null);
 		const localPosition =
-			(ended || video.ended) && Number.isFinite(video.duration)
-				? video.duration
-				: video.currentTime;
-		const positionMs = sourceTimeMs(localPosition * 1000, this.timeline);
+			(ended || video.ended) && Number.isFinite(video.durationMs)
+				? video.durationMs
+				: video.currentTimeMs;
+		const positionMs = sourceTimeMs(localPosition, this.timeline);
 		if (
 			!Number.isSafeInteger(positionMs) ||
 			positionMs < 0 ||

@@ -1,5 +1,4 @@
 import { FileActions } from "../../../src/app/components/file-actions.js";
-import * as mediacompatibilityApi from "../../../src/features/media/media-compatibility/api.js";
 import * as preparationApi from "../../../src/features/media/preparation/api.js";
 import * as settingsApi from "../../../src/features/settings/api.js";
 // @vitest-environment happy-dom
@@ -11,11 +10,7 @@ import { useFilePreparations } from "../../../src/features/media/preparation/use
 import { usePreparationAction } from "../../../src/features/media/preparation/use-preparations.js";
 import { parseAudioSelection } from "../../../src/features/playback/player/playback-params.js";
 import LibraryBrowser from "../../../src/features/resources/library/components/library-browser.js";
-import type {
-	CompatibilityInspection,
-	CompatibilityResult,
-	DirectoryResponse,
-} from "../../../src/shared/api/contracts.js";
+import type { DirectoryResponse } from "../../../src/shared/api/contracts.js";
 import {
 	createQueryClient,
 	loadQuery,
@@ -67,29 +62,6 @@ test("a directory uses one metadata batch and no file task/detail requests befor
 		selectionAvailable: true,
 		revision: "test",
 	});
-	vi.spyOn(
-		mediacompatibilityApi,
-		"inspectMediaCompatibility",
-	).mockResolvedValue({
-		sourceVersion: "v",
-		descriptionId: "d",
-		queries: [],
-	} as unknown as CompatibilityInspection);
-	vi.spyOn(mediacompatibilityApi, "checkMediaCompatibility").mockResolvedValue({
-		fileId: "f0",
-		sourceVersion: "v",
-		rulesVersion: "4",
-		direct: { status: "supported", reason: "browser-supported" },
-		container: { status: "supported", reason: "browser-supported" },
-		video: { status: "supported", reason: "browser-supported" },
-		audio: { status: "supported", reason: "browser-supported" },
-		selectedVideo: null,
-		defaultAudioStreamIndex: null,
-		selectedAudioStreamIndices: [],
-		audioTracks: [],
-		output: null,
-		warnings: [],
-	} satisfies CompatibilityResult);
 	render(
 		<MemoryRouter>
 			<PreparationProvider>

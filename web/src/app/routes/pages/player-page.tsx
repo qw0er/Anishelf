@@ -2,10 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLoaderData, useLocation, useSearchParams } from "react-router";
 import { useAnimePlaybackTitle } from "../../../features/anime/public.js";
-import {
-	clearCapabilityCache,
-	removeCompatibility,
-} from "../../../features/media/public.js";
+
 import { FilePlayer } from "../../../features/playback/ui.js";
 import {
 	fileQuery,
@@ -43,8 +40,6 @@ export function PlayerPage() {
 			returnDirectoryId={searchParams.get("directory")}
 			returnTo={animeReturnPath(searchParams)}
 			onRetry={async () => {
-				clearCapabilityCache();
-				await removeCompatibility(data.file.id);
 				setPlayerVersion((value) => value + 1);
 				await reload();
 			}}

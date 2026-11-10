@@ -1,6 +1,5 @@
 import { type RequestOptions, request } from "../../../shared/api/client.js";
 import type {
-	ChaptersResponse,
 	MediaAccessLinkResponse,
 	PlaybackOptionsRequest,
 	PlaybackOptionsResponse,
@@ -37,19 +36,6 @@ export function releasePlaybackSession(
 	return request(
 		`/api/playback/sessions/${encodeURIComponent(token)}`,
 		"DELETE",
-		options,
-	);
-}
-
-export function getChapters(
-	id: string,
-	sourceVersion: string,
-	options?: RequestOptions,
-): Promise<ChaptersResponse> {
-	const query = new URLSearchParams({ sourceVersion });
-	return request(
-		`/api/files/${encodeURIComponent(id)}/chapters?${query}`,
-		"GET",
 		options,
 	);
 }

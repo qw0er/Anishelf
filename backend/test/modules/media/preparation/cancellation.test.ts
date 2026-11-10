@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
-import { PreparedMediaFiles } from "../../../../src/modules/media/preparation/infrastructure/files.js";
+import { PreparedMediaFiles } from "../../../../src/modules/media/artifacts/files.js";
 
 import {
 	barrier,

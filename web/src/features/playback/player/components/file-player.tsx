@@ -19,8 +19,7 @@ import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { directoryPath } from "../../../../shared/navigation.js";
 import type { PlaybackUiSlots } from "../../public.js";
 import { usePlaybackController } from "../hooks/use-playback-controller.js";
-import { AudioSelection } from "./audio-selection.js";
-import { CompatibilityDialog } from "./compatibility-dialog.js";
+
 import { PlaybackActionsMenu } from "./external-player-menu.js";
 import { PlaybackVersionSelection } from "./version-selection.js";
 import VideoPlayer from "./video-player.js";
@@ -66,11 +65,10 @@ export default function FilePlayer({
 		useState<HTMLDivElement | null>(null);
 	const [endedAsset, setEndedAsset] = useState<string | null>(null);
 	const activeKey = active
-		? `${active.asset.id}:${active.asset.revision}:${active.audio?.streamIndex ?? "none"}`
+		? `${active.asset.id}:${active.asset.revision}`
 		: null;
 	const blocked = !selection.loading && !active;
 	const [optionsOpen, setOptionsOpen] = useState(false);
-	const [compatibilityOpen, setCompatibilityOpen] = useState(false);
 	const preparationAction = slots?.renderPreparation({
 		key: data.file.id,
 		fileId: data.file.id,
@@ -107,7 +105,7 @@ export default function FilePlayer({
 				</h1>
 			</header>
 			{selection.loading && (
-				<div role="status" aria-label={t("compatibility.checking")}>
+				<div role="status" aria-label={t("loading.generic")}>
 					<Skeleton className="aspect-video w-full" />
 				</div>
 			)}
@@ -127,22 +125,20 @@ export default function FilePlayer({
 							!audioValid
 								? "audioTracks.invalidSelection"
 								: selection.error
-									? "compatibility.failed"
+									? "player.unavailableTitle"
 									: selection.runtimeFailure
 										? `player.failures.${selection.runtimeFailure.kind}`
-										: selection.selection?.pending
-											? "preparation.waitForCopy"
-											: "player.noMatchingAsset",
+										: "player.noMatchingAsset",
 						)}
 					</p>
 					<div className="action-row">
 						<Button variant="outline" onClick={recheck}>
 							<RefreshCw className="size-4" aria-hidden="true" />
-							{t("compatibility.recheck")}
+							{t("actions.retry")}
 						</Button>
 						<Button variant="outline" onClick={tryOrigin}>
 							<Play className="size-4" aria-hidden="true" />
-							{t("compatibility.tryDirect")}
+							{t("player.assets.original")}
 						</Button>
 						{preparationAction}
 					</div>
@@ -152,12 +148,11 @@ export default function FilePlayer({
 				<div className="-mx-4 sm:mx-0">
 					<QueryScope value={sourceScope}>
 						<VideoPlayer
-							key={`${active.asset.id}:${active.asset.revision}:${active.audio?.streamIndex ?? "none"}`}
+							key={`${active.asset.id}:${active.asset.revision}`}
 							fileId={data.file.id}
 							displayTitle={title}
 							active={active}
 							sourceVersion={source.sourceVersion}
-							renderSubtitles={slots?.renderSubtitles}
 							onFullscreenChange={setFullscreen}
 							onContinuationOverlay={setContinuationOverlay}
 							onEndedChange={(ended) => setEndedAsset(ended ? activeKey : null)}
@@ -168,8 +163,19 @@ export default function FilePlayer({
 					</QueryScope>
 				</div>
 			)}
+			{selection.runtimeFailure && (
+				<div
+					role="alert"
+					className="flex items-center gap-3 text-sm text-destructive"
+				>
+					<span>{t(`player.failures.${selection.runtimeFailure.kind}`)}</span>
+					<Button variant="outline" onClick={onRetry}>
+						{t("actions.retry")}
+					</Button>
+				</div>
+			)}
+
 			<div className="player-action-bar">
-				<AudioSelection active={active} selectAudio={selectAudio} />
 				<div className="player-action-group">
 					{playback.session &&
 						slots?.renderViewing?.({
@@ -187,7 +193,6 @@ export default function FilePlayer({
 						key={`actions:${data.file.id}`}
 						fileId={data.file.id}
 						onOptions={() => setOptionsOpen(true)}
-						onCompatibility={() => setCompatibilityOpen(true)}
 						onRetry={() => {
 							console.info("[playback] Manual playback retry requested.");
 							onRetry();
@@ -228,12 +233,6 @@ export default function FilePlayer({
 					<div className="action-row">{!blocked && preparationAction}</div>
 				</DialogContent>
 			</Dialog>
-			<CompatibilityDialog
-				selection={selection}
-				tryOrigin={tryOrigin}
-				open={compatibilityOpen}
-				setOpen={setCompatibilityOpen}
-			/>
 		</section>
 	);
 }

@@ -16,10 +16,7 @@ setupTestLifecycle();
 
 test("explicit preparation creates and reuses a copy even for a supported original", async () => {
 	const f = await fixture();
-	const base = await f.input();
-	const input = await f.input(
-		Object.fromEntries(base.evidence.map((item) => [item.id, "supported"])),
-	);
+	const input = await f.input();
 	const id = await taskId(f.preparation.create(input));
 	expect((await completed(f, id)).status).toBe("ready");
 	expect(await taskId(f.preparation.create(input))).toBe(id);

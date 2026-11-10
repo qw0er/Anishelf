@@ -66,16 +66,6 @@ export interface MediaInfo {
 	streams: MediaStream[];
 }
 
-export type { PreparedSubtitleFormat as SubtitleFormat } from "../../contracts/subtitles.js";
-
-import type { PreparedSubtitleFormat as SubtitleFormat } from "../../contracts/subtitles.js";
-export interface ExtractedSubtitle {
-	streamIndex: number;
-	format: SubtitleFormat;
-	/** UTF-8 text. The caller owns persistence and access control. */
-	text: string;
-}
-
 import type { DeepReadonly } from "../../shared/policy.js";
 import type { MediaProcessingPlan } from "./specification.js";
 

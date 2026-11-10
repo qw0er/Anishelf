@@ -148,7 +148,7 @@ failures and works already present in the user's library or tracking list.
 | P18 | HDR playback and conversion handling | Partial | Optional | [Accepted HDR streams preserved; conversion and broader handling optional](#delivery-notes-p) | 1.4.0 |
 | P20 | Configure media preparation task concurrency | Partial | Optional | [Fixed single-worker queue; configurable concurrency optional](#delivery-notes-p) | 0.2.0 |
 | P21 | Limit CPU processing capacity per preparation task | Not started | Optional | — | — |
-| P22 | Schedule automatic preparation within permitted time windows | Not started | Optional | — | — |
+| P22 | Automatic preparation | — | Out of scope | Retired in the AVPlayer/manual-preparation design | — |
 | P28 | Validate AVPlayer for broader browser container and codec playback | Not started | Planned | [Feasibility evaluation; adoption pending results](#avplayer-feasibility-validation-p28) | — |
 
 #### Delivery Notes (P)
@@ -530,3 +530,15 @@ behavior, impact, reproduction conditions and verification evidence as they beco
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
+
+## AVPlayer and manual preparation direction
+
+The current implementation replaces native browser compatibility negotiation with
+AVPlayer UI playback. Users explicitly choose original files or prepared copies.
+Preparation is manual; automatic preparation, server embedded-subtitle extraction
+and font preparation are retired. The server still probes preparation input/output
+and validates tools, container constraints and source access. New copies preserve
+subtitles, fonts and chapters, using Matroska by default. Browser/device performance
+and subtitle fidelity require actual sample validation; support lists do not certify
+universal playback. This direction supersedes earlier compatibility-driven preparation
+and automatic-processing-window requirements.

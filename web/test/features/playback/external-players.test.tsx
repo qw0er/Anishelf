@@ -216,7 +216,6 @@ test("every playback menu item carries a leading icon", async () => {
 	render(
 		<PlaybackActionsMenu
 			fileId="file_123"
-			onCompatibility={() => {}}
 			onOptions={() => {}}
 			onRetry={() => {}}
 		/>,

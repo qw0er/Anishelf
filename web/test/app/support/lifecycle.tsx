@@ -1,5 +1,5 @@
+import "../../support/mock-avplayer.js";
 import { afterEach, beforeEach, vi } from "vitest";
-import { clearCompatibilityCache } from "../../../src/features/media/media-compatibility/cache.js";
 import { queryClient } from "../../../src/shared/api/query-client.js";
 import { toast } from "../../../src/shared/components/ui/toast.js";
 import { act, cleanup } from "../../support/query-test-utils.js";
@@ -9,7 +9,6 @@ import { disposeAppRouters } from "./render-app.js";
 import { appFixture, completedScan, fetcher, file } from "./state.js";
 export function setupAppTest() {
 	beforeEach(async () => {
-		await clearCompatibilityCache();
 		queryClient.removeQueries({ queryKey: ["compatibility"] });
 		appFixture.preparationTasks = [];
 		appFixture.library = {

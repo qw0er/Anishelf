@@ -111,10 +111,6 @@ test("navigates directories, opens media, and returns to the original directory 
 	);
 	const video = screen.getByLabelText("Video: Episode 01.mp4");
 	expect(video.getAttribute("src")).toBe(file.originalMediaUrl);
-	expect(video.hasAttribute("controls")).toBe(false);
-	expect(video.closest(".anishelf-player")).toBeTruthy();
-	expect(await screen.findByRole("button", { name: "Play" })).toBeTruthy();
-	expect(video.getAttribute("preload")).toBe("metadata");
 	expect(
 		fetcher.mock.calls.some(([path]) => String(path).startsWith("/api/media/")),
 	).toBe(false);

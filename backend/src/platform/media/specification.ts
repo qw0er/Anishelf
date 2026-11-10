@@ -1,3 +1,4 @@
+import type { AutoPreparationPreset } from "../../contracts/auto-preparation.js";
 import type {
 	AudioEncoding,
 	EncodingOptions,
@@ -15,6 +16,7 @@ type MediaStreamExecution =
 	  };
 export interface MediaProcessingPlan {
 	id: string;
+	preserveSubtitles?: boolean;
 	compilerVersion?: 2;
 	globalOptions?: EncodingOptions | undefined;
 	inputOptions?: EncodingOptions | undefined;
@@ -26,9 +28,7 @@ export interface MediaProcessingPlan {
 		default?: boolean;
 	}[];
 	acceptance?: import("../../shared/policy.js").DeepReadonly<
-		NonNullable<
-			import("../../contracts/auto-preparation.js").AutoPreparationPreset["accept"]
-		>
+		NonNullable<AutoPreparationPreset["accept"]>
 	>;
 	/** FFmpeg muxer name; no built-in target or encoder preset. */
 	container: string;

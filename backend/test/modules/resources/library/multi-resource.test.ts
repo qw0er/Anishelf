@@ -13,7 +13,7 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
-import { MediaInspectionApplication } from "../../../../src/modules/media/media-inspection/application.js";
+import { MediaInspectionApplication } from "../../../../src/modules/media/inspection/application.js";
 import { PlaybackApplication } from "../../../../src/modules/playback/progress/application/playback.js";
 import { createResourceId } from "../../../../src/modules/resources/library/domain/model.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";

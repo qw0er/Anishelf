@@ -5,6 +5,7 @@ import { usePlaybackSession } from "../../../src/features/playback/player/hooks/
 import { playbackPolicy } from "../../../src/features/playback/player/policy.js";
 import type { PlaybackSessionResponse } from "../../../src/shared/api/contracts.js";
 import { toast } from "../../../src/shared/components/ui/toast.js";
+import { clockFor } from "../../features/playback/support/playback-session-fixture.js";
 import "../../../src/shared/i18n.js";
 import {
 	act,
@@ -68,7 +69,7 @@ test.each([false, true])(
 		const { result } = renderHook(() =>
 			usePlaybackSession("next-file", playbackPolicy, true),
 		);
-		act(() => result.current.attach(video));
+		act(() => result.current.attach(clockFor(video)));
 		expect(play).not.toHaveBeenCalled();
 		await waitFor(() => expect(resolveSession).toBeDefined());
 		await act(async () => {
@@ -101,7 +102,7 @@ test("ordinary player openings restore progress without automatic playback", asy
 	const { result } = renderHook(() =>
 		usePlaybackSession("next-file", playbackPolicy),
 	);
-	act(() => result.current.attach(video));
+	act(() => result.current.attach(clockFor(video)));
 	await waitFor(() => expect(video.currentTime).toBe(40));
 	expect(play).not.toHaveBeenCalled();
 });
@@ -128,7 +129,7 @@ test("a late autoplay rejection after navigation does not notify the next screen
 	const hook = renderHook(() =>
 		usePlaybackSession("next-file", playbackPolicy, true),
 	);
-	act(() => hook.result.current.attach(video));
+	act(() => hook.result.current.attach(clockFor(video)));
 	await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
 	await act(async () => {
 		hook.unmount();

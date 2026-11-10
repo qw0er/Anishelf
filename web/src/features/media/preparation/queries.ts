@@ -68,3 +68,11 @@ export const preparedMediaQuery = (
 			api.getPreparedMedia(input, { signal: boundedSignal(signal) }),
 		refetchInterval: preparationInteractionDefaults.inventoryPollIntervalMs,
 	});
+
+export function preparationSourceQuery(fileId: string, sourceVersion?: string) {
+	return {
+		queryKey: ["preparation-source", fileId, sourceVersion ?? null],
+		queryFn: ({ signal }: { signal: AbortSignal }) =>
+			api.getPreparationSource(fileId, { signal }, sourceVersion),
+	};
+}

@@ -3,8 +3,6 @@ export interface PersistentSettings {
 	resourceRoots: string[];
 	titleDisplayPreference?: "chinese" | "native" | "english" | "romaji";
 	defaultMetadataProvider?: "anilist" | "bangumi";
-	autoPreparationEnabled?: boolean;
-	autoPreparationPresetId?: string;
 	transcodeCacheBudgetGiB?: number;
 	defaultTranscodeProfileId?: string;
 	defaultAcquisitionProfileId?: string;

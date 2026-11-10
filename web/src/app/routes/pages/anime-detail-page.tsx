@@ -8,10 +8,7 @@ import type {
 } from "../../../features/anime/public.js";
 import { localWorkDetailQuery } from "../../../features/anime/public.js";
 import { AnimeDetail } from "../../../features/anime/ui.js";
-import {
-	mediaCompatibilityDefaults,
-	summariesQuery,
-} from "../../../features/media/public.js";
+import { summariesQuery } from "../../../features/media/public.js";
 import { useQueryScope } from "../../../shared/api/queries.js";
 import { queryGate } from "../../../shared/lib/query-gate.js";
 import { AnimeFileActions } from "../../components/anime-file-actions.js";
@@ -42,10 +39,7 @@ export function AnimeDetailPage() {
 	);
 	// A different work or resource scope receives independent admission slots.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: work/scope identify the negotiation group
-	const gate = useMemo(
-		() => queryGate(mediaCompatibilityDefaults.compatibilityConcurrency),
-		[id, scope],
-	);
+	const gate = useMemo(() => queryGate(4), [id, scope]);
 	const renderResourceActions: AnimeResourceActionSlot = (
 		source,
 		identificationMenu,

@@ -3,8 +3,8 @@ import { expect, test, vi } from "vitest";
 import * as playbackApi from "../../../src/features/playback/player/api.js";
 import { playbackPolicy } from "../../../src/features/playback/player/policy.js";
 import { ApiClientError } from "../../../src/shared/api/client.js";
-
 import {
+	clockFor,
 	create,
 	session,
 	setupTestLifecycle,
@@ -21,7 +21,7 @@ test("switching to prepared media retains the original session and captured sour
 	const preparedVideo = document.createElement("video");
 	Object.defineProperty(preparedVideo, "readyState", { value: 1 });
 	Object.defineProperty(preparedVideo, "duration", { value: 100 });
-	controller.attach(preparedVideo);
+	controller.attach(clockFor(preparedVideo));
 	expect(preparedVideo.currentTime).toBe(61);
 	preparedVideo.currentTime = 65;
 	preparedVideo.dispatchEvent(new Event("pause"));
@@ -44,7 +44,7 @@ test("switching to prepared media retains the original session and captured sour
 
 test("offset media restores and persists source time rather than the local segment clock", async () => {
 	const { controller, video } = create();
-	controller.attach(video, {
+	controller.attach(clockFor(video), {
 		sourceOriginMs: 30000,
 		mediaOriginMs: 2000,
 		sourceDurationMs: 200000,
@@ -62,7 +62,7 @@ test("offset media restores and persists source time rather than the local segme
 
 test("an offset stream ending does not mark the whole source watched", async () => {
 	const { controller, video } = create();
-	controller.attach(video, {
+	controller.attach(clockFor(video), {
 		sourceOriginMs: 30000,
 		mediaOriginMs: 0,
 		sourceDurationMs: 200000,
@@ -90,7 +90,7 @@ test("switching assets during a save outage restores the captured source positio
 	const prepared = document.createElement("video");
 	Object.defineProperty(prepared, "readyState", { value: 1 });
 	Object.defineProperty(prepared, "duration", { value: 100 });
-	controller.attach(prepared);
+	controller.attach(clockFor(prepared));
 	expect(prepared.currentTime).toBe(61);
 	expect(state()?.restored).toBe(true);
 	prepared.currentTime = 65;

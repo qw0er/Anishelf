@@ -3,15 +3,14 @@ import type { MediaInfo } from "../../../platform/media/model.js";
 import { type DeepReadonly, freeze } from "../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../resources/public.js";
 import type { TranscodeProfile } from "../../system/public.js";
-import type { MediaProcessingApi } from "../media-processing/public.js";
-import { PreparationArtifacts } from "./application/artifacts.js";
+import { createArtifactFiles, createArtifacts } from "../artifacts/create.js";
 import { PreparationContext } from "./application/context.js";
 import { PreparationApplication } from "./application/preparation.js";
 import { PreparationQueries } from "./application/queries.js";
 import { PreparationRecovery } from "./application/recovery.js";
 import { PreparationScheduler } from "./application/scheduler.js";
 import { PreparationWorker } from "./application/worker.js";
-import { PreparedMediaFiles } from "./infrastructure/files.js";
+import type { MediaProcessingApi } from "./execution/public.js";
 import {
 	type PreparationPolicy,
 	preparationPolicy,
@@ -40,7 +39,7 @@ export function createPreparationApplication(options: {
 			options.repository,
 			options.sources,
 			options.processing,
-			new PreparedMediaFiles(options.dataDir),
+			createArtifactFiles(options.dataDir),
 			options.profiles,
 			policy,
 			options.logger,
@@ -48,7 +47,7 @@ export function createPreparationApplication(options: {
 			options.maximumCacheBytes,
 		);
 
-		const artifacts = new PreparationArtifacts(context);
+		const artifacts = createArtifacts(context);
 		const scheduler = new PreparationScheduler(
 			context,
 			new PreparationWorker(context, artifacts),

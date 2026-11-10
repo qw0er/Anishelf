@@ -7,20 +7,20 @@ import type { MediaProcessingPlan } from "../../../../platform/media/specificati
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";
-import type {
-	CompatibilityCheckRequest,
-	MediaPlanningResult,
-} from "../../media-planning/public.js";
+import type { PreparationArtifacts } from "../../artifacts/public.js";
 import type {
 	PreparationCreation,
 	PreparationTask,
 	PreparationView,
 } from "../domain/model.js";
+import type {
+	MediaPlanningResult,
+	PreparationRequest,
+} from "../planning/public.js";
 import type { PreparationPolicy } from "../policy.js";
 import type { PreparationPlanner } from "../ports.js";
 import type { PreparationApi } from "../public.js";
-import type { PreparationDemand } from "../snapshot.js";
-import type { PreparationArtifacts } from "./artifacts.js";
+
 import type { PreparationContext } from "./context.js";
 import type { PreparationQueries } from "./queries.js";
 import type { PreparationScheduler } from "./scheduler.js";
@@ -32,6 +32,7 @@ function executionFingerprint(
 ): string {
 	return fingerprint({
 		compilerVersion: plan.compilerVersion,
+		preserveSubtitles: plan.preserveSubtitles,
 		globalOptions: Object.entries(plan.globalOptions ?? {}),
 		inputOptions: Object.entries(plan.inputOptions ?? {}),
 		muxerOptions: Object.entries(plan.muxerOptions ?? {}),
@@ -151,31 +152,18 @@ export class PreparationApplication implements PreparationApi {
 		return result;
 	}
 	create(
-		input: CompatibilityCheckRequest & { fileId: string },
+		input: PreparationRequest & { fileId: string },
 	): Promise<PreparationCreation> {
 		input = structuredClone(input);
 		return this.track(async () => {
 			const { scheduler } = await this.ensure();
-			if (input.output?.target !== "file")
-				throw new DomainError(
-					"INVALID_REQUEST",
-					"Preparation requires a completed-file output profile.",
-				);
-			const planned = await this.options.planning.plan(input, {
-				forcePreparation: true,
-			});
+			const planned = await this.options.planning.plan(input);
 			scheduler.assertHealthy();
-			if (planned.kind === "playable")
-				return {
-					kind: "direct",
-					fileId: planned.fileId,
-					mimeType: planned.mimeType,
-				};
 			if (planned.kind === "blocked")
 				return { kind: "blocked", reason: planned.reason };
 			return {
 				kind: "task",
-				view: await this.enqueue(input, input.output.profileId, planned),
+				view: await this.enqueue(input, input.profileId, planned),
 			};
 		});
 	}
@@ -183,13 +171,12 @@ export class PreparationApplication implements PreparationApi {
 		input: {
 			fileId: string;
 			sourceVersion: string;
-		} & Partial<CompatibilityCheckRequest>,
+		} & Partial<PreparationRequest>,
 		profileId: string,
 		planned: DeepReadonly<
 			Extract<MediaPlanningResult, { kind: "processing-required" }>
 		>,
 		retryExisting = false,
-		demand: PreparationDemand = { origin: "manual" },
 	): Promise<PreparationView> {
 		const { context, artifacts, scheduler } = await this.ensure();
 		const source = await context.sources.resolveSource(
@@ -228,36 +215,14 @@ export class PreparationApplication implements PreparationApi {
 						),
 			);
 		if (existing) {
-			if (demand.origin === "manual") {
-				existing.demand = demand;
-				context.repository.save(existing);
-			}
-			if (
-				demand.origin === "automatic" &&
-				["failed", "cancelled"].includes(existing.state.status)
-			) {
-				if (context.repository.queuedCount() >= this.policy.maximumQueuedTasks)
-					throw new DomainError(
-						"PREPARATION_BUSY",
-						"The preparation queue is full.",
-					);
-				existing.demand = demand;
-				existing.state = {
-					status: "queued",
-					progress: null,
-					failureReason: null,
-					updatedAtMs: Date.now(),
-				};
-				context.repository.save(existing);
-				scheduler.wake();
-				return { task: existing, artifact: null, availability: "unavailable" };
-			}
+			existing.demand = { origin: "manual" };
+			context.repository.save(existing);
 			if (
 				retryExisting &&
 				(existing.state.status === "failed" ||
 					existing.state.status === "cancelled")
 			)
-				return this.retry(existing.id, input as CompatibilityCheckRequest);
+				return this.retry(existing.id, input as PreparationRequest);
 			return artifacts.inspect(existing.id);
 		}
 		if (context.repository.queuedCount() >= this.policy.maximumQueuedTasks)
@@ -269,7 +234,7 @@ export class PreparationApplication implements PreparationApi {
 		const now = Date.now();
 		const task: PreparationTask = {
 			id: randomUUID(),
-			demand,
+			demand: { origin: "manual" },
 			filename: source.file.name,
 			profileId: profileId,
 			createdAtMs: now,
@@ -279,9 +244,6 @@ export class PreparationApplication implements PreparationApi {
 				profileFingerprint: planned.identity.profileFingerprint,
 				settings: {
 					version: 2,
-					...(demand.presetSnapshot
-						? { automaticPreset: structuredClone(demand.presetSnapshot) }
-						: {}),
 					plan,
 					mode: planned.mode,
 					reasons: { ...planned.reasons },
@@ -313,42 +275,6 @@ export class PreparationApplication implements PreparationApi {
 		scheduler.wake();
 		return { task, artifact: null, availability: "unavailable" };
 	}
-	automaticRetry?: (id: string) => Promise<PreparationView>;
-	setAutomaticGuard(guard: (task: PreparationTask) => Promise<boolean>): void {
-		this.options.services.context.automaticGuard = guard;
-	}
-	createAutomatic(
-		fileId: string,
-		sourceVersion: string,
-		profileId: string,
-		planned: DeepReadonly<
-			Extract<MediaPlanningResult, { kind: "processing-required" }>
-		>,
-		demand: PreparationDemand,
-	): Promise<PreparationView> {
-		return this.track(() =>
-			this.enqueue(
-				{ fileId, sourceVersion },
-				profileId,
-				planned,
-				false,
-				demand,
-			),
-		);
-	}
-	async reconcileAutomatic(
-		predicate: (task: PreparationTask) => boolean,
-	): Promise<void> {
-		const { context, scheduler } = await this.ensure();
-		for (const task of context.repository.list())
-			if (
-				task.demand?.origin === "automatic" &&
-				task.state.status === "queued" &&
-				!predicate(task)
-			)
-				await scheduler.cancel(task.id);
-	}
-
 	catalog(fileId: string) {
 		return this.track(async () =>
 			(await this.ensure()).queries.catalog(fileId),
@@ -380,32 +306,20 @@ export class PreparationApplication implements PreparationApi {
 		});
 	}
 	async retryRequest(id: string, input: object): Promise<PreparationView> {
-		const { context } = await this.ensure();
-		if (
-			context.required(id).demand?.origin === "automatic" &&
-			this.automaticRetry
-		)
-			return this.automaticRetry(id);
-		if (!("sourceVersion" in input))
-			throw new DomainError(
-				"INVALID_REQUEST",
-				"Manual retry requires fresh compatibility evidence.",
-			);
-		return this.retry(id, input as CompatibilityCheckRequest);
+		const task = (await this.ensure()).context.required(id);
+		return this.retry(id, {
+			sourceVersion: task.spec.source.sourceVersion,
+			profileId: task.profileId,
+			audioStreamIndices: [...task.spec.settings.audioStreamIndices],
+			...input,
+		});
 	}
-	retry(
-		id: string,
-		input: CompatibilityCheckRequest,
-	): Promise<PreparationView> {
+
+	retry(id: string, input: PreparationRequest): Promise<PreparationView> {
 		input = structuredClone(input);
 		return this.track(async () => {
 			const { context, scheduler, artifacts } = await this.ensure();
 			const task = context.required(id);
-			if (input.output?.target !== "file")
-				throw new DomainError(
-					"INVALID_REQUEST",
-					"Retry requires fresh file-output compatibility evidence.",
-				);
 			if (
 				scheduler.isActive(id) ||
 				["queued", "processing", "cancelling"].includes(task.state.status)
@@ -419,13 +333,10 @@ export class PreparationApplication implements PreparationApi {
 					"INVALID_REQUEST",
 					"This preparation is already ready.",
 				);
-			const planned = await this.options.planning.plan(
-				{
-					...input,
-					fileId: task.spec.source.fileId,
-				},
-				{ forcePreparation: true },
-			);
+			const planned = await this.options.planning.plan({
+				...input,
+				fileId: task.spec.source.fileId,
+			});
 			scheduler.assertHealthy();
 			if (
 				planned.kind !== "processing-required" ||
@@ -443,13 +354,13 @@ export class PreparationApplication implements PreparationApi {
 					{
 						event: "preparation.retry_profile_changed",
 						taskId: task.id,
-						profileId: input.output.profileId,
+						profileId: input.profileId,
 					},
 					"Preparation profile changed; creating a replacement task.",
 				);
 				return this.enqueue(
 					{ ...input, fileId: task.spec.source.fileId },
-					input.output.profileId,
+					input.profileId,
 					planned,
 					true,
 				);
@@ -473,7 +384,7 @@ export class PreparationApplication implements PreparationApi {
 				// A new planner/browser decision owns a new immutable specification.
 				return this.enqueue(
 					{ ...input, fileId: current.spec.source.fileId },
-					input.output.profileId,
+					input.profileId,
 					planned,
 					true,
 				);
@@ -484,7 +395,7 @@ export class PreparationApplication implements PreparationApi {
 					"PREPARATION_BUSY",
 					"The preparation queue is full.",
 				);
-			current.profileId = input.output.profileId;
+			current.profileId = input.profileId;
 			current.state = {
 				status: "queued",
 				progress: null,

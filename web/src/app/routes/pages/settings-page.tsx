@@ -11,7 +11,6 @@ import { TrackingAccountSettings } from "../../../features/anime/ui.js";
 import { usePreparationContext } from "../../../features/media/public.js";
 import {
 	AboutSettings,
-	AutomaticPreparationSettings,
 	ExternalPlayerSettings,
 	MetadataSourceSettings,
 	PlaybackPreferencesSettings,
@@ -121,7 +120,6 @@ export function SettingsPage() {
 					>
 						<PlaybackPreferencesSettings />
 						<PreparationProfileSettings preparation={preparation} />
-						<AutomaticPreparationSettings />
 						<ExternalPlayerSettings />
 					</div>
 					<div

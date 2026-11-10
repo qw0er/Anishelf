@@ -120,7 +120,7 @@ test("unavailable anime playback retains its detail return link for choosing ano
 test("anime version links pin the selected source version and refuse a replaced source", async () => {
 	const fallback = fetcher.getMockImplementation();
 	fetcher.mockImplementation(async (input, init) => {
-		if (String(input) === "/api/playback/options") {
+		if (String(input) === "/api/playback/selection") {
 			const intent = JSON.parse(String(init?.body));
 			expect(intent.sourceVersion).toBe("replaced-version");
 			return json(

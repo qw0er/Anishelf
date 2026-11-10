@@ -2,10 +2,25 @@ import { freeze } from "../../../../shared/policy.js";
 import type { TranscodeProfile } from "../profile.js";
 
 export type { TranscodeProfile } from "../profile.js";
-export const defaultTranscodeProfileId = "builtin:balanced";
+export const defaultTranscodeProfileId = "builtin:manual";
 export const builtinTranscodeProfiles = freeze<TranscodeProfile[]>([
 	{
 		id: defaultTranscodeProfileId,
+		name: "Matroska",
+		description:
+			"Prepare a Matroska copy retaining subtitles, fonts and chapters.",
+		container: "matroska",
+		copyCompatibleStreams: false,
+		video: {
+			encoder: "libx264",
+			codec: "h264",
+			pixelFormat: "yuv420p",
+			options: { crf: 23, preset: "medium" },
+		},
+		audio: { encoder: "aac", codec: "aac", options: { b: "192k" } },
+	},
+	{
+		id: "builtin:balanced",
 		name: "Balanced",
 		description: "Prepare a Web copy with balanced encoding speed and size.",
 		container: "mp4",

@@ -4,9 +4,9 @@ import type {
 	PreparedMediaList,
 	PreparedMediaQuery,
 } from "../../../../contracts/http.js";
+import type { PreparationArtifacts } from "../../artifacts/public.js";
 import type { PreparationView } from "../domain/model.js";
 import type { PreparedMediaInventory } from "../public.js";
-import type { PreparationArtifacts } from "./artifacts.js";
 import type { PreparationContext } from "./context.js";
 
 export class PreparationQueries {
@@ -14,15 +14,12 @@ export class PreparationQueries {
 		const { tasks } = await this.list(fileId);
 		const result: PreparedMediaInventory = {
 			assets: [],
-			pending: [],
 		};
 		for (const { task, artifact, availability } of tasks) {
 			const source = { ...task.spec.source };
 			const sourceAudioStreamIndices = [
 				...task.spec.settings.audioStreamIndices,
 			];
-			if (["queued", "processing", "cancelling"].includes(task.state.status))
-				result.pending.push({ source, sourceAudioStreamIndices });
 			if (artifact?.info && availability === "ready")
 				result.assets.push({
 					id: artifact.id,

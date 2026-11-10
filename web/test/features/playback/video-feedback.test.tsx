@@ -1,244 +1,201 @@
 // @vitest-environment happy-dom
-import type { CSSProperties } from "react";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import VideoPlayer from "../../../src/features/playback/player/components/video-player.js";
-import * as resourcesApi from "../../../src/features/resources/resource-access/api.js";
-import { toast } from "../../../src/shared/components/ui/toast.js";
-import { preparedActive, required } from "../../support/playback-fixture.js";
-import {
-	act,
-	cleanup,
-	fireEvent,
-	render,
-	waitFor,
-} from "../../support/query-test-utils.js";
 
-const playerEvents = vi.hoisted(() => ({
-	setup: undefined as
-		| undefined
-		| ((provider: { video: HTMLVideoElement }) => void),
-	metadata: undefined as undefined | (() => void),
-}));
-vi.mock("@vidstack/react", () => ({
-	VideoProviderLoader: class {},
-	isVideoProvider: (provider: { video?: HTMLVideoElement }) =>
-		Boolean(provider.video),
-	MediaPlayer: ({
-		onError,
-		onProviderSetup,
-		onLoadedMetadata,
-		className,
-		style,
-	}: {
-		onError(): void;
-		onProviderSetup(provider: { video: HTMLVideoElement }): void;
-		onLoadedMetadata(): void;
-		className?: string;
-		style?: CSSProperties;
-	}) => {
-		playerEvents.setup = onProviderSetup;
-		playerEvents.metadata = onLoadedMetadata;
-		return (
-			<div data-testid="player" className={className} style={style}>
-				<button type="button" onClick={onError}>
-					Fail playback
-				</button>
-			</div>
-		);
-	},
-	MediaProvider: () => null,
-}));
-vi.mock("@vidstack/react/player/layouts/default", () => ({
-	DefaultVideoLayout: () => null,
-	defaultLayoutIcons: {},
-}));
-vi.mock(
-	"../../../src/features/playback/player/components/chapter-tracks.js",
-	() => ({
-		ChapterTracks: () => null,
-	}),
-);
-vi.mock("react-i18next", () => ({
-	useTranslation: () => ({ t: (key: string) => key }),
-}));
+import type AVPlayerUI from "@libmedia/avplayer-ui";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import * as media from "../../../src/features/media/subtitles/api.js";
+import * as engine from "../../../src/features/playback/player/avplayer.js";
+import VideoPlayer from "../../../src/features/playback/player/components/video-player.js";
+import { preparedActive } from "../../support/playback-fixture.js";
+import { cleanup, render, waitFor } from "../../support/query-test-utils.js";
+import "../../../src/shared/i18n.js";
+
+const load = vi.fn<AVPlayerUI["load"]>(async () => {}),
+	destroy = vi.fn(async () => {}),
+	select = vi.fn(async () => {}),
+	volume = vi.fn();
+let listeners: Map<string, Set<(...args: unknown[]) => void>>;
+let constructors = 0;
+let playerOptions: ConstructorParameters<typeof AVPlayerUI>[0];
+class Player {
+	constructor(options: ConstructorParameters<typeof AVPlayerUI>[0]) {
+		playerOptions = options;
+		constructors++;
+	}
+	on(event: string, fn: (...args: unknown[]) => void) {
+		const set = listeners.get(event) ?? new Set();
+		set.add(fn);
+		listeners.set(event, set);
+	}
+	off(event: string, fn: (...args: unknown[]) => void) {
+		listeners.get(event)?.delete(fn);
+	}
+	load = load;
+	destroy = destroy;
+	selectAudio = select;
+	setVolume = volume;
+	getVolume() {
+		return 0.7;
+	}
+	currentTime = 0n;
+	getDuration() {
+		return 60000n;
+	}
+	getPlaybackRate() {
+		return 1;
+	}
+	getStatus() {
+		return 6;
+	}
+	getStreams() {
+		return [
+			{ index: 1, id: 101, mediaType: "Audio", disposition: 1 },
+			{ index: 2, id: 102, mediaType: "Audio", disposition: 0 },
+			{ index: 1, id: 200, mediaType: "Subtitle", disposition: 0 },
+		];
+	}
+	getSelectedAudioStreamId() {
+		return 101;
+	}
+}
 beforeEach(() => {
-	vi.spyOn(console, "info").mockImplementation(() => {});
-	vi.spyOn(console, "warn").mockImplementation(() => {});
+	constructors = 0;
+	listeners = new Map();
+	vi.clearAllMocks();
+	vi.spyOn(engine, "loadPlayer").mockResolvedValue(
+		Player as unknown as typeof AVPlayerUI,
+	);
+	vi.spyOn(media, "getSubtitles").mockResolvedValue({
+		sourceVersion: "v1",
+		tracks: [],
+		warnings: [],
+	});
 });
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 });
-test("copy failures report one scoped Toast without re-querying original metadata", async () => {
-	const get = vi.spyOn(resourcesApi, "getFile");
-	const add = vi.spyOn(toast, "add").mockReturnValue("notice");
-	const close = vi.spyOn(toast, "close").mockImplementation(() => {});
-	const failure = vi.fn();
-	const view = render(
+const props = {
+	fileId: "file",
+	displayTitle: "Episode",
+	sourceVersion: "v1",
+	active: preparedActive,
+};
+test("loads selected bytes with same-origin credentials and no compatibility requests", async () => {
+	render(<VideoPlayer {...props} />);
+	await waitFor(() => expect(load).toHaveBeenCalled());
+	expect(load).toHaveBeenCalledWith(
+		new URL(preparedActive.resource.url, location.origin).href,
+		expect.objectContaining({ http: { credentials: "same-origin" } }),
+	);
+	expect(select).toHaveBeenCalledWith(101);
+});
+test("title changes preserve the engine and update the accessible region", async () => {
+	const view = render(<VideoPlayer {...props} />);
+	await waitFor(() => expect(load).toHaveBeenCalled());
+	view.rerender(<VideoPlayer {...props} displayTitle="Corrected title" />);
+	expect(view.getByRole("region", { name: "Corrected title" })).toBeTruthy();
+	expect(constructors).toBe(1);
+});
+test("the first play honors an explicitly selected non-default audio track", async () => {
+	render(
 		<VideoPlayer
-			fileId="file"
-			displayTitle="Episode"
-			active={preparedActive}
-			sourceVersion="v1"
-			onPlaybackFailure={failure}
+			{...props}
+			active={{
+				...preparedActive,
+				audio: { streamIndex: 2, sourceStreamIndex: 7, position: 1 },
+			}}
 		/>,
 	);
-	fireEvent.click(view.getByRole("button"));
-	await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
-	expect(add).toHaveBeenCalledWith(
-		expect.objectContaining({
-			id: "video-playback:file",
-			title: "player.failures.unknown",
-		}),
+	await waitFor(() => expect(select).toHaveBeenCalledWith(102));
+	const choose = playerOptions.findBestStream;
+	if (!choose) throw new Error("Missing initial track selection");
+	const streams = [
+		{ index: 1, id: 101 },
+		{ index: 2, id: 102 },
+	] as Parameters<typeof choose>[0];
+	expect(choose(streams, 1).index).toBe(2);
+});
+test("external subtitle indices may overlap audio indices; global stream IDs select the correct type", async () => {
+	render(<VideoPlayer {...props} />);
+	await waitFor(() => expect(select).toHaveBeenCalledWith(101));
+	const choose = playerOptions.findBestStream;
+	if (!choose) throw new Error("Missing initial track selection");
+	const streams = [
+		{ index: 1, id: 101 },
+		{ index: 1, id: 200 },
+	] as Parameters<typeof choose>[0];
+	expect(choose(streams, 3).id).toBe(200);
+});
+test("audio changes select engine stream IDs without remounting the file", async () => {
+	const view = render(<VideoPlayer {...props} />);
+	await waitFor(() => expect(select).toHaveBeenCalledWith(101));
+	view.rerender(
+		<VideoPlayer
+			{...props}
+			active={{
+				...preparedActive,
+				audio: { streamIndex: 2, sourceStreamIndex: 7, position: 1 },
+			}}
+		/>,
 	);
-	expect(get).not.toHaveBeenCalled();
-	fireEvent.click(view.getByRole("button"));
-	expect(add).toHaveBeenCalledTimes(1);
-	expect(failure).toHaveBeenCalledWith({ kind: "unknown", code: null });
-	close.mockClear();
+	await waitFor(() => expect(select).toHaveBeenCalledWith(102));
+	expect(load).toHaveBeenCalledTimes(1);
+});
+test("unmount detaches the clock and destroys the player", async () => {
+	const onMedia = vi.fn();
+	const view = render(<VideoPlayer {...props} onMedia={onMedia} />);
+	await waitFor(() => expect(onMedia).toHaveBeenCalled());
 	view.unmount();
-	expect(close).not.toHaveBeenCalledWith("video-playback:file");
-});
-test("a known video with no decoded picture reports a decode failure for that asset", async () => {
-	const failure = vi.fn();
-	vi.spyOn(toast, "add").mockReturnValue("notice");
-	render(
-		<VideoPlayer
-			fileId="file"
-			displayTitle="Episode"
-			active={preparedActive}
-			sourceVersion="v1"
-			onPlaybackFailure={failure}
-		/>,
+	expect(onMedia).toHaveBeenLastCalledWith(
+		null,
+		preparedActive.resource.timeline,
 	);
-	const video = document.createElement("video");
-	Object.defineProperty(video, "videoWidth", { value: 0, configurable: true });
-	Object.defineProperty(video, "videoHeight", { value: 0, configurable: true });
-	act(() => {
-		playerEvents.setup?.({ video });
-		playerEvents.metadata?.();
-	});
-	expect(failure).toHaveBeenCalledWith({ kind: "decode", code: 3 });
+	expect(destroy).toHaveBeenCalledTimes(1);
 });
-test("native audio selection uses output position and maps changes back to the source track", () => {
-	const changed = vi.fn();
-	const active = {
-		...preparedActive,
-		asset: {
-			...preparedActive.asset,
-			audioTracks: [
-				{
-					...required(preparedActive.asset.audioTracks[0]),
-					sourceStreamIndex: 7,
-				},
-				{
-					...required(preparedActive.asset.audioTracks[0]),
-					stream: {
-						...required(preparedActive.asset.audioTracks[0]).stream,
-						index: 2,
-					},
-					sourceStreamIndex: 9,
-				},
-			],
-		},
-		audio: { streamIndex: 2, sourceStreamIndex: 9, position: 1 },
+test("selecting audio after silence restores the previous volume without replacing playback", async () => {
+	const view = render(<VideoPlayer {...props} />);
+	await waitFor(() => expect(select).toHaveBeenCalledWith(101));
+	view.rerender(
+		<VideoPlayer {...props} active={{ ...preparedActive, audio: null }} />,
+	);
+	await waitFor(() => expect(volume).toHaveBeenLastCalledWith(0));
+	view.rerender(<VideoPlayer {...props} />);
+	await waitFor(() => expect(volume).toHaveBeenLastCalledWith(0.7));
+	expect(load).toHaveBeenCalledTimes(1);
+});
+test("client-side subtitle references contain both source versions", async () => {
+	const content = vi
+		.spyOn(globalThis, "fetch")
+		.mockResolvedValue(new Response("[Script Info]\nScriptType: v4.00+\n"));
+	vi.mocked(media.getSubtitles).mockResolvedValue({
+		sourceVersion: "v1",
+		tracks: [
+			{
+				id: "sidecar",
+				name: "Episode.ass",
+				origin: "external",
+				format: "ass",
+				language: "zh",
+				label: null,
+				sourceVersion: "sub-v1",
+				sizeBytes: 100,
+				codec: null,
+				default: false,
+				forced: false,
+				supported: true,
+				unsupportedReason: null,
+			},
+		],
+		warnings: [],
+	});
+	render(<VideoPlayer {...props} />);
+	await waitFor(() => expect(load).toHaveBeenCalled());
+	const options = load.mock.calls[0]?.[1] as {
+		externalSubtitles: { source: File }[];
 	};
-	render(
-		<VideoPlayer
-			fileId="file"
-			displayTitle="Episode"
-			active={active}
-			sourceVersion="v1"
-			onAudioChange={changed}
-		/>,
+	expect(content).toHaveBeenCalledWith(
+		"/api/files/file/subtitles/sidecar/content?sourceVersion=v1&subtitleVersion=sub-v1",
+		expect.objectContaining({ credentials: "same-origin" }),
 	);
-	const video = document.createElement("video");
-	Object.defineProperty(video, "videoWidth", { value: 1920 });
-	Object.defineProperty(video, "videoHeight", { value: 1080 });
-	const tracks = Object.assign(new EventTarget(), {
-		0: { enabled: true },
-		1: { enabled: false },
-		length: 2,
-	});
-	Object.defineProperty(video, "audioTracks", { value: tracks });
-	act(() => {
-		playerEvents.setup?.({ video });
-		playerEvents.metadata?.();
-	});
-	expect(tracks[0].enabled).toBe(false);
-	expect(tracks[1].enabled).toBe(true);
-	act(() => {
-		tracks[1].enabled = false;
-		tracks[0].enabled = true;
-		tracks.dispatchEvent(new Event("change"));
-	});
-	expect(changed).toHaveBeenCalledWith(7);
-});
-
-test("the player shell follows the source aspect ratio and caps width by viewport height", () => {
-	const view = render(
-		<VideoPlayer
-			fileId="file"
-			displayTitle="Episode"
-			active={preparedActive}
-			sourceVersion="v1"
-		/>,
-	);
-	const player = view.getByTestId("player");
-	expect(player.style.aspectRatio).toBe("1920 / 1080");
-	expect(player.parentElement?.style.maxWidth).toBe("min(100%, 133.3333vh)");
-});
-
-test("decoded video dimensions replace inspection dimensions for rotated or anamorphic sources", () => {
-	const video = required(preparedActive.asset.video);
-	const view = render(
-		<VideoPlayer
-			fileId="file"
-			displayTitle="Episode"
-			active={{
-				...preparedActive,
-				asset: {
-					...preparedActive.asset,
-					video: { ...video, width: 1080, height: 1920 },
-				},
-			}}
-			sourceVersion="v1"
-		/>,
-	);
-	const player = view.getByTestId("player");
-	expect(player.style.aspectRatio).toBe("1080 / 1920");
-	expect(player.parentElement?.style.maxWidth).toBe("min(100%, 42.1875vh)");
-
-	const element = document.createElement("video");
-	Object.defineProperty(element, "videoWidth", {
-		value: 720,
-		configurable: true,
-	});
-	Object.defineProperty(element, "videoHeight", {
-		value: 1200,
-		configurable: true,
-	});
-	act(() => {
-		playerEvents.setup?.({ video: element });
-		playerEvents.metadata?.();
-	});
-	expect(player.style.aspectRatio).toBe("720 / 1200");
-	expect(player.parentElement?.style.maxWidth).toBe("min(100%, 45.0000vh)");
-});
-
-test("the player falls back to 16:9 when no source dimensions are available", () => {
-	const view = render(
-		<VideoPlayer
-			fileId="file"
-			displayTitle="Episode"
-			active={{
-				...preparedActive,
-				asset: { ...preparedActive.asset, video: null },
-			}}
-			sourceVersion="v1"
-		/>,
-	);
-	const player = view.getByTestId("player");
-	expect(player.style.aspectRatio).toBe("16 / 9");
-	expect(player.parentElement?.style.maxWidth).toBe("min(100%, 133.3333vh)");
+	expect(options.externalSubtitles[0]?.source.name).toBe("subtitle.ass");
 });

@@ -1,17 +1,14 @@
 import type { Logger } from "pino";
-import { playbackSelectionConstraints } from "../../../../contracts/defaults.js";
 import { DomainError } from "../../../../shared/errors.js";
-import { assessAsset, inspectAsset } from "../domain/assets.js";
 import type { PlaybackAssets } from "../ports.js";
 import type {
-	PlaybackAssetChoice,
 	PlaybackOptionsRequest,
 	PlaybackOptionsResponse,
 	PlaybackSelection,
 	PlaybackSelectionApi,
 	PlaybackSelectionRequest,
 } from "../public.js";
-/** Read-only choice among existing assets; encoding plans are not playback inputs. */
+/** Only the user's selected bytes are bound; capability predictions never choose a file. */
 export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 	constructor(
 		private readonly options: { assets: PlaybackAssets; logger: Logger },
@@ -29,118 +26,69 @@ export class PlaybackSelectionApplication implements PlaybackSelectionApi {
 				: input.audioStreamIndex;
 		if (
 			audio !== null &&
-			!catalog.source.audioTracks.some((track) => track.index === audio)
+			catalog.source.audioTracks.length &&
+			!catalog.source.audioTracks.some((t) => t.index === audio)
 		)
 			throw new DomainError(
 				"INVALID_REQUEST",
 				"The requested source audio track is unavailable.",
 			);
-		const assets = [...catalog.assets].sort(
-			(a, b) => Number(b.id === input.assetId) - Number(a.id === input.assetId),
-		);
 		return {
 			source: catalog.source,
 			resolvedAudioStreamIndex: audio,
-			assets: assets
-				.slice(0, playbackSelectionConstraints.maximumCandidates)
-				.map((asset) => inspectAsset(asset, audio, input.canSelectAudio)),
-			pending: catalog.pendingAudioSelections.some((selection) =>
-				audio === null ? selection.length === 0 : selection.includes(audio),
-			),
+			assets: catalog.assets.map((asset) => {
+				const position = asset.audioTracks.findIndex(
+					(t) => t.sourceStreamIndex === audio,
+				);
+				const track = asset.audioTracks[position];
+				return {
+					asset,
+					audio: track
+						? {
+								position,
+								streamIndex: track.stream.index,
+								sourceStreamIndex: track.sourceStreamIndex,
+							}
+						: null,
+				};
+			}),
 		};
 	}
 	async select(input: PlaybackSelectionRequest): Promise<PlaybackSelection> {
 		const inspected = await this.inspect(input);
-		if (
-			new Set(input.evidence.map((entry) => entry.assetId)).size !==
-			input.evidence.length
-		)
-			throw new DomainError(
-				"INVALID_REQUEST",
-				"Duplicate asset compatibility evidence.",
-			);
-		for (const entry of input.evidence) {
-			const current = inspected.assets.find(
-				(asset) => asset.asset.id === entry.assetId,
-			);
-			if (!current || current.descriptionId !== entry.descriptionId)
-				throw new DomainError(
-					"PLAYBACK_CONFLICT",
-					"The media asset changed. Refresh playback options.",
-				);
-		}
-		const choices: PlaybackAssetChoice[] = inspected.assets.map(
-			(inspection) => {
-				const evidence =
-					input.evidence.find((entry) => entry.assetId === inspection.asset.id)
-						?.evidence ?? [];
-				const compatibility = assessAsset(
-					inspection,
-					evidence,
-					input.canSelectAudio,
-				);
-				const unavailableReason =
-					(inspected.resolvedAudioStreamIndex !== null && !inspection.audio) ||
-					(inspected.resolvedAudioStreamIndex === null &&
-						inspection.asset.audioTracks.length > 0)
-						? "audio-track-missing"
-						: input.failedResourceIds?.includes(inspection.asset.id)
-							? "asset-playback-failed"
-							: compatibility.overall.status === "supported"
-								? null
-								: compatibility.overall.reason;
-				return {
-					asset: inspection.asset,
-					audio: inspection.audio,
-					compatibility,
-					unavailableReason,
-				};
-			},
+		const choices = inspected.assets.map((item) => ({
+			...item,
+			unavailableReason:
+				inspected.resolvedAudioStreamIndex !== null &&
+				!item.audio &&
+				item.asset.inspection !== "unavailable"
+					? "audio-track-missing"
+					: null,
+		}));
+		const selected = choices.find((c) =>
+			input.assetId
+				? c.asset.id === input.assetId
+				: c.asset.kind === "original",
 		);
-		const allowed = choices.filter(
-			(choice) =>
-				(!input.assetId || choice.asset.id === input.assetId) &&
-				(choice.unavailableReason === null ||
-					(input.allowUnverified &&
-						!["no-video-stream", "audio-track-selection-unavailable"].includes(
-							choice.compatibility.overall.reason,
-						) &&
-						choice.unavailableReason !== "audio-track-missing" &&
-						choice.unavailableReason !== "asset-playback-failed")),
-		);
-		allowed.sort(
-			(a, b) =>
-				Number(a.asset.kind !== "original") -
-				Number(b.asset.kind !== "original"),
-		);
-		const selected = allowed[0];
-		const result: PlaybackSelection = {
-			source: inspected.source,
-			resolvedAudioStreamIndex: inspected.resolvedAudioStreamIndex,
-			choices,
-			pending: inspected.pending,
-			active: selected ?? null,
-			reason: selected
-				? null
-				: inspected.pending
-					? "preparation-pending"
-					: input.assetId &&
-							!choices.some((choice) => choice.asset.id === input.assetId)
-						? "asset-unavailable"
-						: "no-playable-asset",
-		};
-		this.options.logger.debug(
+		const active = selected?.unavailableReason === null ? selected : null;
+		const reason = active
+			? null
+			: (selected?.unavailableReason ?? "asset-unavailable");
+		this.options.logger.info(
 			{
 				event: "playback.asset_selected",
 				fileId: input.fileId,
-				sourceVersion: inspected.source.sourceVersion,
-				assetId: selected?.asset.id,
-				sourceAudioStreamIndex: inspected.resolvedAudioStreamIndex,
-				assetAudioStreamIndex: selected?.audio?.streamIndex,
-				reason: result.reason,
+				assetId: active?.asset.id,
+				reason,
 			},
-			"Playback resolved against actual media assets.",
+			"Explicit playback resource resolved.",
 		);
-		return result;
+		return {
+			source: inspected.source,
+			resolvedAudioStreamIndex: inspected.resolvedAudioStreamIndex,
+			choices,
+			active,
+			reason,
+		};
 	}
 }

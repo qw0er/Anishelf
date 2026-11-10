@@ -1,3 +1,4 @@
+import type { PlaybackClock } from "./engine.js";
 /** Cooperative normal-play time for one session. Seeks, pauses and buffering break continuity. */
 export class PlaybackEvidence {
 	private anchor: { position: number; time: number; rate: number } | null =
@@ -7,11 +8,11 @@ export class PlaybackEvidence {
 		this.anchor = null;
 	}
 	sample(
-		video: HTMLVideoElement,
+		video: PlaybackClock,
 		playing: boolean,
 		now = performance.now(),
 	): void {
-		const position = video.currentTime * 1000,
+		const position = video.currentTimeMs,
 			rate = video.playbackRate;
 		const previous = this.anchor;
 		if (previous && playing && !video.seeking) {

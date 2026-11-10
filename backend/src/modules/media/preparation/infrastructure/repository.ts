@@ -11,13 +11,9 @@ import {
 	type PreparedArtifact,
 } from "../domain/model.js";
 import type { PreparationStore, PreparationSummaryRow } from "../ports.js";
-import type { AutomaticDemandRecord } from "../snapshot.js";
+
 import { readPreparationTasks, writePreparationTasks } from "./records.js";
-import {
-	automaticPreparationDemands,
-	preparationTasks,
-	preparedArtifacts,
-} from "./schema.js";
+import { preparationTasks, preparedArtifacts } from "./schema.js";
 export class PreparationRepository implements PreparationStore {
 	constructor(
 		private readonly store: Store,
@@ -201,32 +197,6 @@ export class PreparationRepository implements PreparationStore {
 			)
 			.all()
 			.map((row) => this.task(row));
-	}
-
-	getAutomaticDemand(id: string): AutomaticDemandRecord | undefined {
-		const row = this.store
-			.select()
-			.from(automaticPreparationDemands)
-			.where(eq(automaticPreparationDemands.id, id))
-			.get();
-		return row
-			? {
-					id: row.id,
-					failures: row.failures,
-					nextAttemptAtMs: row.nextAttemptAtMs,
-					...(row.taskUpdatedAtMs === null
-						? {}
-						: { taskUpdatedAtMs: row.taskUpdatedAtMs }),
-				}
-			: undefined;
-	}
-	saveAutomaticDemand(value: AutomaticDemandRecord): void {
-		const row = { ...value, taskUpdatedAtMs: value.taskUpdatedAtMs ?? null };
-		this.store
-			.insert(automaticPreparationDemands)
-			.values(row)
-			.onConflictDoUpdate({ target: automaticPreparationDemands.id, set: row })
-			.run();
 	}
 
 	nextQueued(): PreparationTask | undefined {

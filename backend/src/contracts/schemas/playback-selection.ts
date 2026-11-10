@@ -1,14 +1,11 @@
 import { Type } from "typebox";
 import { playbackSelectionConstraints } from "../defaults.js";
 import { ResourceIdSchema } from "./common.js";
+import { FilePlaybackResourceSchema, MediaTimelineSchema } from "./media.js";
 import {
 	AudioStreamDescriptionSchema,
-	CompatibilityDecisionSchema,
-	CompatibilityEvidenceListSchema,
-	MediaCapabilityQuerySchema,
 	VideoStreamDescriptionSchema,
-} from "./compatibility.js";
-import { FilePlaybackResourceSchema, MediaTimelineSchema } from "./media.js";
+} from "./media-description.js";
 import { SourceVersionSchema } from "./playback.js";
 import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
 
@@ -60,23 +57,8 @@ const audio = Type.Union([
 	),
 	Type.Null(),
 ]);
-export const AssetCompatibilitySchema = Type.Object(
-	{
-		overall: CompatibilityDecisionSchema,
-		container: CompatibilityDecisionSchema,
-		video: CompatibilityDecisionSchema,
-		audio: CompatibilityDecisionSchema,
-		warnings: Type.Array(Type.String({ maxLength: 128 }), { maxItems: 16 }),
-	},
-	object,
-);
 export const AssetInspectionSchema = Type.Object(
-	{
-		asset: MediaAssetSchema,
-		descriptionId: digest,
-		audio,
-		queries: Type.Array(MediaCapabilityQuerySchema, { maxItems: 4 }),
-	},
+	{ asset: MediaAssetSchema, audio },
 	object,
 );
 const intent = {
@@ -84,20 +66,11 @@ const intent = {
 	sourceVersion: Type.Optional(SourceVersionSchema),
 	audioStreamIndex: Type.Optional(nullableIndex),
 	assetId: Type.Optional(ResourceIdSchema),
-	allowUnverified: Type.Optional(Type.Boolean()),
-	canSelectAudio: Type.Boolean(),
-	failedResourceIds: Type.Optional(
-		Type.Array(ResourceIdSchema, {
-			maxItems: playbackSelectionConstraints.maximumFailedResources,
-			uniqueItems: true,
-		}),
-	),
 };
 export const PlaybackOptionsRequestSchema = Type.Object(intent, object);
 const result = {
 	source: PlaybackSourceSchema,
 	resolvedAudioStreamIndex: nullableIndex,
-	pending: Type.Boolean(),
 };
 export const PlaybackOptionsResponseSchema = Type.Object(
 	{
@@ -108,27 +81,10 @@ export const PlaybackOptionsResponseSchema = Type.Object(
 	},
 	object,
 );
-export const PlaybackSelectionRequestSchema = Type.Object(
-	{
-		...intent,
-		evidence: Type.Array(
-			Type.Object(
-				{
-					assetId: ResourceIdSchema,
-					descriptionId: digest,
-					evidence: CompatibilityEvidenceListSchema,
-				},
-				object,
-			),
-			{ maxItems: playbackSelectionConstraints.maximumCandidates },
-		),
-	},
-	object,
-);
+export const PlaybackSelectionRequestSchema = Type.Object(intent, object);
 const choice = {
 	asset: MediaAssetSchema,
 	audio,
-	compatibility: AssetCompatibilitySchema,
 	unavailableReason: text,
 };
 export const PlaybackAssetChoiceSchema = Type.Object(choice, object);

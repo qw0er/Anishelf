@@ -3,4 +3,3 @@ export { PlaybackPreparation } from "./preparation/components/playback-preparati
 export { PreparationMonitor } from "./preparation/components/preparation-monitor.js";
 export { PreparedMediaPage } from "./preparation/components/prepared-media-page.js";
 export { PreparationProvider } from "./preparation/context.js";
-export { SubtitleTracks } from "./subtitles/components/subtitle-tracks.js";

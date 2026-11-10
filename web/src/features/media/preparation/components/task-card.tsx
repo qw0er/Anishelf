@@ -17,7 +17,7 @@ import {
 	deletePreparedMedia,
 	retryPreparation,
 } from "../api.js";
-import { negotiatePreparation } from "../negotiation.js";
+
 import { usePreparationAction } from "../use-preparations.js";
 
 export function PreparationTaskCard({
@@ -151,16 +151,13 @@ export function PreparationTaskCard({
 							disabled={action.busy}
 							onClick={() =>
 								void action.run(async (signal) => {
-									const body =
-										task.origin === "automatic"
-											? {}
-											: await negotiatePreparation(
-													task.fileId,
-													task.profileId,
-													signal,
-													task.sourceVersion,
-													task.audioStreamIndices,
-												);
+									const body = {
+										sourceVersion: task.sourceVersion,
+										profileId: task.profileId,
+										...(task.audioStreamIndices
+											? { audioStreamIndices: task.audioStreamIndices }
+											: {}),
+									};
 									await retryPreparation(task.id, body, { signal });
 								})
 							}

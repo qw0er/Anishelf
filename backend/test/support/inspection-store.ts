@@ -1,7 +1,7 @@
 import type {
 	InspectionRecord,
 	InspectionStore,
-} from "../../src/modules/media/media-inspection/ports.js";
+} from "../../src/modules/media/inspection/ports.js";
 export class MemoryInspectionStore implements InspectionStore {
 	private values = new Map<string, InspectionRecord>();
 	find(scopeId: string, fileId: string) {

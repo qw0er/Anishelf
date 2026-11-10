@@ -46,7 +46,20 @@ export function create(ready = true, policy = playbackPolicy) {
 		value: ready ? 1 : 0,
 		configurable: true,
 	});
-	controller.attach(video);
+	Object.defineProperty(video, "currentTimeMs", {
+		configurable: true,
+		get: () => video.currentTime * 1000,
+		set: (value: number) => {
+			video.currentTime = value / 1000;
+		},
+	});
+	Object.defineProperty(video, "durationMs", {
+		configurable: true,
+		get: () => video.duration * 1000,
+	});
+	controller.attach(
+		video as typeof video & { currentTimeMs: number; durationMs: number },
+	);
 	return { controller, video, state: () => state };
 }
 
@@ -83,4 +96,19 @@ export function setupTestLifecycle() {
 		vi.useRealTimers();
 		vi.restoreAllMocks();
 	});
+}
+
+export function clockFor(video: HTMLVideoElement) {
+	Object.defineProperty(video, "currentTimeMs", {
+		configurable: true,
+		get: () => video.currentTime * 1000,
+		set: (v: number) => {
+			video.currentTime = v / 1000;
+		},
+	});
+	Object.defineProperty(video, "durationMs", {
+		configurable: true,
+		get: () => video.duration * 1000,
+	});
+	return video as typeof video & { currentTimeMs: number; durationMs: number };
 }

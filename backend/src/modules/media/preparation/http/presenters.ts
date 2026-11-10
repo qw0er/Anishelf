@@ -1,7 +1,4 @@
-import {
-	directPlaybackPlan,
-	originalTimeline,
-} from "../../../../contracts/media.js";
+import { originalTimeline } from "../../../../contracts/media.js";
 import type { PreparationCreation } from "../public.js";
 
 /** Transport owns URLs and the small user-visible progress projection. */
@@ -51,11 +48,6 @@ export function preparationStartResponse(
 	result: PreparationCreation,
 ): import("../../../../contracts/http.js").PreparationStartResponse {
 	switch (result.kind) {
-		case "direct":
-			return {
-				kind: "direct",
-				plan: directPlaybackPlan(result.fileId, result.mimeType),
-			};
 		case "blocked":
 			return { kind: "blocked", reason: result.reason };
 		case "task":

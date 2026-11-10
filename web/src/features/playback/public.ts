@@ -19,8 +19,4 @@ export interface PlaybackUiSlots {
 		onRecheck(): void;
 		onAssetsChanged(): void;
 	}): ReactNode;
-	renderSubtitles(
-		fileId: string,
-		onPreparingChange: (label: string | null) => void,
-	): ReactNode;
 }

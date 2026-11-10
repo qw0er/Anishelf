@@ -141,6 +141,13 @@
 			"when": 1793664000000,
 			"tag": "0019_isolated_external_works",
 			"breakpoints": true
+		},
+		{
+			"idx": 20,
+			"version": "6",
+			"when": 1794268800000,
+			"tag": "0020_manual_preparation",
+			"breakpoints": true
 		}
 	]
 }

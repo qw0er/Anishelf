@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import type { Logger } from "pino";
 import { preparationConstraints } from "../../contracts/defaults.js";
 import type { MediaTools } from "../../platform/media/index.js";
@@ -8,42 +10,35 @@ import {
 import { defaultSortingPolicy } from "../../shared/sorting.js";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
-import {
-	AutomaticPreparationApplication,
-	type ViewingReader,
-} from "./automatic-preparation/application.js";
+import { MediaAssetsApplication } from "./catalog.js";
 import { registerMediaHttp } from "./http.js";
-import { MediaAssetsApplication } from "./media-assets/application.js";
-import { MediaInspectionApplication } from "./media-inspection/application.js";
+import { MediaInspectionApplication } from "./inspection/application.js";
 import {
 	mediaInspectionPolicy,
 	validateMediaInspectionPolicy,
-} from "./media-inspection/policy.js";
-import { MediaPlanningApplication } from "./media-planning/application/planning.js";
-import { createMediaProcessingModule } from "./media-processing/create.js";
-import {
-	mediaProcessingPolicy,
-	validateMediaProcessingPolicy,
-} from "./media-processing/policy.js";
+} from "./inspection/policy.js";
 import type { MediaPersistence } from "./persistence.js";
 import {
 	createPreparationApplication,
 	initializePreparationModule,
 } from "./preparation/create.js";
+import { createMediaProcessingModule } from "./preparation/execution/create.js";
+import {
+	mediaProcessingPolicy,
+	validateMediaProcessingPolicy,
+} from "./preparation/execution/policy.js";
+import { MediaPlanningApplication } from "./preparation/planning/application/planning.js";
 import {
 	preparationPolicy,
 	validatePreparationPolicy,
 } from "./preparation/policy.js";
 import type { MediaApi } from "./public.js";
-import {
-	createSubtitleApplication,
-	initializeSubtitleModule,
-} from "./subtitles/create.js";
+import { createSubtitleApplication } from "./subtitles/create.js";
 import { subtitlePolicy, validateSubtitlePolicy } from "./subtitles/policy.js";
 
 export interface MediaModulePolicy {
-	mediaInspection: import("./media-inspection/policy.js").MediaInspectionPolicy;
-	mediaProcessing: import("./media-processing/policy.js").MediaProcessingPolicy;
+	mediaInspection: import("./inspection/policy.js").MediaInspectionPolicy;
+	mediaProcessing: import("./preparation/execution/policy.js").MediaProcessingPolicy;
 	preparation: import("./preparation/policy.js").PreparationPolicy;
 	subtitles: import("./subtitles/policy.js").SubtitlePolicy;
 	library: import("../../shared/sorting.js").SortingPolicy;
@@ -156,17 +151,23 @@ export async function createMediaModule(options: {
 		logger,
 		policy: policy.preparation,
 	});
+	for (const segments of [["cache", "subtitles"], ["subtitle-fonts"]]) {
+		await rm(join(configuration.deployment.dataDir, ...segments), {
+			recursive: true,
+			force: true,
+		}).catch((err) =>
+			logger.warn(
+				{ event: "media.retired_cache_cleanup_deferred", err },
+				"Retired subtitle cache cleanup deferred.",
+			),
+		);
+	}
 	const subtitles = createSubtitleApplication({
 		sources: library.sources,
-		repository: database.subtitles,
-		dataDir: configuration.deployment.dataDir,
-		tools,
-		inspection,
 		logger,
 		policy: { subtitles: policy.subtitles, library: policy.library },
 	});
 	await initializePreparationModule(preparation, logger);
-	await initializeSubtitleModule(subtitles, logger);
 	const assets = new MediaAssetsApplication({
 		inspection,
 		preparation,
@@ -176,31 +177,15 @@ export async function createMediaModule(options: {
 	const api: MediaApi = { listPlaybackAssets: assets.list.bind(assets) };
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
-	let automatic: AutomaticPreparationApplication | undefined;
 	const quiesce = () =>
 		(stopped ??= (async () => {
-			await automatic?.close();
 			await preparation.close();
 		})());
 	return {
 		api,
-		startAutomaticPreparation(viewing: ViewingReader) {
-			automatic = new AutomaticPreparationApplication({
-				system: configuration,
-				resources: library,
-				inspection,
-				preparation,
-				repository: database.preparation,
-				maximumQueuedTasks: policy.preparation.maximumQueuedTasks,
-				viewing,
-				logger,
-			});
-			automatic.start();
-		},
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
 			registerMediaHttp(app, {
 				inspection,
-				planning,
 				preparation,
 				subtitles,
 			}),
@@ -209,7 +194,6 @@ export async function createMediaModule(options: {
 			(closed ??= (async () => {
 				unsubscribeInspections();
 				await quiesce();
-				await subtitles.close();
 				planning.close();
 				await processing.close();
 				await inspection.close();

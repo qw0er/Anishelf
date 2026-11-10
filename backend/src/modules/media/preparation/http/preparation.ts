@@ -1,9 +1,9 @@
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "typebox";
 import {
-	CompatibilityCheckRequestSchema,
 	EmptyObjectSchema,
 	PreparationListResponseSchema,
+	PreparationRequestSchema,
 	PreparationStartResponseSchema,
 	PreparationSummaryRequestSchema,
 	PreparationSummaryResponseSchema,
@@ -39,8 +39,7 @@ export function registerPreparationRoutes(
 			{
 				schema: {
 					params: ResourceParamsSchema,
-					ResourceIdSchema,
-					body: CompatibilityCheckRequestSchema,
+					body: PreparationRequestSchema,
 					response: { 200: PreparationStartResponseSchema },
 				},
 			},
@@ -111,10 +110,7 @@ export function registerPreparationRoutes(
 			{
 				schema: {
 					params: PreparationTaskParamsSchema,
-					body: Type.Union([
-						CompatibilityCheckRequestSchema,
-						EmptyObjectSchema,
-					]),
+					body: Type.Union([PreparationRequestSchema, EmptyObjectSchema]),
 					response: { 200: PreparationTaskSchema },
 				},
 			},

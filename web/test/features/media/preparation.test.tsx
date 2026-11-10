@@ -1,890 +1,150 @@
-import * as mediacompatibilityApi from "../../../src/features/media/media-compatibility/api.js";
-import * as preparationApi from "../../../src/features/media/preparation/api.js";
-import { usePreparationContext } from "../../../src/features/media/preparation/context.js";
-import * as settingsApi from "../../../src/features/settings/api.js";
 // @vitest-environment happy-dom
-
-import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { FileActions } from "../../../src/app/components/file-actions.js";
-import * as capabilities from "../../../src/features/media/media-compatibility/capabilities.js";
+import * as api from "../../../src/features/media/preparation/api.js";
 import { PreparationButton } from "../../../src/features/media/preparation/components/preparation-button.js";
-import { PreparationMonitor } from "../../../src/features/media/preparation/components/preparation-monitor.js";
 import { PreparationTaskCard } from "../../../src/features/media/preparation/components/task-card.js";
 import { PreparationProvider } from "../../../src/features/media/preparation/context.js";
-import { PreparationProfileSettings as ProfileSettings } from "../../../src/features/settings/components/profile-settings.js";
-import type {
-	CompatibilityInspection,
-	CompatibilityResult,
-	PreparationTaskResponse,
-} from "../../../src/shared/api/contracts.js";
+import * as settings from "../../../src/features/settings/api.js";
+import type { PreparationTaskResponse } from "../../../src/shared/api/contracts.js";
 import "../../../src/shared/i18n.js";
 import {
 	cleanup,
 	fireEvent,
 	render,
+	screen,
 	waitFor,
 } from "../../support/query-test-utils.js";
 
+const source = { sourceVersion: "v1", audioTracks: [] };
 const task: PreparationTaskResponse = {
-	id: "task-1",
+	id: "task",
 	fileId: "file",
 	filename: "Episode.mkv",
-	sourceVersion: "version",
-	profileId: "builtin:web",
-	mode: "remux",
-	reasons: { video: "copy", audio: "copy" },
-	status: "queued",
+	sourceVersion: "v1",
+	profileId: "builtin:manual",
+	mode: "transcode",
+	reasons: { video: "encoding-required", audio: "encoding-required" },
+	status: "failed",
 	playbackAvailability: "unavailable",
 	progress: null,
-	failureReason: null,
+	failureReason: "interrupted",
 	createdAtMs: 1,
 	updatedAtMs: 1,
 	artifactId: null,
 	resource: null,
 	sizeBytes: null,
 };
-const ready: PreparationTaskResponse = {
-	...task,
-	status: "ready",
-	playbackAvailability: "ready",
-	artifactId: "artifact",
-	resource: {
-		delivery: "file" as const,
-		url: "/api/prepared-media/artifact",
-		mimeType: "video/mp4",
-		timeline: { sourceOriginMs: 0, mediaOriginMs: 0, sourceDurationMs: null },
-	},
-	sizeBytes: 100,
-};
-function preparationList(tasks: PreparationTaskResponse[], hasMore = false) {
-	return { tasks, hasMore };
-}
-const description = {
-	sourceVersion: "version",
-	descriptionId: "description",
-	queries: [],
-	output: { profileId: task.profileId, target: "file" },
-} as unknown as CompatibilityInspection;
-const evidence = [
-	{
-		id: "fresh",
-		status: "supported",
-		smooth: null,
-		reason: "browser-supported",
-	},
-] as const;
-const catalog = {
-	profiles: [
-		{
-			id: task.profileId,
-			name: "Browser copy",
-			description: "MP4 browser profile",
-			container: "mp4" as const,
-			videoEncoder: "libx264",
-			audioEncoder: "aac",
-			source: "builtin" as const,
-			validation: { status: "unverified" as const, issues: [] },
-		},
-	],
-	selectedProfileId: task.profileId,
-	selectionAvailable: true,
-	revision: "test",
-};
-const unsupported = {
-	audioTracks: [],
-	sourceVersion: "version",
-	direct: { status: "unsupported" },
-} as unknown as CompatibilityResult;
-function Wrapper({ children }: { children: ReactNode }) {
-	return (
-		<MemoryRouter>
-			<PreparationProvider>{children}</PreparationProvider>
-		</MemoryRouter>
-	);
-}
 beforeEach(() => {
-	vi.spyOn(settingsApi, "getTranscodeProfiles").mockResolvedValue(catalog);
-	vi.spyOn(preparationApi, "getPreparations").mockResolvedValue(
-		preparationList([]),
-	);
-	vi.spyOn(preparationApi, "getFilePreparations").mockImplementation(async () =>
-		preparationApi.getPreparations(),
-	);
-	vi.spyOn(
-		mediacompatibilityApi,
-		"inspectMediaCompatibility",
-	).mockResolvedValue(description);
-	vi.spyOn(capabilities, "queryCapabilities").mockResolvedValue([...evidence]);
-	vi.spyOn(preparationApi, "createPreparation").mockResolvedValue({
-		kind: "task",
-		task,
+	vi.spyOn(api, "getPreparations").mockResolvedValue({
+		tasks: [],
+		hasMore: false,
 	});
-	vi.spyOn(mediacompatibilityApi, "checkMediaCompatibility").mockResolvedValue({
-		output: { combinations: { "copy-copy": "supported" } },
-	} as unknown as CompatibilityResult);
-	vi.spyOn(preparationApi, "cancelPreparation").mockResolvedValue({
+	vi.spyOn(settings, "getTranscodeProfiles").mockResolvedValue({
+		profiles: [
+			{
+				id: "builtin:manual",
+				name: "Matroska",
+				description: "Manual copy",
+				container: "matroska",
+				source: "builtin",
+				videoEncoder: "libx264",
+				audioEncoder: "aac",
+				validation: { status: "recognized", issues: [] },
+			},
+		],
+		selectedProfileId: "builtin:manual",
+		selectionAvailable: true,
+		revision: "test",
+	});
+	vi.spyOn(api, "createPreparation").mockResolvedValue({
+		kind: "task",
+		task: { ...task, status: "queued", failureReason: null },
+	});
+	vi.spyOn(api, "retryPreparation").mockResolvedValue({
+		...task,
+		status: "queued",
+		failureReason: null,
+	});
+	vi.spyOn(api, "cancelPreparation").mockResolvedValue({
 		...task,
 		status: "cancelled",
+		failureReason: "cancelled",
 	});
-	vi.spyOn(preparationApi, "retryPreparation").mockResolvedValue(task);
-	vi.spyOn(preparationApi, "deletePreparedMedia").mockResolvedValue();
-	vi.spyOn(settingsApi, "selectTranscodeProfile").mockResolvedValue(catalog);
 });
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 });
-function preparationSource(result: CompatibilityResult | null) {
-	return result
-		? {
-				sourceVersion: result.sourceVersion,
-				audioTracks: result.audioTracks.map(({ stream }) => stream),
-			}
-		: null;
-}
-function button(props: Record<string, unknown> = {}) {
+function mount(element: React.ReactNode) {
 	return render(
-		<Wrapper>
-			<PreparationButton
-				fileId="file"
-				source={preparationSource(
-					"result" in props
-						? (props.result as CompatibilityResult | null)
-						: unsupported,
-				)}
-				onRecheck={vi.fn()}
-				{...props}
-			/>
-			<PreparationMonitor />
-		</Wrapper>,
+		<MemoryRouter>
+			<PreparationProvider>{element}</PreparationProvider>
+		</MemoryRouter>,
 	);
 }
-
-test.each(["loading", "supported", "unknown", "failed"])(
-	"preparation stays available while compatibility is %s",
-	async (state) => {
-		const view = button({
-			loading: state === "loading",
-			result:
-				state === "loading" || state === "failed"
-					? null
-					: { ...unsupported, direct: { status: state } },
-			error: state === "failed" ? new Error("Probe failed") : null,
-		});
-		const action = await view.findByRole("button", { name: "Pre-transcode" });
-		await waitFor(() =>
-			expect((action as HTMLButtonElement).disabled).toBe(false),
-		);
-		expect(
-			mediacompatibilityApi.inspectMediaCompatibility,
-		).not.toHaveBeenCalled();
-		fireEvent.click(action);
-		await waitFor(() =>
-			expect(preparationApi.createPreparation).toHaveBeenCalled(),
-		);
-		expect(mediacompatibilityApi.inspectMediaCompatibility).toHaveBeenCalled();
-	},
-);
-test("directory icon action exposes its tooltip on keyboard focus", async () => {
-	const view = button();
-	const action = await view.findByRole("button", { name: "Pre-transcode" });
-	expect(action.textContent).toBe("");
-	fireEvent.focus(action);
+test("manual preparation submits a concrete command without browser evidence", async () => {
+	mount(<PreparationButton fileId="file" source={source} showLabel />);
+	const button = await screen.findByRole("button", { name: "Pre-transcode" });
 	await waitFor(() =>
-		expect(
-			document.querySelector('[data-slot="tooltip-content"]')?.textContent,
-		).toBe("Pre-transcode"),
+		expect(button.getAttribute("aria-disabled")).not.toBe("true"),
 	);
+	fireEvent.click(button);
+	await waitFor(() => expect(api.createPreparation).toHaveBeenCalled());
+	expect(vi.mocked(api.createPreparation).mock.calls[0]?.slice(0, 2)).toEqual([
+		"file",
+		{ sourceVersion: "v1", profileId: "builtin:manual" },
+	]);
 });
-test("explicit directory preparation negotiates fresh evidence and opens the global collapsible monitor", async () => {
-	vi.mocked(preparationApi.createPreparation).mockImplementation(async () => {
-		vi.mocked(preparationApi.getPreparations).mockResolvedValue(
-			preparationList([task]),
-		);
-		return { kind: "task", task };
-	});
-	const view = button();
-	fireEvent.click(await view.findByRole("button", { name: "Pre-transcode" }));
-	await waitFor(() =>
-		expect(preparationApi.createPreparation).toHaveBeenCalledWith(
-			"file",
-			{
-				sourceVersion: "version",
-				descriptionId: "description",
-				output: { profileId: task.profileId, target: "file" },
-				evidence,
-			},
-			expect.anything(),
-		),
-	);
-	const monitor = await view.findByRole("complementary", {
-		name: "Transcoding tasks",
-	});
-	expect(monitor).toBeTruthy();
-	const toggle = view.getByRole("button", { name: /Transcoding tasks/ });
-	fireEvent.click(toggle);
-	expect(toggle.getAttribute("aria-expanded")).toBe("false");
-	view.unmount();
-	expect(preparationApi.cancelPreparation).not.toHaveBeenCalled();
-});
-test("shows a profile configuration issue without hiding built-in choices", async () => {
-	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValueOnce({
-		...catalog,
-		issue: {
-			file: "transcode-profiles.yaml",
-			detail: "transcode-profiles.yaml is not valid YAML.",
-		},
-	});
-	const view = render(
-		<Wrapper>
-			<PreparationProfileSettings />
-		</Wrapper>,
-	);
-	const alert = await view.findByRole("alert");
-	expect(alert.textContent).toContain(
-		"Custom transcode profiles could not be loaded",
-	);
-	expect(alert.textContent).toContain("transcode-profiles.yaml");
-	expect(alert.textContent).toContain("restart Anishelf");
-	expect(alert.textContent).not.toContain("Reload profiles");
-	expect(await view.findByRole("radio", { name: /Browser copy/ })).toBeTruthy();
-});
-
-test("target profile is saved without a global preparation mode", async () => {
-	const firstProfile = catalog.profiles[0];
-	if (!firstProfile) throw new Error("Missing test profile");
-	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
-		...catalog,
-		profiles: [
-			...catalog.profiles,
-			{ ...firstProfile, id: "custom:second", name: "Second profile" },
-		],
-	});
-	const view = render(
-		<Wrapper>
-			<PreparationProfileSettings />
-		</Wrapper>,
-	);
-	fireEvent.click(await view.findByRole("radio", { name: /Second profile/ }));
-	await waitFor(() =>
-		expect(settingsApi.selectTranscodeProfile).toHaveBeenCalledWith(
-			"custom:second",
-		),
-	);
-	expect(view.queryByRole("radio", { name: /Compatibility/ })).toBeNull();
-});
-
-test("an unavailable target selection sends the user to Settings instead of guessing a profile", async () => {
-	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
-		...catalog,
-		selectedProfileId: "custom:missing",
-		selectionAvailable: false,
-	});
-	const view = button();
-	const link = await view.findByRole("link", { name: "Set transcode profile" });
-	expect(link.getAttribute("href")).toBe("/settings");
-	expect(view.queryByRole("button", { name: "Pre-transcode" })).toBeNull();
-});
-test("cancel and retry remain explicit and retry obtains fresh evidence", async () => {
-	const view = render(<PreparationTaskCard task={task} />);
-	fireEvent.click(view.getByRole("button", { name: "Cancel preparation" }));
-	await waitFor(() =>
-		expect(preparationApi.cancelPreparation).toHaveBeenCalledWith(
-			task.id,
-			expect.anything(),
-		),
-	);
-	view.rerender(
-		<PreparationTaskCard
-			task={{ ...task, status: "failed", failureReason: "interrupted" }}
-		/>,
-	);
-	fireEvent.click(view.getByRole("button", { name: "Retry preparation" }));
-	await waitFor(() =>
-		expect(preparationApi.retryPreparation).toHaveBeenCalledWith(
-			task.id,
-			expect.objectContaining({ evidence }),
-			expect.anything(),
-		),
-	);
-});
-test("metadata watch intent requires server selection and deleting never cancels the original", async () => {
-	const view = render(
-		<PreparationTaskCard
-			task={{ ...ready, playbackAvailability: "unknown", resource: null }}
-			onWatch={vi.fn()}
-		/>,
-	);
-	expect(
-		view.queryByRole("button", { name: "Watch prepared copy" }),
-	).toBeTruthy();
-	fireEvent.click(view.getByRole("button", { name: "Delete prepared copy" }));
-	await waitFor(() =>
-		expect(preparationApi.deletePreparedMedia).toHaveBeenCalledWith(
-			ready.artifactId,
-			expect.anything(),
-		),
-	);
-	expect(preparationApi.cancelPreparation).not.toHaveBeenCalled();
-});
-test("file menu discovers older prepared copies and deletes them even for a supported original", async () => {
-	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
-		preparationList([ready]),
-	);
-	const view = render(
-		<Wrapper>
-			<FileActions
-				fileId="file"
-				loading={false}
-				result={{
-					...unsupported,
-					direct: { status: "supported", reason: "browser-supported" },
-				}}
-				error={null}
-				onRecheck={vi.fn()}
-			/>
-		</Wrapper>,
-	);
-	expect(preparationApi.getFilePreparations).not.toHaveBeenCalled();
-	fireEvent.click(view.getByRole("button", { name: "File actions" }));
-	await waitFor(() =>
-		expect(preparationApi.getFilePreparations).toHaveBeenCalled(),
-	);
-	expect(
-		await view.findByRole("button", {
-			name: "Pre-transcoded copy published.",
-		}),
-	).toBeTruthy();
-	const remove = await view.findByRole("menuitem", {
-		name: "Delete prepared copy",
-	});
-	expect(
-		(await view.findByRole("menuitem", { name: "Pre-transcode" })).getAttribute(
-			"aria-disabled",
-		),
-	).toBe("true");
-	fireEvent.click(remove);
-	await waitFor(() =>
-		expect(preparationApi.deletePreparedMedia).toHaveBeenCalledWith(
-			"artifact",
-			expect.objectContaining({ signal: expect.any(AbortSignal) }),
-		),
-	);
-	expect(preparationApi.cancelPreparation).not.toHaveBeenCalled();
-});
-
-test("task monitor disappears when its last active task completes", async () => {
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue(
-		preparationList([task]),
-	);
-	const view = render(
-		<Wrapper>
-			<PreparationMonitor />
-		</Wrapper>,
-	);
-	const monitor = await view.findByRole("complementary", {
-		name: "Transcoding tasks",
-	});
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue(
-		preparationList([ready]),
-	);
-	fireEvent.click(view.getByRole("button", { name: "Refresh tasks" }));
-	await waitFor(() => expect(monitor.isConnected).toBe(false));
-});
-
-test("preparation keeps its file menu mounted while the command runs", async () => {
-	const view = render(
-		<Wrapper>
-			<FileActions
-				fileId="file"
-				loading={false}
-				result={unsupported}
-				error={null}
-				onRecheck={vi.fn()}
-			/>
-		</Wrapper>,
-	);
-	fireEvent.click(view.getByRole("button", { name: "File actions" }));
-	fireEvent.click(await view.findByRole("menuitem", { name: "Pre-transcode" }));
-	await waitFor(() =>
-		expect(preparationApi.createPreparation).toHaveBeenCalledWith(
-			"file",
-			expect.objectContaining({ sourceVersion: "version" }),
-			expect.objectContaining({ signal: expect.any(AbortSignal) }),
-		),
-	);
-	expect(view.queryByRole("menu")).toBeTruthy();
-});
-
-test("an older or unavailable copy does not mark the current file prepared", async () => {
-	vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
-		preparationList([
-			{ ...ready, sourceVersion: "old-version" },
-			{ ...ready, id: "unavailable", playbackAvailability: "unavailable" },
-		]),
-	);
-	const view = render(
-		<Wrapper>
-			<FileActions
-				fileId="file"
-				loading={false}
-				result={unsupported}
-				error={null}
-				onRecheck={vi.fn()}
-			/>
-		</Wrapper>,
-	);
-	await view.findByRole("button", {
-		name: "This file is not supported by this browser.",
-	});
-	expect(
-		view.queryByRole("button", { name: "Pre-transcoded copy published." }),
-	).toBeNull();
-});
-
-test.each([
-	{ name: "known compatibility", result: unsupported },
-	{ name: "unavailable compatibility", result: null },
-])(
-	"file menu switches from pre-transcode to cancel after starting with $name",
-	async ({ result }) => {
-		const activeTask = { ...task, mode: "transcode" as const };
-		let started = false;
-		vi.mocked(preparationApi.getFilePreparations).mockImplementation(async () =>
-			preparationList(started ? [activeTask] : []),
-		);
-		vi.mocked(preparationApi.createPreparation).mockImplementation(async () => {
-			started = true;
-			return { kind: "task", task: activeTask };
-		});
-		const view = render(
-			<Wrapper>
-				<FileActions
-					fileId="file"
-					loading={false}
-					result={result}
-					error={null}
-					onRecheck={vi.fn()}
-				/>
-			</Wrapper>,
-		);
-		fireEvent.click(view.getByRole("button", { name: "File actions" }));
-		fireEvent.click(
-			await view.findByRole("menuitem", { name: "Pre-transcode" }),
-		);
-		await view.findByRole("menuitem", { name: "Cancel preparation" });
-		await waitFor(() =>
-			expect(
-				view.queryByRole("menuitem", { name: "Pre-transcode" }),
-			).toBeNull(),
-		);
-	},
-);
-
-test.each(
-	[task, ready].map((entry) => ({ ...entry, mode: "transcode" as const })),
-)(
-	"file menu exposes one preparation action for $status without status entries",
-	async (entry) => {
-		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
-			preparationList([entry]),
-		);
-		const view = render(
-			<Wrapper>
-				<FileActions
-					fileId="file"
-					loading={false}
-					result={unsupported}
-					error={null}
-					onRecheck={vi.fn()}
-				/>
-			</Wrapper>,
-		);
-		fireEvent.click(view.getByRole("button", { name: "File actions" }));
-		if (entry.status === "queued") {
-			const cancel = await view.findByRole("menuitem", {
-				name: "Cancel preparation",
-			});
-			expect(
-				view.queryByRole("menuitem", { name: "Pre-transcode" }),
-			).toBeNull();
-			fireEvent.click(cancel);
-			await waitFor(() =>
-				expect(preparationApi.cancelPreparation).toHaveBeenCalledWith(
-					entry.id,
-					expect.anything(),
-				),
-			);
-		} else {
-			await view.findByRole("menuitem", {
-				name: "Delete prepared copy",
-			});
-			expect(
-				(
-					await view.findByRole("menuitem", { name: "Pre-transcode" })
-				).getAttribute("aria-disabled"),
-			).toBe("true");
-		}
-		for (const name of [
-			"Queued",
-			"Preparing",
-			"Ready",
-			"Checking playback compatibility…",
-			"Loading prepared copies…",
-		]) {
-			expect(view.queryByRole("menuitem", { name })).toBeNull();
-		}
-	},
-);
-
-const multiAudio = {
-	...unsupported,
-	direct: { status: "unknown", reason: "native-track-selection-uncertain" },
-	audioTracks: [
-		{
-			stream: {
-				index: 4,
-				label: "English",
-				language: "eng",
-				codec: "aac",
-				channels: 2,
-				default: true,
-			},
-			compatibility: { status: "supported", reason: "browser-supported" },
-		},
-		{
-			stream: {
-				index: 7,
-				label: "Japanese",
-				language: "jpn",
-				codec: "ac3",
-				channels: 6,
-				default: false,
-			},
-			compatibility: { status: "unsupported", reason: "browser-rejected" },
-		},
-	],
-} as CompatibilityResult;
-
-test.each(["all", "subset", "none"])(
-	"multi-audio preparation chooses %s with fresh bound evidence",
-	async (selection) => {
-		const view = render(
-			<PreparationButton
-				fileId="file"
-				source={preparationSource(multiAudio)}
-				onRecheck={vi.fn()}
-				showLabel
-			/>,
-			{ wrapper: Wrapper },
-		);
-		await waitFor(() =>
-			expect(
-				(
-					view.getByRole("button", {
-						name: "Pre-transcode",
-					}) as HTMLButtonElement
-				).disabled,
-			).toBe(false),
-		);
-		fireEvent.click(view.getByRole("button", { name: "Pre-transcode" }));
-		const english = await view.findByRole("checkbox", { name: /English/ });
-		const japanese = view.getByRole("checkbox", { name: /Japanese/ });
-		expect(english.getAttribute("aria-checked")).toBe("true");
-		expect(japanese.getAttribute("aria-checked")).toBe("true");
-		if (selection === "subset") fireEvent.click(english);
-		if (selection === "none")
-			fireEvent.click(view.getByRole("button", { name: "No audio" }));
-		expect(preparationApi.createPreparation).not.toHaveBeenCalled();
-		fireEvent.click(view.getByRole("button", { name: "Prepare for browser" }));
-		await waitFor(() =>
-			expect(preparationApi.createPreparation).toHaveBeenCalledTimes(1),
-		);
-		const input = vi.mocked(preparationApi.createPreparation).mock
-			.calls[0]?.[1];
-		if (selection === "all")
-			expect(input).not.toHaveProperty("audioStreamIndices");
-		else
-			expect(input?.audioStreamIndices).toEqual(
-				selection === "subset" ? [7] : [],
-			);
-		expect(
-			vi
-				.mocked(mediacompatibilityApi.inspectMediaCompatibility)
-				.mock.calls.at(-1)?.[0].audioStreamIndices,
-		).toEqual(input?.audioStreamIndices);
-	},
-);
-
-test("an existing all-audio copy does not disable preparing a selected audio track", async () => {
-	vi.mocked(preparationApi.getPreparations).mockResolvedValue(
-		preparationList([{ ...ready, audioStreamIndices: [4, 7] }]),
-	);
-	const view = render(
+test("explicit silent output remains distinct from all audio tracks", async () => {
+	mount(
 		<PreparationButton
 			fileId="file"
-			source={preparationSource(multiAudio)}
-			onRecheck={vi.fn()}
-			audioStreamIndices={[7]}
+			source={source}
+			audioStreamIndices={[]}
 			showLabel
 		/>,
-		{ wrapper: Wrapper },
+	);
+	const button = await screen.findByRole("button", { name: "Pre-transcode" });
+	await waitFor(() =>
+		expect(button.getAttribute("aria-disabled")).not.toBe("true"),
+	);
+	fireEvent.click(button);
+	await waitFor(() => expect(api.createPreparation).toHaveBeenCalled());
+	expect(vi.mocked(api.createPreparation).mock.calls[0]?.[1]).toEqual({
+		sourceVersion: "v1",
+		profileId: "builtin:manual",
+		audioStreamIndices: [],
+	});
+});
+test("retry sends the original task intent without compatibility negotiation", async () => {
+	mount(<PreparationTaskCard task={{ ...task, audioStreamIndices: [2] }} />);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Retry preparation" }),
+	);
+	await waitFor(() => expect(api.retryPreparation).toHaveBeenCalled());
+	expect(vi.mocked(api.retryPreparation).mock.calls[0]?.slice(0, 2)).toEqual([
+		"task",
+		{
+			sourceVersion: "v1",
+			profileId: "builtin:manual",
+			audioStreamIndices: [2],
+		},
+	]);
+});
+test("cancel is an explicit operation on the active task", async () => {
+	mount(
+		<PreparationTaskCard
+			task={{ ...task, status: "queued", failureReason: null }}
+		/>,
+	);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Cancel preparation" }),
 	);
 	await waitFor(() =>
-		expect(
-			(view.getByRole("button", { name: "Pre-transcode" }) as HTMLButtonElement)
-				.disabled,
-		).toBe(false),
-	);
-	fireEvent.click(view.getByRole("button", { name: "Pre-transcode" }));
-	await waitFor(() =>
-		expect(preparationApi.createPreparation).toHaveBeenCalledWith(
-			"file",
-			expect.objectContaining({ audioStreamIndices: [7] }),
+		expect(api.cancelPreparation).toHaveBeenCalledWith(
+			"task",
 			expect.anything(),
 		),
 	);
-});
-
-test("task retry retains audio selection", async () => {
-	const selected = { ...ready, audioStreamIndices: [7] };
-	const view = render(
-		<PreparationTaskCard task={{ ...selected, status: "failed" }} />,
-		{ wrapper: Wrapper },
-	);
-	fireEvent.click(view.getByRole("button", { name: "Retry preparation" }));
-	await waitFor(() =>
-		expect(preparationApi.retryPreparation).toHaveBeenCalledWith(
-			selected.id,
-			expect.objectContaining({ audioStreamIndices: [7] }),
-			expect.anything(),
-		),
-	);
-});
-
-test.each([undefined, [7], []])(
-	"unknown multi-audio selection %s offers pre-transcode",
-	async (audioStreamIndices) => {
-		const view = render(
-			<PreparationButton
-				fileId="file"
-				source={preparationSource(multiAudio)}
-				onRecheck={vi.fn()}
-				{...(audioStreamIndices !== undefined ? { audioStreamIndices } : {})}
-				showLabel
-			/>,
-			{ wrapper: Wrapper },
-		);
-		expect(
-			await view.findByRole("button", { name: "Pre-transcode" }),
-		).toBeTruthy();
-	},
-);
-
-test("cancelling shows a pending state and disables duplicate cancellation", () => {
-	const view = render(
-		<PreparationTaskCard task={{ ...task, status: "cancelling" }} />,
-	);
-	expect(view.getByRole("status", { name: "Cancelling" })).toBeTruthy();
-	expect(
-		view
-			.getByRole("button", { name: "Cancel preparation" })
-			.getAttribute("aria-disabled"),
-	).toBe("true");
-	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
-});
-
-test("monitor shows active tasks and loads ten more per click", async () => {
-	const finished = Array.from({ length: 25 }, (_, index) => ({
-		...ready,
-		id: `finished-${index}`,
-		filename: `Finished-${index}.mkv`,
-	}));
-	vi.mocked(preparationApi.getPreparations).mockImplementation(
-		async (_options, inactiveLimit = 0) => ({
-			tasks: [task, ...finished.slice(0, inactiveLimit)],
-			hasMore: inactiveLimit < finished.length,
-		}),
-	);
-	const view = render(
-		<Wrapper>
-			<PreparationMonitor />
-		</Wrapper>,
-	);
-	await view.findByText("Episode.mkv");
-	expect(view.queryByText("Finished-0.mkv")).toBeNull();
-	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
-		expect.anything(),
-		0,
-	);
-	const more = view.getByRole("button", { name: "More" });
-	fireEvent.click(more);
-	await view.findByText("Finished-9.mkv");
-	expect(view.queryByText("Finished-10.mkv")).toBeNull();
-	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
-		expect.anything(),
-		10,
-	);
-
-	fireEvent.click(view.getByRole("button", { name: "More" }));
-	await view.findByText("Finished-19.mkv");
-	expect(view.queryByText("Finished-20.mkv")).toBeNull();
-	expect(preparationApi.getPreparations).toHaveBeenCalledWith(
-		expect.anything(),
-		20,
-	);
-
-	fireEvent.click(view.getByRole("button", { name: "More" }));
-	await view.findByText("Finished-24.mkv");
-	await waitFor(() =>
-		expect(view.queryByRole("button", { name: "More" })).toBeNull(),
-	);
-});
-
-test("narrow monitor starts collapsed and exposes failed tasks on demand", async () => {
-	vi.spyOn(window, "matchMedia").mockReturnValue({
-		matches: true,
-	} as MediaQueryList);
-	const failedTask: PreparationTaskResponse = {
-		...task,
-		id: "failed",
-		status: "failed",
-		failureReason: "interrupted",
-	};
-	vi.mocked(preparationApi.getPreparations).mockImplementation(
-		async (_options, inactiveLimit = 0) => ({
-			tasks: inactiveLimit > 0 ? [task, failedTask] : [task],
-			hasMore: inactiveLimit === 0,
-		}),
-	);
-	const view = render(
-		<Wrapper>
-			<PreparationMonitor />
-		</Wrapper>,
-	);
-	const toggle = await view.findByRole("button", {
-		name: "Transcoding tasks · 1 active",
-	});
-	expect(toggle.getAttribute("aria-expanded")).toBe("false");
-	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
-	fireEvent.click(toggle);
-	expect(toggle.getAttribute("aria-expanded")).toBe("true");
-	expect(view.queryByRole("button", { name: "Retry preparation" })).toBeNull();
-	fireEvent.click(view.getByRole("button", { name: "More" }));
-	expect(
-		await view.findByRole("button", { name: "Retry preparation" }),
-	).toBeTruthy();
-});
-
-test.each(["remux", "transcode-audio", "transcode-video"] as const)(
-	"preparation retains a completed %s copy without the removed global mode",
-	async (mode) => {
-		vi.mocked(preparationApi.getFilePreparations).mockResolvedValue(
-			preparationList([{ ...ready, mode }]),
-		);
-		const view = button({ tasks: [{ ...ready, mode }] });
-		const prepare = await view.findByRole("button", { name: "Pre-transcode" });
-		fireEvent.click(prepare);
-		expect(prepare.getAttribute("aria-disabled")).toBe("true");
-		expect(preparationApi.createPreparation).not.toHaveBeenCalled();
-	},
-);
-
-function PreparationProfileSettings() {
-	return <ProfileSettings preparation={usePreparationContext()} />;
-}
-
-test("task monitor loads a failed task after it leaves the active list", async () => {
-	const otherTask: PreparationTaskResponse = {
-		...task,
-		id: "other-task",
-		filename: "Other.mkv",
-	};
-	const failedTask: PreparationTaskResponse = {
-		...task,
-		id: "failed",
-		status: "failed",
-		failureReason: "interrupted",
-	};
-	let failedPhase = false;
-	vi.mocked(preparationApi.getPreparations).mockImplementation(
-		async (_options, inactiveLimit = 0) =>
-			failedPhase
-				? {
-						tasks: inactiveLimit > 0 ? [otherTask, failedTask] : [otherTask],
-						hasMore: inactiveLimit === 0,
-					}
-				: preparationList([task, otherTask]),
-	);
-	const view = render(
-		<Wrapper>
-			<PreparationMonitor />
-		</Wrapper>,
-	);
-	await view.findByRole("complementary", { name: "Transcoding tasks" });
-	failedPhase = true;
-	fireEvent.click(view.getByRole("button", { name: "Refresh tasks" }));
-	fireEvent.click(await view.findByRole("button", { name: "More" }));
-	await waitFor(() =>
-		expect(
-			view.getByRole("button", { name: "Retry preparation" }),
-		).toBeTruthy(),
-	);
-	await view.findByRole("complementary", { name: "Transcoding tasks" });
-});
-
-test("profile file issues require restart and offer no reload action", async () => {
-	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
-		...catalog,
-		issue: { file: "transcode-profiles.yaml", detail: "Invalid option scope." },
-	});
-	const view = render(
-		<Wrapper>
-			<PreparationProfileSettings />
-		</Wrapper>,
-	);
-	expect((await view.findByRole("alert")).textContent).toContain(
-		"restart Anishelf",
-	);
-	expect(view.getByRole("alert").textContent).toContain(
-		"Invalid option scope.",
-	);
-	expect(view.queryByRole("button", { name: /reload profiles/i })).toBeNull();
-});
-
-test("unsupported profiles are disabled and retain their field-level diagnostic", async () => {
-	const first = catalog.profiles[0];
-	if (!first) throw new Error("Missing profile");
-	vi.mocked(settingsApi.getTranscodeProfiles).mockResolvedValue({
-		...catalog,
-		selectionAvailable: false,
-		profiles: [
-			{
-				...first,
-				validation: {
-					status: "unsupported",
-					issues: [
-						{
-							field: "video.encoder",
-							message: "The encoder is not installed.",
-						},
-					],
-				},
-			},
-		],
-	});
-	const view = render(
-		<Wrapper>
-			<PreparationProfileSettings />
-		</Wrapper>,
-	);
-	expect(
-		(await view.findByRole("radio", { name: /Browser copy/ })).getAttribute(
-			"aria-disabled",
-		),
-	).toBe("true");
-	fireEvent.click(view.getByText(/Validation details/));
-	expect(view.getByText(/The encoder is not installed/)).toBeTruthy();
 });

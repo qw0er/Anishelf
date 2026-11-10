@@ -23,12 +23,6 @@ export async function createSystemModule(
 ) {
 	const service = await ConfigurationService.load(env);
 	const api: SystemApi = {
-		get autoPreparationPresets() {
-			return service.autoPreparationPresets;
-		},
-		get autoPreparationIssue() {
-			return service.autoPreparationIssue;
-		},
 		get transcodeRevision() {
 			return service.transcodeRevision;
 		},
