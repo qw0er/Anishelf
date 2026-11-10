@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cp, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { downloadAsset } from "./libmedia-download.mjs";
 
 const root = new URL("../", import.meta.url);
 const manifest = JSON.parse(
@@ -32,19 +32,7 @@ await Promise.all(
 			try {
 				if (hash(await readFile(target)) === item.sha256) continue;
 			} catch {}
-			const bytes = execFileSync(
-				"curl",
-				[
-					"--fail",
-					"--silent",
-					"--show-error",
-					"--location",
-					`https://raw.githubusercontent.com/zhaohappy/libmedia/${manifest.revision}/dist/${item.path}`,
-				],
-				{ maxBuffer: 32 * 1024 * 1024 },
-			);
-			if (hash(bytes) !== item.sha256)
-				throw new Error(`libmedia asset checksum mismatch: ${item.path}`);
+			const bytes = await downloadAsset(item, manifest.revision);
 			await mkdir(new URL(".", target), { recursive: true });
 			const temporary = `${fileURLToPath(target)}.tmp`;
 			await writeFile(temporary, bytes);

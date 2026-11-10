@@ -14,7 +14,13 @@ ESM entry so Vite's development transforms do not intercept upstream chunks.
 Decoder/resampler/stretch resources come from upstream commit
 `a5c817679b1a0f825330350121560ecbe6128c37` (v1.3.1). Each asset is checked against
 `scripts/libmedia-assets.json` before reuse or download. TLS and SHA-256 verification
-remain enabled. Build-time downloads require raw.githubusercontent.com; playback
+remain enabled for every source. Build-time downloads use raw.githubusercontent.com,
+with the GitHub Contents API (api.github.com) as a fallback when the raw download
+fails or does not match the pinned hash. Downloads log the asset and source, and
+downloads use Node’s built-in `fetch` with up to four concurrent workers. Each
+attempt has a 120-second timeout covering both headers and body. Network errors
+and transient HTTP failures are retried up to twice, with a one-second delay.
+No system `curl` executable is required. Playback
 fetches only same-origin versioned resources. Deploy the entire generated directory.
 
 Only playback resources are shipped: H.264, HEVC, AV1, VP8/9, AAC, MP3, Opus,
@@ -68,6 +74,10 @@ renderer/demuxer limitation, not a server compatibility decision. Do not claim f
 subtitle fidelity or bitmap-subtitle support from the successful ASS smoke check.
 
 ## Verification
+
+Run `node --test scripts/libmedia-download.test.mjs` to check primary downloads,
+API fallback, transient retries, checksum rejection, retry limits and concurrency
+without contacting upstream servers.
 
 Chromium smoke checks cover authenticated MKV/AC3 playback, ASS text rendering,
 embedded TTF registration, sidecar ASS rendering, two audio streams, seeking and Range responses. The full
