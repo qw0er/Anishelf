@@ -6,11 +6,16 @@ Vite does not compile upstream source or merge its webpack chunks.
 
 ## Reproducible assets
 
-`node scripts/libmedia-assets.mjs` runs before Web development/build. It copies the
-npm-lockfile-verified player chunks, cheap polyfill and LGPL license into the ignored
-`web/public/libmedia/1.3.1` directory. A module-script loader imports the unmodified
-ESM entry so Vite's development transforms do not intercept upstream chunks.
+The player is imported directly from `@libmedia/avplayer-ui` with a lazy module
+import. Following the [official Vite integration](https://github.com/zhaohappy/libmedia/blob/master/site/docs/guide/player.en-US.md),
+`vite-plugin-static-copy` serves the package's numbered ESM chunks beside the
+optimized module under `node_modules/.vite/deps` during development and copies them
+into `dist/assets` for production. Vite bundles the player entry; no generated
+loader script or application-owned global constructor is used.
 
+`node scripts/libmedia-assets.mjs` runs before Web development/build. It prepares
+WASM resources and the LGPL license in the ignored `web/public/libmedia/1.3.1`
+directory, and removes artifacts left by the former script loader.
 Decoder/resampler/stretch resources come from upstream commit
 `a5c817679b1a0f825330350121560ecbe6128c37` (v1.3.1). Each asset is checked against
 `scripts/libmedia-assets.json` before reuse or download. TLS and SHA-256 verification
@@ -78,6 +83,12 @@ subtitle fidelity or bitmap-subtitle support from the successful ASS smoke check
 Run `node --test scripts/libmedia-download.test.mjs` to check primary downloads,
 API fallback, transient retries, checksum rejection, retry limits and concurrency
 without contacting upstream servers.
+
+The npm-module integration was smoke-tested in Chromium against both the Vite dev
+server and production preview using a generated H.264/AAC MKV. Software decoding
+advanced the playback clock in both modes; the dynamically requested player chunk
+returned HTTP 200 from the expected development/production directory, without the
+former global loader. This check does not exercise the optional Worker pipeline.
 
 Chromium smoke checks cover authenticated MKV/AC3 playback, ASS text rendering,
 embedded TTF registration, sidecar ASS rendering, two audio streams, seeking and Range responses. The full

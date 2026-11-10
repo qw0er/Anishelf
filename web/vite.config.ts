@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
 	deploymentDefaults,
 	developmentDefaults,
@@ -6,8 +7,9 @@ import {
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, normalizePath } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { viteStaticCopy } from "vite-plugin-static-copy";
 
 // https://vite.dev/config/
 const apiTarget =
@@ -26,11 +28,21 @@ const buildInfo = existsSync(buildInfoPath)
 			builtAt: null,
 		});
 
-export default defineConfig({
+const playerChunks = normalizePath(
+	fileURLToPath(
+		new URL(
+			"./[0-9]*.avplayer.js",
+			import.meta.resolve("@libmedia/avplayer-ui"),
+		),
+	),
+);
+
+export default defineConfig(({ command }) => ({
 	define: {
 		__ANISHELF_BUILD__: buildInfo,
 	},
 	resolve: { tsconfigPaths: true },
+	optimizeDeps: { include: ["@libmedia/avplayer-ui"] },
 	server: {
 		host: developmentDefaults.host,
 		port: developmentDefaults.port,
@@ -53,6 +65,16 @@ export default defineConfig({
 		},
 	},
 	plugins: [
+		// libmedia's prebuilt runtime loads these chunks relative to its module URL.
+		viteStaticCopy({
+			targets: [
+				{
+					src: playerChunks,
+					dest: command === "serve" ? "node_modules/.vite/deps" : "assets",
+					rename: { stripBase: true },
+				},
+			],
+		}),
 		VitePWA({
 			injectRegister: null,
 			manifest: {
@@ -92,4 +114,4 @@ export default defineConfig({
 		tailwindcss(),
 		babel({ presets: [reactCompilerPreset()] }),
 	],
-});
+}));

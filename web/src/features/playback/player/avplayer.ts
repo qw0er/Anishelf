@@ -42,37 +42,20 @@ export function decoderResource(
 	return `${playerBase}decode/${name}.wasm`;
 }
 let modulePromise: Promise<typeof AVPlayerUI> | undefined;
-function loadScript(src: string, module = false): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const script = document.createElement("script");
-		script.src = src;
-		if (module) script.type = "module";
-		script.onload = () => resolve();
-		script.onerror = () => {
-			script.remove();
-			reject(new Error("Playback runtime unavailable."));
-		};
-		document.head.append(script);
-	});
-}
 export function loadPlayer(): Promise<typeof AVPlayerUI> {
 	if (modulePromise) return modulePromise;
-	modulePromise = (async () => {
-		await loadScript(`${playerBase}cheap-polyfill.js`);
-		await loadScript(`${playerBase}loader.js`, true);
-		const player = (
-			globalThis as typeof globalThis & {
-				__anishelfAVPlayer?: typeof AVPlayerUI;
-			}
-		).__anishelfAVPlayer;
-		if (!player) throw new Error("Playback runtime did not initialize.");
-		// Upstream info dumps include full media URLs. Application diagnostics use IDs only.
-		player.setLogLevel(5);
-		return player;
-	})().catch((error) => {
-		modulePromise = undefined;
-		throw error;
-	});
+	modulePromise = import("@libmedia/avplayer-ui")
+		.then(({ default: player }) => {
+			// Upstream info dumps include full media URLs. Application diagnostics use IDs only.
+			player.setLogLevel(5);
+			console.info("[playback] Player module loaded.");
+			return player;
+		})
+		.catch((error) => {
+			modulePromise = undefined;
+			console.error("[playback] Player module failed to load.");
+			throw error;
+		});
 	return modulePromise;
 }
 /** Bridges native player events; no polling or synthetic video element. */
