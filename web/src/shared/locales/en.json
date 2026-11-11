@@ -365,6 +365,7 @@
 		"description": "Prepare a reusable browser copy when the original cannot play. Existing compatible streams are retained.",
 		"listDescription": "Server tasks continue when you leave this page. Deleting a prepared copy keeps the original file and viewing history.",
 		"profile": "Pre-transcoding profile",
+		"profileDescription": "Applies to new copies and affects processing speed, video quality, and file size.",
 		"chooseProfile": "Choose a profile",
 		"profileFormat": "{{container}} · Video: {{videoEncoder}} · Audio: {{audioEncoder}}",
 		"start": "Prepare for browser",
@@ -435,9 +436,7 @@
 		},
 		"validationDetails": "Validation details",
 		"validation": {
-			"recognized": "Options recognized",
-			"unsupported": "Unsupported",
-			"unverified": "Not fully verified"
+			"unsupported": "Unsupported"
 		},
 		"published": "Pre-transcoded copy published.",
 		"reasons": {

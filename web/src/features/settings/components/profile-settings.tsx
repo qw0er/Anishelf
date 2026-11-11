@@ -8,6 +8,7 @@ import { ActionButton } from "../../../shared/components/ui/action-button.js";
 import {
 	Card,
 	CardContent,
+	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
@@ -71,6 +72,7 @@ export function PreparationProfileSettings({
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("preparation.profile")}</CardTitle>
+				<CardDescription>{t("preparation.profileDescription")}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{preparation.catalog?.issue && (
@@ -92,38 +94,42 @@ export function PreparationProfileSettings({
 							className="grid gap-2 space-y-0 sm:grid-cols-2"
 							disabled={save.isPending}
 						>
-							{preparation.catalog.profiles.map((profile) => (
-								<div key={profile.id} className="space-y-2">
-									<RadioCard
-										value={profile.id}
-										disabled={profile.validation.status === "unsupported"}
-										badge={t(
-											`preparation.validation.${profile.validation.status}`,
+							{preparation.catalog.profiles.map((profile) => {
+								const unsupported = profile.validation.status === "unsupported";
+								return (
+									<div key={profile.id} className="space-y-2">
+										<RadioCard
+											value={profile.id}
+											disabled={unsupported}
+											badge={
+												unsupported && t("preparation.validation.unsupported")
+											}
+											badgeTone="error"
+											title={profile.name}
+											meta={t("preparation.profileFormat", {
+												container: profile.container.toUpperCase(),
+												videoEncoder: profile.videoEncoder,
+												audioEncoder: profile.audioEncoder,
+											})}
+											description={profile.description}
+										/>
+										{unsupported && profile.validation.issues.length > 0 && (
+											<details className="text-xs text-muted-foreground">
+												<summary>
+													{t("preparation.validationDetails")} · {profile.name}
+												</summary>
+												<ul className="mt-1 space-y-1">
+													{profile.validation.issues.map((issue) => (
+														<li key={`${issue.field}-${issue.message}`}>
+															{issue.field}: {issue.message}
+														</li>
+													))}
+												</ul>
+											</details>
 										)}
-										title={profile.name}
-										meta={t("preparation.profileFormat", {
-											container: profile.container.toUpperCase(),
-											videoEncoder: profile.videoEncoder,
-											audioEncoder: profile.audioEncoder,
-										})}
-										description={profile.description}
-									/>
-									{profile.validation.issues.length > 0 && (
-										<details className="text-xs text-muted-foreground">
-											<summary>
-												{t("preparation.validationDetails")} · {profile.name}
-											</summary>
-											<ul className="mt-1 space-y-1">
-												{profile.validation.issues.map((issue) => (
-													<li key={`${issue.field}-${issue.message}`}>
-														{issue.field}: {issue.message}
-													</li>
-												))}
-											</ul>
-										</details>
-									)}
-								</div>
-							))}
+									</div>
+								);
+							})}
 						</RadioCardGroup>
 					</div>
 				) : preparation.catalogError ? (

@@ -585,6 +585,7 @@
 		"description": "原始文件无法播放时，可准备可重复使用的浏览器副本。兼容的流会予以保留。",
 		"listDescription": "离开此页面后服务器任务仍会继续。删除准备好的副本不会删除原文件和观看记录。",
 		"profile": "预转码配置",
+		"profileDescription": "用于新生成的副本，影响转码速度、画质和文件大小。",
 		"chooseProfile": "选择配置",
 		"profileFormat": "{{container}} · 视频：{{videoEncoder}} · 音频：{{audioEncoder}}",
 		"start": "准备浏览器副本",
@@ -652,9 +653,7 @@
 		},
 		"validationDetails": "验证详情",
 		"validation": {
-			"recognized": "参数已识别",
-			"unsupported": "不支持",
-			"unverified": "尚未完整验证"
+			"unsupported": "不支持"
 		},
 		"published": "已生成预转码副本。",
 		"reasons": {

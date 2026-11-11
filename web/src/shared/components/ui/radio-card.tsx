@@ -1,7 +1,7 @@
 import { type ReactNode, useId } from "react";
 import { cn } from "../../lib/utils.js";
 import { RadioGroup, RadioGroupItem } from "./radio-group.js";
-import { StatusBadge } from "./status-badge.js";
+import { StatusBadge, type StatusTone } from "./status-badge.js";
 
 export function RadioCardGroup({
 	legend,
@@ -37,6 +37,7 @@ export function RadioCard({
 	title,
 	meta,
 	badge,
+	badgeTone = "neutral",
 	description,
 }: {
 	value: string;
@@ -45,6 +46,7 @@ export function RadioCard({
 	title: ReactNode;
 	meta?: ReactNode;
 	badge?: ReactNode;
+	badgeTone?: StatusTone;
 	description?: ReactNode;
 }) {
 	const id = useId();
@@ -65,7 +67,7 @@ export function RadioCard({
 			<span className="min-w-0">
 				<span className="flex flex-wrap items-center gap-2 text-sm font-medium">
 					{title}
-					{badge && <StatusBadge>{badge}</StatusBadge>}
+					{badge && <StatusBadge tone={badgeTone}>{badge}</StatusBadge>}
 				</span>
 				{meta && (
 					<span className="block text-xs text-muted-foreground">{meta}</span>
