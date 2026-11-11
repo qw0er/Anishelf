@@ -31,6 +31,14 @@ export default defineConfig({
 		__ANISHELF_BUILD__: buildInfo,
 	},
 	resolve: { tsconfigPaths: true },
+	worker: {
+		rolldownOptions: {
+			output: {
+				entryFileNames: "assets/playback-worker-[name]-[hash].js",
+				chunkFileNames: "assets/playback-worker-[name]-[hash].js",
+			},
+		},
+	},
 	build: {
 		rolldownOptions: {
 			output: {
@@ -84,7 +92,12 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-				globIgnores: ["**/movi-player-*.js"],
+				globIgnores: [
+					"**/movi-player-*.js",
+					"**/jassub-*.js",
+					"**/playback-worker-*.js",
+					"**/default-*.woff2",
+				],
 				skipWaiting: true,
 				clientsClaim: true,
 				navigateFallback: null,

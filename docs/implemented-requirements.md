@@ -208,10 +208,9 @@ Available episode versions expose Show in Files through their file action menu. 
 ### 2.3 Web Playback and Subtitles
 
 The release records below describe delivered capabilities at their first release.
-Current playback uses Movi's built-in renderer: ASS/SSA text remains available, but
-full styling/effects and embedded font rendering are not retained. Compatibility
-negotiation, automatic preparation and server subtitle/font extraction are retired;
-see the [current playback direction](requirements.md#movi-player-and-manual-preparation-direction).
+Current playback uses Movi controls and JASSUB for styled ASS/SSA. Selected
+embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
+[current playback direction](requirements.md#movi-player-and-manual-preparation-direction).
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
@@ -803,7 +802,7 @@ for media access. Technical authentication and proxy design belong in
 
 #### Embedded fonts (P15)
 
-P15 previously supported embedded TTF/OTF fonts for ASS/SSA subtitles. The former
-font extraction and rendering path was retired in 1.6.0; Movi does not render embedded
-fonts. Prepared files can retain font attachments for external players. Full font
-rendering remains part of the unassigned P09 subtitle fidelity scope.
+P15 delivered embedded TTF/OTF fonts for ASS/SSA. After the 1.6.0 renderer
+transition, the JASSUB integration restored on-demand font extraction and
+rendering for selected embedded ASS/SSA tracks. See the
+[Movi integration](development/movi.md#subtitle-rendering).

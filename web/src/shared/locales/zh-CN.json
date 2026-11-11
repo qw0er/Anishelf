@@ -200,6 +200,7 @@
 		"refresh": "刷新播放记录"
 	},
 	"player": {
+		"styledSubtitleFallback": "样式字幕不可用，已切换为基础字幕。",
 		"hideSubtitles": "关闭字幕",
 		"showSubtitles": "显示字幕",
 		"options": "播放选项",

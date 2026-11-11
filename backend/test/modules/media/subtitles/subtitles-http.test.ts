@@ -1,6 +1,7 @@
 import {
 	mkdir,
 	mkdtemp,
+	open,
 	rm,
 	symlink,
 	truncate,
@@ -11,7 +12,10 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { SubtitleDiscoveryResponse } from "../../../../src/contracts/http.js";
+import { MediaAssetsApplication } from "../../../../src/modules/media/catalog.js";
 import { MediaInspectionApplication } from "../../../../src/modules/media/inspection/application.js";
+import type { PreparationApi } from "../../../../src/modules/media/preparation/public.js";
+import { EmbeddedSubtitles } from "../../../../src/modules/media/subtitles/application/embedded.js";
 import { subtitlePolicy } from "../../../../src/modules/media/subtitles/policy.js";
 import type { LibraryApplication } from "../../../../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
@@ -37,6 +41,10 @@ let root: string;
 let library: LibraryApplication;
 let app: ReturnType<typeof createHttpApp>;
 let fileId: string;
+let assets: MediaAssetsApplication;
+const extractAss = vi.fn<MediaTools["extractAss"]>();
+const listPrepared = vi.fn<PreparationApi["catalog"]>();
+const openPrepared = vi.fn<PreparationApi["openArtifact"]>();
 const emptyInfo: MediaInfo = {
 	format: "matroska",
 	formatAliases: ["matroska"],
@@ -70,15 +78,41 @@ beforeEach(async () => {
 		sources: library.sources,
 		tools: { probe },
 	});
+	listPrepared.mockReset().mockResolvedValue({ assets: [] });
+	openPrepared.mockReset();
+	const preparation = { catalog: listPrepared, openArtifact: openPrepared };
+	assets = new MediaAssetsApplication({
+		inspection,
+		sources: library.sources,
+		preparation,
+		logger,
+	});
+	const embeddedSubtitles = new EmbeddedSubtitles({
+		catalog: assets,
+		inspection,
+		sources: library.sources,
+		preparation,
+		logger,
+		maximumBytes: maximumSubtitleBytes,
+		tools: {
+			extractAss,
+			listSubtitleFonts: vi.fn().mockResolvedValue([]),
+			extractSubtitleFont: vi.fn(),
+		},
+	});
 	app = createHttpApp({
 		config: { host: "127.0.0.1", port: 3000 },
 		logger,
 		library,
+		embeddedSubtitles,
 		subtitles: createSubtitleApplication({
 			sources: library.sources,
 		}),
 	});
-	app.addHook("onClose", async () => inspection.close());
+	app.addHook("onClose", async () => {
+		embeddedSubtitles.close();
+		await inspection.close();
+	});
 	await library.startScan();
 	await library.waitForCompletion();
 	fileId =
@@ -361,7 +395,123 @@ test("never accepts paths, unversioned requests or foreign subtitle IDs", async 
 	).toBe(404);
 });
 
-function _stream(
+test("extracts styled subtitles only for the selected asset revision and stream", async () => {
+	probe.mockResolvedValue({
+		...emptyInfo,
+		streams: [stream(4, "ass"), stream(5, "subrip")],
+	});
+	extractAss.mockResolvedValue("[Script Info]\n[Events]\nDialogue: styled");
+	extractAss.mockClear();
+	const {
+		source,
+		assets: [asset],
+	} = await assets.list(fileId);
+	if (!asset) throw new Error("Missing fixture asset.");
+	const query = new URLSearchParams({
+		sourceVersion: source.sourceVersion,
+		assetId: asset.id,
+		assetRevision: asset.revision,
+	});
+	const url = (index: number) =>
+		`/api/files/${fileId}/subtitles/embedded/${index}?${query}`;
+	query.set("assetRevision", "stale");
+	expect((await app.inject({ url: url(4), headers })).statusCode).toBe(409);
+	query.set("assetRevision", asset.revision);
+	query.set("assetId", "other");
+	expect((await app.inject({ url: url(4), headers })).statusCode).toBe(409);
+	query.set("assetId", asset.id);
+	query.set("sourceVersion", "stale");
+	expect((await app.inject({ url: url(4), headers })).statusCode).toBe(409);
+	query.set("sourceVersion", source.sourceVersion);
+	expect((await app.inject({ url: url(5), headers })).statusCode).toBe(422);
+	expect((await app.inject({ url: url(99), headers })).statusCode).toBe(422);
+	expect(extractAss).not.toHaveBeenCalled();
+	const response = await app.inject({ url: url(4), headers });
+	expect(response.statusCode).toBe(200);
+	expect(response.headers["cache-control"]).toBe("no-store");
+	expect(response.json()).toEqual({
+		text: "[Script Info]\n[Events]\nDialogue: styled",
+		fonts: [],
+	});
+	expect(extractAss).toHaveBeenCalledWith(
+		join(root, "season", `${video}.mkv`),
+		4,
+		maximumSubtitleBytes,
+		expect.any(AbortSignal),
+	);
+	const cached = await app.inject({ url: url(4), headers });
+	expect(cached.statusCode).toBe(200);
+	expect(cached.json()).toEqual(response.json());
+	expect(extractAss).toHaveBeenCalledOnce();
+	await writeFile(join(root, "season", `${video}.mkv`), "replacement video");
+	expect((await app.inject({ url: url(4), headers })).statusCode).toBe(409);
+	expect(extractAss).toHaveBeenCalledOnce();
+});
+
+test("extracts from the prepared copy with its own stream indices and releases the reader", async () => {
+	const info = { ...emptyInfo, streams: [stream(2, "ass")] };
+	const source = await library.sources.resolveSource(fileId);
+	const preparedPath = join(fixture, "prepared.mkv");
+	await writeFile(preparedPath, "prepared");
+	const handle = await open(preparedPath, "r");
+	const release = vi.fn(() => handle.close());
+	try {
+		listPrepared.mockResolvedValue({
+			assets: [
+				{
+					id: "prepared",
+					source: source.identity,
+					profileId: "test",
+					sourceAudioStreamIndices: [],
+					sizeBytes: 8,
+					mimeType: "video/x-matroska",
+					info,
+					updatedAtMs: 0,
+				},
+			],
+		});
+		openPrepared.mockResolvedValue({
+			handle,
+			release,
+			path: preparedPath,
+			sizeBytes: 8,
+			mimeType: "video/x-matroska",
+		});
+		extractAss.mockResolvedValue("prepared subtitle");
+		const prepared = (await assets.list(fileId)).assets.find(
+			(asset) => asset.id === "prepared",
+		);
+		if (!prepared) throw new Error("Missing prepared fixture asset.");
+		const query = new URLSearchParams({
+			sourceVersion: source.identity.sourceVersion,
+			assetId: prepared.id,
+			assetRevision: prepared.revision,
+		});
+		const url = `/api/files/${fileId}/subtitles/embedded/2?${query}`;
+		const response = await app.inject({ url, headers });
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toEqual({ text: "prepared subtitle", fonts: [] });
+		expect(openPrepared).toHaveBeenCalledWith("prepared");
+		expect(extractAss).toHaveBeenLastCalledWith(
+			preparedPath,
+			2,
+			maximumSubtitleBytes,
+			expect.any(AbortSignal),
+		);
+		expect(release).toHaveBeenCalledOnce();
+		const cached = await app.inject({ url, headers });
+		expect(cached.statusCode).toBe(200);
+		expect(cached.json()).toEqual(response.json());
+		expect(openPrepared).toHaveBeenCalledOnce();
+		listPrepared.mockResolvedValue({ assets: [] });
+		expect((await app.inject({ url, headers })).statusCode).toBe(409);
+		expect(openPrepared).toHaveBeenCalledOnce();
+	} finally {
+		if (!release.mock.calls.length) await handle.close();
+	}
+});
+
+function stream(
 	index: number,
 	codec: string | null,
 	overrides: Partial<MediaStream> = {},

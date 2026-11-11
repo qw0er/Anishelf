@@ -56,20 +56,17 @@ Only natural source completion can mark the whole source watched.
 
 ## Subtitles
 
-Movi reads embedded subtitle tracks from the selected bytes and renders them with
-its built-in renderer. Full ASS/SSA styling, positioning, karaoke and embedded font
-registration are not retained. External ASS/SSA is parsed in the browser into text
-and timed cues, with style and drawing instructions removed. VTT/SRT uses Movi's
-native external subtitle support. See [Movi Player integration](movi.md) for the
-pinned runtime adapter and subtitle limitations.
-The backend only discovers matching sidecars and reads bounded text through confined
-resource access. Content URLs carry both video and subtitle versions. Missing or
-changed sidecars cannot bypass source access fencing. No embedded extraction,
-font-preparation or subtitle-conversion endpoint remains.
+Movi owns track selection and renders supported SRT, WebVTT and bitmap tracks.
+JASSUB renders selected ASS/SSA tracks with their styles, positioning and effects.
+The backend reads complete sidecar text and extracts embedded ASS/SSA with eligible
+font attachments from the selected asset on demand. The browser uses a bundled
+fallback font when the requested font is unavailable. See the
+[Movi integration](movi.md#subtitle-rendering).
 
-Unsupported client codecs or subtitle formats are explicit limitations; the app does
-not fall back to JASSUB or server extraction. Existing pure-audio/video prepared
-copies remain playable but do not gain embedded subtitles retroactively.
+Sidecar URLs carry video and subtitle versions. Embedded reads also carry the
+asset ID and revision. Legacy prepared copies without subtitle tracks still
+support matching sidecars. The styled path renders the complete ASS/SSA track
+at the current time, including cues that started before a seek.
 
 ## Manual preparation
 

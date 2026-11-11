@@ -14,6 +14,7 @@ export interface PreparationApi {
 	retry(id: string, input: PreparationRequest): Promise<PreparationView>;
 	deleteArtifact(id: string): Promise<void>;
 	openArtifact(id: string): Promise<{
+		path: string;
 		handle: FileHandle;
 		sizeBytes: number;
 		mimeType: string;

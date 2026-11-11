@@ -23,6 +23,11 @@ import {
 } from "./option-catalog.js";
 import { mediaToolPolicy, validateMediaToolPolicy } from "./policy.js";
 import { MediaToolError, runTool } from "./process.js";
+import {
+	type SubtitleFontStream,
+	subtitleFontBytes,
+	subtitleFontStreams,
+} from "./styled-subtitles.js";
 import { MediaToolDiscovery } from "./tool-discovery.js";
 
 async function localFile(path: string): Promise<void> {
@@ -72,6 +77,97 @@ export class MediaTools {
 			discovery,
 			policy,
 			logger?.child({ module: "media-tools" }),
+		);
+	}
+
+	async extractAss(
+		path: string,
+		streamIndex: number,
+		maximumBytes: number,
+		signal: AbortSignal,
+	) {
+		await localFile(path);
+		return runTool(
+			await this.executable("ffmpeg"),
+			[
+				"-nostdin",
+				"-v",
+				"error",
+				"-protocol_whitelist",
+				"file,pipe",
+				"-i",
+				path,
+				"-map",
+				`0:${streamIndex}`,
+				"-c:s",
+				"copy",
+				"-f",
+				"ass",
+				"pipe:1",
+			],
+			{ signal, maxBytes: maximumBytes },
+			this.policy.mediaTools,
+			this.logger,
+		);
+	}
+
+	async listSubtitleFonts(path: string, signal: AbortSignal) {
+		const output = await this.probeAttachments(
+			path,
+			"t",
+			"stream=index,codec_type,extradata_size:stream_tags=filename,mimetype",
+			false,
+			256 * 1024,
+			signal,
+		);
+		return subtitleFontStreams(output);
+	}
+
+	async extractSubtitleFont(
+		path: string,
+		font: SubtitleFontStream,
+		signal: AbortSignal,
+	) {
+		const output = await this.probeAttachments(
+			path,
+			String(font.index),
+			"stream=index,codec_type,extradata_size,extradata",
+			true,
+			font.sizeBytes * 5 + 4096,
+			signal,
+		);
+		return subtitleFontBytes(output, font);
+	}
+
+	private async probeAttachments(
+		path: string,
+		stream: string,
+		entries: string,
+		data: boolean,
+		maxBytes: number,
+		signal: AbortSignal,
+	) {
+		await localFile(path);
+		return runTool(
+			await this.executable("ffprobe"),
+			[
+				"-v",
+				"error",
+				"-protocol_whitelist",
+				"file,pipe",
+				"-select_streams",
+				stream,
+				"-show_entries",
+				entries,
+				...(data ? ["-show_data"] : []),
+				"-of",
+				"json",
+				"-i",
+				path,
+			],
+			{ signal, maxBytes },
+			this.policy.mediaTools,
+			this.logger,
 		);
 	}
 

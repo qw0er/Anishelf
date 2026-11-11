@@ -328,12 +328,12 @@ See [WI10 delivery and validation](../implemented-requirements.md#library-and-de
 
 Media compiles and executes explicit manual preparation commands; Playback binds
 existing bytes and owns source-level viewing progress. Movi Player handles browser
-demux/decode, controls and embedded subtitles. Its built-in renderer does not preserve
-full ASS/SSA styling or embedded fonts. No browser capability evidence
+demux/decode and controls. JASSUB renders selected ASS/SSA tracks. Media owns
+version-bound styled subtitle and font extraction. No browser capability evidence
 crosses a module boundary, and playback never creates preparation work.
 
 Media organizes inspection, preparation/planning, preparation/execution, artifacts,
-sidecar subtitles and the asset catalog separately. Tasks own execution snapshots;
+subtitles and the asset catalog separately. Tasks own execution snapshots;
 completed assets describe inspected output independently of mutable profiles.
 Resources fences original-file access. Artifacts retains atomic publication,
 reader leases, source invalidation and deletion. All new preparation preserves

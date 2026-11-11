@@ -1,11 +1,15 @@
 import { Type } from "typebox";
 import {
+	EmbeddedSubtitleParamsSchema,
+	EmbeddedSubtitleQuerySchema,
+	EmbeddedSubtitleResponseSchema,
 	ResourceParamsSchema,
 	SubtitleContentParamsSchema,
 	SubtitleContentQuerySchema,
 	SubtitleDiscoveryResponseSchema,
 } from "../../../../contracts/schemas/index.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
+import type { EmbeddedSubtitles } from "../application/embedded.js";
 import type { SubtitleApplication } from "../application/subtitles.js";
 import { subtitleDiscoveryResponse } from "./presenters.js";
 export function registerSubtitleRoutes(
@@ -46,6 +50,66 @@ export function registerSubtitleRoutes(
 			reply.header("X-Content-Type-Options", "nosniff");
 			reply.type("text/plain; charset=utf-8");
 			return result.text;
+		},
+	);
+}
+
+export function registerEmbeddedSubtitleRoutes(
+	app: HttpInstance,
+	embedded: EmbeddedSubtitles,
+): void {
+	app.get(
+		"/api/files/:id/subtitles/embedded/:index",
+		{
+			schema: {
+				params: EmbeddedSubtitleParamsSchema,
+				querystring: EmbeddedSubtitleQuerySchema,
+				response: { 200: EmbeddedSubtitleResponseSchema },
+			},
+		},
+		async (request, reply) => {
+			const { id, index } = request.params;
+			const abort = new AbortController();
+			const close = () => abort.abort();
+			reply.raw.once("close", close);
+			try {
+				reply.header("Cache-Control", "no-store");
+				return await embedded.track(
+					{ fileId: id, ...request.query },
+					Number(index),
+					abort.signal,
+				);
+			} finally {
+				reply.raw.off("close", close);
+			}
+		},
+	);
+	app.get(
+		"/api/files/:id/subtitles/fonts/:index",
+		{
+			schema: {
+				params: EmbeddedSubtitleParamsSchema,
+				querystring: EmbeddedSubtitleQuerySchema,
+			},
+		},
+		async (request, reply) => {
+			const { id, index } = request.params;
+			const abort = new AbortController();
+			const close = () => abort.abort();
+			reply.raw.once("close", close);
+			try {
+				const bytes = await embedded.font(
+					{ fileId: id, ...request.query },
+					Number(index),
+					abort.signal,
+				);
+				reply.header("Cache-Control", "no-store");
+				reply.header("X-Content-Type-Options", "nosniff");
+				reply.type("application/octet-stream");
+				return bytes;
+			} finally {
+				reply.raw.off("close", close);
+			}
 		},
 	);
 }

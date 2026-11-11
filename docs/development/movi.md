@@ -43,28 +43,40 @@ its own surface or fills the viewport with an application shell, and it no longe
 portals continuation controls into the fullscreen tree. The player's native or
 platform fullscreen behavior applies; chapter and subtitle menus remain Movi's.
 
-## Subtitle limits
+## Subtitle rendering
 
-Embedded subtitles use Movi's built-in decoder and renderer. Its ASS/SSA support
-does not preserve full styling, positioning, karaoke or embedded font attachments.
-Anishelf deliberately does not add JASSUB or another renderer. Preserving font
-attachments in original/prepared bytes is independent of browser rendering.
+Movi owns the subtitle menu and its built-in renderer handles SRT, WebVTT and
+supported bitmap tracks. Selecting an ASS/SSA track loads JASSUB 2.5.21 on demand.
+Anishelf drives a transparent canvas inside the Movi element with its media time
+and subtitle delay. The canvas follows the video area during seeks and resizes.
+After the first successful render, Anishelf hides Movi's subtitle overlay while
+the styled track is active. If styled rendering fails, Movi's basic subtitles
+remain available and Anishelf reports the fallback.
 
-External VTT/SRT is supplied through Movi's native subtitle interface. The published
-0.4.1 external-file interface does not parse ASS/SSA, so `ass-compiler` 0.1.16 parses
-those tracks in the browser. Timed dialogue text is registered as generated Movi
-cues; override tags, drawings and effects are discarded. Newlines and hard spaces
-are retained, invalid/empty cues are skipped and subtitle text is treated as
-untrusted text. Each sidecar receives an independent key, including tracks sharing
-a language. Users can select a track or turn it off through the built-in menu.
+Matching sidecars retain their individual menu IDs. External ASS/SSA is passed
+to JASSUB in full and rendered against the source timeline. The plain-dialogue
+fallback uses `ass-compiler` 0.1.16. For embedded ASS/SSA, Anishelf extracts the
+selected track from the actual playback asset and loads its eligible TTF/OTF
+attachments. JASSUB also uses a bundled fallback font. Sidecar discovery and
+content reads keep their existing source and subtitle version checks.
 
-Discovery and content requests retain same-origin authentication and video/subtitle
-version fencing. A missing or malformed sidecar does not block video playback.
-There is no server extraction, conversion or font-preparation endpoint.
+The styled extraction routes are same-origin and bind the file, source version,
+asset ID and asset revision. Prepared copy extraction holds the existing reader lease.
+The backend keeps up to 128 successfully extracted ASS/SSA tracks in a
+64 MiB in-memory cache. Each request still validates source access and the
+selected asset revision. Cached tracks are evicted by least recent use and
+are cleared on server restart.
+FFmpeg and FFprobe run with bounded output, duration and concurrency. Invalid
+font bytes are rejected independently of the subtitle track. Successful font
+reads are reused for the current playback binding. JASSUB's worker, WASM and
+fallback font are served with the Web build.
+
+The bundled Liberation Sans font has limited glyph coverage. Styled tracks
+that require other glyphs need a matching font supplied to the renderer.
 
 ## Licenses and validation
 
-Movi's npm package declares Apache-2.0; `ass-compiler` declares MIT. The playback
+Movi's npm package declares Apache-2.0. JASSUB and `ass-compiler` declare MIT. The playback
 WASM also contains third-party components, including FFmpeg. Their redistribution
 terms and attribution still apply; the top-level Apache license does not establish
 the license of every embedded component. Server FFmpeg retains its existing
@@ -84,6 +96,17 @@ Record actual browser/device results. A passing build or library format list doe
 not certify Safari, Firefox, mobile hardware, HDR, bitmap subtitles or every codec.
 
 ## Recorded smoke validation
+
+The JASSUB integration was exercised in Chrome 157 with the real VideoPlayer
+and both Vite development and production builds. Fixture delivery used a local
+HTTP harness with Range responses and real FFmpeg extraction. The tests covered
+positioned drawing and karaoke, an embedded font with CJK glyphs, switching
+same-language tracks, switching to WebVTT, disabling subtitles, pause, seek,
+2× playback, 390 px layout, element fullscreen, and a prepared fixture with
+different stream indices. The B01 sample showed its active ASS cue after a
+seek to three seconds and playback continued. Extraction and Worker failure
+checks restored the basic renderer. Firefox, Safari and physical mobile devices
+were outside this check.
 
 On 2026-11-10, Chromium 156.0.8078.79 on Debian 13 exercised the actual Anishelf
 `VideoPlayer`, CSS and i18n in a temporary Vite harness, using both development and

@@ -140,16 +140,16 @@ failures and works already present in the user's library or tracking list.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial | Later | [Client subtitle rendering; server extraction retired](#delivery-notes-p) | 0.2.0 |
-| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial | Unassigned | [Basic ASS/SSA text; full styles and embedded fonts unavailable with Movi](#delivery-notes-p) | 0.2.0 |
+| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial | Later | [Embedded selection and on-demand ASS/SSA extraction](#delivery-notes-p) | 0.2.0 |
+| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial | Unassigned | [JASSUB ASS/SSA styling and embedded fonts](#delivery-notes-p) | 0.2.0 |
 | P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Not started | Later | — | — |
 | P20 | Configure media preparation task concurrency | Partial | Optional | [Fixed single-worker queue; configurable concurrency optional](#delivery-notes-p) | 0.2.0 |
 | P21 | Limit CPU processing capacity per preparation task | Not started | Optional | — | — |
 
 #### Delivery Notes (P)
 
-- **P08:** **Current:** Embedded subtitles are decoded by Movi in the browser; matching VTT/SRT/ASS/SSA sidecars remain selectable. Server extraction is retired. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts in the former renderer); 1.6.0 (client rendering replaces server extraction).
-- **P09:** **Current:** Movi's built-in renderer supplies basic subtitle rendering. External ASS/SSA retains text and timing but discards styles, drawings and effects; full ASS/SSA styling and embedded fonts are unavailable. No alternative renderer is included. **Remaining:** Full styled subtitle/font fidelity and bitmap compatibility. **Release record:** 0.2.0 (styles and fallback fonts in the former renderer); 0.2.6 (embedded fonts in the former renderer); 1.6.0 (basic Movi rendering).
+- **P08:** **Current:** Movi discovers embedded tracks and matching sidecars remain selectable. The server extracts selected embedded ASS/SSA tracks and eligible fonts on demand. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts in the former renderer); 1.6.0 (client rendering replaces server extraction).
+- **P09:** **Current:** JASSUB renders selected embedded and external ASS/SSA with styles, positioning, drawings and effects. Embedded tracks can use validated TTF/OTF attachments. Movi provides basic subtitle fallback. **Remaining:** Bitmap compatibility work. **Release record:** 0.2.0 (styled rendering); 0.2.6 (embedded fonts); 1.6.0 (basic Movi rendering).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
 #### Media Processing Resource Controls (P20–P21)
@@ -176,7 +176,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 #### Deferred Subtitle Requirements (P16)
 
-P16 has no assigned release. See [P15 embedded fonts](implemented-requirements.md#embedded-fonts-p15) for the retired font-rendering behavior.
+P16 has no assigned release. See [P15 embedded fonts](implemented-requirements.md#embedded-fonts-p15) for embedded font rendering.
 
 - **P16 Bitmap extraction:** extract supported PGS/VobSub subtitles in their native
   format, preserving required paired files and access restrictions. Explain when
@@ -457,17 +457,35 @@ behavior, impact, reproduction conditions and verification evidence as they beco
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
+| B01 | An active embedded subtitle cue can be missing after resume and track selection | Not started | Later | [Waiting for an upstream Movi fix](#missing-embedded-subtitle-after-resume-b01) | — |
+
+### Missing embedded subtitle after resume (B01)
+
+Resume Web playback at a saved position within an embedded subtitle cue, then
+select that subtitle track. The cue already in progress can be missing for the
+rest of its display interval. The expected behavior is to show the active cue
+after track selection and keep it visible until its scheduled end.
+
+The Chromium smoke test with Movi 0.4.1 reproduced this with an embedded ASS cue
+spanning a 20-second file. Seeking back to the start also failed to restore that
+cue in the same test. A separate fixture displayed later cues after track selection
+and seeking. See the [recorded smoke validation](development/movi.md#recorded-smoke-validation).
+
+The bug also reproduces in standalone Movi 0.4.1. In Anishelf, the JASSUB
+ASS/SSA path works around it by rendering the complete track at the current
+playback time. The Chromium browser test showed the active cue after seeking to
+3 seconds and selecting the track, with playback continuing normally. B01
+remains deferred for the built-in Movi renderer and its fallback path.
 
 ## Movi Player and manual preparation direction
 
 The current implementation uses Movi Player for client playback without browser
 compatibility negotiation. Users explicitly choose original files or prepared copies.
-Preparation is manual; automatic preparation, server embedded-subtitle extraction
-and font preparation are retired. The server still probes preparation input/output
+Preparation is manual. Selected embedded ASS/SSA tracks and eligible font
+attachments are extracted on demand. The server probes preparation input/output
 and validates tools, container constraints and source access. New copies preserve
 subtitles, fonts and chapters, using Matroska by default. Browser/device performance
 and subtitle fidelity require actual sample validation; support lists do not certify
-universal playback. Built-in ASS/SSA rendering does not preserve full styles,
-effects or embedded fonts; external ASS/SSA is reduced to text and timing. This
+universal playback. JASSUB renders styled ASS/SSA from either subtitle source. This
 direction supersedes earlier compatibility-driven preparation,
 automatic-processing-window and full client-font-rendering requirements.

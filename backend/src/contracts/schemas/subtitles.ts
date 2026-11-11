@@ -66,3 +66,28 @@ export const SubtitleContentQuerySchema = Type.Object(
 	{ sourceVersion: SourceVersionSchema, subtitleVersion: SourceVersionSchema },
 	{ additionalProperties: false },
 );
+
+export const EmbeddedSubtitleParamsSchema = Type.Object(
+	{
+		id: ResourceIdSchema,
+		index: Type.String({ pattern: "^(0|[1-9][0-9]{0,9})$" }),
+	},
+	{ additionalProperties: false },
+);
+export const EmbeddedSubtitleQuerySchema = Type.Object(
+	{
+		sourceVersion: SourceVersionSchema,
+		assetId: ResourceIdSchema,
+		assetRevision: SourceVersionSchema,
+	},
+	{ additionalProperties: false },
+);
+export const EmbeddedSubtitleResponseSchema = Type.Object({
+	text: Type.String(),
+	fonts: Type.Array(
+		Type.Object({
+			index: NonnegativeIntegerSchema,
+			sizeBytes: NonnegativeIntegerSchema,
+		}),
+	),
+});

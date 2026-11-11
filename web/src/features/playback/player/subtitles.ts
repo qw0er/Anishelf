@@ -66,6 +66,7 @@ type SubtitleElement = Pick<
 export interface ExternalSubtitles {
 	tracks: HTMLTrackElement[];
 	hasAss: boolean;
+	styledText(trackId: string): string | undefined;
 	attach(element: SubtitleElement): void;
 	dispose(): void;
 }
@@ -78,7 +79,12 @@ export async function prepareExternalSubtitles(
 	signal: AbortSignal,
 ): Promise<ExternalSubtitles> {
 	const tracks: HTMLTrackElement[] = [];
-	const generated: { lang: string; label: string; cues: SubtitleCue[] }[] = [];
+	const generated: {
+		lang: string;
+		label: string;
+		cues: SubtitleCue[];
+		text: string;
+	}[] = [];
 	const urls: string[] = [];
 	let element: SubtitleElement | undefined;
 	let disposed = false;
@@ -95,6 +101,9 @@ export async function prepareExternalSubtitles(
 		tracks,
 		get hasAss() {
 			return generated.length > 0;
+		},
+		styledText(trackId) {
+			return generated.find((track) => track.lang === trackId)?.text;
 		},
 		attach(next) {
 			if (disposed) return;
@@ -129,9 +138,21 @@ export async function prepareExternalSubtitles(
 						const lang = `external:${track.id}`;
 						const label = track.label ?? track.name;
 						if (track.format === "ass" || track.format === "ssa") {
-							const cues = assSubtitleCues(contents, timeline);
-							if (!cues.length) throw new Error("No subtitle dialogue.");
-							generated.push({ lang, label, cues });
+							if (
+								!/^\s*\[Events\]/im.test(contents) ||
+								!/^\s*Dialogue\s*:/im.test(contents)
+							)
+								throw new Error("No subtitle dialogue.");
+							let cues: SubtitleCue[] = [];
+							try {
+								cues = assSubtitleCues(contents, timeline);
+							} catch {
+								console.warn(
+									"[playback] Basic subtitle fallback could not be generated.",
+									{ fileId, trackId: track.id },
+								);
+							}
+							generated.push({ lang, label, cues, text: contents });
 						} else if (track.format === "vtt" || track.format === "srt") {
 							const url = URL.createObjectURL(
 								new Blob([nativeSubtitleText(contents)], {

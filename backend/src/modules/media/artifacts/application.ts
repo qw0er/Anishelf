@@ -251,6 +251,7 @@ export class PreparationArtifacts {
 			let released = false;
 			return {
 				handle,
+				path: this.context.files.path(id),
 				sizeBytes: artifact.sizeBytes,
 				mimeType: artifact.mimeType,
 				release: async () => {

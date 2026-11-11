@@ -21,6 +21,7 @@ export class InvalidPreparedMediaError extends Error {
 	}
 }
 export interface PreparedMediaFiles {
+	path(id: string): string;
 	initialize(artifacts: PreparedArtifact[]): Promise<Set<string>>;
 	availableBytes(): Promise<number>;
 	publish(id: string, processedPath: string, sizeBytes: number): Promise<void>;
@@ -53,6 +54,7 @@ export interface PreparationArtifacts {
 	cleanupMissingSources(): Promise<void>;
 	inspect(id: string): Promise<PreparationView>;
 	open(id: string): Promise<{
+		path: string;
 		handle: FileHandle;
 		sizeBytes: number;
 		mimeType: string;

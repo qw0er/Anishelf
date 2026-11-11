@@ -21,7 +21,7 @@ export class PreparedMediaFiles {
 	constructor(dataDir: string) {
 		this.root = join(dataDir, "cache", "prepared-media");
 	}
-	private path(id: string): string {
+	path(id: string): string {
 		if (!/^[a-f0-9]{64}$/.test(id))
 			throw new Error("Invalid prepared artifact identity.");
 		return join(this.root, `${id}.media`);

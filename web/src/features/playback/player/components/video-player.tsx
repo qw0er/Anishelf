@@ -8,6 +8,10 @@ import { toast } from "../../../../shared/components/ui/toast.js";
 import type { PlaybackClock } from "../engine.js";
 import { loadPlayer, MoviClock } from "../movi.js";
 import { type PlaybackFailure, playbackFailure } from "../runtime.js";
+import {
+	attachStyledSubtitles,
+	embeddedSubtitleReader,
+} from "../styled-subtitles.js";
 import { prepareExternalSubtitles } from "../subtitles.js";
 
 export default function VideoPlayer({
@@ -67,9 +71,17 @@ export default function VideoPlayer({
 		)
 			return;
 		const timeline = binding.resource.timeline;
+		const readEmbedded = embeddedSubtitleReader({
+			fileId,
+			sourceVersion,
+			assetId: binding.asset.id,
+			assetRevision: binding.asset.revision,
+		});
 		const abort = new AbortController();
 		let player: MoviElement | undefined;
 		let clock: MoviClock | undefined;
+		let detachStyled: (() => void) | undefined;
+		let subtitleWarning = false;
 		let subtitles:
 			| Awaited<ReturnType<typeof prepareExternalSubtitles>>
 			| undefined;
@@ -115,6 +127,8 @@ export default function VideoPlayer({
 		syncAudioRef.current = syncAudio;
 		const detachClock = () => {
 			clearTimeout(loadedTimer);
+			detachStyled?.();
+			detachStyled = undefined;
 			clock?.dispose();
 			clock = undefined;
 			callbacks.current.onMedia?.(null, timeline);
@@ -129,6 +143,25 @@ export default function VideoPlayer({
 			syncAudio(current.current.active.audio);
 			clock = new MoviClock(player, player.player);
 			clock.addEventListener("error", fail);
+			detachStyled = attachStyledSubtitles({
+				player,
+				sidecars: subtitles,
+				timeline,
+				readEmbedded,
+				onFailure: () => {
+					console.warn("[playback] Styled subtitle rendering failed.", {
+						fileId,
+						assetId: binding.asset.id,
+					});
+					if (subtitleWarning) return;
+					subtitleWarning = true;
+					toast.add({
+						id: `styled-subtitles:${fileId}`,
+						type: "warning",
+						title: current.current.t("player.styledSubtitleFallback"),
+					});
+				},
+			});
 			callbacks.current.onMedia?.(clock, timeline);
 			player.inert = !current.current.playbackReady;
 			console.info("[playback] Movi Player loaded.", {

@@ -5,6 +5,10 @@ import { afterAll, beforeAll, expect, test } from "vitest";
 import { parseDeploymentConfig } from "../../../src/modules/system/configuration/infrastructure/deployment.js";
 import { runTool } from "../../../src/platform/media/process.js";
 import {
+	subtitleFontLimits,
+	subtitleFontStreams,
+} from "../../../src/platform/media/styled-subtitles.js";
+import {
 	MediaTools,
 	parseMediaInfo,
 } from "../../../src/platform/media/tools.js";
@@ -112,6 +116,27 @@ test("bounds child runtime and output and accepts cancellation", async () => {
 	).rejects.toMatchObject({ code: "TOOL_FAILED" });
 });
 
+test("limits attachment inventory by type, individual size, total size and count", () => {
+	const font = (index: number, size: number) => ({
+		index,
+		codec_type: "attachment",
+		extradata_size: size,
+		tags: { filename: "font.ttf" },
+	});
+	const maximum = subtitleFontLimits.maximumBytes;
+	const inventory = [
+		font(0, maximum + 1),
+		font(1, maximum),
+		font(2, maximum),
+		font(3, maximum),
+		{ ...font(4, 1000), tags: { filename: "cover.png" } },
+		...Array.from({ length: 40 }, (_, index) => font(index + 5, 1000)),
+	];
+	const listed = subtitleFontStreams(JSON.stringify({ streams: inventory }));
+	expect(listed.map((entry) => entry.index).slice(0, 3)).toEqual([1, 2, 5]);
+	expect(listed).toHaveLength(subtitleFontLimits.maximumCount);
+});
+
 test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
 	"probes real MKV and extracts SRT/ASS/WebVTT tracks",
 	async () => {
@@ -120,6 +145,8 @@ test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
 		const ass = join(fixture, "source.ass");
 		const vtt = join(fixture, "source.vtt");
 		const media = join(fixture, "video with spaces ; $.mkv");
+		const font = new URL("../../fixtures/fonts/fixture.ttf", import.meta.url)
+			.pathname;
 		await writeFile(srt, "1\n00:00:00,200 --> 00:00:01,200\nHello SRT\n");
 		await runTool(tools.status.ffmpeg.path, [
 			"-nostdin",
@@ -177,6 +204,10 @@ test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
 			"copy",
 			"-metadata:s:s:0",
 			"language=eng",
+			"-attach",
+			font,
+			"-metadata:s:t:0",
+			"mimetype=font/ttf",
 			media,
 		]);
 		const info = await tools.probe(media);
@@ -201,6 +232,17 @@ test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
 			"ass",
 			"webvtt",
 		]);
+		const signal = new AbortController().signal;
+		const styled = await tools.extractAss(media, 3, 10 * 1024 * 1024, signal);
+		expect(styled).toContain("0:00:00.20,0:00:01.20");
+		expect(styled).toContain("{\\i1}Hello SRT");
+		const fonts = await tools.listSubtitleFonts(media, signal);
+		expect(fonts).toHaveLength(1);
+		const attachment = fonts[0];
+		if (!attachment) throw new Error("Missing fixture font attachment.");
+		expect(await tools.extractSubtitleFont(media, attachment, signal)).toEqual(
+			await readFile(font),
+		);
 		await expect(
 			tools.probe("https://example.com/video.mkv"),
 		).rejects.toMatchObject({ code: "INVALID_INPUT" });

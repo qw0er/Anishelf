@@ -190,6 +190,7 @@
 		"templateHelpLabel": "URL template help"
 	},
 	"player": {
+		"styledSubtitleFallback": "Styled subtitles are unavailable. Using basic subtitles.",
 		"hideSubtitles": "Hide subtitles",
 		"showSubtitles": "Show subtitles",
 		"options": "Playback options",

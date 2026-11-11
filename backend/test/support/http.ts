@@ -9,8 +9,12 @@ import { registerChapterRoutes } from "../../src/modules/media/inspection/http/c
 import type { PreparationApplication } from "../../src/modules/media/preparation/application/preparation.js";
 import { registerPreparationRoutes } from "../../src/modules/media/preparation/http/preparation.js";
 import type { MediaPlanningApplication } from "../../src/modules/media/preparation/planning/application/planning.js";
+import type { EmbeddedSubtitles } from "../../src/modules/media/subtitles/application/embedded.js";
 import type { SubtitleApplication } from "../../src/modules/media/subtitles/application/subtitles.js";
-import { registerSubtitleRoutes } from "../../src/modules/media/subtitles/http/subtitles.js";
+import {
+	registerEmbeddedSubtitleRoutes,
+	registerSubtitleRoutes,
+} from "../../src/modules/media/subtitles/http/subtitles.js";
 import { subtitlePolicy } from "../../src/modules/media/subtitles/policy.js";
 import { registerPlaybackSelectionRoutes } from "../../src/modules/playback/playback-selection/http/selection.js";
 import type { PlaybackSelectionApi } from "../../src/modules/playback/playback-selection/public.js";
@@ -43,6 +47,7 @@ export function createHttpApp(options: {
 	playback?: PlaybackApplication;
 	preparation?: PreparationApplication;
 	subtitles?: SubtitleApplication;
+	embeddedSubtitles?: EmbeddedSubtitles;
 	mediaPlanning?: MediaPlanningApplication;
 	inspection?: MediaInspectionApplication;
 	frontendRoot?: string;
@@ -83,6 +88,8 @@ export function createHttpApp(options: {
 						});
 					_ownedSubtitles = subtitles;
 					registerSubtitleRoutes(app, subtitles);
+					if (options.embeddedSubtitles)
+						registerEmbeddedSubtitleRoutes(app, options.embeddedSubtitles);
 					registerSettingsRoutes(app, fixtureSettings(library));
 				}
 
