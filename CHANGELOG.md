@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.6.1
+
+### Changed
+
+- Reuse the work, episode and release accepted when a download was submitted to ingest
+  the completed file. After task ownership and the file version are verified, a
+  single-video task no longer needs another metadata search or a matching filename;
+  filename evidence becomes a non-blocking hint. An accepted target can replace an
+  association created by automatic identification, while manual decisions,
+  conflicting targets and ambiguous multi-file layouts still require Review.
+- Schedule manual and automatic subscription searches around airing information. A
+  known airing time plans the next resource check 15 minutes later instead of repeated
+  searching during the pre-airing window; subscriptions show the pending check and why
+  they are waiting. Check updates still searches immediately, and missing, stale or
+  unreliable airing data falls back to bounded regular retries.
+- Make Watching-created subscriptions follow the current global default release
+  profile instead of the profile saved at creation. Changing the default re-evaluates
+  unreserved choices without another activation preview; reserved and submitted
+  downloads keep their selection, and an unavailable default blocks new selections
+  with an actionable message.
+
+### Fixed
+
+- Hand fullscreen playback to Movi Player instead of taking over the application
+  surface, and remove the duplicate fullscreen exit button.
+
 ## 1.6.0
 
 ### Changed

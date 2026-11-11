@@ -37,11 +37,11 @@ tracks. Title and audio changes keep the existing resource binding and session.
 Movi can replace its core on reload/recovery, so listeners and the clock are rebound
 to the current core after loading; stale async work is cancelled on teardown.
 
-Fullscreen remains application-owned through `movi-fullscreen-request` and
-`setHostFullscreen`. The existing continuation portal stays in the application DOM
-so its styles and controls remain usable in fullscreen. Unsupported native element
-fullscreen uses a viewport-fill application shell. Chapter and subtitle menus are
-provided by Movi.
+Fullscreen is owned by Movi Player. The application no longer intercepts
+`movi-fullscreen-request`, calls `setHostFullscreen`, requests element fullscreen for
+its own surface or fills the viewport with an application shell, and it no longer
+portals continuation controls into the fullscreen tree. The player's native or
+platform fullscreen behavior applies; chapter and subtitle menus remain Movi's.
 
 ## Subtitle limits
 
@@ -78,7 +78,8 @@ engine-independent regression coverage.
 Real-browser acceptance must cover both Vite development and production builds:
 authenticated MKV playback, Range reads/seeks, two audio tracks, embedded and sidecar
 subtitles, chapters, pause/reload/resume, replay and natural-end persistence. Check
-390 px and 1280 px layouts, keyboard access and fullscreen continuation controls.
+390 px and 1280 px layouts, keyboard access, fullscreen playback and continuation
+controls.
 Record actual browser/device results. A passing build or library format list does
 not certify Safari, Firefox, mobile hardware, HDR, bitmap subtitles or every codec.
 
@@ -95,8 +96,9 @@ Playback advanced after restoring a 3-second position, selecting the second
 same-language audio track retained numeric track identity, and a seek to 12 seconds
 completed. External ASS dialogue rendered as two plain-text lines; external VTT
 remained independently selectable. The chapter inventory retained both chapter
-names/times. Screenshots at 1280 px and 390 px showed no page-width overflow, and
-the application continuation control remained visible inside fullscreen. The
+names/times. Screenshots at 1280 px and 390 px showed no page-width overflow. This
+check ran before the 1.6.1 fullscreen change, so it does not record fullscreen
+presentation or the placement of continuation controls inside fullscreen. The
 optional Google Fonts request from upstream is suppressed by the application.
 
 An embedded ASS track with successive four-second cues rendered later cues after

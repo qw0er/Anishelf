@@ -36,7 +36,7 @@ implementation choice as a new requirement. Future features specify outcomes and
 acceptance boundaries without selecting their technical solution in advance.
 Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-The current release is 1.5.1; 1.6.0 is the planned next release. Later and Optional items remain future work.
+The current release is 1.6.1; the next release is not yet planned. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
@@ -229,35 +229,7 @@ Later/Unassigned. See the [implemented provider boundary](implemented-requiremen
 | D11 | Configure seeding policies | Not started | Optional | — | — |
 | D12 | Configure download bandwidth schedules | Not started | Optional | — | — |
 | D13 | Configure download storage policies | Not started | Optional | — | — |
-| D14 | Reuse verified acquisition targets during ingestion | Complete | Completed | [Acquisition target reuse](#acquisition-target-reuse-d14) | — |
-
-#### Acquisition Target Reuse (D14)
-
-For downloads initiated by Anishelf, preserve the accepted work, episode, release
-and download-task identity through completion and ingestion. When task ownership,
-the completed file and its source version are verified and the file-to-episode
-relationship is unambiguous, associate the file with that accepted target without
-requiring another metadata search or a filename match. Reuse the confirmed target
-instead of independently identifying the same file during routine scanning.
-
-Treat a filename as advisory evidence. Missing, unparseable or contradictory names
-must not prevent a verified single-video task from being associated with its accepted
-target; expose a non-blocking diagnostic hint instead. An accepted download target
-may correct a conflicting association explicitly recorded as automatic identification.
-Preserve manual confirmations, rejections and legacy decisions of unknown origin. Do not infer an individual episode
-from task ownership alone when multiple video files, season packs or other layouts
-make their correspondence ambiguous. Unverified ownership, changed or missing files,
-conflicting download targets and incompatible protected associations require review
-or retry; never overwrite a manual decision. Preserve existing completion, path, source
-version and ingestion verification, and keep transfer completion distinct from file
-availability and playability.
-
-Retain provenance and explain the accepted target and any conflict in diagnostics.
-Ensure retries and restarts are idempotent and concurrent scans cannot replace a
-confirmed association. Validate single-episode downloads with incomplete filenames,
-contradictory names, multi-file layouts, changed files, ownership failures, manual
-associations and restart or scan races. Coordinate with evidence-based decision
-evaluation (WI15) and media identification during scanning (WI16).
+| D14 | Reuse verified acquisition targets during ingestion | Complete | Completed | [Accepted download targets](implemented-requirements.md#accepted-download-targets-d14) | 1.6.1 |
 
 ### 2.7 Desktop and Other Clients
 
@@ -380,69 +352,8 @@ Details and acceptance criteria may be refined as decisions are made.
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
 | WI15 | Improve evidence-based decisions and their evaluation | Partial | Unassigned | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
 | WI16 | Identify media by its actual contents | Not started | Unassigned | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
-| WI17 | Decouple automatic subscriptions from saved release profiles | Complete | Completed | [Automatic subscription profile selection](#automatic-subscription-profile-selection-wi17) | — |
-| WI18 | Schedule subscription searches around airing information | Complete | Completed | [Airing-aware subscription searches](#airing-aware-subscription-searches-wi18) | — |
-
-#### Airing-aware Subscription Searches (WI18)
-
-Reduce unnecessary source discovery and refreshes for all subscriptions when
-reliable metadata shows that the work has not premiered or the next relevant episode
-has not aired. Schedule the next automatic check around the known airing time, with
-a configurable or documented allowance for release delays. Do not repeatedly search
-at the normal retry interval throughout a known pre-airing window. Show when the next
-check is expected and why the subscription is waiting.
-
-Keep the subscription and its accepted starting episode intact while waiting. Search
-promptly when the waiting period ends, airing information changes or a user explicitly
-requests Check updates. A manual check must work even before the scheduled airing;
-normal identity, selection and authorization checks still apply. Do not periodically
-search for early releases while reliable metadata identifies a future episode.
-Refresh airing metadata at most six hours apart while waiting. Never infer a precise
-air time from a date-only value. Schedule known episode checks for 15 minutes after
-airing; a provider correction that postpones airing postpones the resource check.
-
-If airing data is missing, stale, ambiguous or unavailable, retain a bounded fallback
-search schedule rather than suppressing acquisition indefinitely. Cached metadata
-must not be presented as certain when its freshness is unknown. A provider outage
-must not erase subscription state. Multiple outstanding episodes or backlog require
-searches for already aired episodes even when a later episode is upcoming. Apply
-the same timing policy to manual and Watching-created subscriptions. Compare Unix
-millisecond timestamps and display instants in the browser time zone with an
-explicit zone label.
-
-Validate unreleased works, upcoming and already aired episodes, backlogs, early
-releases, date-only and missing data, metadata changes and outages, manual checks,
-restart recovery and the transition to a scheduled check. Record waiting and search
-decisions in diagnostics without claiming that airing implies resource availability.
-
-#### Automatic Subscription Profile Selection (WI17)
-
-Watching-created subscriptions follow the current global default acquisition profile
-instead of pinning the profile selected when they were created. Changing the default
-applies to existing and future automatic subscriptions without requiring another
-Watching activation preview solely because the profile changed. Show the effective
-profile and make its global-default relationship clear in subscription settings.
-
-On upgrade, convert existing Watching-created subscriptions to follow the global
-default, including subscriptions created under an earlier default. Preserve their
-starting episodes, sources, ownership, exclusions, pause and completion states, and
-history. Manual subscriptions retain their existing explicit overrides or default
-behavior; editing an automatic subscription continues to follow the documented
-ownership conversion rules. A per-automatic-subscription profile override is outside
-the initial scope.
-
-Re-evaluate unreserved choices against the new effective profile. Downloads already
-reserved or submitted retain their selection. An unavailable or invalid effective
-profile must stop new selections with an actionable explanation rather than silently
-choosing another profile. A profile change during discovery or selection must fence
-stale work so that an old decision cannot create a new reservation. Preserve the
-existing account, source, destination and backlog authorization boundaries; changes
-to those boundaries still require confirmation where currently required.
-
-Validate existing and newly created automatic subscriptions, migration from saved
-profiles, manual subscriptions, profile changes during in-flight work, unavailable
-profiles, unreserved candidates and reserved or submitted downloads. Record the
-effective profile and relevant selection or invalidation reasons in diagnostics.
+| WI17 | Decouple automatic subscriptions from saved release profiles | Complete | Completed | [Automatic subscription profiles](implemented-requirements.md#automatic-subscription-profiles-wi17) | 1.6.1 |
+| WI18 | Schedule subscription searches around airing information | Complete | Completed | [Airing-aware subscription searches](implemented-requirements.md#airing-aware-subscription-searches-wi18) | 1.6.1 |
 
 #### Matching Improvements from Real Failures (L16)
 

@@ -31,6 +31,7 @@ import {
 import { createHttpApp } from "../../../support/http.js";
 import { MemoryInspectionStore } from "../../../support/inspection-store.js";
 import { createLibraryModule } from "../../../support/library.js";
+import { expectMediaDuration } from "../../../support/media.js";
 import { settingsStore } from "../../../support/settings-store.js";
 
 const run = promisify(execFile);
@@ -163,6 +164,7 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 			],
 			{ timeout: 30000 },
 		);
+		const sourceInfo = await tools.probe(sourcePath);
 		await library.startScan();
 		await library.waitForCompletion();
 		const file = [...index.snapshot.entriesById.values()].find(
@@ -246,7 +248,7 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 			const path = join(root, `${mode}.mp4`);
 			await writeFile(path, prepared.rawPayload);
 			const info = await tools.probe(path);
-			expect(info.duration).toBeCloseTo(1.25, 1);
+			expectMediaDuration(info.duration, sourceInfo.duration);
 			await run(
 				ffmpeg,
 				[

@@ -22,6 +22,7 @@ import {
 import type { MediaProcessingPlan } from "../../../src/platform/media/specification.js";
 import { MemoryInspectionStore } from "../../support/inspection-store.js";
 import { createLibraryModule } from "../../support/library.js";
+import { expectMediaDuration } from "../../support/media.js";
 import { settingsStore } from "../../support/settings-store.js";
 
 const run = promisify(execFile);
@@ -182,6 +183,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			],
 			{ timeout: 30000 },
 		);
+		const sourceInfo = await tools.probe(sourcePath);
 		const index = new LibraryIndex();
 		library = createLibraryModule({
 			index,
@@ -290,7 +292,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				"aac",
 				"aac",
 			]);
-			expect(output.info.duration).toBeCloseTo(1, 1);
+			expectMediaDuration(output.info.duration, sourceInfo.duration);
 			const outputAudios = output.info.streams.filter(
 				(stream) => stream.type === "audio",
 			);

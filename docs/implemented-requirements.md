@@ -391,6 +391,8 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | 1.4.2 |
 | WI14 | Improve Chinese resource searches using available Chinese titles | Complete | Completed | [Chinese search titles and merged names](#chinese-search-titles-and-merged-names-wi14) | 1.4.2 |
 | WI05 | Redesign automatic subscription management interaction | Complete | Completed | [Dedicated Subscriptions page](#subscriptions-page-wi05) | 1.5.0 |
+| WI17 | Decouple automatic subscriptions from saved release profiles | Complete | Completed | [Global default release profile](#automatic-subscription-profiles-wi17) | 1.6.1 |
+| WI18 | Schedule subscription searches around airing information | Complete | Completed | [Airing-aware subscription searches](#airing-aware-subscription-searches-wi18) | 1.6.1 |
 
 #### Delivery Notes (S)
 
@@ -483,6 +485,38 @@ exclusions without changing manual subscriptions. Empty and error states explain
 to subscribe or recover, and the page remains usable on narrow screens.
 **Release record:** 1.5.0.
 
+#### Automatic Subscription Profiles (WI17)
+
+Watching-created subscriptions follow the current global default release profile
+instead of the profile saved when they were created. Migration
+`0021_watching_default_profile` clears saved automatic profile bindings without
+changing account ownership, accepted starting episodes, sources, exclusions, pauses,
+completion, authorizations or history; manual profile overrides are retained. Changing
+the default re-evaluates unreserved choices and fences selections made against the
+previous default. Reserved and submitted downloads keep their selection, and an
+unavailable default stops new choices with an actionable `profile_unavailable` state
+that points to Settings. Activation previews use the current default and are not
+invalidated by a profile change alone; account, source and destination scope changes
+still require a new preview. **Release record:** 1.6.1.
+
+#### Airing-aware Subscription Searches (WI18)
+
+Manual and Watching subscriptions wait when fresh, consistent metadata shows that the
+first uncovered episode in the accepted range has not aired. A known airing instant
+plans the next resource check for 15 minutes after it, with no periodic pre-airing
+searches; a date-only or unknown airing time plans no check. Metadata is re-evaluated
+from cache every 30 seconds and refreshed at least every six hours while waiting.
+Already-aired gaps and backlogs keep normal discovery. Check updates can search before
+airing and bypasses the ordinary collection-cache reuse while retaining source
+cooldowns, rate limits and download authorization. Missing, stale, contradictory or
+unavailable airing data falls back to bounded ordinary retries, and diagnostics
+distinguish that fallback from a confirmed wait. Migration
+`0022_subscription_airing_schedule` adds nullable advisory timing without changing
+subscription revisions, accepted scope, ownership, pause or completion state, or
+candidate history; restarts preserve the deadline. All comparisons use epoch
+milliseconds, and the interface shows instants in the browser's IANA time zone with an
+explicit zone label. **Release record:** 1.6.1.
+
 #### AniList Watching to Automatic Acquisition (S05, S10–S12)
 
 The delivered workflow is: add an anime to AniList Watching, let Anishelf find a suitable resource source and maintain its subscription, then automatically download new episodes through qBittorrent and verify their ingestion into the local library. Users configure resource sites, release preferences, destination and automation scope once; routine additions to Watching should not require finding and entering a per-anime RSS URL or approving every episode.
@@ -495,7 +529,7 @@ Disabling the group, excluding a work or leaving Watching stops automatic discov
 refresh and new download submissions; submitted transfers/imports continue. List outages
 retain records and suspend automatic acquisition until a fresh complete snapshot returns.
 The starting episode freezes at creation; progress changes never reset it. Account,
-source/profile/target scope changes and late responses must not exceed the user’s
+source/target scope changes and late responses must not exceed the user’s
 accepted scope. Unsubscribe records automatic-recreation exclusions. Empty or ambiguous source
 results retain intent without authorizing guessed downloads.
 
@@ -532,6 +566,7 @@ Full season-pack ingestion is not currently supported.
 | D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Complete | — | [Separate WebUI task/data deletion and Catalog actions](#delivery-notes-d) | 1.0.0 |
 | D09 | Download an individual episode without creating a subscription | Complete | — | [Single-episode automatic acquisition](#delivery-notes-d) | 1.4.0 |
 | D10 | Obtain and display download progress from the download client | Complete | — | [Compact episode progress and scoped task details](#delivery-notes-d) | 1.4.0 |
+| D14 | Reuse verified acquisition targets during ingestion | Complete | Completed | [Accepted download targets](#accepted-download-targets-d14) | 1.6.1 |
 
 #### Delivery Notes (D)
 
@@ -539,7 +574,7 @@ Full season-pack ingestion is not currently supported.
 - **D02:** Saved acquisition requests, duplicate prevention, per-anime placement and recovery from uncertain submissions.
 - **D03:** Compact episode status and scoped task details; real percentage and import states; speed/seeding details in WebUI.
 - **D04:** Transfer pause/resume/removal delegated to WebUI; scoped acquisition/import retries in Anishelf.
-- **D05:** Safe file verification, library refresh, episode association/Review and independent import retry.
+- **D05:** Safe file verification, library refresh, episode association/Review and independent import retry. Since 1.6.1, verified single-video tasks reuse their accepted download target. **Release record:** 1.0.0; 1.6.1 (accepted-target reuse).
 - **D06:** Stale observations, durable bindings, restart reconciliation and external-removal suppression.
 - **D07:** Task/data deletion in WebUI, Catalog decisions in existing local workflows; deletion never triggers automatic re-adding.
 - **D09:** Missing regular episodes expose a direct Download action. One explicit request uses global release preferences without waiting, persists independently of subscriptions, and follows verified ingestion. Empty or failed discovery requires explicit retry through episode task details.
@@ -581,6 +616,28 @@ from elapsed time or acquisition state. If progress is unavailable or the client
 cannot be reached, distinguish unknown or stale information from current progress.
 Distinguish a completed transfer from subsequent verification and library ingestion;
 a completed download alone does not mean the resource is available in the library.
+
+#### Accepted Download Targets (D14)
+
+A subscription reservation or individual episode selection stores the accepted work,
+episode, release and metadata snapshot on the download task. Once client task ownership,
+completion, confined file access, file size and source version are verified, a task
+with exactly one selected video is associated with that target without another metadata
+search. Filename title and episode evidence is advisory: missing, unparseable or
+contradictory names produce a non-blocking hint instead of blocking ingestion, and an
+accepted target can correct an association explicitly created by automatic
+identification. Manual confirmations and rejections, conflicting download targets,
+legacy decisions of unknown origin and ambiguous multi-file layouts remain protected
+and require Review or retry as before.
+
+Migration `0023_accepted_acquisition_targets` adds accepted targets to download tasks
+and decision provenance to local Review; existing decisions are conservatively marked
+legacy. Older tasks fill their accepted target from cached metadata where possible,
+otherwise by fetching the already-known work ID, and a pending system Review caused
+only by the former filename rule is retried once when it has no manual decision.
+Retries, restarts and concurrent scans stay idempotent. Local Review shows the accepted
+episode, release and any filename hint. Snapshot pins are released when task history is
+pruned while Catalog retains its confirmed decisions. **Release record:** 1.6.1.
 
 ### 2.7 Desktop and Other Clients
 
