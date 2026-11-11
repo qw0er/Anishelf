@@ -161,6 +161,7 @@ qBittorrent is a separate capability (D01–D07).
 | M04 | Manually select, correct, and refresh metadata mappings | Complete | — | Review selection/reassociation, episode corrections and metadata refresh | 0.3.0 |
 | WI11 | Prioritize upcoming broadcast plans on work details | Complete | Completed | [Announced future airtimes and next-broadcast highlight](#delivery-notes-m) | 1.4.1 |
 | M05 | Cache metadata so external outages do not prevent browsing or playback | Complete | — | [Cached browsing and playback during provider outages](#delivery-notes-m) | 0.3.0 |
+| M06 | Multiple independently selectable metadata providers | Complete | — | [Source selection and isolated identities](#delivery-notes-m) | 1.0.6 |
 | M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Complete | — | Available provider language information and stable local identities; no invented translations | 0.3.0 |
 | M09 | Save a title display preference, including available Bangumi Chinese titles | Complete | Completed | [Title display preference](#title-display-preference-m09) | 1.4.2 |
 
@@ -299,8 +300,8 @@ reflect the active task and can cancel it. **Release record:** 1.5.0.
 
 #### Subtitles and Embedded Extraction (P03, P08, P09, P16)
 
-- **P08:** Movi discovers embedded tracks and lets users select them. Anishelf extracts selected embedded ASS/SSA tracks and eligible fonts from the active original or prepared copy. Successful track extractions are cached in memory by asset revision and stream index. **Release record:** 0.2.0 (text subtitles), 0.2.6 (embedded fonts in the former renderer), 1.6.0 (transition to client rendering). ASS/SSA extraction and caching are implemented on the development branch.
-- **P09:** JASSUB renders external and embedded ASS/SSA with styles, positioning, drawings and effects. Embedded tracks can use validated TTF/OTF attachments, with Movi supplying a basic rendering fallback. **Release record:** 0.2.0 (styled rendering), 0.2.6 (embedded fonts), 1.6.0 (basic Movi rendering). JASSUB rendering is implemented on the development branch and covered by [browser smoke tests](development/movi.md#recorded-smoke-validation).
+- **P08:** Movi discovers embedded tracks and lets users select them. Anishelf extracts selected embedded ASS/SSA tracks and eligible fonts from the active original or prepared copy. Successful track extractions are cached in memory by asset revision and stream index. **Release record:** 0.2.0 (text subtitles), 0.2.6 (embedded fonts in the former renderer), 1.6.0 (transition to client rendering), 1.6.2 (on-demand ASS/SSA extraction and caching).
+- **P09:** JASSUB renders external and embedded ASS/SSA with styles, positioning, drawings and effects. Embedded tracks can use validated TTF/OTF attachments, with Movi supplying a basic rendering fallback. **Release record:** 0.2.0 (styled rendering), 0.2.6 (embedded fonts), 1.6.0 (basic Movi rendering), 1.6.2 (JASSUB rendering). See the [browser smoke tests](development/movi.md#recorded-smoke-validation).
 - **P16:** Movi renders embedded bitmap tracks directly in the browser. MKV samples with PGS, VobSub and DVB displayed successfully in desktop Chrome. Container and browser compatibility varies. The [B01 bug record](requirements.md#missing-embedded-subtitle-after-resume-b01) covers the active cue that can be missed after resuming and selecting an embedded track. **Release record:** 1.6.0 (Movi 0.4.1 integration).
 
 See the [archived V2 requirements and design](history.md#v2-requirements) for the earlier extraction proposals.
@@ -679,6 +680,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Complete | — | Manual updates and mapped automatic episode completion | 0.4.0 |
 | T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Complete | — | Manual and playback updates retained across failures and restart | 0.4.0 |
 | T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Complete | — | [Conflict checks; upstream read/write race remains](#delivery-notes-t) | 0.4.0 |
+| WI01 | Review tracking-service completion error feedback | Complete | Completed | Tracking completion errors are displayed with retry controls. | 1.5.1 |
 
 #### Delivery Notes (T)
 
@@ -809,6 +811,6 @@ for media access. Technical authentication and proxy design belong in
 #### Embedded fonts (P15)
 
 P15 delivered embedded TTF/OTF fonts for ASS/SSA. After the 1.6.0 renderer
-transition, the JASSUB integration restored on-demand font extraction and
+transition, the 1.6.2 JASSUB integration restored on-demand font extraction and
 rendering for selected embedded ASS/SSA tracks. See the
 [Movi integration](development/movi.md#subtitle-rendering).

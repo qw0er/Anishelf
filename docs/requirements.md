@@ -36,7 +36,7 @@ implementation choice as a new requirement. Future features specify outcomes and
 acceptance boundaries without selecting their technical solution in advance.
 Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
 The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-The current release is 1.6.1; the next release is not yet planned. Later and Optional items remain future work.
+The current release is 1.6.1; 1.6.2 is the upcoming release. Later and Optional items remain future work.
 The retained V2 implementation status remains recorded separately in History.
 
 ## 2. Feature Inventory and Version Tracking
@@ -79,7 +79,6 @@ Preserve each rule's source confirmations and applicable context, explain its ef
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| M06 | Multiple independently selectable metadata providers | Complete | — | Default source, per-search selection and source-isolated identities; no cross-source mapping | 1.0.6 |
 | M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Later | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08); no active iteration assigned | — |
 | M10 | Discover anime beyond the user's library | Not started | Later | [Anime discovery](#anime-discovery-m10) | — |
 
@@ -212,7 +211,6 @@ Later/Unassigned. See the [implemented provider boundary](implemented-requiremen
 | D11 | Configure seeding policies | Not started | Optional | — | — |
 | D12 | Configure download bandwidth schedules | Not started | Optional | — | — |
 | D13 | Configure download storage policies | Not started | Optional | — | — |
-| D14 | Reuse verified acquisition targets during ingestion | Complete | Completed | [Accepted download targets](implemented-requirements.md#accepted-download-targets-d14) | 1.6.1 |
 
 ### 2.7 Desktop and Other Clients
 
@@ -327,16 +325,11 @@ Details and acceptance criteria may be refined as decisions are made.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| WI01 | Review tracking-service completion error feedback | Complete | Completed | Tracking completion errors are displayed with retry controls. | 1.5.1 |
 | WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
-| WI05 | Redesign automatic subscription management interaction | Complete | Completed | [Dedicated Subscriptions page](implemented-requirements.md#subscriptions-page-wi05) | 1.5.0 |
 | WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
-| WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](implemented-requirements.md#library-and-detail-refresh-continuity-wi10) | 1.5.0 |
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
 | WI15 | Improve evidence-based decisions and their evaluation | Partial | Unassigned | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
 | WI16 | Identify media by its actual contents | Not started | Unassigned | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
-| WI17 | Decouple automatic subscriptions from saved release profiles | Complete | Completed | [Automatic subscription profiles](implemented-requirements.md#automatic-subscription-profiles-wi17) | 1.6.1 |
-| WI18 | Schedule subscription searches around airing information | Complete | Completed | [Airing-aware subscription searches](implemented-requirements.md#airing-aware-subscription-searches-wi18) | 1.6.1 |
 
 #### Matching Improvements from Real Failures (L16)
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.6.2
+
+### Added
+
+- Render embedded and external ASS/SSA subtitles with styles, positioning, drawings
+  and effects using JASSUB. Selected embedded tracks and eligible font attachments
+  are extracted on demand from the active original or prepared copy. If styled
+  rendering fails, playback falls back to Movi's basic subtitle rendering.
+
+### Fixed
+
+- Show playback and playback-option errors with retry actions while keeping the
+  player controls stable. Keep tracking feedback and automatic next-episode
+  countdown controls in place instead of shifting the playback layout.
+- Show an active embedded ASS/SSA cue when selecting its track after resuming
+  playback through the JASSUB renderer. Other embedded subtitle formats and the
+  Movi fallback can still miss the active cue after resume; see
+  [B01](https://github.com/qw0er/Anishelf/blob/main/docs/requirements.md#missing-embedded-subtitle-after-resume-b01).
+
 ## 1.6.1
 
 ### Changed
