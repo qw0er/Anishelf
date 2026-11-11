@@ -38,7 +38,6 @@ export async function createAcquisitionModule(options: {
 	transport?: SourcesModuleOptions["transport"];
 	now?: () => number;
 	autoStart?: boolean;
-	rssRefreshIntervalMinutes?: () => number | undefined;
 	defaultAcquisitionProfileId?: () => string | undefined;
 	onSettingsChanged?: (listener: () => void) => () => void;
 }) {
@@ -81,9 +80,6 @@ export async function createAcquisitionModule(options: {
 			? { torrentTransport: options.torrentTransport }
 			: {}),
 		...(options.now ? { now: options.now } : {}),
-		...(options.rssRefreshIntervalMinutes
-			? { refreshIntervalMinutes: options.rssRefreshIntervalMinutes }
-			: {}),
 	});
 	let watching: WatchingApplication | undefined;
 	let profileRevision = 0;

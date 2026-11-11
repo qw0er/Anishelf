@@ -307,7 +307,7 @@ test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 	},
 );
 
-test("obsolete scan interval and transcode budget are removed from settings on load", async () => {
+test("retired settings are removed from settings.json on load", async () => {
 	await mkdir(dataDir, { recursive: true });
 	await writeFile(
 		join(dataDir, "settings.json"),
@@ -315,6 +315,7 @@ test("obsolete scan interval and transcode budget are removed from settings on l
 			resourceRoots: [resourceRoots],
 			scanIntervalMinutes: 30,
 			transcodeCacheBudgetGiB: 24,
+			rssRefreshIntervalMinutes: 45,
 		}),
 	);
 	const configuration = await PersistentConfiguration.load(dataDir);

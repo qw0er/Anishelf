@@ -4,7 +4,6 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../../src/app/bootstrap/database.js";
-import { rssConstraints } from "../../../../../src/contracts/defaults.js";
 import { createAcquisitionModule } from "../../../../../src/modules/acquisition/create.js";
 import type { FeedTransport } from "../../../../../src/modules/acquisition/sources/rss/ports.js";
 import { AnitomyIdentificationParser } from "../../../../../src/modules/anime/identification/infrastructure/parser.js";
@@ -69,7 +68,6 @@ export async function fixture(
 	let clock = 1_000_000;
 	const state = {
 		target: structuredClone(target),
-		refreshIntervalMinutes: undefined as number | undefined,
 		profileId: undefined as string | undefined,
 	};
 	const fetch = vi.fn<FeedTransport["fetch"]>(async () => ({
@@ -91,7 +89,6 @@ export async function fixture(
 		},
 		transport: { fetch, close: async () => {} },
 		now: () => clock,
-		rssRefreshIntervalMinutes: () => state.refreshIntervalMinutes,
 		defaultAcquisitionProfileId: () => state.profileId,
 		autoStart: false,
 		...(createClient ? { createClient } : {}),
@@ -143,9 +140,7 @@ export async function fixture(
 		logs,
 		options,
 		subscribe,
-		advance: (
-			milliseconds = rssConstraints.defaultRefreshIntervalMinutes * 60_000,
-		) => {
+		advance: (milliseconds = 30 * 60_000) => {
 			clock += milliseconds;
 		},
 	};

@@ -11,9 +11,6 @@ export function settingsResponse(
 		...(settings.defaultAcquisitionProfileId === undefined
 			? {}
 			: { defaultAcquisitionProfileId: settings.defaultAcquisitionProfileId }),
-		...(settings.rssRefreshIntervalMinutes === undefined
-			? {}
-			: { rssRefreshIntervalMinutes: settings.rssRefreshIntervalMinutes }),
 		...(settings.qbittorrentWebUiUrl === undefined
 			? {}
 			: { qbittorrentWebUiUrl: settings.qbittorrentWebUiUrl }),

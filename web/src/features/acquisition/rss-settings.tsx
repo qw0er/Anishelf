@@ -1,4 +1,3 @@
-import { rssConstraints } from "@anishelf/backend/contracts/defaults";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,36 +10,22 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../shared/components/ui/card.js";
-import { FieldError } from "../../shared/components/ui/field.js";
 import { InlineError } from "../../shared/components/ui/inline-error.js";
-import { Input } from "../../shared/components/ui/input.js";
 import { LoadingState } from "../../shared/components/ui/loading-state.js";
 import {
 	RadioCard,
 	RadioCardGroup,
 } from "../../shared/components/ui/radio-card.js";
 import { toast } from "../../shared/components/ui/toast.js";
-import { useAutoSave } from "../../shared/hooks/use-auto-save.js";
 import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
-import {
-	saveSettings,
-	settingsKeys,
-	settingsQuery,
-} from "../settings/public.js";
+import { saveSettings, settingsKeys } from "../settings/public.js";
 
 import { acquisitionProfilesQuery } from "./subscriptions-api.js";
 
 export function RssSettings() {
 	const { t } = useTranslation();
 	const client = useQueryClient();
-	const configuration = useQuery(settingsQuery());
 	const profiles = useQuery(acquisitionProfilesQuery());
-	useRefreshError(
-		"settings-configuration",
-		configuration.data ? configuration.error : null,
-		configuration.errorUpdatedAt,
-		() => void configuration.refetch(),
-	);
 	useRefreshError(
 		"acquisition-profiles",
 		profiles.data ? profiles.error : null,
@@ -71,51 +56,6 @@ export function RssSettings() {
 			});
 		},
 	});
-	const [intervalDraft, setIntervalDraft] = useState<string | null>(null);
-	const savedInterval =
-		configuration.data?.rssRefreshIntervalMinutes ??
-		rssConstraints.defaultRefreshIntervalMinutes;
-	const intervalText = intervalDraft ?? String(savedInterval);
-	const interval = Number(intervalText);
-	const intervalValid =
-		intervalText.trim() !== "" &&
-		Number.isSafeInteger(interval) &&
-		interval >= rssConstraints.minimumRefreshIntervalMinutes &&
-		interval <= rssConstraints.maximumRefreshIntervalMinutes;
-	const save = useMutation({
-		mutationFn: (rssRefreshIntervalMinutes: number) =>
-			saveSettings({ rssRefreshIntervalMinutes }),
-		onSuccess: (settings, minutes) => {
-			client.setQueryData(settingsKeys.settings, settings);
-			setIntervalDraft((current) =>
-				current !== null && Number(current) === minutes ? null : current,
-			);
-			console.info("[Settings] RSS refresh interval saved.", { minutes });
-			toast.add({
-				type: "success",
-				title: t("acquisition.rss.saved"),
-				id: "rss-settings-save",
-			});
-		},
-		onError: (_error, value) => {
-			console.warn("[Settings] RSS refresh interval save failed.");
-			toast.add({
-				type: "error",
-				title: t("acquisition.rss.saveFailed"),
-				actionProps: {
-					children: t("actions.retry"),
-					onClick: () => save.mutate(value),
-				},
-				id: "rss-settings-save",
-			});
-		},
-	});
-	const flushInterval = useAutoSave(
-		interval,
-		savedInterval,
-		(minutes) => save.mutate(minutes),
-		intervalDraft !== null && intervalValid,
-	);
 	const selectedProfileId = profileDraft ?? profiles.data?.selectedProfileId;
 	return (
 		<Card className="settings-section lg:grid">
@@ -176,51 +116,9 @@ export function RssSettings() {
 						</Button>
 					</InlineError>
 				)}
-				{configuration.isPending ? (
-					<LoadingState label={t("acquisition.rss.loading")} />
-				) : configuration.isError && !configuration.data ? (
-					<InlineError>
-						{t("acquisition.rss.loadFailed")}{" "}
-						<Button
-							variant="outline"
-							onClick={() => {
-								void configuration.refetch();
-							}}
-						>
-							{t("actions.retry")}
-						</Button>
-					</InlineError>
-				) : configuration.data ? (
-					<div className="space-y-3">
-						<label htmlFor="rss-refresh-interval" className="block space-y-2">
-							<span className="text-sm font-medium">
-								{t("acquisition.rss.refreshInterval")}
-							</span>
-							<Input
-								id="rss-refresh-interval"
-								type="number"
-								required
-								min={rssConstraints.minimumRefreshIntervalMinutes}
-								max={rssConstraints.maximumRefreshIntervalMinutes}
-								step={1}
-								value={intervalText}
-								aria-invalid={!intervalValid || undefined}
-								aria-describedby={
-									!intervalValid ? "rss-refresh-interval-error" : undefined
-								}
-								onChange={(event) => setIntervalDraft(event.target.value)}
-								onBlur={flushInterval}
-							/>
-						</label>
-						<FieldError id="rss-refresh-interval-error" className="field-error">
-							{!intervalValid &&
-								t("acquisition.rss.invalidInterval", {
-									min: rssConstraints.minimumRefreshIntervalMinutes,
-									max: rssConstraints.maximumRefreshIntervalMinutes,
-								})}
-						</FieldError>
-					</div>
-				) : null}
+				{profiles.isPending && (
+					<LoadingState label={t("acquisition.rss.loadingProfiles")} />
+				)}
 			</CardContent>
 		</Card>
 	);

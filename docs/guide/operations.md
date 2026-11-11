@@ -110,8 +110,8 @@ independent of the default encoding profile.
 
 | Setting | Behavior |
 | --- | --- |
-| Source refresh interval | Default 30 minutes; range 1–1440; applies on the next scheduler check |
-| Failed-source retries | Keep their backoff deadline when the interval changes |
+| Source refresh interval | RSS and Jackett refresh on a fixed 30-minute interval. Use **Check now** in a subscription's actions to request an immediate check. |
+| Failed-source retries | Follow source backoff and rate limits |
 | Default selection profile | Global choice with optional per-subscription override |
 | Watching creation | Optional, default off; creates ordinary subscriptions |
 

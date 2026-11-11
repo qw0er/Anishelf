@@ -107,7 +107,6 @@ async function fixture() {
 			jackett: connection,
 			logger,
 			now: () => clock,
-			refreshIntervalMinutes: () => 1,
 		});
 		cleanup.push(() => sources.close());
 		return { database, sources, fetch, torrentRead };
@@ -190,7 +189,7 @@ test("generation changes fence saved bindings and in-flight evidence without inh
 		() => [],
 		async () => {},
 	);
-	f.setClock(600_000);
+	f.setClock(prepared.nextAttemptAt + 1);
 	await vi.advanceTimersByTimeAsync(30_000);
 	expect(f.search).toHaveBeenCalledTimes(1);
 	expect(f.sources.snapshot(prepared.id)).toEqual(prepared);
@@ -251,13 +250,14 @@ test.each(["rss", "jackett"] as const)(
 		start(reopened.sources);
 		await vi.advanceTimersByTimeAsync(0);
 		const saved = reopened.sources.snapshot(reference.id);
-		expect(saved?.error).toBeNull();
-		expect(saved?.entries).toHaveLength(1);
+		if (!saved) throw new Error("Missing recovered source evidence");
+		expect(saved.error).toBeNull();
+		expect(saved.entries).toHaveLength(1);
 		active.clear();
-		f.setClock(500_000);
+		f.setClock(saved.nextAttemptAt + 1);
 		await vi.advanceTimersByTimeAsync(60_000);
 		expect(reopened.sources.snapshot(reference.id)).toEqual(saved);
-		const download = saved?.entries[0]?.download;
+		const download = saved.entries[0]?.download;
 		if (!download) throw new Error();
 		expect(
 			await reopened.sources.readDownload(
@@ -455,7 +455,7 @@ test.each(["rss", "jackett"] as const)(
 				: f.reference;
 		f.sources.bind(reference);
 		const prepared = await f.sources.refresh(reference);
-		f.setClock(61001);
+		f.setClock(prepared.nextAttemptAt + 1);
 		let reject!: (reason: Error) => void;
 		const pending = new Promise<never>((_done, fail) => {
 			reject = fail;

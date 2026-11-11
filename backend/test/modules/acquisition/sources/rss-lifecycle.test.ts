@@ -1,5 +1,4 @@
 import { expect, test, vi } from "vitest";
-import { rssConstraints } from "../../../../src/contracts/defaults.js";
 import { createAcquisitionModule } from "../../../../src/modules/acquisition/create.js";
 import type { AcquisitionTarget } from "../../../../src/modules/anime/public.js";
 import {
@@ -215,15 +214,18 @@ test("startup recovers due subscriptions and a shared feed has one bounded sched
 	expect(f.fetch).toHaveBeenCalledTimes(2);
 });
 
-test("RSS uses the default interval and reschedules existing feeds after live changes", async () => {
+test("RSS uses a 30-minute refresh interval and reschedules older feeds", async () => {
 	const f = await fixture();
 	const saved = await f.subscribe();
 	const feedId = saved.subscription?.feedId ?? "";
 	const initial = f.database.acquisition.feed(feedId);
-	expect(initial?.nextAttemptAt).toBe(
-		(initial?.checkedAt ?? 0) +
-			rssConstraints.defaultRefreshIntervalMinutes * 60_000,
-	);
+	expect(initial?.nextAttemptAt).toBe((initial?.checkedAt ?? 0) + 30 * 60_000);
+	if (!initial || initial.checkedAt === null)
+		throw new Error("Missing RSS evidence");
+	f.database.acquisition.saveFeed({
+		...initial,
+		nextAttemptAt: initial.checkedAt + 60 * 60_000,
+	});
 	vi.useFakeTimers();
 	const worker = await createAcquisitionModule({
 		...f.options,
@@ -231,19 +233,13 @@ test("RSS uses the default interval and reschedules existing feeds after live ch
 	});
 	cleanup.push(() => worker.close());
 	await vi.advanceTimersByTimeAsync(0);
-	f.advance(10 * 60_000);
+	f.advance(29 * 60_000);
 	await vi.advanceTimersByTimeAsync(30_000);
 	expect(f.fetch).toHaveBeenCalledTimes(1);
-	f.state.refreshIntervalMinutes = 60;
-	await vi.advanceTimersByTimeAsync(30_000);
 	expect(f.database.acquisition.feed(feedId)?.nextAttemptAt).toBe(
-		(initial?.checkedAt ?? 0) + 60 * 60_000,
+		initial.checkedAt + 30 * 60_000,
 	);
-	f.advance(20 * 60_000);
-	await vi.advanceTimersByTimeAsync(30_000);
-	expect(f.fetch).toHaveBeenCalledTimes(1);
-	// Reducing the interval makes this existing feed due on the next scheduler check.
-	f.state.refreshIntervalMinutes = 15;
+	f.advance(60_000);
 	f.fetch.mockResolvedValueOnce({
 		xml: null as never,
 		etag: "etag-1",
@@ -253,7 +249,7 @@ test("RSS uses the default interval and reschedules existing feeds after live ch
 	expect(f.fetch).toHaveBeenCalledTimes(2);
 	const refreshed = f.database.acquisition.feed(feedId);
 	expect(refreshed?.nextAttemptAt).toBe(
-		(refreshed?.checkedAt ?? 0) + 15 * 60_000,
+		(refreshed?.checkedAt ?? 0) + 30 * 60_000,
 	);
 	const candidates = f.discovery.get(key).candidates;
 	expect(candidates).toHaveLength(saved.candidates.length);
@@ -272,7 +268,7 @@ test("RSS uses the default interval and reschedules existing feeds after live ch
 	}
 });
 
-test("changing the RSS interval preserves failure retry deadlines and restart recovery", async () => {
+test("the RSS scheduler preserves failure retry deadlines through restart", async () => {
 	const f = await fixture();
 	const saved = await f.subscribe();
 	const feedId = saved.subscription?.feedId ?? "";
@@ -281,7 +277,6 @@ test("changing the RSS interval preserves failure retry deadlines and restart re
 	await f.discovery.refresh(key, saved.subscription?.revision ?? "");
 	const failed = f.database.acquisition.feed(feedId);
 	expect(failed?.failures).toBe(1);
-	f.state.refreshIntervalMinutes = 1440;
 	vi.useFakeTimers();
 	const worker = await createAcquisitionModule({
 		...f.options,
@@ -299,7 +294,7 @@ test("changing the RSS interval preserves failure retry deadlines and restart re
 	const recovered = f.database.acquisition.feed(feedId);
 	expect(recovered?.failures).toBe(0);
 	expect(recovered?.nextAttemptAt).toBe(
-		(recovered?.checkedAt ?? 0) + 1440 * 60_000,
+		(recovered?.checkedAt ?? 0) + 30 * 60_000,
 	);
 });
 

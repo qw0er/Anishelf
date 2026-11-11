@@ -1,5 +1,4 @@
 // @vitest-environment happy-dom
-import { rssConstraints } from "@anishelf/backend/contracts/defaults";
 import { afterEach, expect, test, vi } from "vitest";
 import { RssSettings } from "../../../src/features/acquisition/rss-settings.js";
 import * as api from "../../../src/shared/api/client.js";
@@ -39,72 +38,6 @@ const profiles = {
 	selectionAvailable: true,
 };
 
-test("saves the RSS interval after the draft changes", async () => {
-	let settings: {
-		resourceRoots: string[];
-		rssRefreshIntervalMinutes?: number;
-	} = { resourceRoots: [] };
-	const request = vi
-		.spyOn(api, "request")
-		.mockImplementation(async (_path, method, _options, payload) => {
-			if (_path === "/api/acquisition/profiles") return profiles;
-			if (method === "PUT")
-				settings = {
-					...settings,
-					...(payload as { rssRefreshIntervalMinutes: number }),
-				};
-			return settings;
-		});
-	const notice = vi.spyOn(toast, "add").mockReturnValue("rss-settings-save");
-	const view = render(<RssSettings />);
-	const input = await screen.findByRole("spinbutton", {
-		name: "Refresh interval (minutes)",
-	});
-	expect((input as HTMLInputElement).value).toBe(
-		String(rssConstraints.defaultRefreshIntervalMinutes),
-	);
-	fireEvent.change(input, { target: { value: "60" } });
-	await waitFor(
-		() =>
-			expect(request.mock.calls.filter((call) => call[1] === "PUT")).toEqual([
-				["/api/settings", "PUT", undefined, { rssRefreshIntervalMinutes: 60 }],
-			]),
-		{ timeout: 2_000 },
-	);
-	await waitFor(() =>
-		expect(notice).toHaveBeenCalledWith(
-			expect.objectContaining({ type: "success" }),
-		),
-	);
-	expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-	view.unmount();
-	render(<RssSettings />);
-	expect(
-		((await screen.findByRole("spinbutton")) as HTMLInputElement).value,
-	).toBe("60");
-});
-
-test("failed RSS interval saves retain the draft", async () => {
-	vi.spyOn(api, "request").mockImplementation(async (_path, method) => {
-		if (_path === "/api/acquisition/profiles") return profiles;
-		if (method === "PUT") throw new Error("unavailable");
-		return { resourceRoots: [], rssRefreshIntervalMinutes: 45 };
-	});
-	const notice = vi.spyOn(toast, "add").mockReturnValue("rss-settings-save");
-	render(<RssSettings />);
-	const input = await screen.findByRole("spinbutton");
-	fireEvent.change(input, { target: { value: "60" } });
-	await waitFor(
-		() =>
-			expect(notice).toHaveBeenCalledWith(
-				expect.objectContaining({ type: "error" }),
-			),
-		{ timeout: 2_000 },
-	);
-	expect((input as HTMLInputElement).value).toBe("60");
-	expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-});
-
 test("profile choice is saved directly without a Save action", async () => {
 	const request = vi
 		.spyOn(api, "request")
@@ -114,6 +47,9 @@ test("profile choice is saved directly without a Save action", async () => {
 	render(<RssSettings />);
 	const general = await screen.findByRole("radio", { name: /General/ });
 	expect(general.getAttribute("aria-checked")).toBe("true");
+	expect(
+		screen.queryByRole("spinbutton", { name: "Refresh interval (minutes)" }),
+	).toBeNull();
 	const efficient = screen.getByRole("radio", {
 		name: /Efficient codecs preferred/,
 	});
@@ -148,37 +84,33 @@ test("shows a warning when custom acquisition profiles could not be loaded", asy
 	expect(alert.textContent).toContain("acquisition-profiles.yaml");
 });
 
-test("background settings failure preserves the mounted draft and focus, then recovers", async () => {
+test("background profile refresh failures preserve the selection and focus", async () => {
 	let failed = false;
-	vi.spyOn(api, "request").mockImplementation(async (path, method) => {
-		if (path === "/api/acquisition/profiles") return profiles;
-		if (method === "GET" && failed) throw new Error("offline");
-		return { resourceRoots: [], rssRefreshIntervalMinutes: 45 };
+	vi.spyOn(api, "request").mockImplementation(async () => {
+		if (failed) throw new Error("offline");
+		return profiles;
 	});
-	const add = vi.spyOn(toast, "add").mockReturnValue("settings-configuration");
+	const add = vi.spyOn(toast, "add").mockReturnValue("acquisition-profiles");
 	const close = vi.spyOn(toast, "close");
 	render(<RssSettings />);
-	const input = await screen.findByRole("spinbutton");
-	input.focus();
-	fireEvent.change(input, { target: { value: "0" } });
-	fireEvent.blur(input);
-	expect(screen.getByRole("alert").id).toBe("rss-refresh-interval-error");
-	expect(add).not.toHaveBeenCalled();
+	const selected = await screen.findByRole("radio", { name: /General/ });
+	selected.focus();
+	const filters = { queryKey: ["acquisition", "profiles"] };
+
 	failed = true;
-	await queryClient.refetchQueries({ queryKey: ["settings"] });
+	await queryClient.refetchQueries(filters);
 	await waitFor(() => expect(add).toHaveBeenCalledOnce());
-	expect(screen.getByRole("spinbutton")).toBe(input);
-	expect((input as HTMLInputElement).value).toBe("0");
-	expect(document.activeElement).toBe(input);
-	await queryClient.refetchQueries({ queryKey: ["settings"] });
+	expect(screen.getByRole("radio", { name: /General/ })).toBe(selected);
+	expect(selected.getAttribute("aria-checked")).toBe("true");
+	expect(document.activeElement).toBe(selected);
+	await queryClient.refetchQueries(filters);
 	expect(add).toHaveBeenCalledOnce();
+
 	failed = false;
-	await queryClient.refetchQueries({ queryKey: ["settings"] });
+	close.mockClear();
+	await queryClient.refetchQueries(filters);
 	await waitFor(() =>
-		expect(close).toHaveBeenCalledWith("settings-configuration"),
+		expect(close).toHaveBeenCalledWith("acquisition-profiles"),
 	);
-	expect(document.activeElement).toBe(input);
-	failed = true;
-	await queryClient.refetchQueries({ queryKey: ["settings"] });
-	await waitFor(() => expect(add).toHaveBeenCalledTimes(2));
+	expect(document.activeElement).toBe(selected);
 });

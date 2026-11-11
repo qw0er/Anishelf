@@ -11,7 +11,6 @@ import {
 } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { Check } from "typebox/value";
-import { rssConstraints } from "../../../../contracts/defaults.js";
 import { TranscodeProfileIdSchema } from "../../../../contracts/schemas/transcode-profiles.js";
 import { canonicalPath } from "../../../../platform/canonical-path.js";
 import { storageRules } from "../../../../platform/storage.js";
@@ -85,18 +84,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		defaultMetadataProvider !== "bangumi"
 	)
 		throw new DomainError("CONFIG_INVALID", "Invalid defaultMetadataProvider.");
-	const rssInterval = settings.rssRefreshIntervalMinutes;
-	if (
-		rssInterval !== undefined &&
-		(typeof rssInterval !== "number" ||
-			!Number.isSafeInteger(rssInterval) ||
-			rssInterval < rssConstraints.minimumRefreshIntervalMinutes ||
-			rssInterval > rssConstraints.maximumRefreshIntervalMinutes)
-	)
-		throw new DomainError(
-			"CONFIG_INVALID",
-			"settings.json rssRefreshIntervalMinutes must be an integer between 1 and 1440.",
-		);
 	const acquisitionId = settings.defaultAcquisitionProfileId;
 	if (
 		acquisitionId !== undefined &&
@@ -157,9 +144,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 		...(typeof acquisitionId === "string"
 			? { defaultAcquisitionProfileId: acquisitionId }
 			: {}),
-		...(rssInterval === undefined
-			? {}
-			: { rssRefreshIntervalMinutes: rssInterval as number }),
 		...(settings.qbittorrentWebUiUrl === undefined
 			? {}
 			: {
@@ -231,7 +215,8 @@ async function loadPersistentSettings(
 	const stored = JSON.parse(source);
 	if (
 		Object.hasOwn(stored, "scanIntervalMinutes") ||
-		Object.hasOwn(stored, "transcodeCacheBudgetGiB")
+		Object.hasOwn(stored, "transcodeCacheBudgetGiB") ||
+		Object.hasOwn(stored, "rssRefreshIntervalMinutes")
 	)
 		await writePersistentSettings(dataDir, settings);
 	return settings;

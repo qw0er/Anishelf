@@ -261,6 +261,7 @@ tracking-service synchronization (T06).
 | O23 | Support multi-node deployments | Not started | Optional | — | — |
 | O24 | Separate cache and persistent data storage locations | Not started | Optional | — | — |
 | O25 | Configure a total storage limit for prepared copies | Not started | Optional | [Prepared Copy Storage Limit](#prepared-copy-storage-limit-o25) | — |
+| O26 | Configure the source refresh interval in Web Settings | Not started | Optional | [Source Refresh Interval](#source-refresh-interval-o26) | — |
 
 #### Delivery Notes (O)
 
@@ -278,6 +279,14 @@ access to manual cleanup. Preserve existing copies when the limit is lowered.
 
 See [O18](implemented-requirements.md#prepared-copy-storage-o18) for the retired
 cache budget setting.
+
+#### Source Refresh Interval (O26)
+
+Allow administrators to adjust the shared RSS and Jackett refresh interval from
+the Downloads section of Settings. The current interval is fixed at 30 minutes.
+If this feature is implemented, retain 30 minutes as the default and preserve
+existing retry and rate-limit behavior. Users can request an immediate check
+from a subscription's actions.
 
 #### Configuration File Editor (O19)
 

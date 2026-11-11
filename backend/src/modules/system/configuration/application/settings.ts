@@ -55,9 +55,6 @@ export class SettingsApplication {
 				...(patch.defaultMetadataProvider === undefined
 					? {}
 					: { defaultMetadataProvider: patch.defaultMetadataProvider }),
-				...(patch.rssRefreshIntervalMinutes === undefined
-					? {}
-					: { rssRefreshIntervalMinutes: patch.rssRefreshIntervalMinutes }),
 				durationMs: Date.now() - started,
 			},
 			"Settings saved.",

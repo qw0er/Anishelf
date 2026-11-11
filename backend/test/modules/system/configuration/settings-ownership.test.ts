@@ -60,13 +60,13 @@ test("System settings HTTP updates media settings while Resources reserves its s
 			headers,
 			payload: {
 				resourceRoots: [root],
-				rssRefreshIntervalMinutes: 12,
+				titleDisplayPreference: "chinese",
 			},
 		});
 		expect(response.statusCode).toBe(200);
 		expect(response.json()).toMatchObject({
 			resourceRoots: [root],
-			rssRefreshIntervalMinutes: 12,
+			titleDisplayPreference: "chinese",
 		});
 		const selection = await app.inject({
 			method: "PUT",
@@ -125,9 +125,9 @@ test("a media settings patch does not restore a stale root or overwrite concurre
 	// All writes enqueue before persistence completes; the media patch observes the old root.
 	const rootWrite = system.api.patchSettings({ resourceRoots: [other] });
 	const profileWrite = system.api.selectTranscodeProfile("builtin:fast");
-	const refreshIntervalWrite = settings.updateSettings({
+	const titlePreferenceWrite = settings.updateSettings({
 		resourceRoots: [root],
-		rssRefreshIntervalMinutes: 14,
+		titleDisplayPreference: "english",
 	});
 	const webUiWrite = settings.updateSettings({
 		qbittorrentWebUiUrl: "https://downloads.example.com/",
@@ -135,12 +135,12 @@ test("a media settings patch does not restore a stale root or overwrite concurre
 	await Promise.all([
 		rootWrite,
 		profileWrite,
-		refreshIntervalWrite,
+		titlePreferenceWrite,
 		webUiWrite,
 	]);
 	expect(system.api.settings).toMatchObject({
 		resourceRoots: [other],
-		rssRefreshIntervalMinutes: 14,
+		titleDisplayPreference: "english",
 		defaultTranscodeProfileId: "builtin:fast",
 		qbittorrentWebUiUrl: "https://downloads.example.com/",
 	});

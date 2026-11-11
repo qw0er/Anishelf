@@ -26,7 +26,6 @@ export interface SourcesApplicationOptions {
 	jackett?: JackettConnection;
 	logger: Logger;
 	now?: () => number;
-	refreshIntervalMinutes?: () => number | undefined;
 }
 
 /** Private implementation. Consumers receive the unified API from createSourcesModule. */

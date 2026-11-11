@@ -244,9 +244,7 @@ test("activation uses the saved subscription default instead of an older automat
 			}),
 		).toBeTruthy(),
 	);
-	expect(
-		screen.getAllByText("Follows global default: New default").length,
-	).toBeGreaterThan(0);
+	expect(screen.queryByText(/^Follows global default:/)).toBeNull();
 	fireEvent.click(
 		screen.getByRole("button", {
 			name: "Confirm and enable Watching automation",

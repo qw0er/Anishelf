@@ -270,44 +270,16 @@ test.each([0, 60, -1, 1.5, 10081, "60", null])(
 	},
 );
 
-test.each([1, 45, 1440])(
-	"RSS refresh interval %s persists across reloads and unrelated saves",
-	async (rssRefreshIntervalMinutes) => {
-		const response = await app.inject({
-			method: "PUT",
-			url: "/api/settings",
-			headers,
-			payload: { rssRefreshIntervalMinutes },
-		});
-		expect(response.statusCode).toBe(200);
-		expect(response.json().rssRefreshIntervalMinutes).toBe(
-			rssRefreshIntervalMinutes,
-		);
-		expect(
-			(await PersistentConfiguration.load(dataDir)).settings
-				.rssRefreshIntervalMinutes,
-		).toBe(rssRefreshIntervalMinutes);
-		expect((await save()).statusCode).toBe(200);
-		expect(
-			(await app.inject({ url: "/api/settings", headers })).json()
-				.rssRefreshIntervalMinutes,
-		).toBe(rssRefreshIntervalMinutes);
-	},
-);
-
-test.each([0, -1, 1.5, 1441, "30", null])(
-	"rejects invalid RSS refresh interval %j without saving",
-	async (rssRefreshIntervalMinutes) => {
-		const response = await app.inject({
-			method: "PUT",
-			url: "/api/settings",
-			headers,
-			payload: { rssRefreshIntervalMinutes },
-		});
-		expect(response.statusCode).toBe(400);
-		expect(configuration.settings).toEqual({ resourceRoots: [] });
-	},
-);
+test("HTTP rejects the removed RSS refresh interval without saving", async () => {
+	const response = await app.inject({
+		method: "PUT",
+		url: "/api/settings",
+		headers,
+		payload: { resourceRoots: [root], rssRefreshIntervalMinutes: 45 },
+	});
+	expect(response.statusCode).toBe(400);
+	expect(configuration.settings).toEqual({ resourceRoots: [] });
+});
 
 test("title preference HTTP update is independent of resource setup and survives reload", async () => {
 	const response = await app.inject({

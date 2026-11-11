@@ -986,8 +986,6 @@
 		"rss": {
 			"profileSaved": "发布配置已保存。",
 			"profileSaveFailed": "无法保存发布配置。",
-			"saved": "RSS 设置已保存。",
-			"saveFailed": "无法保存 RSS 设置，请重试。",
 			"title": "订阅默认设置",
 			"description": "新订阅和在看自动化的发布偏好。",
 			"defaultProfile": "发布配置",
@@ -997,13 +995,7 @@
 			"saveProfile": "保存发布配置",
 			"loadProfilesFailed": "无法加载发布配置。",
 			"retryProfiles": "重试加载配置",
-			"loading": "正在加载 RSS 设置…",
-			"loadFailed": "无法加载 RSS 设置。",
-			"refreshInterval": "刷新间隔（分钟）",
-			"refreshHelp": "适用于所有 RSS 订阅。默认 {{minutes}} 分钟，更改无需重启即可生效。",
-			"invalidInterval": "请输入 {{min}} 到 {{max}} 之间的整数分钟数。",
-			"saving": "正在保存…",
-			"save": "保存",
+			"loadingProfiles": "正在加载发布配置…",
 			"customBadge": "自定义"
 		},
 		"webui": {
@@ -1241,7 +1233,6 @@
 			"settings": "自动化设置",
 			"management_other": "自动订阅 · {{count}} 部作品",
 			"previewHelp_other": "为 {{count}} 部在看作品启用自动获取。手动订阅和已完成的记录会保留。",
-			"previewProfile": "跟随全局默认：{{name}}",
 			"enabled": "已启用",
 			"disabled": "已禁用",
 			"reasons": {

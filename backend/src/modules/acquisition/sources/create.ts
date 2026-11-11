@@ -26,7 +26,6 @@ export interface SourcesModuleOptions {
 	transport?: FeedTransport;
 	torrentTransport?: SourceTorrentTransport;
 	now?: () => number;
-	refreshIntervalMinutes?: () => number | undefined;
 }
 
 function sourceError(error: unknown): never {
@@ -123,9 +122,6 @@ export async function createSourcesModule(options: SourcesModuleOptions) {
 		torrentTransport:
 			options.torrentTransport ?? new RssTransport(undefined, gate),
 		...(options.now ? { now: options.now } : {}),
-		...(options.refreshIntervalMinutes
-			? { refreshIntervalMinutes: options.refreshIntervalMinutes }
-			: {}),
 	});
 	const runtime: SourcesRuntime = Object.freeze<SourcesRuntime>({
 		start: application.start.bind(application),

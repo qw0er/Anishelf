@@ -520,25 +520,20 @@ export function SubscriptionPanel({
 										? t("acquisition.subscription.automaticSource")
 										: sub.source}
 								</dd>
-								<dt className="text-muted-foreground">
-									{t("acquisition.subscription.releaseProfile")}
-								</dt>
-								<dd>
-									{sub.management === "watching"
-										? t("acquisition.watching.previewProfile", {
-												name:
-													profiles.data?.profiles.find(
-														(p) => p.id === profiles.data?.selectedProfileId,
-													)?.name ??
-													profiles.data?.selectedProfileId ??
-													"…",
-											})
-										: (profiles.data?.profiles.find(
+								{sub.management !== "watching" && (
+									<>
+										<dt className="text-muted-foreground">
+											{t("acquisition.subscription.releaseProfile")}
+										</dt>
+										<dd>
+											{profiles.data?.profiles.find(
 												(p) => p.id === sub.profileId,
 											)?.name ??
-											sub.profileId ??
-											t("acquisition.subscription.followDefault"))}
-								</dd>
+												sub.profileId ??
+												t("acquisition.subscription.followDefault")}
+										</dd>
+									</>
+								)}
 								<dt className="text-muted-foreground">
 									{t("acquisition.manager.lastCheck")}
 								</dt>

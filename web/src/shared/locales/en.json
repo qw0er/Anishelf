@@ -1004,8 +1004,6 @@
 		"rss": {
 			"profileSaved": "Release profile saved.",
 			"profileSaveFailed": "Could not save release profile.",
-			"saved": "RSS settings saved.",
-			"saveFailed": "Could not save RSS settings. Try again.",
 			"title": "Subscription defaults",
 			"description": "Release preferences for new subscriptions and Watching automation.",
 			"defaultProfile": "Release profile",
@@ -1015,13 +1013,7 @@
 			"saveProfile": "Save release profile",
 			"loadProfilesFailed": "Could not load release profiles.",
 			"retryProfiles": "Retry profiles",
-			"loading": "Loading RSS settings…",
-			"loadFailed": "Could not load RSS settings.",
-			"refreshInterval": "Refresh interval (minutes)",
-			"refreshHelp": "Applies to all RSS subscriptions. Default: {{minutes}} minutes. Changes apply without a restart.",
-			"invalidInterval": "Enter a whole number between {{min}} and {{max}} minutes.",
-			"saving": "Saving…",
-			"save": "Save",
+			"loadingProfiles": "Loading release profiles…",
 			"customBadge": "Custom"
 		},
 		"sources": {
@@ -1292,7 +1284,6 @@
 			"management_other": "Automatic subscriptions · {{count}} works",
 			"previewHelp_one": "Enable automatic acquisition for {{count}} Watching work. Manual subscriptions and completed records are preserved.",
 			"previewHelp_other": "Enable automatic acquisition for {{count}} Watching works. Manual subscriptions and completed records are preserved.",
-			"previewProfile": "Follows global default: {{name}}",
 			"enabled": "Enabled",
 			"disabled": "Disabled",
 			"progressDescription": "Start after your AniList progress.",

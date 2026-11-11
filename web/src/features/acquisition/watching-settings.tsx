@@ -206,13 +206,6 @@ function WatchingForm({
 		override.isPending;
 	return (
 		<div className="space-y-3">
-			<p className="text-sm text-muted-foreground">
-				{t("acquisition.watching.previewProfile", {
-					name:
-						profiles.data?.profiles.find((p) => p.id === profileId)?.name ??
-						status.effectiveProfile.name,
-				})}
-			</p>
 			{!management && (
 				<>
 					<RadioCardGroup
@@ -292,14 +285,6 @@ function WatchingForm({
 							</DialogTitle>
 						</DialogHeader>
 						<div className="space-y-4 text-sm">
-							<p>
-								{t("acquisition.watching.previewProfile", {
-									name:
-										profiles.data?.profiles.find(
-											(profile) => profile.id === profileId,
-										)?.name ?? profileId,
-								})}
-							</p>
 							<p>
 								{t("acquisition.watching.destination", {
 									path: preview.data.destination,

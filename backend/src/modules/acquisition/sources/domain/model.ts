@@ -42,6 +42,7 @@ export class SourceError extends Error {
 }
 
 export const sourcePolicy = {
+	refreshIntervalMs: 30 * 60_000,
 	requestIntervalMs: 5000,
 	jackettRequestIntervalMs: 10000,
 	retryMaximumMs: 60 * 60_000,

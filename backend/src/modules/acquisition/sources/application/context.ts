@@ -1,11 +1,9 @@
 import type { Logger } from "pino";
-import { rssConstraints } from "../../../../contracts/defaults.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { sourcePolicy } from "../domain/model.js";
 export interface SourceRuntimeOptions {
 	logger: Logger;
 	now?: () => number;
-	refreshIntervalMinutes?: () => number | undefined;
 }
 export class SourceContext {
 	readonly shutdown = new AbortController();
@@ -17,10 +15,7 @@ export class SourceContext {
 		return this.options.now?.() ?? Date.now();
 	}
 	refreshIntervalMs() {
-		return (
-			(this.options.refreshIntervalMinutes?.() ??
-				rssConstraints.defaultRefreshIntervalMinutes) * 60_000
-		);
+		return sourcePolicy.refreshIntervalMs;
 	}
 	retryAt(failures: number, hint?: number) {
 		return Math.max(

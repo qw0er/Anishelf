@@ -73,7 +73,6 @@ async function fixture() {
 		jackett: connection,
 		logger,
 		now: () => now,
-		refreshIntervalMinutes: () => 30,
 	});
 	cleanup.push(() => application.close());
 	const input = (kind: "feed" | "search"): SourceInput =>

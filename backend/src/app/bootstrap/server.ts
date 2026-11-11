@@ -60,7 +60,6 @@ export async function createServer(
 					bundledSourcesConfigFile: system.deployment.bundledJackettConfigFile,
 				}
 			: {}),
-		rssRefreshIntervalMinutes: () => system.settings.rssRefreshIntervalMinutes,
 		...(system.onSettingsChanged
 			? { onSettingsChanged: system.onSettingsChanged.bind(system) }
 			: {}),

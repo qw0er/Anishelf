@@ -111,9 +111,11 @@ test("Configuration validates and persists the direct browser URL", async () => 
 	expect(
 		(await save({ qbittorrentWebUiUrl: null })).json().qbittorrentWebUiUrl,
 	).toBeNull();
-	expect((await save({ rssRefreshIntervalMinutes: 12 })).json()).toMatchObject({
+	expect(
+		(await save({ titleDisplayPreference: "english" })).json(),
+	).toMatchObject({
 		qbittorrentWebUiUrl: null,
-		rssRefreshIntervalMinutes: 12,
+		titleDisplayPreference: "english",
 	});
 	expect(
 		(
