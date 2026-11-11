@@ -94,6 +94,11 @@ function fixture(override: Partial<typeof item> = {}, hasSubscription = true) {
 test("compact activity is collapsed, reports real progress and delegates transfer controls to WebUI", async () => {
 	const request = fixture();
 	await screen.findByText("Downloading 42%");
+	const progress = screen.getByRole("progressbar", {
+		name: "Episode 3 download progress",
+	});
+	expect(progress.getAttribute("aria-valuenow")).toBe("0.42");
+	expect(progress.getAttribute("aria-valuemax")).toBe("1");
 	expect(
 		document
 			.querySelector("[data-slot=collapsible-trigger]")

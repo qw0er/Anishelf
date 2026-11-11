@@ -146,13 +146,13 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 				"-f",
 				"lavfi",
 				"-i",
-				"testsrc2=size=160x90:rate=24",
+				"testsrc2=size=128x72:rate=12",
 				"-f",
 				"lavfi",
 				"-i",
 				"sine=frequency=440:sample_rate=48000",
 				"-t",
-				"2",
+				"1.25",
 				"-c:v",
 				"libx264",
 				"-pix_fmt",
@@ -230,7 +230,7 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 					sourceVersion: progressSession.sourceVersion,
 					sequence: starts.mock.calls.length,
 					positionMs: 500,
-					durationMs: 2000,
+					durationMs: 1250,
 				},
 			});
 			expect(save.statusCode).toBe(200);
@@ -246,7 +246,7 @@ test("real prepared media supports HTTP seeking, playback selection and restart 
 			const path = join(root, `${mode}.mp4`);
 			await writeFile(path, prepared.rawPayload);
 			const info = await tools.probe(path);
-			expect(info.duration).toBeCloseTo(2, 0);
+			expect(info.duration).toBeCloseTo(1.25, 1);
 			await run(
 				ffmpeg,
 				[

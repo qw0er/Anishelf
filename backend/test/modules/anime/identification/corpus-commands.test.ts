@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test } from "vitest";
+import { parseCorpusCommand } from "../../../support/anime-corpus.js";
 import { identificationAuditFailed } from "../../../support/anime-identification-corpus.js";
 
 const root = fileURLToPath(new URL("../../../../../", import.meta.url));
@@ -46,7 +47,11 @@ test.each([
 	["generate"],
 	["generate", "a", "b"],
 ])("the data tool rejects obsolete or malformed arguments: %j", (...args) => {
-	const result = command("anime-corpus.mts", args);
+	expect(parseCorpusCommand(args)).toBeUndefined();
+});
+
+test("the data command reports usage and exits with status 2", () => {
+	const result = command("anime-corpus.mts", ["summary", "extra"]);
 	expect(result.status).toBe(2);
 	expect(result.stdout).toBe("");
 	expect(result.stderr).toContain("anime_corpus.command_rejected");

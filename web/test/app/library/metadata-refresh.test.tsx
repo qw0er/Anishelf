@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import type { AnimeLibraryResponse } from "../../../src/shared/api/contracts.js";
 import { animeFixture } from "../../fixtures/anime.js";
 import {
+	act,
 	fireEvent,
 	screen,
 	waitFor,
@@ -21,9 +22,16 @@ test("automatic metadata updates appear in an open detail and invalidate the cac
 	const detail = animeFixture();
 	detail.metadata.refreshing = true;
 	mockAnime(detail);
-	renderApp("/");
-	fireEvent.click(await screen.findByRole("link", { name: "Frieren" }));
-	await screen.findByRole("heading", { name: "Frieren", level: 1 });
+	vi.useFakeTimers();
+	await act(async () => {
+		renderApp("/");
+	});
+	await act(async () => {
+		fireEvent.click(screen.getByRole("link", { name: "Frieren" }));
+	});
+	expect(
+		screen.getByRole("heading", { name: "Frieren", level: 1 }),
+	).toBeTruthy();
 	expect(screen.getByText(/Metadata last updated:/)).toBeTruthy();
 	expect(screen.getByText("Refreshing metadata…")).toBeTruthy();
 	detail.work = {
@@ -38,11 +46,13 @@ test("automatic metadata updates appear in an open detail and invalidate the cac
 		stale: false,
 		refreshing: false,
 	};
-	await screen.findByRole(
-		"heading",
-		{ name: "Updated Frieren", level: 1 },
-		{ timeout: 4000 },
-	);
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(2000);
+	});
+	expect(
+		screen.getByRole("heading", { name: "Updated Frieren", level: 1 }),
+	).toBeTruthy();
+	vi.useRealTimers();
 	expect(screen.queryByText("Refreshing metadata…")).toBeNull();
 	expect(
 		fetcher.mock.calls.some(([path]) =>

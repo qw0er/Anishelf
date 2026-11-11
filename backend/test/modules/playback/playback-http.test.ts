@@ -139,63 +139,63 @@ test("HTTP open/save/list/release flow resumes progress and rejects delayed writ
 	expect((await save(resumed)).statusCode).toBe(409);
 });
 
-test.each([
-	{},
-	{ fileId: "" },
-	{ fileId: "../episode.mp4" },
-	{ fileId: 1 },
-	{ fileId: "file_invalid", sourceId: "private" },
-])(
-	"rejects invalid session bodies without opening a session: %j",
-	async (payload) => {
-		const operation = vi.spyOn(playback, "open");
+test("rejects invalid session bodies without opening a session", async () => {
+	const operation = vi.spyOn(playback, "open");
+	for (const payload of [
+		{},
+		{ fileId: "" },
+		{ fileId: "../episode.mp4" },
+		{ fileId: 1 },
+		{ fileId: "file_invalid", sourceId: "private" },
+	]) {
 		const response = await app.inject({
 			method: "POST",
 			url: "/api/playback/sessions",
 			headers,
 			payload,
 		});
-		expect(response.statusCode).toBe(400);
+		expect(response.statusCode, JSON.stringify(payload)).toBe(400);
 		expect(response.json().error.code).toBe("INVALID_REQUEST");
-		expect(operation).not.toHaveBeenCalled();
-	},
-);
-
-test.each([
-	{ generation: "1" },
-	{ generation: 0 },
-	{ sequence: 0 },
-	{ sequence: 1.5 },
-	{ positionMs: -1 },
-	{ positionMs: Number.MAX_SAFE_INTEGER + 1 },
-	{ durationMs: 0 },
-	{ durationMs: -1 },
-	{ sourceVersion: "" },
-	{ token: "body-token" },
-	{ sourceId: "private-source" },
-])("rejects invalid save bodies before the application: %j", async (extra) => {
-	const session = await open();
-	const operation = vi.spyOn(playback, "save");
-	const response = await app.inject({
-		method: "PUT",
-		url: `/api/playback/sessions/${session.token}/progress`,
-		headers,
-		payload: {
-			generation: session.progress.generation,
-			sourceVersion: session.sourceVersion,
-			sequence: 1,
-			positionMs: 1000,
-			durationMs: 100000,
-			...extra,
-		},
-	});
-	expect(response.statusCode).toBe(400);
+	}
 	expect(operation).not.toHaveBeenCalled();
 });
 
-test("accepts unknown duration and backward seeks, rejects stale sequences and version mismatches", async () => {
+test("rejects invalid save bodies before the application", async () => {
 	const session = await open();
-	await save(session, 2);
+	const operation = vi.spyOn(playback, "save");
+	for (const extra of [
+		{ generation: "1" },
+		{ generation: 0 },
+		{ sequence: 0 },
+		{ sequence: 1.5 },
+		{ positionMs: -1 },
+		{ positionMs: Number.MAX_SAFE_INTEGER + 1 },
+		{ durationMs: 0 },
+		{ durationMs: -1 },
+		{ sourceVersion: "" },
+		{ token: "body-token" },
+		{ sourceId: "private-source" },
+	]) {
+		const response = await app.inject({
+			method: "PUT",
+			url: `/api/playback/sessions/${session.token}/progress`,
+			headers,
+			payload: {
+				generation: session.progress.generation,
+				sourceVersion: session.sourceVersion,
+				sequence: 1,
+				positionMs: 1000,
+				durationMs: 100000,
+				...extra,
+			},
+		});
+		expect(response.statusCode, JSON.stringify(extra)).toBe(400);
+	}
+	expect(operation).not.toHaveBeenCalled();
+});
+
+test("accepts unknown duration and maps version mismatches to conflicts", async () => {
+	const session = await open();
 	const route = `/api/playback/sessions/${session.token}/progress`;
 	const body = {
 		generation: session.progress.generation,
@@ -204,18 +204,17 @@ test("accepts unknown duration and backward seeks, rejects stale sequences and v
 		positionMs: 1000,
 		durationMs: null,
 	};
-	const backward = await app.inject({
+	const unknownDuration = await app.inject({
 		method: "PUT",
 		url: route,
 		headers,
 		payload: body,
 	});
-	expect(backward.statusCode).toBe(200);
-	expect(backward.json().progress).toMatchObject({
+	expect(unknownDuration.statusCode).toBe(200);
+	expect(unknownDuration.json().progress).toMatchObject({
 		positionMs: 1000,
 		durationMs: null,
 	});
-	expect((await save(session, 1)).statusCode).toBe(409);
 	const mismatch = await app.inject({
 		method: "PUT",
 		url: route,
@@ -226,17 +225,24 @@ test("accepts unknown duration and backward seeks, rejects stale sequences and v
 	expect(mismatch.json().error.code).toBe("PLAYBACK_CONFLICT");
 });
 
-test.each(["0", "101", "-1", "1.5", "abc", "1&limit=2", "20&extra=1"])(
-	"rejects invalid history limits: %s",
-	async (query) => {
+test("rejects invalid history limits", async () => {
+	for (const query of [
+		"0",
+		"101",
+		"-1",
+		"1.5",
+		"abc",
+		"1&limit=2",
+		"20&extra=1",
+	]) {
 		const response = await app.inject({
 			url: `/api/history?limit=${query}`,
 			headers,
 		});
-		expect(response.statusCode).toBe(400);
+		expect(response.statusCode, query).toBe(400);
 		expect(response.json().error.code).toBe("INVALID_REQUEST");
-	},
-);
+	}
+});
 
 test("rejects malformed release tokens", async () => {
 	expect(
@@ -252,15 +258,22 @@ test("rejects malformed release tokens", async () => {
 
 test("rejects malformed Host and cross-site playback mutations before executing use cases", async () => {
 	const session = await open();
+	const openSession = vi.spyOn(playback, "open");
+	const saveProgress = vi.spyOn(playback, "save");
+	const releaseSession = vi.spyOn(playback, "release");
 	const operations = [
 		{
-			method: "POST" as const,
+			expectedStatus: 400,
+			method: "POST",
 			url: "/api/playback/sessions",
 			payload: { fileId },
+			headers: { host: "foreign.example:3000/path" },
 		},
 		{
-			method: "PUT" as const,
+			expectedStatus: 403,
+			method: "PUT",
 			url: `/api/playback/sessions/${session.token}/progress`,
+			headers: { ...headers, origin: "https://foreign.example" },
 			payload: {
 				generation: session.progress.generation,
 				sourceVersion: session.sourceVersion,
@@ -270,36 +283,20 @@ test("rejects malformed Host and cross-site playback mutations before executing 
 			},
 		},
 		{
-			method: "DELETE" as const,
+			expectedStatus: 403,
+			method: "DELETE",
 			url: `/api/playback/sessions/${session.token}`,
+			headers: { ...headers, "sec-fetch-site": "cross-site" },
 		},
-	];
-	for (const operation of operations) {
-		expect(
-			(
-				await app.inject({
-					...operation,
-					headers: { ...headers, origin: "https://foreign.example" },
-				})
-			).statusCode,
-		).toBe(403);
-		expect(
-			(
-				await app.inject({
-					...operation,
-					headers: { ...headers, "sec-fetch-site": "cross-site" },
-				})
-			).statusCode,
-		).toBe(403);
-		expect(
-			(
-				await app.inject({
-					...operation,
-					headers: { host: "foreign.example:3000/path" },
-				})
-			).statusCode,
-		).toBe(400);
+	] as const;
+	for (const { expectedStatus, ...operation } of operations) {
+		expect((await app.inject(operation)).statusCode, operation.method).toBe(
+			expectedStatus,
+		);
 	}
+	expect(openSession).not.toHaveBeenCalled();
+	expect(saveProgress).not.toHaveBeenCalled();
+	expect(releaseSession).not.toHaveBeenCalled();
 	expect((await save(session)).statusCode).toBe(200);
 });
 

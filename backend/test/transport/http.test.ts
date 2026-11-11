@@ -269,7 +269,9 @@ test("malformed JSON and oversized requests use safe errors", async () => {
 test("maps domain and unexpected errors without exposing internal paths", async () => {
 	const app = application();
 	app.get("/api/domain", async () => {
-		throw new DomainError("RESOURCE_MISSING", "/private/media/video.mp4");
+		throw new DomainError("RESOURCE_MISSING", "/private/media/video.mp4", {
+			cause: new Error("private filesystem cause"),
+		});
 	});
 	app.get("/api/failure", async () => {
 		throw new Error("/private/settings.json secret");
@@ -287,6 +289,7 @@ test("maps domain and unexpected errors without exposing internal paths", async 
 		expect(response.json().error.code).toBe(code);
 		expect(response.body).not.toContain("/private");
 		expect(response.body).not.toContain("secret");
+		expect(response.body).not.toContain("filesystem cause");
 	}
 });
 

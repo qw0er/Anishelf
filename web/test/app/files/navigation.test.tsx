@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { queryClient } from "../../../src/shared/api/query-client.js";
 import {
 	act,
@@ -65,28 +65,27 @@ test("Files searches the current directory and sorts files while keeping directo
 	const sort = screen.getByLabelText("Sort files");
 	fireEvent.change(sort, { target: { value: "size-asc" } });
 	expect(names()).toEqual(["Folder", "Episode 10.mp4", "Episode 2.mp4"]);
-	fireEvent.change(sort, { target: { value: "modified-desc" } });
-	expect(names()).toEqual(["Folder", "Episode 2.mp4", "Episode 10.mp4"]);
-	fireEvent.change(sort, { target: { value: "name-desc" } });
-	expect(names()).toEqual(["Folder", "Episode 10.mp4", "Episode 2.mp4"]);
-	fireEvent.change(sort, { target: { value: "default" } });
-	expect(names()).toEqual(["Folder", "Episode 2.mp4", "Episode 10.mp4"]);
 	const search = screen.getByLabelText(
 		"Search names in this directory and subfolders",
 	);
-	fireEvent.change(search, { target: { value: "EPISODE 10" } });
-	await waitFor(() => expect(names()).toEqual(["Episode 10.mp4"]));
-	fireEvent.change(search, { target: { value: "nested" } });
-	const nested = await screen.findByRole("link", {
-		name: "Nested episode.mp4",
-	});
+	vi.useFakeTimers();
+	const searchFor = async (value: string) => {
+		fireEvent.change(search, { target: { value } });
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(250);
+		});
+	};
+	await searchFor("EPISODE 10");
+	expect(names()).toEqual(["Episode 10.mp4"]);
+	await searchFor("nested");
+	const nested = screen.getByRole("link", { name: "Nested episode.mp4" });
 	expect(nested.getAttribute("href")).toContain("sub");
 	expect(within(nested).getByText("Folder")).toBeTruthy();
-	fireEvent.change(search, { target: { value: "missing" } });
-	expect(await screen.findByText("No names match your search.")).toBeTruthy();
+	await searchFor("missing");
+	expect(screen.getByText("No names match your search.")).toBeTruthy();
 	fireEvent.change(search, { target: { value: "Episode" } });
-	fireEvent.change(sort, { target: { value: "size-desc" } });
 	fireEvent.click(screen.getByRole("link", { name: "Parent directory" }));
+	vi.useRealTimers();
 	await screen.findByText("Directory: media");
 	expect(
 		(

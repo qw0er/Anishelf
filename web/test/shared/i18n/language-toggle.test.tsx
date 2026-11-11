@@ -23,6 +23,11 @@ afterEach(async () => {
 test("switches to Chinese and remembers the selection", async () => {
 	render(<LanguageToggle />);
 	fireEvent.click(screen.getByRole("button", { name: "Change language" }));
+	expect(
+		(await screen.findByRole("menuitem", { name: "English" })).getAttribute(
+			"aria-current",
+		),
+	).toBe("true");
 	fireEvent.click(await screen.findByRole("menuitem", { name: "简体中文" }));
 	await waitFor(() => expect(document.documentElement.lang).toBe("zh-CN"));
 	expect(window.localStorage.getItem(languageStorageKey)).toBe("zh-CN");
@@ -47,18 +52,4 @@ test("uses browser language unless a supported preference is saved", () => {
 			["zh-CN"],
 		),
 	).toBe("zh-CN");
-});
-
-test("offers the supported interface language and remembers the selection", async () => {
-	render(<LanguageToggle />);
-	fireEvent.click(screen.getByRole("button", { name: "Change language" }));
-	const english = await screen.findByRole("menuitem", { name: "English" });
-	expect(english.getAttribute("aria-current")).toBe("true");
-
-	fireEvent.click(english);
-
-	await waitFor(() =>
-		expect(window.localStorage.getItem(languageStorageKey)).toBe("en"),
-	);
-	expect(document.documentElement.lang).toBe("en");
 });

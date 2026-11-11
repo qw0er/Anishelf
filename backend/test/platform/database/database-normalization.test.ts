@@ -115,6 +115,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 		connectionGeneration: "g1",
 	};
 	const intent = {
+		acceptedTarget: null,
 		origin: "subscription",
 		oneOff: null,
 		id: "intent",
@@ -548,6 +549,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 					"prepared_artifacts",
 					"preparation_tasks", // Versioned immutable execution snapshots; lifecycle and demand fields stay relational.
 					"acquisition_candidates",
+					"catalog_reviews",
 				].includes(config.name),
 			);
 		}

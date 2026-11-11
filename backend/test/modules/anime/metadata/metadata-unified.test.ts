@@ -400,7 +400,7 @@ test.each([false, true])(
 		initial.close();
 		const raw = new Database(join(directory, "anishelf.sqlite"));
 		raw.exec(
-			"DROP INDEX metadata_reference_work_unique; ALTER TABLE preparation_tasks DROP COLUMN snapshot_plan_preserve_subtitles; DELETE FROM __drizzle_migrations WHERE created_at >= 1793664000000",
+			"DROP INDEX metadata_reference_work_unique; ALTER TABLE preparation_tasks DROP COLUMN snapshot_plan_preserve_subtitles; ALTER TABLE acquisition_subscriptions DROP COLUMN schedule; ALTER TABLE acquisition_intents DROP COLUMN accepted_target; ALTER TABLE catalog_reviews DROP COLUMN decision_origin; ALTER TABLE catalog_reviews DROP COLUMN acquisition; DELETE FROM __drizzle_migrations WHERE created_at >= 1793664000000",
 		);
 		const canonical = secondaryCanonical ? "bangumi-old" : "anilist-old";
 		raw
@@ -494,7 +494,7 @@ test("invalid historical identity groups reject migration atomically", async () 
 	initial.close();
 	const raw = new Database(join(directory, "anishelf.sqlite"));
 	raw.exec(
-		"DROP INDEX metadata_reference_work_unique; ALTER TABLE preparation_tasks DROP COLUMN snapshot_plan_preserve_subtitles; DELETE FROM __drizzle_migrations WHERE created_at >= 1793664000000; INSERT INTO metadata_references VALUES ('dangling','bangumi','20','missing')",
+		"DROP INDEX metadata_reference_work_unique; ALTER TABLE preparation_tasks DROP COLUMN snapshot_plan_preserve_subtitles; ALTER TABLE acquisition_subscriptions DROP COLUMN schedule; ALTER TABLE acquisition_intents DROP COLUMN accepted_target; ALTER TABLE catalog_reviews DROP COLUMN decision_origin; ALTER TABLE catalog_reviews DROP COLUMN acquisition; DELETE FROM __drizzle_migrations WHERE created_at >= 1793664000000; INSERT INTO metadata_references VALUES ('dangling','bangumi','20','missing')",
 	);
 	raw.close();
 	expect(() => ApplicationDatabase.open(directory)).toThrow();

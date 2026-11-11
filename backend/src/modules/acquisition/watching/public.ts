@@ -21,7 +21,7 @@ export interface WatchingListPort {
 export interface WatchingConfig {
 	backlog: "progress" | "beginning";
 }
-export interface WatchingProfile {
+interface WatchingProfile {
 	id: string;
 	name: string;
 	available: boolean;

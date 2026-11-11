@@ -141,7 +141,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				"-f",
 				"lavfi",
 				"-i",
-				"testsrc2=size=160x90:rate=24",
+				"testsrc2=size=128x72:rate=12",
 				"-f",
 				"lavfi",
 				"-i",
@@ -169,7 +169,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				"-disposition:a:1",
 				"0",
 				"-t",
-				"1.5",
+				"1",
 				"-c:v",
 				"libx264",
 				"-profile:v",
@@ -235,31 +235,42 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			};
 		}
 
-		async function packets(path: string, selector: string) {
+		async function packets(path: string) {
 			const result = await run(ffprobe, [
 				"-v",
 				"error",
-				"-select_streams",
-				selector,
 				"-show_packets",
+				"-show_streams",
 				"-show_data_hash",
 				"sha256",
 				"-show_entries",
-				"packet=data_hash",
+				"stream=index,codec_type:packet=stream_index,data_hash",
 				"-of",
 				"json",
 				path,
 			]);
-			return JSON.parse(result.stdout).packets.map(
-				(packet: { data_hash: string }) => packet.data_hash,
-			);
+			const data: {
+				streams: { index: number; codec_type: string }[];
+				packets: { stream_index: number; data_hash: string }[];
+			} = JSON.parse(result.stdout);
+			for (const packet of data.packets)
+				expect(packet.data_hash).toMatch(/^SHA256:[a-f\d]{64}$/i);
+			const hashes = (kind: string) =>
+				data.streams
+					.filter((stream) => stream.codec_type === kind)
+					.map((stream) =>
+						data.packets
+							.filter((packet) => packet.stream_index === stream.index)
+							.map((packet) => packet.data_hash),
+					);
+			return { video: hashes("video"), audio: hashes("audio") };
 		}
-		const inputPackets = {
-			v: await packets(sourcePath, "v"),
-			a: await Promise.all(
-				["a:0", "a:1"].map((selector) => packets(sourcePath, selector)),
-			),
-		};
+		const inputPackets = await packets(sourcePath);
+		expect(inputPackets.video).toHaveLength(1);
+		expect(inputPackets.video[0]?.length).toBeGreaterThan(0);
+		expect(inputPackets.audio).toHaveLength(2);
+		for (const track of inputPackets.audio)
+			expect(track.length).toBeGreaterThan(0);
 		for (const mode of [
 			"remux",
 			"transcode-audio",
@@ -279,7 +290,7 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				"aac",
 				"aac",
 			]);
-			expect(output.info.duration).toBeCloseTo(1.5, 0);
+			expect(output.info.duration).toBeCloseTo(1, 1);
 			const outputAudios = output.info.streams.filter(
 				(stream) => stream.type === "audio",
 			);
@@ -291,21 +302,20 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 				true,
 				false,
 			]);
-			if (result.request.plan.video.action === "copy") {
-				expect(
-					output.info.streams.find((stream) => stream.type === "video")
-						?.profile,
-				).toBe("Main");
-				expect(await packets(output.output.path, "v")).toEqual(inputPackets.v);
+			const copiesVideo = result.request.plan.video.action === "copy";
+			const copiesAudio = result.request.plan.audio.action === "copy";
+			if (copiesVideo || copiesAudio) {
+				const outputPackets = await packets(output.output.path);
+				if (copiesVideo) {
+					expect(
+						output.info.streams.find((stream) => stream.type === "video")
+							?.profile,
+					).toBe("Main");
+					expect(outputPackets.video).toEqual(inputPackets.video);
+				}
+				if (copiesAudio)
+					expect(outputPackets.audio).toEqual(inputPackets.audio);
 			}
-			if (result.request.plan.audio.action === "copy")
-				expect(
-					await Promise.all(
-						["a:0", "a:1"].map((selector) =>
-							packets(output.output.path, selector),
-						),
-					),
-				).toEqual(inputPackets.a);
 			if (mode === "transcode") {
 				const info = (
 					await inspection.inspect(file.id, source.identity.sourceVersion)
@@ -363,8 +373,8 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 						Buffer.from("moof"),
 					),
 				).toBe(true);
-				expect(await packets(fragmented.output.path, "v")).toEqual(
-					inputPackets.v,
+				expect((await packets(fragmented.output.path)).video).toEqual(
+					inputPackets.video,
 				);
 				await processing.release(fragmented.id);
 			}

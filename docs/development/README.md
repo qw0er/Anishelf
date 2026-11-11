@@ -170,7 +170,8 @@ Normal status reads do not emit business events.
 | Deployment fixtures | `npm run test:deployment` |
 | Complete identification audit | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`; [corpus usage](../../backend/test/fixtures/anime-identification/README.md) |
 
-Both Vitest workspaces default to four workers; use `--maxWorkers` when needed.
+Both Vitest workspaces use up to eight workers based on available CPU parallelism.
+Use `--maxWorkers` to override the count.
 Tests exercising media tools, architecture fixtures or real HTTP need permission
 to spawn child processes and bind localhost ports.
 

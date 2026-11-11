@@ -17,7 +17,12 @@ import { JackettConnection } from "../../../../src/modules/acquisition/sources/j
 
 const cleanup: (() => unknown)[] = [];
 afterEach(async () => {
-	for (const close of cleanup.splice(0).reverse()) await close();
+	try {
+		for (const close of cleanup.splice(0).reverse()) await close();
+	} finally {
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	}
 });
 async function fixture() {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-jackett-native-"));
@@ -170,6 +175,8 @@ test.each([false, true])(
 );
 
 test("Backend starting before Jackett waits without creating a legacy waiting journal", async () => {
+	vi.useFakeTimers();
+	const schedule = vi.spyOn(globalThis, "setTimeout");
 	const f = await fixture();
 	await writeFile(
 		join(f.directory, ".anishelf-bootstrap.json"),
@@ -177,14 +184,16 @@ test("Backend starting before Jackett waits without creating a legacy waiting jo
 	);
 	const active = await f.open();
 	active.bootstrap.start();
-	await new Promise((resolve) => setTimeout(resolve, 100));
+	await vi.waitFor(
+		() => expect(schedule).toHaveBeenCalledWith(expect.any(Function), 5000),
+		{ interval: 5 },
+	);
 	expect(await f.state.read()).toBeNull();
 	expect(active.connection.settings().origin).toBeNull();
 	await f.write();
-	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("complete"), {
-		timeout: 6500,
-	});
-}, 10_000);
+	await vi.advanceTimersByTimeAsync(5000);
+	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("complete"));
+});
 
 test("external connections survive delayed native configuration and no site is modified", async () => {
 	const f = await fixture();
@@ -274,6 +283,8 @@ test("an uncertain successful write is discovered after restart without another 
 });
 
 test("a transient site write failure retries in the same process", async () => {
+	vi.useFakeTimers();
+	const schedule = vi.spyOn(globalThis, "setTimeout");
 	const f = await fixture();
 	const original = f.request.getMockImplementation();
 	if (!original) throw new Error("Missing request mock");
@@ -286,13 +297,17 @@ test("a transient site write failure retries in the same process", async () => {
 		return original(input, init);
 	});
 	const active = await fresh(f);
-	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("complete"), {
-		timeout: 6500,
-	});
-	expect(
-		f.request.mock.calls.filter(([, init]) => init?.method === "POST"),
-	).toHaveLength(2);
-}, 10_000);
+	await vi.waitFor(
+		() => expect(schedule).toHaveBeenCalledWith(expect.any(Function), 5000),
+		{ interval: 5 },
+	);
+	const writes = () =>
+		f.request.mock.calls.filter(([, init]) => init?.method === "POST");
+	expect(writes()).toHaveLength(1);
+	await vi.advanceTimersByTimeAsync(5000);
+	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("complete"));
+	expect(writes()).toHaveLength(2);
+});
 
 test("an acknowledged POST without a configured site does not complete setup", async () => {
 	const f = await fixture();

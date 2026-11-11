@@ -1,9 +1,14 @@
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import * as capabilities from "../../../src/platform/media/capabilities.js";
 import { unknownMediaCapabilities } from "../../../src/platform/media/capability-model.js";
 import {
 	inspectEncodingProfiles,
 	parseOptionHelp,
 } from "../../../src/platform/media/option-catalog.js";
+import * as processTools from "../../../src/platform/media/process.js";
+import { MediaTools } from "../../../src/platform/media/tools.js";
+
+afterEach(() => vi.restoreAllMocks());
 
 test("selected encoder metadata and common help retain scopes across FFmpeg formats", () => {
 	const help = parseOptionHelp(
@@ -88,24 +93,43 @@ test("missing encoders and mismatched stream scopes are unsupported", async () =
 	expect(result.validation.test?.status).toBe("unsupported");
 });
 
-test("real tool metadata shares concurrent requests and refreshes on explicit reload", async () => {
-	const { default: pino } = await import("pino");
-	const { MediaTools } = await import("../../../src/platform/media/tools.js");
-	const events: { event?: string }[] = [];
-	const logger = pino(
-		{ level: "debug" },
-		{
-			write: (line) => {
-				events.push(JSON.parse(line));
-			},
-		},
+test("tool metadata shares concurrent requests and refreshes on explicit reload", async () => {
+	const server = unknownMediaCapabilities();
+	server.inventory.encoders = {
+		status: "ready",
+		error: null,
+		entries: capabilities.parseMediaCapabilities(
+			"encoders",
+			"Encoders:\n ------\n V..... libx264 Video (codec h264)\n A..... aac AAC",
+		),
+	};
+	const detect = vi
+		.spyOn(capabilities, "detectMediaCapabilities")
+		.mockResolvedValue(server);
+	vi.spyOn(processTools, "resolveExecutable").mockImplementation(
+		async (command) => command,
 	);
-	const tools = await MediaTools.create(
-		undefined,
-		undefined,
-		undefined,
-		logger,
-	);
+	const help = {
+		full: "AVCodecContext AVOptions:\n -b <int64> E..VA...... bitrate",
+		"encoder=libx264": "Encoder libx264:\n -crf <float> E..V....... Quality",
+		"encoder=aac": "Encoder aac:",
+		"muxer=mp4": "Muxer mp4:",
+	};
+	const run = vi
+		.spyOn(processTools, "runTool")
+		.mockImplementation(async (path, args) => {
+			if (args[0] === "-version")
+				return `${path.endsWith("ffmpeg") ? "ffmpeg" : "ffprobe"} version test`;
+			const topic = args[2];
+			if (!topic || !Object.hasOwn(help, topic))
+				throw new Error(`Unexpected tool arguments: ${args.join(" ")}`);
+			return help[topic as keyof typeof help];
+		});
+	const tools = await MediaTools.create({
+		ffmpegPath: "/test/ffmpeg",
+		ffprobePath: "/test/ffprobe",
+	});
+	run.mockClear();
 	const profiles = [
 		{
 			id: "custom:runtime",
@@ -120,11 +144,13 @@ test("real tool metadata shares concurrent requests and refreshes on explicit re
 	]);
 	expect(a.profiles[0]?.video.codec).toBe("h264");
 	expect(b.profiles[0]?.audio.codec).toBe("aac");
-	const count = () =>
-		events.filter((e) => e.event === "media.option_detection_started").length;
-	expect(count()).toBe(4);
+	const topics = () => run.mock.calls.map(([, args]) => args[2]).sort();
+	expect(topics()).toEqual(Object.keys(help).sort());
+	expect(detect).toHaveBeenCalledTimes(1);
 	await tools.validateProfiles(profiles);
-	expect(count()).toBe(4);
+	expect(topics()).toEqual(Object.keys(help).sort());
+	expect(detect).toHaveBeenCalledTimes(1);
 	await tools.validateProfiles(profiles, true);
-	expect(count()).toBe(8);
-}, 30000);
+	expect(topics()).toEqual([...Object.keys(help), ...Object.keys(help)].sort());
+	expect(detect).toHaveBeenCalledTimes(2);
+});

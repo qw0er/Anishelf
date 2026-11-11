@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import {
 	loadCorpus,
 	materializeCorpus,
+	parseCorpusCommand,
 	summarizeCorpus,
 } from "../../backend/test/support/anime-corpus.js";
 import {
@@ -9,13 +10,8 @@ import {
 	reportedResources,
 } from "../../backend/test/support/anime-reported-cases.js";
 
-const [command = "summary", ...arguments_] = process.argv.slice(2);
-if (
-	!(
-		(command === "summary" && arguments_.length === 0) ||
-		(command === "generate" && arguments_.length === 1 && arguments_[0])
-	)
-) {
+const parsed = parseCorpusCommand(process.argv.slice(2));
+if (!parsed) {
 	console.error(
 		JSON.stringify({
 			event: "anime_corpus.command_rejected",
@@ -25,6 +21,7 @@ if (
 	);
 	process.exitCode = 2;
 } else {
+	const { command } = parsed;
 	try {
 		console.error(
 			JSON.stringify({ event: "anime_corpus.started", command, offline: true }),
@@ -46,7 +43,7 @@ if (
 					}
 				: {
 						event: "anime_corpus.generated",
-						...(await materializeCorpus(corpus, resolve(arguments_[0] ?? ""), {
+						...(await materializeCorpus(corpus, resolve(parsed.destination), {
 							version: reported.version,
 							resources: reportedResources(reported),
 						})),

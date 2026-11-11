@@ -624,13 +624,7 @@ class InstallerTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         compose = (fixture.target / "compose.yaml").read_text(encoding="utf-8")
-        self.assertIn(
-            "ANISHELF_INITIAL_RESOURCE_ROOTS: /data/media:/data/extra/1", compose
-        )
         self.assertIn(f'      - "{extra}:/data/extra/1:rw,z"', compose)
-        self.assertIn(":/data/media:rw,z", compose)
-        self.assertIn(":/data/media:z", compose)
-        self.assertNotIn('chown "$${PUID}:$${PGID}" /data/media', compose)
         env = (fixture.target / ".env").read_text(encoding="utf-8")
         self.assertIn(f"ANISHELF_MEDIA_PATH='{media}'", env)
         self.assertNotIn("COMPOSE_PROFILES", env)

@@ -90,6 +90,14 @@ const corpusSchema = Type.Object({
 		}),
 	),
 });
+export function parseCorpusCommand(args: readonly string[]) {
+	const [command = "summary", destination, ...extra] = args;
+	if (command === "summary" && args.length <= 1) return { command } as const;
+	if (command === "generate" && destination && extra.length === 0)
+		return { command, destination } as const;
+	return undefined;
+}
+
 export type AnimeCorpus = Static<typeof corpusSchema>;
 export type AnimeCase = AnimeCorpus["cases"][number];
 const snapshotSchema = Type.Object({

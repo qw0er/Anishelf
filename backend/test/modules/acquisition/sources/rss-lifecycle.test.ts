@@ -255,7 +255,21 @@ test("RSS uses the default interval and reschedules existing feeds after live ch
 	expect(refreshed?.nextAttemptAt).toBe(
 		(refreshed?.checkedAt ?? 0) + 15 * 60_000,
 	);
-	expect(f.discovery.get(key).candidates).toEqual(saved.candidates);
+	const candidates = f.discovery.get(key).candidates;
+	expect(candidates).toHaveLength(saved.candidates.length);
+	for (const [index, candidate] of candidates.entries()) {
+		const previous = saved.candidates[index];
+		expect(candidate.selection?.policyRevision).not.toBe(
+			previous?.selection?.policyRevision,
+		);
+		expect(candidate).toEqual({
+			...previous,
+			selection: candidate.selection && {
+				...previous?.selection,
+				policyRevision: candidate.selection.policyRevision,
+			},
+		});
+	}
 });
 
 test("changing the RSS interval preserves failure retry deadlines and restart recovery", async () => {

@@ -22,6 +22,7 @@ import type {
 import { AutomaticIdentificationCoordinator } from "../../../../src/modules/anime/workflows/automatic-identification.js";
 import { createIdentificationModule } from "../../../../src/modules/anime/workflows/create-identification.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
+import { libraryRuntimePolicy } from "../../../../src/modules/resources/library/policy.js";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import type { SourceIdentity } from "../../../../src/modules/resources/resource-access/public.js";
 import { createHttpApp } from "../../../support/http.js";
@@ -74,6 +75,14 @@ async function fixture(paths = ["Frieren - 01.mkv"]) {
 		configuration: settingsStore(root),
 		index: new LibraryIndex(),
 		logger,
+		policy: {
+			...libraryRuntimePolicy,
+			library: {
+				...libraryRuntimePolicy.library,
+				changeDebounceMs: 20,
+				writeStabilityMs: 100,
+			},
+		},
 	});
 	cleanups.push(async () => {
 		await library.close();

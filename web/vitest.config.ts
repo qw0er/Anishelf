@@ -1,3 +1,4 @@
+import { availableParallelism } from "node:os";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -12,7 +13,7 @@ export default defineConfig({
 	test: {
 		environment: "node",
 		setupFiles: ["test/setup.ts"],
-		maxWorkers: 4,
+		maxWorkers: Math.min(8, availableParallelism()),
 		include: ["test/**/*.test.{ts,tsx}"],
 	},
 });
