@@ -12,6 +12,7 @@ import {
 	render,
 	screen,
 	waitFor,
+	within,
 } from "../../support/query-test-utils.js";
 
 afterEach(() => {
@@ -106,12 +107,18 @@ function fixture(overrides: Partial<WatchingAutomationStatus> = {}) {
 	return request;
 }
 
-test("Watching activation requires a separate preview and explicit confirmation, then can be disabled", async () => {
+test("Enabling shows the subscription scope before confirmation and can be disabled", async () => {
 	const request = fixture();
 	render(<WatchingSettings />);
 	const preview = await screen.findByRole("button", {
-		name: "Preview Watching automation",
+		name: "Enable automatic subscriptions",
 	});
+	expect(preview.textContent).toBe("Enable");
+	const manage = screen.getByRole("link", {
+		name: "Manage automatic subscriptions",
+	});
+	expect(manage.textContent).toBe("Manage");
+	expect(manage.getAttribute("href")).toBe("/subscriptions");
 	await waitFor(() =>
 		expect((preview as HTMLButtonElement).disabled).toBe(false),
 	);
@@ -119,19 +126,36 @@ test("Watching activation requires a separate preview and explicit confirmation,
 		0,
 	);
 	fireEvent.click(preview);
-	await screen.findByRole("dialog", { name: "Watching activation preview" });
-	expect(screen.getByText("Destination: /downloads")).toBeTruthy();
+	const dialog = await screen.findByRole("dialog", {
+		name: "Enable automatic subscriptions?",
+	});
+	const summary = within(dialog);
+	expect(summary.getByText("/downloads")).toBeTruthy();
+	expect(summary.getByText("Tracking progress + 1")).toBeTruthy();
+	expect(
+		summary.getByText(
+			"1 current work, plus future Watching or Rewatching additions.",
+		),
+	).toBeTruthy();
+	expect(summary.queryByRole("list", { name: "Work details" })).toBeNull();
+	fireEvent.click(summary.getByRole("button", { name: "Work details" }));
+	expect(
+		summary.getByRole("list", { name: "Work details" }).textContent,
+	).toContain("Frieren");
 	expect(request.mock.calls.some((call) => call[0] === `${base}/confirm`)).toBe(
 		false,
 	);
 	fireEvent.click(
 		screen.getByRole("button", {
-			name: "Confirm and enable Watching automation",
+			name: "Confirm and enable",
 		}),
 	);
 	const disable = await screen.findByRole("button", {
 		name: "Disable Watching automation",
 	});
+	expect(
+		screen.getByRole("button", { name: "Update automatic subscriptions" }),
+	).toBeTruthy();
 	expect(request).toHaveBeenCalledWith(
 		`${base}/confirm`,
 		"POST",
@@ -156,22 +180,22 @@ test("changing activation policy discards the preview; work overrides carry curr
 	const request = fixture();
 	render(<WatchingSettings />);
 	const preview = await screen.findByRole("button", {
-		name: "Preview Watching automation",
+		name: "Enable automatic subscriptions",
 	});
 	await waitFor(() =>
 		expect((preview as HTMLButtonElement).disabled).toBe(false),
 	);
 	fireEvent.click(preview);
 	await screen.findByRole("button", {
-		name: "Confirm and enable Watching automation",
+		name: "Confirm and enable",
 	});
-	fireEvent.click(screen.getByRole("button", { name: "Close" }));
+	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 	fireEvent.click(
 		await screen.findByRole("radio", { name: /^From episode 1/ }),
 	);
 	expect(
 		screen.queryByRole("button", {
-			name: "Confirm and enable Watching automation",
+			name: "Confirm and enable",
 		}),
 	).toBeNull();
 	cleanup();
@@ -206,7 +230,7 @@ test("activation uses the saved subscription default instead of an older automat
 	});
 	render(<WatchingSettings />);
 	const preview = await screen.findByRole("button", {
-		name: "Preview Watching automation",
+		name: "Enable automatic subscriptions",
 	});
 	await waitFor(() =>
 		expect((preview as HTMLButtonElement).disabled).toBe(false),
@@ -214,7 +238,7 @@ test("activation uses the saved subscription default instead of an older automat
 	expect(screen.queryByRole("combobox")).toBeNull();
 	fireEvent.click(preview);
 	await screen.findByRole("button", {
-		name: "Confirm and enable Watching automation",
+		name: "Confirm and enable",
 	});
 	expect(request).toHaveBeenCalledWith(
 		`${base}/preview`,
@@ -240,14 +264,14 @@ test("activation uses the saved subscription default instead of an older automat
 	await waitFor(() =>
 		expect(
 			screen.getByRole("button", {
-				name: "Confirm and enable Watching automation",
+				name: "Confirm and enable",
 			}),
 		).toBeTruthy(),
 	);
 	expect(screen.queryByText(/^Follows global default:/)).toBeNull();
 	fireEvent.click(
 		screen.getByRole("button", {
-			name: "Confirm and enable Watching automation",
+			name: "Confirm and enable",
 		}),
 	);
 	await waitFor(() =>

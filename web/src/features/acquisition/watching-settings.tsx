@@ -1,18 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-	ArrowRight,
-	ChevronRight,
-	Eye,
-	Pause,
-	Play,
-	Plus,
-	Rss,
-} from "lucide-react";
+import { ChevronRight, Pause, Play, Plus, Rss, Save } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isRequestCancelled } from "../../shared/api/client.js";
 import type { WatchingAutomationStatus } from "../../shared/api/contracts.js";
-import { ActionButton } from "../../shared/components/ui/action-button.js";
+import {
+	ActionButton,
+	ActionLink,
+} from "../../shared/components/ui/action-button.js";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import {
 	Card,
@@ -29,6 +24,8 @@ import {
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "../../shared/components/ui/dialog.js";
@@ -204,6 +201,14 @@ function WatchingForm({
 		confirm.isPending ||
 		disable.isPending ||
 		override.isPending;
+	const activationLabel = t(
+		status.enabled
+			? "acquisition.watching.update"
+			: "acquisition.watching.enable",
+	);
+	const activationShortLabel = t(
+		status.enabled ? "actions.save" : "actions.enable",
+	);
 	return (
 		<div className="space-y-3">
 			{!management && (
@@ -236,11 +241,10 @@ function WatchingForm({
 					) : null}
 					<div className="action-row">
 						<ActionButton
-							icon={Eye}
+							icon={status.enabled ? Save : Play}
 							aria-busy={preview.isPending}
-							label={t("acquisition.watching.preview")}
-							shortLabel={t("actions.preview")}
-							variant="outline"
+							label={activationLabel}
+							shortLabel={activationShortLabel}
 							disabled={
 								busy ||
 								!profileId ||
@@ -260,14 +264,12 @@ function WatchingForm({
 								onClick={() => disable.mutate()}
 							/>
 						)}
-						<a className={buttonStyles("outline")} href="/subscriptions">
-							<Rss className="size-4" aria-hidden="true" />
-							{t("acquisition.subscription.manageAutomatic")}
-							<ArrowRight
-								className="size-4 text-muted-foreground"
-								aria-hidden="true"
-							/>
-						</a>
+						<ActionLink
+							icon={Rss}
+							label={t("acquisition.subscription.manageAutomatic")}
+							shortLabel={t("acquisition.subscription.manage")}
+							href="/subscriptions"
+						/>
 					</div>
 				</>
 			)}
@@ -275,39 +277,52 @@ function WatchingForm({
 				<Dialog
 					open
 					onOpenChange={(open) => {
-						if (!open) preview.reset();
+						if (!open && !confirm.isPending) preview.reset();
 					}}
 				>
-					<DialogContent className="max-h-[85dvh] overflow-y-auto">
+					<DialogContent
+						className="max-h-[85dvh] overflow-y-auto"
+						showCloseButton={false}
+					>
 						<DialogHeader>
 							<DialogTitle>
-								{t("acquisition.watching.previewLabel")}
+								{t(
+									status.enabled
+										? "acquisition.watching.updateTitle"
+										: "acquisition.watching.enableTitle",
+								)}
 							</DialogTitle>
-						</DialogHeader>
-						<div className="space-y-4 text-sm">
-							<p>
-								{t("acquisition.watching.destination", {
-									path: preview.data.destination,
-								})}
-							</p>
-							<p>
-								{t("acquisition.watching.sites", {
-									sites: preview.data.providers.join(" → "),
-								})}
-							</p>
-							<p>
-								{t("acquisition.watching.previewHelp", {
+							<DialogDescription>
+								{t("acquisition.watching.scopeSummary", {
 									count: preview.data.works.length,
 								})}
-							</p>
+							</DialogDescription>
+						</DialogHeader>
+						<dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+							<dt className="text-muted-foreground">
+								{t("acquisition.watching.backlog")}
+							</dt>
+							<dd>
+								{t(`acquisition.watching.${preview.data.config.backlog}`)}
+							</dd>
+							<dt className="text-muted-foreground">
+								{t("acquisition.watching.destination")}
+							</dt>
+							<dd className="wrap-anywhere">{preview.data.destination}</dd>
+						</dl>
+						{preview.data.works.length > 0 && (
 							<Collapsible>
-								<CollapsibleTrigger className="cursor-pointer text-sm">
-									{t("acquisition.watching.previewLabel")}
+								<CollapsibleTrigger className="group flex cursor-pointer items-center gap-1.5 text-sm font-medium">
+									<ChevronRight
+										className="size-4 shrink-0 motion-safe:transition-transform group-aria-expanded:rotate-90"
+										aria-hidden="true"
+									/>
+									{t("acquisition.watching.workDetails")}
 								</CollapsibleTrigger>
 								<CollapsibleContent keepMounted>
 									<ul
-										className="max-h-64 overflow-auto text-sm"
-										aria-label={t("acquisition.watching.previewLabel")}
+										className="mt-2 max-h-64 space-y-2 overflow-auto text-sm"
+										aria-label={t("acquisition.watching.workDetails")}
 									>
 										{preview.data.works.map((work) => (
 											<li key={work.workKey}>
@@ -323,11 +338,25 @@ function WatchingForm({
 									</ul>
 								</CollapsibleContent>
 							</Collapsible>
+						)}
+						<DialogFooter>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={confirm.isPending}
+								onClick={() => preview.reset()}
+							>
+								{t("actions.cancel")}
+							</Button>
 							<ActionButton
-								icon={Play}
+								icon={status.enabled ? Save : Play}
 								aria-busy={confirm.isPending}
-								label={t("acquisition.watching.confirm")}
-								shortLabel={t("actions.enable")}
+								label={t(
+									status.enabled
+										? "acquisition.watching.confirmUpdate"
+										: "acquisition.watching.confirmEnable",
+								)}
+								shortLabel={activationShortLabel}
 								disabled={
 									busy ||
 									!profiles.data?.selectionAvailable ||
@@ -335,7 +364,7 @@ function WatchingForm({
 								}
 								onClick={() => confirm.mutate()}
 							/>
-						</div>
+						</DialogFooter>
 					</DialogContent>
 				</Dialog>
 			)}

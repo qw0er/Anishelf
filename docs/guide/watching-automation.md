@@ -8,10 +8,14 @@ AniList Watching and Rewatching entries. Manual subscriptions are independent; W
 1. In **Settings → Downloads**, configure [Sources](jackett-setup.md), their order,
    the downloader, a validated destination and subscription defaults.
 2. On a work, choose **Subscribe**, review the starting episode and save.
-3. Optionally enable **Watching automation**: choose progress plus one or episode 1,
-   preview the scope and confirm within five minutes in the same login session.
+3. For Watching automation, choose progress plus one or episode 1 and select
+   **Enable**. Review the work count, starting policy and
+   download destination in the confirmation dialog. Expand **Work details** to see
+   the starting episode and status of each work. Confirm within five minutes in
+   the same login session.
 
-Watching automation appears first in Downloads. Activation previews open in a dialog.
+Watching automation appears first in Downloads. Select **Save** to review and
+confirm changes to an enabled setup.
 Use **Subscriptions** in the main navigation for the subscription inventory and
 per-work inclusion or exclusion; work subscription states open structured details. Its activation preview uses the
 current global release profile in **Subscription defaults**. Every automatic

@@ -70,7 +70,7 @@ Preserve each rule's source confirmations and applicable context, explain its ef
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Low priority | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08); no active iteration assigned | — |
-| M10 | Discover anime beyond the user's library | Not started | Later | [Anime discovery](#anime-discovery-m10) | — |
+| M10 | Discover anime beyond the user's library | Not started | Optional | [Anime discovery](#anime-discovery-m10) | — |
 
 #### Delivery Notes (M)
 
@@ -257,7 +257,7 @@ tracking-service synchronization (T06).
 | --- | --- | --- | --- | --- | --- |
 | O03 | Dashboard for continued viewing, new episodes, downloads, and exceptions | Not started | Optional | — | — |
 | O09 | Support multiple users and permissions | Not started | Optional | — | — |
-| O19 | In-app editor for hand-written configuration files | Not started | Later | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
+| O19 | In-app editor for hand-written configuration files | Not started | Optional | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
 | O23 | Support multi-node deployments | Not started | Optional | — | — |
 | O24 | Separate cache and persistent data storage locations | Not started | Optional | — | — |
 | O25 | Configure a total storage limit for prepared copies | Not started | Optional | [Prepared Copy Storage Limit](#prepared-copy-storage-limit-o25) | — |
@@ -343,75 +343,11 @@ Details and acceptance criteria may be refined as decisions are made.
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | WI03 | Optimize resource matching | — | Low priority | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
-| WI09 | Improve automatic acquisition frequency | — | Low priority | Review the current frequency and define the desired scheduling behavior. | — |
-| WI12 | Improve resource-search title matching and feedback | Not started | Low priority | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
-| WI15 | Improve evidence-based decisions and their evaluation | Partial | Low priority | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
-| WI16 | Identify media by its actual contents | Not started | Low priority | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
+| WI16 | Identify media by its actual contents | Not started | Optional | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
 
 #### Matching Improvements from Real Failures (L16)
 
 Collect representative local failure cases with user-confirmed expected works and episode mappings, preserving filename, directory and release provenance. Diagnose extraction, candidate retrieval, ranking, numbering and admission separately. Prioritize recurring failures such as shortened titles, season/part ambiguity, continuous numbering and end-of-series markers; do not lower admission thresholds solely to improve corpus coverage.
-
-#### Resource Search Improvements (WI12)
-
-- **WI12:** Improve matching between a work's titles and resource-search results.
-  Explain whether results matched or were rejected and provide useful reasons for
-  uncertain or unsuccessful searches. Preserve the distinction between a candidate
-  and a confirmed match; do not accept uncertain results solely to increase matches.
-
-#### Evidence-based Decision Quality (WI15)
-
-**Delivered:** Existing identification and cross-provider title-enrichment corpora and
-conservative name verification provide initial evidence and evaluation. **Remaining:**
-Expand evaluation and decision coverage as described below.
-
-Improve decisions that depend on incomplete observations, naming conventions,
-similarity, ranking or thresholds. Coordinate filename and resource matching with
-L16 and WI03/WI12 rather than treating the same failure as separate acceptance
-work. Review and improve, as applicable:
-
-- Filename and directory parsing, title normalization, season and part evidence,
-  candidate retrieval and ranking, automatic admission, episode mapping and
-  directory-based numbering conversions.
-- Cross-provider name correspondence and candidate retrieval; release-title
-  identity, episode and attribute extraction; and acquisition filtering and version
-  selection with missing, stale or unreliable source observations.
-- Download-completion observations, video discovery by filename, external subtitle
-  association and language labels, browser playback compatibility, media acceptance
-  and preparation, playback completion and near-end decisions, and processing
-  progress estimates.
-
-For each decision, document its evidence, assumptions, unknown and conflicting
-states, consequences and limits. Improve accuracy and useful coverage while
-measuring false positive and false negative outcomes separately. Keep uncertainty
-visible or require review where evidence cannot justify an automatic action; do not
-weaken identity, episode, download authorization or original-file safeguards merely
-to increase coverage. A ranking score is not a probability unless independently
-calibrated and presented as such. A reported download completion does not prove
-successful ingestion, and a browser capability report does not guarantee playback.
-Preserve the existing names-only boundary for cross-provider enrichment.
-
-Maintain versioned evaluation datasets with independently reviewed expected results,
-source and capture provenance, rationale, and explicit unknown or unresolved labels.
-Extend the existing identification and title-enrichment corpora; add representative
-fixtures or datasets for the remaining decisions, including authentic failures,
-hard negatives, missing and contradictory data, boundary values, and relevant
-device/media observations. Preserve privacy and permissions when collecting cases.
-Use family-separated development and holdout cases where tuning can leak related
-examples, and record known sampling and ground-truth limitations. Include separately
-captured search and pagination cases to assess retrieval as well as candidate
-verification; do not describe a controlled candidate pool as end-to-end recall.
-
-Provide reproducible offline evaluations and reports per decision and relevant
-case category, including denominators, false admissions or unsafe actions, missed
-matches and unresolved outcomes where applicable. Establish reviewed baselines and
-explicit regression criteria before making them gates; include deterministic,
-maintainable checks in the normal test or CI workflow, and document any separately
-run real-device, network or media validation and its results. Compare changes with
-the baseline and holdout set, investigate regressions, and update expectations only
-with evidence rather than to make a test pass. Log decision reasons and evidence
-needed for diagnosis without exposing sensitive information or excessive per-item
-output. Report limitations instead of claiming universal accuracy or compatibility.
 
 #### Media Identification During Scanning (WI16)
 
@@ -441,7 +377,7 @@ identification is separate from playback compatibility and complete-file integri
 Validate the behavior with representative real or synthetic media and non-media
 fixtures, including misleading and absent extensions, audio-only containers,
 damaged and incomplete files, unavailable inspection, changed files, and large
-directory scans. Record coverage and limitations alongside WI15 evaluation work.
+directory scans. Record coverage and limitations.
 
 ## 5. Bugs
 
