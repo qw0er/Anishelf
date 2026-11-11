@@ -2,7 +2,7 @@
 	"name": "anishelf",
 	"license": "AGPL-3.0-only",
 	"author": "QWER",
-	"version": "1.6.2",
+	"version": "1.6.3",
 	"private": true,
 	"workspaces": [
 		"backend",
