@@ -215,3 +215,30 @@ test("WI17 removes only automatic profile bindings and retains ownership, histor
 		db.close();
 	}
 });
+
+test("WI18 initializes schedules lazily without changing accepted subscription state", async () => {
+	const db = new Database(":memory:");
+	try {
+		db.exec(
+			"CREATE TABLE acquisition_subscriptions (work_key TEXT PRIMARY KEY, revision TEXT, start_episode INTEGER, enabled INTEGER, created_by TEXT); INSERT INTO acquisition_subscriptions VALUES ('manual','manual-r',3,0,NULL),('watching','auto-r',5,1,'watching')",
+		);
+		const before = db
+			.prepare("SELECT * FROM acquisition_subscriptions ORDER BY work_key")
+			.all();
+		const sql = await readFile(
+			new URL(
+				"../../../../migrations/0022_subscription_airing_schedule.sql",
+				import.meta.url,
+			),
+			"utf8",
+		);
+		db.exec(sql);
+		expect(
+			db
+				.prepare("SELECT * FROM acquisition_subscriptions ORDER BY work_key")
+				.all(),
+		).toEqual(before.map((row) => ({ ...(row as object), schedule: null })));
+	} finally {
+		db.close();
+	}
+});

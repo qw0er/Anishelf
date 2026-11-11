@@ -88,6 +88,12 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 			subscription: (key) => subscriptions.get(key) ?? null,
 			subscriptions: () => [...subscriptions.values()],
 			candidates: (key) => candidates.get(key) ?? [],
+			saveSchedule: (key, revision, schedule) => {
+				const current = subscriptions.get(key);
+				if (!current || current.revision !== revision) return false;
+				subscriptions.set(key, { ...current, schedule });
+				return true;
+			},
 			saveSubscription: (subscription, result) => {
 				subscriptions.set(subscription.workKey, subscription);
 				candidates.set(subscription.workKey, result);

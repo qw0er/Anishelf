@@ -84,6 +84,7 @@ export async function fixture() {
 	};
 	const refresh = vi.fn(async () => structuredClone(snapshot));
 	const downloads = vi.fn(async (): Promise<string[]> => []);
+	const readTarget = vi.fn(async () => target);
 	async function open() {
 		const db = ApplicationDatabase.open(directory);
 		cleanup.push(() => db.close());
@@ -108,7 +109,7 @@ export async function fixture() {
 			store: db.acquisition,
 			sources: sources.api,
 			anime: {
-				target: async () => target,
+				target: readTarget,
 				assessReleaseTitle: () => ({
 					episode: 3,
 					eligible: true,
@@ -176,6 +177,7 @@ export async function fixture() {
 		snapshot,
 		search,
 		downloads,
+		readTarget,
 		refresh,
 		open,
 		enable,
@@ -185,6 +187,9 @@ export async function fixture() {
 			defaultProfileId = value;
 			profileRevision++;
 			f.subscriptions.defaultProfileChanged();
+		},
+		advanceBy: (milliseconds: number) => {
+			clock += milliseconds;
 		},
 		advance: () => {
 			clock += 3600000;

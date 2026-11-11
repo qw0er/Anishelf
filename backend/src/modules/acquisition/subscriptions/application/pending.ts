@@ -26,27 +26,21 @@ export class PendingSubscriptions {
 	private async run() {
 		let attempted = 0;
 		for (const sub of this.context.options.store.subscriptions()) {
-			if (
-				!this.context.runnable(sub) ||
-				sub.feedId ||
-				!sub.automatic ||
-				sub.automatic.retryAt > this.context.now()
-			)
-				continue;
+			if (!this.context.runnable(sub) || sub.feedId || !sub.automatic) continue;
+			await this.context.scheduling.ensure(sub);
+			const current = optionsSubscription(this.context, sub);
+			if (!this.context.scheduling.maySearch(current)) continue;
 			if (attempted++ >= 5) break;
-			await this.resolve(sub);
+			await this.resolve(current, false, true);
 		}
 	}
-	async resolve(sub: Subscription, force = false) {
+	async resolve(sub: Subscription, force = false, assessed = false) {
+		if (!assessed) await this.context.scheduling.ensure(sub);
+		sub = optionsSubscription(this.context, sub);
+		if (!force && !this.context.scheduling.maySearch(sub)) return;
 		const { options } = this.context,
 			scope = sub.automatic;
-		if (
-			!scope ||
-			sub.feedId ||
-			!this.context.runnable(sub) ||
-			(!force && scope.retryAt > this.context.now())
-		)
-			return;
+		if (!scope || sub.feedId || !this.context.runnable(sub)) return;
 		const policyRevision = this.context.profileScope(sub);
 		const current = () =>
 			!this.context.signal.aborted &&
@@ -80,7 +74,7 @@ export class PendingSubscriptions {
 			if (!current()) return;
 			options.store.saveSubscription(
 				{
-					...sub,
+					...optionsSubscription(this.context, sub),
 					lastError: reason,
 					...(discovery ? { discovery } : {}),
 					automatic: {
@@ -104,6 +98,8 @@ export class PendingSubscriptions {
 			retain("authorization_required");
 			return;
 		}
+		this.context.scheduling.attempted(sub, force);
+		sub = optionsSubscription(this.context, sub);
 		discovery = { checkedAt: this.context.now(), attempts: [] };
 		try {
 			const result = await this.discovery.search(
@@ -114,6 +110,7 @@ export class PendingSubscriptions {
 					profileId: sub.profileId ?? null,
 				},
 				current,
+				force,
 			);
 			if (!current()) return;
 			if (!permitted()) {
@@ -149,7 +146,7 @@ export class PendingSubscriptions {
 				const feed = options.sources.snapshot(source);
 				if (!feed) return;
 				const resolved = {
-					...sub,
+					...optionsSubscription(this.context, sub),
 					sourceInput: result.source,
 					feedId: feed.id,
 					lastError: null,
@@ -179,4 +176,12 @@ export class PendingSubscriptions {
 			retain("discovery_unavailable");
 		}
 	}
+}
+
+function optionsSubscription(
+	context: SubscriptionsContext,
+	previous: Subscription,
+): Subscription {
+	const current = context.options.store.subscription(previous.workKey);
+	return current?.revision === previous.revision ? current : previous;
 }

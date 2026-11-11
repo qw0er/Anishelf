@@ -11,6 +11,11 @@ export interface SubscriptionStore {
 	subscription(workKey: string): Subscription | null;
 	subscriptions(): Subscription[];
 	candidates(workKey: string): Candidate[];
+	saveSchedule(
+		workKey: string,
+		revision: string,
+		schedule: NonNullable<Subscription["schedule"]>,
+	): boolean;
 	saveSubscription(subscription: Subscription, candidates: Candidate[]): void;
 	updateCandidates(
 		subscription: Subscription,

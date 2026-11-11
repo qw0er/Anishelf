@@ -59,6 +59,25 @@ const DiscoveryAttemptSchema = Type.Object({
 	retryAt: Type.Optional(Type.Number()),
 	limited: Type.Boolean(),
 });
+const AiringScheduleSchema = Type.Object({
+	reason: Type.Union([
+		Type.Literal("waiting_for_premiere"),
+		Type.Literal("waiting_for_episode"),
+		Type.Literal("release_delay"),
+		Type.Literal("backlog"),
+		Type.Literal("fallback"),
+		Type.Literal("due"),
+	]),
+	episode: nullableNumber,
+	airingAt: nullableNumber,
+	nextCheckAt: nullableNumber,
+	metadataCheckAt: Type.Number(),
+	metadataFetchedAt: nullableNumber,
+	metadataFresh: Type.Boolean(),
+	assessedAt: Type.Number(),
+	lastAttemptAt: nullableNumber,
+	wakeAt: nullableNumber,
+});
 export const SubscriptionViewSchema = Type.Object({
 	discovery: Type.Optional(
 		Type.Object({
@@ -70,6 +89,7 @@ export const SubscriptionViewSchema = Type.Object({
 		Type.Null(),
 		Type.Object({
 			workKey,
+			schedule: Type.Optional(Type.Union([AiringScheduleSchema, Type.Null()])),
 			feedId: Type.Union([Type.String(), Type.Null()]),
 			startEpisode: Type.Integer(),
 			profileId,

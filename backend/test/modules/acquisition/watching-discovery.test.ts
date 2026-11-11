@@ -46,7 +46,10 @@ test("empty discovery retains intent, freezes its creation scope, retries and su
 	const saved = reopened.db.acquisition.subscription(workKey);
 	await reopened.watching.tick();
 	await reopened.subscriptions.resolvePending();
-	expect(reopened.db.acquisition.subscription(workKey)).toEqual(saved);
+	expect({
+		...reopened.db.acquisition.subscription(workKey),
+		schedule: null,
+	}).toEqual({ ...saved, schedule: null });
 	expect(f.search).toHaveBeenCalledTimes(2);
 });
 
@@ -130,7 +133,7 @@ test.each(["remove", "edit", "pause"])(
 	},
 );
 
-test("manual refresh reevaluates cached discovery and refetches only after expiry", async () => {
+test("manual refresh bypasses collection cache while background discovery keeps its retry interval", async () => {
 	const f = await fixture();
 	const discover = vi.spyOn(SubscriptionDiscovery.prototype, "search");
 	await f.enable();
@@ -152,15 +155,9 @@ test("manual refresh reevaluates cached discovery and refetches only after expir
 	await f.subscriptions.refresh(workKey, revision);
 	expect(discover).toHaveBeenCalledTimes(2);
 	expect(f.subscriptions.get(workKey).discovery?.attempts[0]).toMatchObject({
-		outcome: "no_match",
-	});
-	expect(f.search).toHaveBeenCalledTimes(1);
-	f.advance();
-	await f.subscriptions.refresh(workKey, revision);
-	expect(f.search).toHaveBeenCalledTimes(2);
-	expect(f.subscriptions.get(workKey).discovery?.attempts[0]).toMatchObject({
 		outcome: "matched",
 	});
+	expect(f.search).toHaveBeenCalledTimes(2);
 	expect(f.db.acquisition.authorization(workKey)).not.toBeNull();
 });
 
@@ -228,6 +225,8 @@ test("Rewatching reuses local coverage and retains only missing release candidat
 	entry.status = "rewatching";
 	await f.watching.tick();
 	await f.subscriptions.resolvePending();
-	expect(f.db.acquisition.subscription(workKey)).toEqual(saved);
+	expect({ ...f.db.acquisition.subscription(workKey), schedule: null }).toEqual(
+		{ ...saved, schedule: null },
+	);
 	expect(f.subscriptions.selection().candidates(workKey)).toHaveLength(1);
 });

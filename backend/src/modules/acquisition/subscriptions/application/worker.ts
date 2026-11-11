@@ -3,6 +3,7 @@ import { SourceError, type SourceSnapshot } from "../../sources/public.js";
 import type { Candidate, Subscription } from "../domain/model.js";
 import type { SubscriptionsContext } from "./context.js";
 export class SubscriptionWorker {
+	private readonly manualSources = new Set<string>();
 	private readonly polling = new Map<string, Promise<void>>();
 	constructor(
 		private readonly context: SubscriptionsContext,
@@ -12,22 +13,50 @@ export class SubscriptionWorker {
 			target: AcquisitionTarget,
 		) => Promise<Candidate[]>,
 	) {}
-	pollSource(feed: SourceSnapshot): Promise<void> {
+	pollSource(feed: SourceSnapshot, manual = false): Promise<void> {
+		if (manual) this.manualSources.add(feed.id);
 		const current = this.polling.get(feed.id);
 		if (current) return current;
-		const task = this.runSource(feed);
+		const task = this.runSource(feed, manual);
 		this.polling.set(feed.id, task);
-		void task.finally(() => this.polling.delete(feed.id)).catch(() => {});
+		void task
+			.finally(() => {
+				this.polling.delete(feed.id);
+				this.manualSources.delete(feed.id);
+			})
+			.catch(() => {});
 		return task;
 	}
-	private async runSource(feed: SourceSnapshot) {
+	private async runSource(feed: SourceSnapshot, manual: boolean) {
 		try {
-			const owner = this.context.options.store
+			const owners = this.context.options.store
 				.subscriptions()
-				.find((item) => this.context.runnable(item) && item.feedId === feed.id);
+				.filter(
+					(item) => this.context.runnable(item) && item.feedId === feed.id,
+				);
+			await Promise.all(
+				owners.map((sub) => this.context.scheduling.ensure(sub)),
+			);
+			this.context.open();
+			const currentOwners = owners.flatMap((owner) => {
+				const sub = this.context.options.store.subscription(owner.workKey);
+				return sub &&
+					sub.revision === owner.revision &&
+					this.context.runnable(sub) &&
+					sub.feedId === feed.id
+					? [sub]
+					: [];
+			});
+			manual ||= this.manualSources.has(feed.id);
+			const owner = currentOwners.find(
+				(sub) => manual || this.context.scheduling.maySearch(sub),
+			);
 			if (!owner) return;
+			for (const sub of currentOwners)
+				this.context.scheduling.attempted(sub, manual);
 			const publication = await this.context.options.sources.fetch(
 				owner.sourceInput ?? feed.id,
+				{ refresh: feed.checkedAt !== null },
 			);
 			const updated = publication.snapshot;
 			this.context.open();
@@ -140,6 +169,8 @@ export class SubscriptionWorker {
 						throw new SourceError("source_conflict");
 				}
 			});
+			for (const subscription of subscriptions)
+				this.context.scheduling.collected(subscription);
 			this.context.options.logger.info(
 				{
 					event: "acquisition.subscription_refreshed",

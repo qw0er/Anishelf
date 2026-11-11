@@ -256,7 +256,7 @@ test("snapshot cache keys distinguish pagination, provider versions and referenc
 
 test.each([
 	["RELEASING", 6 * 60 * 60_000],
-	["NOT_YET_RELEASED", 24 * 60 * 60_000],
+	["NOT_YET_RELEASED", 6 * 60 * 60_000],
 	["HIATUS", 24 * 60 * 60_000],
 	["CANCELLED", 24 * 60 * 60_000],
 	[null, 24 * 60 * 60_000],

@@ -4,6 +4,14 @@ import type {
 } from "../identification/public.js";
 
 export interface AcquisitionTarget {
+	airing?: {
+		status: string | null;
+		nextEpisode: { episode: number; airingAt: number } | null;
+		fetchedAt: number;
+		stale: boolean;
+		refreshing?: boolean;
+		refreshError: boolean;
+	};
 	/** Ordered, deduplicated romaji/English/native/Chinese queries; at most four. */
 	searchTitles: string[];
 	work: WorkCandidate;

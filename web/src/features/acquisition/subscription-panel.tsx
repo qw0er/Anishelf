@@ -42,6 +42,10 @@ import {
 } from "./download-activity.js";
 import { downloadKeys } from "./downloads-api.js";
 import { SubscriptionForm } from "./subscription-form.js";
+import {
+	airingWaitLabel,
+	SubscriptionSchedule,
+} from "./subscription-schedule.js";
 import { subscriptionStatus } from "./subscription-status.js";
 import {
 	acquisitionProfilesQuery,
@@ -109,6 +113,12 @@ export function SubscriptionPanel({
 		});
 	else if (needsAttention) summary = state.label;
 	else if (sub && !sub.enabled) summary = t("acquisition.subscription.paused");
+	else if (
+		sub &&
+		(!sub.runState || sub.runState === "active") &&
+		airingWaitLabel(sub.schedule)
+	)
+		summary = airingWaitLabel(sub.schedule) ?? summary;
 	else if (
 		sub?.management === "watching" &&
 		sub.runState &&
@@ -480,6 +490,13 @@ export function SubscriptionPanel({
 								</p>
 							)}
 							<SubscriptionIssue {...feedback} />
+							<SubscriptionSchedule
+								schedule={
+									sub.enabled && (!sub.runState || sub.runState === "active")
+										? sub.schedule
+										: null
+								}
+							/>
 							<dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-3 border-y py-4 text-sm">
 								<dt className="text-muted-foreground">
 									{t("acquisition.subscription.policy")}

@@ -24,7 +24,10 @@ export interface SourceSnapshot {
 /** Unified source operations; adapter implementations remain private. */
 export interface SourcesApi {
 	snapshot(input: SourceInput | string): SourceSnapshot | null;
-	fetch(input: SourceInput | string): Promise<SourcePublication>;
+	fetch(
+		input: SourceInput | string,
+		options?: { refresh?: boolean },
+	): Promise<SourcePublication>;
 	readContent(reference: string, signal: AbortSignal): Promise<DownloadContent>;
 	isContentCurrent(reference: string): boolean;
 	readonly connector: SourceConnectorApi;

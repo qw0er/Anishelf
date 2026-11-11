@@ -63,6 +63,19 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 			"Romaji, English, native and Chinese search titles selected.",
 		);
 		return {
+			airing: {
+				status: data.status,
+				nextEpisode: data.nextAiringEpisode
+					? {
+							episode: data.nextAiringEpisode.episode,
+							airingAt: data.nextAiringEpisode.airingAt * 1000,
+						}
+					: null,
+				fetchedAt: snapshot.fetchedAt,
+				stale: snapshot.stale,
+				refreshing: snapshot.refreshing,
+				refreshError: snapshot.refreshError !== null,
+			},
 			searchTitles,
 			work: {
 				reference: snapshot.data.reference,

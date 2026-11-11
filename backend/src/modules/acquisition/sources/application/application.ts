@@ -189,13 +189,17 @@ export class SourcesApplication {
 		}
 	}
 	/** Collection cache never grants permission: every consumer must still commit its own candidate transaction. */
-	async collect(reference: SourceReference): Promise<SourceSnapshot> {
+	async collect(
+		reference: SourceReference,
+		refresh = false,
+	): Promise<SourceSnapshot> {
 		this.context.open();
 		const plan = this.query.plan(reference);
 		if (!plan) this.rss.configuration(reference);
 		const saved = this.evidence.read(reference.id);
 		if (saved?.error && saved.nextAttemptAt > this.context.now())
 			throw new SourceError(saved.error, saved.nextAttemptAt);
+		if (refresh) return this.refresh(reference);
 		const cached = this.reusable.get(reference.id);
 		const cachedCurrent =
 			cached &&
@@ -294,7 +298,10 @@ export class SourcesApplication {
 			"Source evidence published.",
 		);
 	}
-	async fetch(input: SourceInput | string): Promise<SourcePublication> {
+	async fetch(
+		input: SourceInput | string,
+		options: { refresh?: boolean } = {},
+	): Promise<SourcePublication> {
 		const reference =
 			typeof input === "string"
 				? this.reference(input)
@@ -303,7 +310,7 @@ export class SourcesApplication {
 		this.bind(reference);
 		const previous = this.snapshot(reference.id);
 		try {
-			const result = await this.collect(reference);
+			const result = await this.collect(reference, options.refresh);
 			return Object.freeze({
 				snapshot: result,
 				commit: (writeCandidates: () => void) =>
@@ -338,6 +345,7 @@ export class SourcesApplication {
 	start(
 		activeIds: () => string[],
 		poll: (snapshot: SourceSnapshot) => Promise<void>,
+		nextCheckAt?: (snapshot: SourceSnapshot) => number,
 	) {
 		this.context.open();
 		if (this.scheduler) return;
@@ -347,9 +355,17 @@ export class SourcesApplication {
 			activeIds,
 			(id) => {
 				const generation = this.evidence.generation(id);
-				return generation && !this.query.current(generation)
-					? null
-					: (this.evidence.due(id) ?? { id, nextAttemptAt: 0 });
+				if (generation && !this.query.current(generation)) return null;
+				const due = this.evidence.due(id) ?? { id, nextAttemptAt: 0 };
+				const snapshot = this.snapshot(id);
+				const requested = snapshot ? nextCheckAt?.(snapshot) : undefined;
+				return {
+					id,
+					nextAttemptAt:
+						requested === undefined
+							? due.nextAttemptAt
+							: Math.max(snapshot?.error ? due.nextAttemptAt : 0, requested),
+				};
 			},
 			async (id) => {
 				const snapshot = this.snapshot(id);

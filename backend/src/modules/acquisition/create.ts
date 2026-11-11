@@ -194,6 +194,7 @@ export async function createAcquisitionModule(options: {
 		sources.runtime.start(
 			() => subscriptions.activeSourceIds(),
 			(source) => subscriptions.refreshSource(source.id),
+			(source) => subscriptions.sourceNextCheckAt(source),
 		);
 		downloads?.start();
 	}

@@ -24,6 +24,7 @@ import {
 	getWorkDownloadActivity,
 	retryDownload,
 } from "./downloads-api.js";
+import { SubscriptionSchedule } from "./subscription-schedule.js";
 import { getSubscription } from "./subscriptions-api.js";
 
 const errorKeys: Record<string, string> = {
@@ -369,6 +370,16 @@ export function DownloadActivityPanel({
 									})}
 								</p>
 							)}
+							<SubscriptionSchedule
+								schedule={
+									view.subscription?.enabled &&
+									(!view.subscription.runState ||
+										view.subscription.runState === "active")
+										? (releases.data?.subscription?.schedule ??
+											view.subscription.schedule)
+										: null
+								}
+							/>
 							{releases.data?.discovery && (
 								<div className="space-y-2 text-sm">
 									<p className="text-muted-foreground">

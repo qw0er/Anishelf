@@ -1403,6 +1403,18 @@
 				"profile_unavailable": "Profile unavailable",
 				"source_disabled": "Source disabled"
 			}
+		},
+		"schedule": {
+			"waiting_for_premiere": "Waiting for premiere",
+			"waiting_for_episode": "Waiting for episode {{episode}} to air",
+			"release_delay": "Waiting for the release window after airing",
+			"airingAt": "Scheduled airing: {{time}}",
+			"nextCheck": "Next resource check: {{time}}",
+			"metadataCheck": "Next airing information check: {{time}}",
+			"awaitingTime": "Resource searches will resume when reliable airing information permits them.",
+			"checkDue": "Resource check is due.",
+			"fallback": "Airing information is unavailable or outdated; using the normal retry schedule.",
+			"verificationPending": "Waiting for updated airing information"
 		}
 	},
 	"profileIssue": {

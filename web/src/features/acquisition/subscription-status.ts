@@ -1,6 +1,7 @@
 import type { SubscriptionView } from "../../shared/api/contracts.js";
 import type { StatusTone } from "../../shared/components/ui/status-badge.js";
 import i18n from "../../shared/i18n.js";
+import { airingWaitLabel } from "./subscription-schedule.js";
 import { watchingReason } from "./watching-reason.js";
 
 const blockedStates = new Set([
@@ -52,6 +53,11 @@ export function subscriptionStatus(
 			? "warning"
 			: "error";
 	} else if (!sub.enabled) label = i18n.t("acquisition.subscription.paused");
+	else if (
+		(!sub.runState || sub.runState === "active") &&
+		airingWaitLabel(sub.schedule)
+	)
+		label = airingWaitLabel(sub.schedule) ?? label;
 	else if (
 		sub.management === "watching" &&
 		sub.runState &&

@@ -19,6 +19,7 @@ export class SubscriptionDiscovery {
 	search(
 		input: SubscriptionSearchInput,
 		permitted?: () => boolean,
+		refresh = false,
 	): Promise<SubscriptionSearchResult> {
 		if (this.running.has(input.workKey) || this.running.size >= 2)
 			throw new DomainError(
@@ -27,12 +28,13 @@ export class SubscriptionDiscovery {
 			);
 		this.running.add(input.workKey);
 		return this.context
-			.tracked(() => this.run(input, permitted))
+			.tracked(() => this.run(input, permitted, refresh))
 			.finally(() => this.running.delete(input.workKey));
 	}
 	private async run(
 		input: SubscriptionSearchInput,
 		permitted?: () => boolean,
+		refresh = false,
 	): Promise<SubscriptionSearchResult> {
 		const { options } = this.context;
 		const settings = options.sources.connector.settings();
@@ -157,7 +159,7 @@ export class SubscriptionDiscovery {
 							(candidate.reasons.length === 1 &&
 								candidate.reasons[0] === "waiting_for_level"),
 					);
-				const publication = await options.sources.fetch(source);
+				const publication = await options.sources.fetch(source, { refresh });
 				guard();
 				const candidates = assess(publication.snapshot);
 				const eligible = eligibleCandidates(candidates);

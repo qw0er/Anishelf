@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type {
 	Candidate,
@@ -67,6 +67,24 @@ export class SubscriptionRepository implements SubscriptionStore {
 			.map((row) => readAcquisitionCandidates(this.store, row));
 	}
 
+	saveSchedule(
+		workKey: string,
+		revision: string,
+		schedule: NonNullable<Subscription["schedule"]>,
+	) {
+		return (
+			this.store
+				.update(subscriptions)
+				.set({ schedule })
+				.where(
+					and(
+						eq(subscriptions.workKey, workKey),
+						eq(subscriptions.revision, revision),
+					),
+				)
+				.run().changes === 1
+		);
+	}
 	saveSubscription(subscription: Subscription, result: Candidate[]) {
 		this.store.transaction((store) => {
 			const repository = new SubscriptionRepository(store);

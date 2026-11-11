@@ -154,6 +154,24 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 							subscription.createdBy === "watching" ? "watching" : "manual",
 						runState: this.context.stopReason(subscription) ?? "active",
 						revision: subscription.revision,
+						...(subscription.schedule
+							? {
+									schedule: {
+										...subscription.schedule,
+										metadataFresh:
+											subscription.schedule.metadataFresh &&
+											subscription.schedule.metadataCheckAt >
+												this.context.now(),
+										nextCheckAt:
+											subscription.schedule.nextCheckAt === null
+												? null
+												: Math.max(
+														this.context.scheduling.resourceDueAt(subscription),
+														feed?.error ? feed.nextAttemptAt : 0,
+													),
+									},
+								}
+							: {}),
 						source:
 							feed?.label ??
 							(subscription.automatic
@@ -401,19 +419,14 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					const feed = this.options.sources.snapshot(
 						resolved.sourceInput ?? resolved.feedId,
 					);
-					if (feed) await this.worker.pollSource(feed);
+					if (feed) await this.worker.pollSource(feed, true);
 				}
 				return this.get(workKey);
 			}
 			const source = subscription.sourceInput ?? subscription.feedId;
 			const feed = source ? this.options.sources.snapshot(source) : null;
 			if (!feed) conflict();
-			if (
-				feed.checkedAt !== null &&
-				this.context.now() - feed.checkedAt < 30_000
-			)
-				return this.get(workKey);
-			await this.worker.pollSource(feed);
+			await this.worker.pollSource(feed, true);
 			return this.get(workKey);
 		});
 	}
@@ -635,6 +648,14 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			.map((sub) => sub.feedId)
 			.filter((id): id is string => id !== null);
 	}
+	sourceNextCheckAt(feed: SourceSnapshot) {
+		const subscribers = this.options.store
+			.subscriptions()
+			.filter((sub) => sub.feedId === feed.id && this.context.runnable(sub));
+		return Math.min(
+			...subscribers.map((sub) => this.context.scheduling.dueAt(sub)),
+		);
+	}
 	refreshSource(id: string) {
 		const subscription = this.options.store
 			.subscriptions()
@@ -658,10 +679,8 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		for (const subscription of this.options.store.subscriptions()) {
 			if (!subscription.enabled) continue;
 			try {
-				const target = await this.options.anime.target(
-					subscription.workKey,
-					this.context.signal,
-				);
+				const target = await this.context.scheduling.read(subscription);
+				if (!target) continue;
 				this.context.open();
 				const current = this.options.store.subscription(subscription.workKey);
 				if (!current || current.revision !== subscription.revision) continue;
@@ -673,7 +692,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				if (previous && !expanded) continue;
 				if (covered === null && !expanded) continue;
 				const updated = {
-					...current,
+					...(this.options.store.subscription(current.workKey) ?? current),
 					completion:
 						covered === null
 							? null
@@ -697,6 +716,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				);
 			} catch {
 				if (this.context.signal.aborted) return;
+				this.context.scheduling.update(subscription, null);
 				this.options.logger.debug(
 					{
 						event: "acquisition.subscription_coverage_unavailable",
@@ -778,6 +798,10 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 	async close() {
 		if (this.timer) clearInterval(this.timer);
 		this.context.shutdown.abort();
-		await Promise.allSettled([...this.context.pending, this.worker.close()]);
+		await Promise.allSettled([
+			...this.context.pending,
+			this.worker.close(),
+			this.context.scheduling.close(),
+		]);
 	}
 }

@@ -33,7 +33,10 @@ export type SubscriptionsOptions = {
 		validated: boolean;
 	} | null;
 };
+
+import { SubscriptionScheduling } from "./scheduling.js";
 export class SubscriptionsContext {
+	readonly scheduling = new SubscriptionScheduling(this);
 	private readonly profileLifetime = randomUUID();
 	profileScope(subscription: Pick<Subscription, "profileId" | "createdBy">) {
 		const followsDefault =

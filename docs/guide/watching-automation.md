@@ -55,8 +55,37 @@ and duplicate-acquisition checks.
 
 Watching and pending-source discovery each run every 30 seconds, at most five works
 per pass. Unresolved discovery retries after five minutes; **Check updates** bypasses
-that local wait while respecting transport limits. Source refresh defaults to 30
+that local wait and collection cache while respecting transport limits. Source refresh defaults to 30
 minutes. Limits are 64 subscriptions and 500 current Watching or Rewatching works.
+
+## Airing-aware searches
+
+Manual and Watching subscriptions both wait when fresh, consistent metadata shows
+that the first missing episode in their accepted range has not aired. With a precise
+airing instant, the planned resource check is 15 minutes after that instant. There
+are no periodic pre-airing resource searches. A fresh not-yet-released status without
+an exact time waits for updated information; a calendar date never becomes midnight
+or an assumed broadcast time. Metadata is re-evaluated every 30 seconds using its
+cache, and upcoming/releasing detail metadata is revalidated at least every six hours.
+
+**Check updates** can search before airing and bypasses ordinary collection-cache
+reuse. Source cooldowns, rate limits, coalescing and download authorization still
+apply. Source evidence refreshed for another consumer can supply eligible early
+resources without an extra request. Airing timing never authorizes or rejects a
+release by itself, and reserved or submitted downloads retain their choices.
+
+Already aired gaps continue normal discovery or source polling even if a later
+episode is upcoming. Only verified local episodes cover a gap; tracking progress,
+reservations and incomplete downloads do not. An accepted starting episode beyond
+the known next episode does not acquire an extrapolated broadcast time.
+
+Missing, stale, contradictory or unavailable airing information restores bounded
+ordinary retries instead of suspending searches indefinitely. This deliberate fallback
+can search before the last reported broadcast time when that information is no longer
+reliable. Diagnostics distinguish fallback from a confirmed future airing window.
+Changes to the airing time replan the deadline; restarts do not add another delay.
+All instants are compared as epoch milliseconds and displayed in the browser's local
+IANA time zone, including the zone label and daylight-saving offset.
 
 Completion requires every episode from the saved starting episode through a known
 integer total to be verified and locally available. Unknown totals, tracking progress,
@@ -105,3 +134,7 @@ pauses, completion, authorizations or history. Manual profile overrides are reta
 Default changes invalidate old unreserved choices immediately. The 30-second
 subscription cycle re-evaluates cached source entries and retries pending discovery;
 it does not silently switch an already selected source or broaden accepted scope.
+
+Migration `0022_subscription_airing_schedule` adds nullable advisory search timing.
+Existing subscriptions are evaluated lazily without changing their revision, accepted
+starting episode, ownership, pause/completion state, authorization or candidate history.

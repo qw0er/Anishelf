@@ -1382,6 +1382,18 @@
 				"profile_unavailable": "配置不可用",
 				"source_disabled": "来源已禁用"
 			}
+		},
+		"schedule": {
+			"waiting_for_premiere": "等待首播",
+			"waiting_for_episode": "等待第 {{episode}} 集播出",
+			"release_delay": "等待播出后的发布缓冲时间",
+			"airingAt": "预计播出：{{time}}",
+			"nextCheck": "下次资源检查：{{time}}",
+			"metadataCheck": "下次播出信息检查：{{time}}",
+			"awaitingTime": "获得可靠播出信息后恢复资源搜索。",
+			"checkDue": "资源检查已到期。",
+			"fallback": "播出信息不可用或已过期，按常规频率重试。",
+			"verificationPending": "等待重新验证播出信息"
 		}
 	},
 	"profileIssue": {

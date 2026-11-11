@@ -12,6 +12,9 @@ import type { Candidate, Subscription } from "../domain/model.js";
 export const acquisitionSubscriptions = sqliteTable(
 	"acquisition_subscriptions",
 	{
+		schedule: text("schedule", { mode: "json" }).$type<
+			Subscription["schedule"]
+		>(),
 		discovery: text("discovery", { mode: "json" }).$type<
 			Subscription["discovery"]
 		>(),

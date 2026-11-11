@@ -1,6 +1,7 @@
 import type { SourceInput } from "../../sources/public.js";
 
 export interface Subscription {
+	schedule?: import("./airing-schedule.js").AiringSchedule | null;
 	discovery?: {
 		checkedAt: number;
 		attempts: SubscriptionSearchResult["attempts"];

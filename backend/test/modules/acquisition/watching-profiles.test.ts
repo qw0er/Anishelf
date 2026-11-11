@@ -32,7 +32,9 @@ test("unreserved choices are invalidated immediately and reassessed from cached 
 		status: "selected",
 		selection: { profileId: "custom:other" },
 	});
-	expect(f.db.acquisition.subscription(workKey)).toEqual(initial);
+	expect({ ...f.db.acquisition.subscription(workKey), schedule: null }).toEqual(
+		{ ...initial, schedule: null },
+	);
 });
 
 test.each([false, true])(

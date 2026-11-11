@@ -15,6 +15,7 @@ export function readAcquisitionSubscriptions(
 		...(row.lastErrorPresent
 			? { lastError: row.lastErrorPresent ? row.lastError : undefined }
 			: {}),
+		...(row.schedule ? { schedule: row.schedule } : {}),
 		...(row.discovery ? { discovery: row.discovery } : {}),
 		...(row.automatic ? { automatic: row.automatic } : {}),
 		...(row.createdBy === "watching" ? { createdBy: "watching" as const } : {}),
@@ -38,6 +39,7 @@ export function writeAcquisitionSubscriptions(
 ): void {
 	connection.transaction((store) => {
 		const row0 = {
+			schedule: value.schedule ?? null,
 			discovery: value.discovery ?? null,
 			automatic: value.automatic ?? null,
 			createdBy: value.createdBy ?? null,

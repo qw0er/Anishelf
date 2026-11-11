@@ -21,7 +21,8 @@ export const metadataDefaults = {
 } as const;
 
 export function detailFreshnessMs(status: string | null): number {
-	if (status === "RELEASING") return metadataDefaults.releasingFreshMs;
+	if (status === "RELEASING" || status === "NOT_YET_RELEASED")
+		return metadataDefaults.releasingFreshMs;
 	if (status === "FINISHED") return metadataDefaults.finishedFreshMs;
 	return metadataDefaults.detailFreshMs;
 }
