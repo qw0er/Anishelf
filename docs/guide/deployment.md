@@ -32,7 +32,19 @@ Docker and Podman are available, pass `--engine docker` or `--engine podman`.
 Podman uses rootless Quadlet. Defaults are `~/anishelf` (or `~/anishelf-test` with
 `--test`), loopback binding, port `3000`, the `latest` image tag and a managed media
 volume. Backend logging defaults to `info`, or `debug` with `--test`; use
-`--log-level` to override it. Reconfiguration inherits saved settings; explicitly supplied flags override them.
+`--log-level` to override it. Backend logs go to standard output by default.
+Use `--log-destination file` or `--log-destination both` to enable file output,
+which defaults to `logs/anishelf.log` under the deployment directory, with the
+Backend's normal file rotation. The container account (UID/GID 1000 for Docker, mapped to
+the service user for rootless Quadlet) needs write access to `logs` and search
+access to its parent directories; adjust ownership or ACLs if necessary.
+Reconfiguration archives the old deployment directory, including its logs, and
+starts a new log directory. Reconfiguration inherits saved settings; explicitly
+supplied flags override them.
+Use `--log-path /absolute/dedicated-directory/anishelf.log` to select another host
+file; its parent must already exist. The parent directory is mounted into Backend,
+so use a dedicated directory outside the deployment directory, grant the service account access, and prepare SELinux
+labels if needed. Custom log directories are not automatically relabeled.
 
 ```sh
 python3 scripts/install.pyz install \
@@ -131,6 +143,8 @@ additionally accept `--force`.
 | `--engine docker` / `--engine podman` | Select an engine; required when both are installed |
 | `--image-tag TAG` | Matching Web/Backend image tag; default `latest` |
 | `--log-level LEVEL` | Backend log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` or `silent`; default `info` (`debug` with `--test`) |
+| `--log-destination MODE` | Backend output: `stdout`, `file` or `both`; default `stdout` |
+| `--log-path FILE` | Host Backend log file; default `DEPLOY_DIR/logs/anishelf.log`; custom parent must exist |
 | `--media DIRECTORY` / `--managed-media` | Select an existing primary host directory or managed volume |
 | `--extra-media DIRECTORY` / `--clear-extra-media` | Replace the additional mount list or clear it |
 | `--selinux-relabel` / `--no-selinux-relabel` | Override automatic `:z` labeling |

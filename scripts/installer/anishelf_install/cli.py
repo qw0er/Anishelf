@@ -56,6 +56,16 @@ def _add_settings_options(parser: argparse.ArgumentParser) -> None:
         choices=("trace", "debug", "info", "warn", "error", "fatal", "silent"),
         help="Backend log level (default: info, or debug with --test)",
     )
+    parser.add_argument(
+        "--log-path",
+        metavar="FILE",
+        help="host Backend log file (default: DEPLOY_DIR/logs/anishelf.log; custom parent must exist)",
+    )
+    parser.add_argument(
+        "--log-destination",
+        choices=("stdout", "file", "both"),
+        help="Backend log output: stdout, file or both (default: stdout)",
+    )
 
     networking = parser.add_argument_group("networking")
     networking.add_argument(

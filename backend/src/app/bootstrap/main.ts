@@ -101,6 +101,7 @@ async function main(): Promise<void> {
 		logger.info(
 			{
 				event: "application.starting",
+				dataDir: config.dataDir,
 				logLevel: config.logging.level,
 				logDestination: config.logging.destination,
 				resourceRootCount: configuration.settings.resourceRoots.length,

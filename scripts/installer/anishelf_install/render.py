@@ -76,6 +76,21 @@ def render_compose(template: str, settings: Settings) -> str:
     if settings.test_mode:
         text = text.replace("name: anishelf-", "name: anishelf-test-")
 
+    label = ",z" if not settings.log_path and settings.selinux_mode in {"Enforcing", "Permissive"} else ""
+    log_path = settings.backend_log_path
+    logging_env = f"      ANISHELF_LOG_DESTINATION: {settings.log_destination}\n"
+    if settings.log_destination != "stdout":
+        logging_env += f'      ANISHELF_LOG_PATH: "/var/log/anishelf/{log_path.name}"\n'
+        text = text.replace(
+            "      - anishelf-app:/var/lib/anishelf\n",
+            "      - anishelf-app:/var/lib/anishelf\n"
+            f'      - "{log_path.parent}:/var/log/anishelf:rw{label}"\n',
+        )
+    text = text.replace(
+        "      ANISHELF_LOG_LEVEL: ${ANISHELF_LOG_LEVEL:-info}\n",
+        "      ANISHELF_LOG_LEVEL: ${ANISHELF_LOG_LEVEL:-info}\n" + logging_env,
+    )
+
     if not _valid_compose_generation(text):
         raise ValueError("rendered Compose configuration failed its sanity check")
     return text
@@ -138,6 +153,16 @@ def render_quadlet(name: str, template: str, settings: Settings) -> str:
         text += "\n"
     if settings.test_mode:
         _, text = isolate_quadlet(name, text)
+    if name == "anishelf-backend.container":
+        label = ",z" if not settings.log_path and settings.selinux_mode in {"Enforcing", "Permissive"} else ""
+        log_path = settings.backend_log_path
+        logging_env = f"Environment=ANISHELF_LOG_DESTINATION={settings.log_destination}\n"
+        if settings.log_destination != "stdout":
+            logging_env += (
+                f'Environment="ANISHELF_LOG_PATH=/var/log/anishelf/{log_path.name}"\n'
+                f'Volume="{log_path.parent}:/var/log/anishelf:rw{label}"\n'
+            )
+        text = text.replace("[Service]\n", logging_env + "\n[Service]\n")
     return text
 
 

@@ -16,13 +16,13 @@ services:
       # Trust only proxies on this private container network; keep Backend unpublished.
       ANISHELF_TRUSTED_PROXIES: ${ANISHELF_TRUSTED_PROXIES:-loopback,uniquelocal}
       ANISHELF_LOG_LEVEL: ${ANISHELF_LOG_LEVEL:-info}
-      ANISHELF_DATA_DIR: /data/app
+      ANISHELF_DATA_DIR: /var/lib/anishelf
       ANISHELF_INITIAL_RESOURCE_ROOTS: /data/media
       ANISHELF_QBITTORRENT_API_URL: http://qbittorrent:8080
       ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE: /run/anishelf-qbittorrent/connection.json
       ANISHELF_BUNDLED_JACKETT_CONFIG_FILE: /run/jackett-config/Jackett/ServerConfig.json
     volumes:
-      - anishelf-app:/data/app
+      - anishelf-app:/var/lib/anishelf
       - qbittorrent-connection:/run/anishelf-qbittorrent:ro
       - jackett-config:/run/jackett-config:ro
       - ${ANISHELF_MEDIA_PATH:-anishelf-media}:/data/media:rw

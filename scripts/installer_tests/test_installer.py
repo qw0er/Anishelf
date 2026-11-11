@@ -242,6 +242,44 @@ class RenderTests(unittest.TestCase):
     def setUp(self) -> None:
         self.compose_template = (TEMPLATES / "compose.yaml").read_text(encoding="utf-8")
 
+    def test_backend_log_mounts_for_compose_and_quadlet(self) -> None:
+        settings = make_settings(
+            deploy_dir=Path("/tmp/anishelf-test deployment"),
+            test_mode=True,
+            selinux_mode="Enforcing",
+            log_destination="both",
+        )
+        compose = render_compose(self.compose_template, settings)
+        quadlet = render_quadlet(
+            "anishelf-backend.container",
+            (TEMPLATES / "quadlet/anishelf-backend.container").read_text(),
+            settings,
+        )
+        mount = "/tmp/anishelf-test deployment/logs:/var/log/anishelf:rw,z"
+        self.assertIn(f'"{mount}"', compose)
+        self.assertIn(f'Volume="{mount}"', quadlet)
+        self.assertIn("ANISHELF_LOG_DESTINATION: both", compose)
+        self.assertIn("Environment=ANISHELF_LOG_DESTINATION=both", quadlet)
+        self.assertIn("/var/log/anishelf/anishelf.log", compose)
+        self.assertIn("/var/log/anishelf/anishelf.log", quadlet)
+        settings.log_path = "/tmp/custom logs/backend.log"
+        quadlet = render_quadlet(
+            "anishelf-backend.container",
+            (TEMPLATES / "quadlet/anishelf-backend.container").read_text(),
+            settings,
+        )
+        self.assertIn('Volume="/tmp/custom logs:/var/log/anishelf:rw"', quadlet)
+        self.assertIn('/var/log/anishelf/backend.log', quadlet)
+        settings.log_destination = "stdout"
+        compose = render_compose(self.compose_template, settings)
+        self.assertIn("ANISHELF_LOG_DESTINATION: stdout", compose)
+        self.assertNotIn("ANISHELF_LOG_PATH", compose)
+        self.assertNotIn("/var/log/anishelf", compose)
+        settings.log_destination = "file"
+        compose = render_compose(self.compose_template, settings)
+        self.assertIn("ANISHELF_LOG_DESTINATION: file", compose)
+        self.assertIn('/var/log/anishelf/backend.log', compose)
+
     def test_compose_selects_services_and_volumes_without_profiles(self) -> None:
         for qbit in (False, True):
             for jackett in (False, True):
@@ -381,7 +419,7 @@ class RenderTests(unittest.TestCase):
         rendered = render_quadlet("anishelf-backend.container", backend, settings)
         self.assertIn("Image=ghcr.io/qw0er/anishelf-backend:testing", rendered)
         self.assertIn("Network=anishelf-test.network", rendered)
-        self.assertIn("Volume=anishelf-test-app.volume:/data/app", rendered)
+        self.assertIn("Volume=anishelf-test-app.volume:/var/lib/anishelf", rendered)
 
 
 class InstallerTests(unittest.TestCase):
@@ -429,13 +467,17 @@ class InstallerTests(unittest.TestCase):
         fixture = Fixture(self)
         media = fixture.directory / "media"
         extra = fixture.directory / "extra"
+        log_dir = fixture.directory / "custom logs"
         media.mkdir()
         extra.mkdir()
+        log_dir.mkdir()
         port = self.health_server()
         generated = self.generate(
             fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
             "--image-tag", "v1.4.1", "--port", str(port), "--bind", "0.0.0.0",
             "--public-origin", "https://anime.example.com", "--log-level", "warn",
+            "--log-path", str(log_dir / "backend.log"),
+            "--log-destination", "both",
             "--media", str(media), "--extra-media", str(extra), "--no-selinux-relabel",
             "--qbit", "--jackett", "--qbit-port", "8181", "--peer-port", "6991",
         )
@@ -445,6 +487,9 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         after = json.loads((fixture.target / "deployment.json").read_text())["settings"]
         self.assertEqual(after, before)
+        compose = (fixture.target / "compose.yaml").read_text()
+        self.assertIn(f'{log_dir}:/var/log/anishelf:rw', compose)
+        self.assertIn('/var/log/anishelf/backend.log', compose)
         reset = fixture.run([
             "reconfigure", str(fixture.target), "--managed-media", "--clear-extra-media",
             "--no-qbit", "--no-jackett", "--public-origin", "", "--image-tag", "latest",
@@ -549,6 +594,9 @@ class InstallerTests(unittest.TestCase):
         self.assertNotIn("jackett", compose)
         self.assertIn("  backend:", compose)
         self.assertIn("  web:", compose)
+        self.assertIn('ANISHELF_LOG_DESTINATION: stdout', compose)
+        self.assertNotIn('/var/log/anishelf', compose)
+        self.assertFalse((fixture.target / "logs").exists())
         env = (fixture.target / ".env").read_text(encoding="utf-8")
         self.assertIn("ANISHELF_TAG='latest'", env)
         self.assertIn("ANISHELF_LOG_LEVEL='info'", env)
@@ -568,6 +616,18 @@ class InstallerTests(unittest.TestCase):
             "docker compose pull backend web && docker compose up -d --no-deps backend web",
             result.stderr,
         )
+
+    def test_file_logging_creates_default_directory(self) -> None:
+        fixture = Fixture(self)
+        result = self.generate(
+            fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
+            "--log-destination", "file",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        compose = (fixture.target / "compose.yaml").read_text()
+        self.assertIn("ANISHELF_LOG_DESTINATION: file", compose)
+        self.assertIn(f'{fixture.target}/logs:/var/log/anishelf:rw', compose)
+        self.assertEqual(stat.S_IMODE((fixture.target / "logs").stat().st_mode), 0o700)
         self.assertIn("docker compose pull && docker compose up -d", result.stderr)
         self.assertIn("no profiles required", result.stderr)
 
@@ -703,7 +763,7 @@ class InstallerTests(unittest.TestCase):
         )
         self.assertIn("Image=ghcr.io/qw0er/anishelf-backend:testing", backend)
         self.assertIn("Environment=ANISHELF_LOG_LEVEL=debug", backend)
-        self.assertIn("Volume=anishelf-test-app.volume:/data/app", backend)
+        self.assertIn("Volume=anishelf-test-app.volume:/var/lib/anishelf", backend)
         self.assertEqual(
             (quadlet / "anishelf-test.network").read_text(encoding="utf-8"),
             "[Network]\nNetworkName=anishelf-test\n",

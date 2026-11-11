@@ -48,7 +48,7 @@ and release extensions in the corresponding notes or requirement sections.
 
 - **Item** describes a feature, improvement or reported bug.
 - **Delivery** is `Not started`, `Partial` or `Complete`, measured against the current documented scope. `—` means it has not been assessed or does not apply to the item. `Complete` does not imply universal compatibility or the absence of documented limitations.
-- **Status** combines planning and work progress: `Unassigned` is recorded without a decision to schedule it; `Later` is a future core candidate; `Optional` is a possible extension; `Planned` is selected but not started; `In progress` is active; `Completed` is implemented and awaiting acceptance verification; `Verified` has passed its acceptance checks. `—` means no separate status is recorded or applicable. Record blockers and reopen items when needed. Status does not by itself assign a release.
+- **Status** combines planning and work progress: `Unassigned` is recorded without a decision to schedule it; `Low priority` is deferred without an active implementation plan; `Later` is a future core candidate; `Optional` is a possible extension; `Planned` is selected but not started; `In progress` is active; `Completed` is implemented and awaiting acceptance verification; `Verified` has passed its acceptance checks. `—` means no separate status is recorded or applicable. Record blockers and reopen items when needed. Status does not by itself assign a release.
 - **Details** summarizes the delivered boundary, remaining work, reported behavior or open questions, and links to detailed notes. For partial delivery, distinguish delivered behavior from remaining work explicitly in the notes.
 - **First release** records the first project release containing any delivered part of the capability, based on the existing release records. `—` means no first release is recorded or the field does not apply; `Unreleased` retains an existing “Next release” record without assigning a release number. Later extensions and release qualifications appear in delivery notes. V1 and V2 are historical iteration names, not project versions.
 - Improvements and reported bugs are tracked in [Section 4](#4-improvements) and [Section 5](#5-bugs); feature work is recorded with its feature. `Planned` does not mean work has started.
@@ -58,8 +58,8 @@ and release extensions in the corresponding notes or requirement sections.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| L15 | Batch Review with shared work selection and episode-number offset previews | Not started | Later | — | — |
-| L17 | Learn scoped matching rules from explicit manual corrections | Not started | Later | — | — |
+| L15 | Batch Review with shared work selection and episode-number offset previews | Not started | Low priority | — | — |
+| L17 | Learn scoped matching rules from explicit manual corrections | Not started | Low priority | — | — |
 
 #### Batch Review (L15)
 
@@ -79,7 +79,7 @@ Preserve each rule's source confirmations and applicable context, explain its ef
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Later | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08); no active iteration assigned | — |
+| M08 | Read per-episode metadata and display episode titles on anime detail pages | Not started | Low priority | [Per-episode metadata and detail-page titles](#per-episode-metadata-m08); no active iteration assigned | — |
 | M10 | Discover anime beyond the user's library | Not started | Later | [Anime discovery](#anime-discovery-m10) | — |
 
 #### Delivery Notes (M)

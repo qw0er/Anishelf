@@ -180,6 +180,26 @@ class Installer:
 
         if args.log_level is not None and args.log_level not in {"trace", "debug", "info", "warn", "error", "fatal", "silent"}:
             raise InstallerError("Invalid Backend log level.")
+        if args.log_destination is not None and args.log_destination not in {"stdout", "file", "both"}:
+            raise InstallerError("Invalid Backend log destination.")
+
+        log_path = ""
+        if args.log_path:
+            candidate = absolute_input(args.log_path)
+            path = Path(candidate)
+            if not valid_path(candidate) or path.name in {"", ".", ".."} or candidate.endswith("/"):
+                raise InstallerError("Log path must be a safe file path.")
+            try:
+                parent = resolve_directory(str(path.parent))
+            except ValueError as error:
+                raise InstallerError("The custom log parent must be an existing non-symlink directory.") from error
+            if str(parent) in SYSTEM_DIRECTORIES:
+                raise InstallerError("Use a dedicated directory for the custom log file.")
+            if parent == deploy_dir or deploy_dir in parent.parents:
+                raise InstallerError("A custom log directory must be outside the deployment directory.")
+            if exists(parent / path.name) and not is_regular_file(parent / path.name):
+                raise InstallerError("The custom log file must be a regular file, not a symlink or directory.")
+            log_path = str(parent / path.name)
 
         rootless = method == "quadlet"
         image_tag = (
@@ -293,6 +313,8 @@ class Installer:
             test_mode=test_mode,
             image_tag=image_tag,
             log_level=args.log_level or ("debug" if test_mode else "info"),
+            log_path=log_path,
+            log_destination=args.log_destination or "stdout",
             bind_address=bind_address,
             app_port=app_port,
             public_origin=public_origin,
@@ -503,6 +525,8 @@ class Installer:
         # after validation or while templates were prepared.
         os.mkdir(deploy_dir, 0o700)
         try:
+            if self.settings.log_destination != "stdout" and not self.settings.log_path:
+                (deploy_dir / "logs").mkdir(mode=0o700)
             for relative in sorted(self.bundle):
                 target = Path(relative)
                 if target.is_absolute() or ".." in target.parts:
@@ -531,6 +555,8 @@ class Installer:
             f"rootless={rootless}; template source={self.settings.template_source}; "
             f"SELinux={self.settings.selinux_mode}."
         )
+        if self.settings.log_destination != "stdout":
+            log(f"Backend log file: {self.settings.backend_log_path}")
 
     def _validate_replacement_compose(self) -> None:
         assert self.settings is not None

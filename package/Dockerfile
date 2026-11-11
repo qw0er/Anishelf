@@ -40,14 +40,14 @@ WORKDIR /app
 ENV NODE_ENV=production \
     ANISHELF_HOST=0.0.0.0 \
     ANISHELF_PORT=3000 \
-    ANISHELF_DATA_DIR=/data/app \
+    ANISHELF_DATA_DIR=/var/lib/anishelf \
     ANISHELF_FFMPEG_PATH=/usr/bin/ffmpeg \
     ANISHELF_FFPROBE_PATH=/usr/bin/ffprobe
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /data/app /data/media \
-    && chown -R node:node /data
+    && mkdir -p /var/lib/anishelf /data/media \
+    && chown -R node:node /var/lib/anishelf /data
 COPY --from=backend-build /app/node_modules ./node_modules
 COPY --from=backend-build /app/backend/package.json ./backend/package.json
 COPY --from=backend-build /app/backend/build-info.json ./backend/build-info.json

@@ -12,6 +12,7 @@ import { userDataDir, userLogDir } from "platformdirs";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { parse } from "yaml";
 import {
+	isSystemServiceCgroup,
 	loadDeploymentConfig,
 	parseDeploymentConfig,
 } from "../../../src/modules/system/configuration/infrastructure/deployment.js";
@@ -19,6 +20,22 @@ import {
 let fixture: string;
 beforeEach(async () => {
 	fixture = await mkdtemp(join(tmpdir(), "anishelf-config-"));
+});
+
+test.each([
+	["0::/system.slice/anishelf.service\n", true],
+	["0::/system.slice/anishelf.service/worker\n", true],
+	[
+		"0::/user.slice/user-1000.slice/user@1000.service/app.slice/anishelf.service\n",
+		false,
+	],
+	[
+		"0::/system.slice/user.slice/user@1000.service/app.slice/anishelf.service\n",
+		false,
+	],
+	["0::/", false],
+])("identifies system service cgroups: %s", (cgroup, expected) => {
+	expect(isSystemServiceCgroup(cgroup)).toBe(expected);
 });
 afterEach(async () => {
 	await rm(fixture, { recursive: true, force: true });

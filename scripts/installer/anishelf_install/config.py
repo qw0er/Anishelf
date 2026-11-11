@@ -27,6 +27,8 @@ class Settings:
     qbit: bool
     jackett: bool
     log_level: str = "info"
+    log_path: str = ""
+    log_destination: str = "stdout"
     media_path: str = ""
     extra_paths: list[str] = field(default_factory=list)
     qbit_port: int = 8080
@@ -49,6 +51,10 @@ class Settings:
         return ":".join(roots)
 
     @property
+    def backend_log_path(self) -> Path:
+        return Path(self.log_path) if self.log_path else self.deploy_dir / "logs" / "anishelf.log"
+
+    @property
     def quadlet_dir(self) -> Path:
         return self._config_home() / "containers" / "systemd"
 
@@ -69,6 +75,9 @@ class Settings:
             f"origin={self.public_origin or 'automatic'}; log level={self.log_level}"
         )
         log(f"External proxy trust: {self.web_trusted_proxies}")
+        log(f"Backend log destination: {self.log_destination}")
+        if self.log_destination != "stdout":
+            log(f"Backend log file: {self.backend_log_path}")
         for extra in self.extra_paths:
             log(f"Additional media: {extra}")
         log(
@@ -93,7 +102,8 @@ def parse_profile(path: Path) -> str | None:
 
 # CLI option -> validated installation setting. Only user choices are persisted.
 _SAVED_OPTIONS = {
-    "image_tag": "image_tag", "log_level": "log_level", "bind": "bind_address",
+    "image_tag": "image_tag", "log_level": "log_level", "log_path": "log_path",
+    "log_destination": "log_destination", "bind": "bind_address",
     "port": "app_port", "public_origin": "public_origin", "qbit": "qbit",
     "jackett": "jackett", "qbit_port": "qbit_port", "peer_port": "peer_port",
     "jackett_port": "jackett_port", "media": "media_path", "extra_media": "extra_paths",

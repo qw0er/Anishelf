@@ -12,13 +12,23 @@
 | Custom acquisition profiles | YAML in the app data directory | Backend restart |
 | Transcode profiles | YAML in the app data directory | Backend restart |
 
-Containers use `/data/app` for state and `/data/media` for initial media. Source
-installations default to the OS user data directory; set `ANISHELF_DATA_DIR` to keep
-an existing location. Paths must be absolute. Existing `settings.json` takes
+Containers use `/var/lib/anishelf` for state and `/data/media` for initial media. Source
+installations default to the OS user data directory. On Linux, a systemd service
+in `system.slice` defaults to `/var/lib/anishelf` instead; user services retain
+the user directory. The service account must have access to its directories.
+Set `ANISHELF_DATA_DIR` to keep an existing location, especially when upgrading
+an existing system service. Paths must be absolute. Existing `settings.json` takes
 precedence over initializers; malformed settings block startup without replacement.
 External edits to `settings.json` also require a Backend restart; Settings saves
 continue to update disk and memory immediately. There is no configuration file
 watcher or manual reload command.
+
+When upgrading a container deployment that mounted `anishelf-app` at `/data/app`,
+update the mount to `/var/lib/anishelf` and any explicit `ANISHELF_DATA_DIR` to the
+same path before starting the new image. Keep the existing volume: changing its
+mount point does not move or erase its contents. Alternatively, retain the old
+mount and explicitly set `ANISHELF_DATA_DIR=/data/app`. Apply both settings together
+when recreating the backend so it does not start against an empty directory.
 
 ### Environment variables
 
@@ -33,7 +43,7 @@ templates for container wiring.
 | `ANISHELF_ALLOWED_HOSTS` | Unset | Optional Backend exact hostname/IP allowlist, comma-separated, without ports or wildcards; blank accepts any valid Host |
 | `ANISHELF_WEB_TRUSTED_PROXIES` | `127.0.0.1/32 ::1/128` | Advanced automatic/multi-origin HTTPS or original client IP: Web external proxy IPs/CIDRs, space-separated; use the source address seen by Web |
 | `ANISHELF_TRUSTED_PROXIES` | `loopback` | Trusted proxy IPs/CIDRs; packaged containers also trust `uniquelocal` |
-| `ANISHELF_DATA_DIR` | OS user data directory | Persistent app state |
+| `ANISHELF_DATA_DIR` | OS user data directory; `/var/lib/anishelf` for a Linux systemd system service in `system.slice` | Persistent app state |
 | `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | Up to 64 colon-separated media paths; initializes missing settings only |
 | `ANISHELF_QBITTORRENT_API_URL` | Unset | API form hint; does not save credentials or connect |
 | `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Browser WebUI link for missing settings only |
@@ -41,7 +51,7 @@ templates for container wiring.
 | `ANISHELF_BUNDLED_JACKETT_CONFIG_FILE` | Unset | Read-only native Jackett config for bundled connection import |
 | `ANISHELF_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent` |
 | `ANISHELF_LOG_DESTINATION` | `stdout` | `stdout`, `file`, `both` |
-| `ANISHELF_LOG_PATH` | OS user log directory + `anishelf.log` | Absolute override for file/both output |
+| `ANISHELF_LOG_PATH` | OS user log directory + `anishelf.log`; `/var/log/anishelf/anishelf.log` for a Linux systemd system service in `system.slice` | Absolute override for file/both output |
 | `ANISHELF_LOG_MAX_SIZE_BYTES` | `10485760` | File rotation size (10 MiB) |
 | `ANISHELF_LOG_MAX_FILES` | `7` | Retained archives, excluding the active file |
 | `ANISHELF_LOG_ROTATE_INTERVAL` | `1d` | `1h` or `1d` |
@@ -50,7 +60,10 @@ templates for container wiring.
 | `ANISHELF_API_TARGET` | `http://127.0.0.1:3000` | Vite development proxy target |
 | `NODE_ENV` | Unset | `development` enables local Vite Origin exceptions |
 
-Invalid startup options fail with a terminal diagnostic. Log path/rotation options
+System service detection requires systemd's `INVOCATION_ID` and an accessible
+`/proc/self/cgroup` entry under `system.slice`, outside `user.slice`. Services in
+custom slices or restricted cgroup namespaces should set the paths explicitly.
+File logging remains disabled by default. Invalid startup options fail with a terminal diagnostic. Log path/rotation options
 require file/both output. Legacy TOML is no longer read: unset `ANISHELF_CONFIG`,
 keep its former data directory through `ANISHELF_DATA_DIR`, and translate listener/log
 options to environment variables.
@@ -115,7 +128,7 @@ and [selection profiles](acquisition-profiles.md) for these workflows.
 
 Read container logs with the [maintenance commands](deployment.md#maintenance).
 For persistent file logs, set `ANISHELF_LOG_DESTINATION=both` and
-`ANISHELF_LOG_PATH=/data/app/anishelf.log`. Default rotation is daily or at 10 MiB,
+`ANISHELF_LOG_PATH=/var/lib/anishelf/anishelf.log`. Default rotation is daily or at 10 MiB,
 with seven archives. File-output failures emit stderr diagnostics.
 
 Use request IDs and event names to correlate failures. Do not share initial-password

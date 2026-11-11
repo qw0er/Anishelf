@@ -1,4 +1,4 @@
-import { constants } from "node:fs";
+import { constants, readFileSync } from "node:fs";
 import { access, mkdir, stat } from "node:fs/promises";
 import { isIP } from "node:net";
 import { isAbsolute, join } from "node:path";
@@ -121,6 +121,25 @@ function defaultDataDir(): string {
 	return userDataDir("anishelf", false);
 }
 
+function systemService(env: Environment): boolean {
+	if (process.platform !== "linux" || !env.INVOCATION_ID) return false;
+	try {
+		return isSystemServiceCgroup(readFileSync("/proc/self/cgroup", "utf8"));
+	} catch {
+		return false;
+	}
+}
+
+export function isSystemServiceCgroup(cgroups: string): boolean {
+	return cgroups.split("\n").some((line) => {
+		const path = line.split(":").slice(2).join(":");
+		const segments = path.split("/");
+		return (
+			segments.includes("system.slice") && !segments.includes("user.slice")
+		);
+	});
+}
+
 function positiveInteger(
 	value: string | undefined,
 	fallback: number,
@@ -179,9 +198,12 @@ export function parseDeploymentConfig(
 	) {
 		invalid("ANISHELF_PORT must be an integer between 1 and 65535.");
 	}
+	const isSystemService = systemService(env);
 	const dataDir =
 		env.ANISHELF_DATA_DIR === undefined
-			? defaultDataDir()
+			? isSystemService
+				? "/var/lib/anishelf"
+				: defaultDataDir()
 			: absolutePath(env.ANISHELF_DATA_DIR, "ANISHELF_DATA_DIR");
 	const level = env.ANISHELF_LOG_LEVEL ?? deploymentDefaults.logLevel;
 	if (!(logLevels as readonly string[]).includes(level)) {
@@ -213,7 +235,9 @@ export function parseDeploymentConfig(
 			destination,
 			path:
 				env.ANISHELF_LOG_PATH === undefined
-					? join(userLogDir("anishelf", false), "anishelf.log")
+					? isSystemService
+						? "/var/log/anishelf/anishelf.log"
+						: join(userLogDir("anishelf", false), "anishelf.log")
 					: absolutePath(env.ANISHELF_LOG_PATH, "ANISHELF_LOG_PATH"),
 			rotation: {
 				maxSizeBytes: positiveInteger(
