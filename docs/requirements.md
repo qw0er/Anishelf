@@ -28,7 +28,7 @@ and the [Design system](development/design-system.md).
 
 Requirements describe outcomes rather than prescribing implementation. When code and
 documentation disagree, verify the intended behavior and update the affected documents.
-The current release is 1.6.1; 1.6.2 is upcoming.
+The current release is 1.6.2; 1.6.3 is upcoming.
 
 ## 2. Feature Inventory and Version Tracking
 

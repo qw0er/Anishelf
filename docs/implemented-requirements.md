@@ -384,7 +384,7 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | --- | --- | --- | --- | --- | --- |
 | S01 | Enable or pause RSS discovery from an anime's own page | Complete | Completed | Download submission separate | 1.0.0 |
 | S02 | Set and preserve a subscription starting episode and backlog scope | Complete | Completed | [Fixed starting scope and activation preview](#delivery-notes-s) | 1.0.0 |
-| S03 | Configure RSS and discover releases periodically | Complete | Completed | [Per-anime RSS and configurable recurring discovery](#delivery-notes-s) | 1.0.0 |
+| S03 | Configure RSS and discover releases periodically | Complete | Completed | [Per-anime RSS and recurring discovery](#delivery-notes-s) | 1.0.0 |
 | S04 | Match releases to titles and episodes and explain uncertain matches | Complete | Completed | Uncertain releases are automatically skipped without review | 1.0.0 |
 | S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Complete | Completed | [Selection profiles for RSS, search and Watching](#delivery-notes-s) | 1.0.0 |
 | S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Complete | Completed | [Exclude duplicate releases, local files and active downloads](#delivery-notes-s) | 1.0.0 |
@@ -403,7 +403,7 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 #### Delivery Notes (S)
 
 - **S02:** Fixed starting episode and protection against conflicting edits; global Watching activation previews impact.
-- **S03:** One RSS per anime, reliable recurring discovery with a configurable global interval (default 30 minutes).
+- **S03:** One RSS per anime and recurring discovery at a fixed 30-minute interval. The Web interval setting was removed in 1.6.3; see O26 for the optional future setting.
 - **S05:** For RSS, manual search and opt-in Watching: built-in/custom YAML selection profiles.
 - **WI08:** The built-in compatibility-first profile accepts H.264/VP9 at 1080p/2160p after 60 minutes, and any codec at those resolutions or 720p after 120 minutes. **Release record:** 1.4.1.
 - **S06:** Exclude duplicate releases, available local episodes and already active acquisitions, including across restart.
@@ -745,8 +745,8 @@ saved together keep an explicit Save action. **Release record:** 1.5.0.
 
 #### Prepared Copy Storage (O18)
 
-The former cache budget setting is retired. Preparation checks available disk space
-before processing and publication. Existing copies remain available for manual cleanup.
+The former cache budget setting is retired in 1.6.3. Preparation checks available disk
+space before processing and publication. Existing copies remain available for manual cleanup.
 
 #### Unified Configuration (O17)
 

@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.6.3
+
+### Changed
+
+- Use `/var/lib/anishelf` for container application state. Existing deployments
+  mounted at `/data/app` must update the mount and any explicit
+  `ANISHELF_DATA_DIR` together, or retain both the old mount and
+  `ANISHELF_DATA_DIR=/data/app`. Preserve the existing volume; see the
+  [upgrade guidance](https://github.com/qw0er/Anishelf/blob/main/docs/guide/operations.md#deployment-configuration).
+- Simplify AniList account connection and require confirmation when switching
+  accounts. Simplify Watching automation activation while retaining its scope
+  preview and confirmation.
+- Show video and audio formats on transcode profile cards and show validation
+  badges for unsupported profiles. Move Jackett WebUI settings below resource
+  sites and hide the empty site list message.
+- Use a fixed 30-minute source refresh interval instead of a Web setting. Manual
+  subscription checks remain available.
+
+### Removed
+
+- Remove the prepared-copy storage quota and its setting. Preparation uses
+  available disk space with a free-space reserve; existing copies are retained
+  and can be deleted manually.
+- Remove automatic next-episode playback and its settings. The next-episode
+  button remains available for manual playback.
+
 ## 1.6.2
 
 ### Added
