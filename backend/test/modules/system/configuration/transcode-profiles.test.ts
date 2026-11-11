@@ -259,6 +259,8 @@ test("HTTP catalog exposes the startup snapshot and has no reload endpoint", asy
 		});
 		expect(before.statusCode).toBe(200);
 		expect(before.json().profiles[0]).toMatchObject({
+			videoCodec: "h264",
+			audioCodec: "aac",
 			validation: { status: "unverified" },
 		});
 		expect(before.json()).not.toHaveProperty("preparationMode");

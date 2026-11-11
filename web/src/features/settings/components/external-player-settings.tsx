@@ -38,61 +38,58 @@ export function ExternalPlayerSettings() {
 						{t("externalPlayers.storageError")}
 					</p>
 				)}
-				{custom.players.length === 0 && !custom.error && (
-					<p className="text-sm text-muted-foreground">
-						{t("externalPlayers.empty")}
-					</p>
+				{custom.players.length > 0 && (
+					<ul className="max-h-64 divide-y overflow-auto">
+						{custom.players.map((player) => (
+							<li
+								key={player.id}
+								className="action-row flex-nowrap min-w-0 items-center gap-3 py-2"
+							>
+								<div className="min-w-0 flex-1 basis-40">
+									<Tooltip content={player.template} openOnClick>
+										<button
+											type="button"
+											className="max-w-full truncate rounded text-left text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50"
+										>
+											{player.name}
+										</button>
+									</Tooltip>
+								</div>
+								<ActionButton
+									icon={Trash2}
+									shortLabel={t("externalPlayers.delete")}
+									variant="outline"
+									label={t("externalPlayers.deleteNamed", {
+										name: player.name,
+									})}
+									onClick={() => {
+										try {
+											custom.remove(player.id);
+											console.debug("[Settings] Custom player removed.", {
+												count: custom.players.length - 1,
+											});
+											toast.add({
+												id: "external-players-save",
+												type: "success",
+												title: t("externalPlayers.removed"),
+											});
+											setError(null);
+										} catch {
+											console.warn(
+												"[Settings] Custom player removal could not be saved.",
+											);
+											toast.add({
+												id: "external-players-save",
+												type: "error",
+												title: t("externalPlayers.saveError"),
+											});
+										}
+									}}
+								/>
+							</li>
+						))}
+					</ul>
 				)}
-				<ul className="max-h-64 divide-y overflow-auto">
-					{custom.players.map((player) => (
-						<li
-							key={player.id}
-							className="action-row flex-nowrap min-w-0 items-center gap-3 py-2"
-						>
-							<div className="min-w-0 flex-1 basis-40">
-								<Tooltip content={player.template} openOnClick>
-									<button
-										type="button"
-										className="max-w-full truncate rounded text-left text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50"
-									>
-										{player.name}
-									</button>
-								</Tooltip>
-							</div>
-							<ActionButton
-								icon={Trash2}
-								shortLabel={t("externalPlayers.delete")}
-								variant="outline"
-								label={t("externalPlayers.deleteNamed", {
-									name: player.name,
-								})}
-								onClick={() => {
-									try {
-										custom.remove(player.id);
-										console.debug("[Settings] Custom player removed.", {
-											count: custom.players.length - 1,
-										});
-										toast.add({
-											id: "external-players-save",
-											type: "success",
-											title: t("externalPlayers.removed"),
-										});
-										setError(null);
-									} catch {
-										console.warn(
-											"[Settings] Custom player removal could not be saved.",
-										);
-										toast.add({
-											id: "external-players-save",
-											type: "error",
-											title: t("externalPlayers.saveError"),
-										});
-									}
-								}}
-							/>
-						</li>
-					))}
-				</ul>
 				<form
 					className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
 					onSubmit={(event) => {

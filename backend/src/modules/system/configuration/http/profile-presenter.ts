@@ -19,8 +19,8 @@ export function transcodeProfileCatalog(
 				name,
 				description,
 				container,
-				videoEncoder: video.encoder,
-				audioEncoder: audio.encoder,
+				videoCodec: video.codec || (video.encoder === "copy" ? "copy" : null),
+				audioCodec: audio.codec || (audio.encoder === "copy" ? "copy" : null),
 				validation: configuration.transcodeValidation?.[id] ?? {
 					status: "unverified",
 					issues: [],

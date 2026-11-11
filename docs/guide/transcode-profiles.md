@@ -168,8 +168,12 @@ Detection is cached by tool identity, concurrent requests share pending work, an
 Backend restart refreshes the relevant information. Failed option queries retry after the
 existing tool-detection cooldown.
 
-- `GET /api/transcode-profiles`: display metadata, active `revision`, per-profile
-  `validation`, saved selection, availability and latest loading issue.
+- `GET /api/transcode-profiles` returns display metadata, the active `revision`,
+  per-profile `validation`, the saved selection, availability and the latest
+  loading issue. The `videoCodec` and `audioCodec` fields report the declared
+  or detected format. A value of `copy` indicates that the stream retains its
+  source format without a specific codec requirement. A value of `null` means
+  the format is unknown.
 - `PUT /api/transcode-profiles/selection`: `{ profileId }`; use `null` for the default.
 
 Task identity covers effective options, their order, filters, constraints and the

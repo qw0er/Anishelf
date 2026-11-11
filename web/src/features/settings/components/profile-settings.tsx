@@ -21,6 +21,12 @@ import { toast } from "../../../shared/components/ui/toast.js";
 import { getErrorTranslationKey } from "../../../shared/lib/error-translation.js";
 import { selectTranscodeProfile } from "../api.js";
 
+const codecLabels = new Map([
+	["h264", "H.264"],
+	["hevc", "H.265"],
+	["opus", "Opus"],
+]);
+
 export function PreparationProfileSettings({
 	preparation,
 }: {
@@ -32,6 +38,11 @@ export function PreparationProfileSettings({
 	};
 }) {
 	const { t } = useTranslation();
+	function codecLabel(codec: string | null) {
+		if (!codec) return t("preparation.profileCodecUnknown");
+		if (codec === "copy") return t("preparation.profileCodecCopy");
+		return codecLabels.get(codec.toLowerCase()) ?? codec.toUpperCase();
+	}
 	const [profileId, setProfileId] = useState("");
 	useEffect(() => {
 		setProfileId(
@@ -107,9 +118,12 @@ export function PreparationProfileSettings({
 											badgeTone="error"
 											title={profile.name}
 											meta={t("preparation.profileFormat", {
-												container: profile.container.toUpperCase(),
-												videoEncoder: profile.videoEncoder,
-												audioEncoder: profile.audioEncoder,
+												container:
+													profile.container === "matroska"
+														? "MKV"
+														: profile.container.toUpperCase(),
+												videoCodec: codecLabel(profile.videoCodec),
+												audioCodec: codecLabel(profile.audioCodec),
 											})}
 											description={profile.description}
 										/>

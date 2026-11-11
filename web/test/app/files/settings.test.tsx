@@ -13,6 +13,13 @@ import { appFixture, fetcher, json } from "../support/state.js";
 
 setupAppTest();
 
+test("playback settings display the profile's container and codec formats", async () => {
+	renderApp("/settings?section=playback");
+	expect(
+		await screen.findByText("MP4 · Video: H.264 · Audio: AAC"),
+	).toBeTruthy();
+});
+
 test("first-run setup saves the server directory and shows the automatic scan", async () => {
 	appFixture.settings = { resourceRoots: [] };
 	appFixture.library = {
