@@ -80,6 +80,12 @@ export class DownloadPlanning {
 					);
 					const now = this.context.now();
 					const intent: DownloadIntent = {
+						acceptedTarget: {
+							workKey: subscription.workKey,
+							reference: target.work.reference,
+							episode: candidate.episode,
+							snapshotId: target.work.snapshotId,
+						},
 						id: randomUUID(),
 						revision: randomUUID(),
 						workKey: subscription.workKey,
@@ -107,7 +113,17 @@ export class DownloadPlanning {
 						sourceIdentity: null,
 						lastCommand: null,
 					};
-					if (this.context.options.store.reserve(intent))
+					if (
+						this.context.options.store.transaction(() => {
+							if (!this.context.options.store.reserve(intent)) return false;
+							if (intent.acceptedTarget)
+								this.context.options.ingestion.retainTarget?.(
+									intent.acceptedTarget,
+									intent.id,
+								);
+							return true;
+						})
+					)
 						this.context.options.logger.info(
 							{
 								event: "acquisition.intent_reserved",

@@ -7,6 +7,7 @@ import type {
 import type { DownloadDestination, DownloadIntent } from "./domain/model.js";
 
 export interface DownloadStore {
+	transaction<T>(operation: () => T): T;
 	destination(): DownloadDestination | null;
 	saveDestination(value: DownloadDestination): void;
 	directory(workKey: string): string | null;
@@ -36,7 +37,7 @@ export interface DownloadStore {
 	intent(id: string): DownloadIntent | null;
 	reserve(value: DownloadIntent): boolean;
 	saveIntent(value: DownloadIntent): void;
-	prune(before: number): void;
+	prune(before: number, onPruned?: (item: DownloadIntent) => void): void;
 }
 export interface TorrentReader {
 	read(reference: string, signal: AbortSignal): Promise<DownloadContent>;

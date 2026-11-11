@@ -680,7 +680,9 @@
 		"optionalRejectionReason": "Reason (optional)",
 		"whole": "whole",
 		"numbersPlaceholder": "1, 2, 3",
-		"manualCorrection": "Manual correction"
+		"manualCorrection": "Manual correction",
+		"acquisitionTarget": "Associated with the accepted download target: episode {{episode}}.",
+		"acquisitionFilenameHint": "Filename evidence differs or is incomplete; the verified download target takes precedence."
 	},
 	"trackingAccount": {
 		"title": "Tracking account",
@@ -999,7 +1001,9 @@
 				"no_eligible_release": "No single-episode release matches your download preferences. Retry later or adjust your preferences.",
 				"discovery_unavailable": "Release discovery could not complete. Check source sites and the downloader, then retry.",
 				"acquisition_configuration_changed": "Download settings changed. Retry to use the current configuration.",
-				"already_available": "This episode is already available locally."
+				"already_available": "This episode is already available locally.",
+				"association_requires_manual_review": "An existing manual or protected decision requires local Review.",
+				"association_conflict_retry": "The catalog changed concurrently; ingestion will retry automatically."
 			},
 			"episodeProgress": "Episode {{episode}} download progress",
 			"history": "History",

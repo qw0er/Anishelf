@@ -44,6 +44,7 @@ export function readAcquisitionIntents(
 	row: typeof s.acquisitionIntents.$inferSelect,
 ): DownloadIntent {
 	return {
+		acceptedTarget: row.acceptedTarget,
 		id: row.id,
 		revision: row.revision,
 		workKey: row.workKey,
@@ -95,6 +96,7 @@ export function writeAcquisitionIntents(
 ): void {
 	connection.transaction((store) => {
 		const row0 = {
+			acceptedTarget: value.acceptedTarget ?? null,
 			id: value?.id,
 			revision: value?.revision,
 			workKey: value?.workKey,

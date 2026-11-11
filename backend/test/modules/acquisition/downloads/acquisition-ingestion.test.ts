@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import pino from "pino";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { AnimeCatalogApplication } from "../../../../src/modules/anime/anime-catalog/application/catalog.js";
 import type { CatalogMetadata } from "../../../../src/modules/anime/anime-catalog/ports.js";
@@ -13,6 +13,7 @@ import type {
 import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import { AnimeReleaseAssessment } from "../../../../src/modules/anime/release-assessment/application.js";
 import { AcquisitionIngestion } from "../../../../src/modules/anime/release-assessment/ingestion.js";
+import { AutomaticIdentificationCoordinator } from "../../../../src/modules/anime/workflows/automatic-identification.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
 import { createLibraryModule } from "../../../support/library.js";
 import { fixtureIdentities } from "../../../support/metadata-identities.js";
@@ -82,7 +83,10 @@ async function fixture() {
 		id: "snapshot",
 		key: "fixture:anime:1",
 		kind: "detail",
-		data,
+		data: {
+			...data,
+			reference: { provider: "metadata", mediaType: "anime", id: "1" },
+		},
 		fetchedAt: Date.now(),
 		expiresAt: Date.now() + 600000,
 		accessedAt: Date.now(),
@@ -118,7 +122,8 @@ async function fixture() {
 			fixtureIdentities(),
 		),
 		ingestion = new AcquisitionIngestion(
-			assessment,
+			metadata,
+			fixtureIdentities(),
 			parser,
 			catalog,
 			library.sources,
@@ -129,7 +134,20 @@ async function fixture() {
 		if (!scopeId) throw new Error("Missing root scope.");
 		return library.refreshDownload(scopeId, path);
 	}
-	return { base, root, scopeId, library, config, catalog, ingestion, file };
+	return {
+		base,
+		root,
+		scopeId,
+		library,
+		config,
+		catalog,
+		ingestion,
+		file,
+		metadata,
+		db,
+		assessment,
+		parser,
+	};
 }
 test("targeted refresh and acquisition ingest create real source associations idempotently", async () => {
 	const f = await fixture(),
@@ -149,7 +167,7 @@ test("targeted refresh and acquisition ingest create real source associations id
 		kind: "regular",
 	});
 });
-test("actual numbering conflict enters local Review rather than associating the expected release", async () => {
+test("a filename episode contradiction is advisory and the accepted target is ingested", async () => {
 	const f = await fixture(),
 		identity = await f.file();
 	expect(
@@ -159,19 +177,43 @@ test("actual numbering conflict enters local Review rather than associating the 
 			identity,
 			new AbortController().signal,
 		),
-	).toBe("review");
-	expect((await f.catalog.source(identity.fileId)).associations).toHaveLength(
-		0,
-	);
+	).toBe("available");
 	expect(
-		(await f.catalog.fileReviews([identity.fileId]))[0]?.unresolved,
-	).toContain("download_target_conflict");
+		(await f.catalog.source(identity.fileId)).associations[0],
+	).toMatchObject({ number: "4" });
+	const review = (await f.catalog.fileReviews([identity.fileId]))[0];
+	expect(review).toMatchObject({
+		decisionOrigin: "acquisition",
+		acquisition: {
+			warnings: ["filename_target_unconfirmed"],
+			target: { episode: 4 },
+		},
+	});
 });
+
 test("manual associations survive acquisition retries for a different episode", async () => {
 	const f = await fixture(),
 		identity = await f.file(),
 		signal = new AbortController().signal;
 	await f.ingestion.ingest("fixture:anime:1", 3, identity, signal);
+	const review = (await f.catalog.fileReviews([identity.fileId]))[0];
+	if (!review) throw Error();
+	const preview = await f.catalog.preview({
+		reference: { id: "1" },
+		rows: [
+			{
+				reviewId: review.id,
+				revision: review.revision,
+				targets: [{ kind: "regular", number: "3" }],
+				reason: "Manual confirmation",
+			},
+		],
+	});
+	await f.catalog.confirm({
+		previewId: preview.id,
+		operationKey: "manual-confirm",
+		replace: true,
+	});
 	expect(await f.ingestion.ingest("fixture:anime:1", 4, identity, signal)).toBe(
 		"review",
 	);
@@ -197,4 +239,241 @@ test("confined completed-file access rejects symlinks, removed roots and incompl
 	await expect(
 		f.library.inspectDownload(f.scopeId, "file.mkv"),
 	).rejects.toThrow();
+});
+
+test.each(["video.mkv", "Unknown - 09.mkv", "Frieren - 03.mkv"])(
+	"accepted downloads ingest %s without metadata requests",
+	async (path) => {
+		const f = await fixture(),
+			identity = await f.file(path),
+			signal = new AbortController().signal;
+		const target = await f.ingestion.captureTarget(
+			"fixture:anime:1",
+			3,
+			signal,
+		);
+		f.ingestion.retainTarget(target, "download-1");
+		const get = vi
+			.spyOn(f.metadata, "get")
+			.mockRejectedValue(new Error("provider offline"));
+		expect(
+			await f.ingestion.ingest(target.workKey, 3, identity, signal, {
+				intentId: "download-1",
+				candidateId: "release",
+				title: "Frieren 03",
+				hash: "hash",
+				transfer: "transfer",
+				target,
+				warnings: [],
+			}),
+		).toBe("available");
+		expect(get).not.toHaveBeenCalled();
+		expect(
+			(await f.catalog.source(identity.fileId)).associations[0]?.number,
+		).toBe("3");
+		expect(await f.catalog.reusableAcquisitions([identity])).toHaveLength(1);
+		f.ingestion.releaseTarget(target, "download-1");
+		expect(f.metadata.snapshot(target.snapshotId).kind).toBe("detail"); // Catalog retains its own pin.
+	},
+);
+
+test("parser failure does not revoke the accepted download target", async () => {
+	const f = await fixture(),
+		identity = await f.file("video.mkv");
+	vi.spyOn(f.parser, "extractRelease").mockImplementation(() => {
+		throw Error("parse failed");
+	});
+	expect(
+		await f.ingestion.ingest(
+			"fixture:anime:1",
+			3,
+			identity,
+			new AbortController().signal,
+		),
+	).toBe("available");
+});
+
+async function automaticallyAssociate(
+	f: Awaited<ReturnType<typeof fixture>>,
+	identity: Awaited<ReturnType<Awaited<ReturnType<typeof fixture>>["file"]>>,
+) {
+	const target = await f.assessment.target("fixture:anime:1");
+	const result = {
+		source: identity,
+		evidence: f.parser.extractRelease("Frieren - 03.mkv"),
+		status: "proposed" as const,
+		metadataStatus: "searched" as const,
+		proposals: [
+			{
+				candidate: {
+					work: target.work,
+					score: 100,
+					reasons: [],
+					conflicts: [],
+					matcherVersion: "test",
+				},
+				mapping: {
+					targets: [{ kind: "regular" as const, number: "3" }],
+					reasons: [],
+					unresolved: [],
+				},
+			},
+		],
+		unresolved: [],
+	};
+	result.evidence.relativePath = identity.relativePath;
+	await f.catalog.publish([result], [identity.scopeId]);
+	return result;
+}
+test("accepted target corrects an automatic association and a late scan cannot replace it", async () => {
+	const f = await fixture(),
+		identity = await f.file();
+	const scan = await automaticallyAssociate(f, identity);
+	expect(
+		(await f.catalog.fileReviews([identity.fileId]))[0]?.decisionOrigin,
+	).toBe("identification");
+	expect(
+		await f.ingestion.ingest(
+			"fixture:anime:1",
+			4,
+			identity,
+			new AbortController().signal,
+		),
+	).toBe("available");
+	await f.catalog.publish([scan], [identity.scopeId]);
+	const review = (await f.catalog.fileReviews([identity.fileId]))[0];
+	expect(review).toMatchObject({
+		decisionOrigin: "acquisition",
+		acquisition: { target: { episode: 4 } },
+		associations: [{ number: "4" }],
+	});
+});
+test.each(["manual", "legacy"])(
+	"%s decisions are protected from accepted-target replacement",
+	async (origin) => {
+		const f = await fixture(),
+			identity = await f.file();
+		await automaticallyAssociate(f, identity);
+		const review = (await f.catalog.fileReviews([identity.fileId]))[0];
+		if (!review) throw Error();
+		f.db.catalog.decide(
+			review.id,
+			review.revision,
+			"confirmed",
+			"Protected decision",
+			origin as "manual" | "legacy",
+		);
+		expect(
+			await f.ingestion.ingest(
+				"fixture:anime:1",
+				4,
+				identity,
+				new AbortController().signal,
+			),
+		).toBe("review");
+		expect(
+			(await f.catalog.source(identity.fileId)).associations[0]?.number,
+		).toBe("3");
+	},
+);
+test("manual rejection and a competing acquisition target remain protected", async () => {
+	const f = await fixture(),
+		identity = await f.file();
+	await f.ingestion.ingest(
+		"fixture:anime:1",
+		3,
+		identity,
+		new AbortController().signal,
+	);
+	expect(
+		await f.ingestion.ingest(
+			"fixture:anime:1",
+			4,
+			identity,
+			new AbortController().signal,
+		),
+	).toBe("review");
+	const review = (await f.catalog.fileReviews([identity.fileId]))[0];
+	if (!review) throw Error();
+	await f.catalog.remove(
+		review.id,
+		review.revision,
+		"Do not associate this file",
+	);
+	expect(
+		await f.ingestion.ingest(
+			"fixture:anime:1",
+			3,
+			identity,
+			new AbortController().signal,
+		),
+	).toBe("review");
+});
+
+test("routine scans reuse a confirmed acquisition without filename recognition or metadata search", async () => {
+	const f = await fixture(),
+		identity = await f.file("video.mkv");
+	await f.ingestion.ingest(
+		"fixture:anime:1",
+		3,
+		identity,
+		new AbortController().signal,
+	);
+	const identify = vi.fn(async () => {
+		throw Error("Downloaded source must not be identified again");
+	});
+	const automatic = new AutomaticIdentificationCoordinator({
+		library: f.library,
+		sources: f.library.sources,
+		identification: { version: "test", identify },
+		catalog: f.catalog,
+		onPublication: f.catalog.publish,
+		logger,
+	});
+	cleanup.push(() => automatic.close());
+	automatic.start();
+	await automatic.waitForCompletion();
+	expect(identify).not.toHaveBeenCalled();
+	expect(automatic.getResults()).toHaveLength(1);
+	expect(
+		(await f.catalog.source(identity.fileId)).associations[0]?.number,
+	).toBe("3");
+});
+test("a manually changed decision during acquisition preview is fenced", async () => {
+	const f = await fixture(),
+		identity = await f.file();
+	const revalidate = f.library.sources.revalidateSource.bind(f.library.sources);
+	let changed = false;
+	vi.spyOn(f.library.sources, "revalidateSource").mockImplementation(
+		async (input) => {
+			const source = f.db.catalog.registerSource(identity);
+			const record = f.db.catalog.review(source.id);
+			if (record && !changed) {
+				changed = true;
+				f.db.catalog.decide(
+					record.id,
+					record.revision,
+					"rejected",
+					"Concurrent manual rejection",
+					"manual",
+				);
+			}
+			return revalidate(input);
+		},
+	);
+	await expect(
+		f.ingestion.ingest(
+			"fixture:anime:1",
+			3,
+			identity,
+			new AbortController().signal,
+		),
+	).rejects.toMatchObject({ code: "CATALOG_CONFLICT" });
+	expect((await f.catalog.fileReviews([identity.fileId]))[0]).toMatchObject({
+		decision: "rejected",
+		decisionOrigin: "manual",
+	});
+	expect((await f.catalog.source(identity.fileId)).associations).toHaveLength(
+		0,
+	);
 });

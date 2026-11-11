@@ -57,7 +57,8 @@ export class AutomaticIdentificationCoordinator {
 			identification: IdentificationApi;
 			logger: Logger;
 			metadataContext?: () => string;
-			catalog?: Pick<AnimeCatalogApi, "reviews" | "review">;
+			catalog?: Pick<AnimeCatalogApi, "reviews" | "review"> &
+				Partial<Pick<AnimeCatalogApi, "reusableAcquisitions">>;
 			onPublication?: (
 				results: readonly IdentificationResult[],
 				scopeIds: readonly string[],
@@ -415,15 +416,26 @@ export class AutomaticIdentificationCoordinator {
 			if (!forced && cached?.fingerprint === fingerprint)
 				results = cached.results;
 			else {
-				results = [];
+				const reusable =
+					(await this.options.catalog?.reusableAcquisitions?.(sources)) ?? [];
+				const reused = new Set(
+					reusable.map(
+						(result) =>
+							`${result.source.fileId}:${result.source.sourceVersion}`,
+					),
+				);
+				const unidentified = sources.filter(
+					(source) => !reused.has(`${source.fileId}:${source.sourceVersion}`),
+				);
+				results = [...reusable];
 				for (
 					let start = 0;
-					start < sources.length;
+					start < unidentified.length;
 					start += identificationDefaults.parserGroupSize
 				)
 					results.push(
 						...(await this.options.identification.identify(
-							sources.slice(
+							unidentified.slice(
 								start,
 								start + identificationDefaults.parserGroupSize,
 							),

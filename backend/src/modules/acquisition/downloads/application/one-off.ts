@@ -358,6 +358,12 @@ export class OneOffDownloads {
 				throw new DownloadError("source_changed");
 			execution.save({
 				...execution.current,
+				acceptedTarget: {
+					workKey: initial.workKey,
+					reference: target.work.reference,
+					episode: initial.episode,
+					snapshotId: target.work.snapshotId,
+				},
 				candidateId: chosen.id,
 				title: chosen.title.slice(0, 1024),
 				source: entry.download,

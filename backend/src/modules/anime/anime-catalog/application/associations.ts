@@ -35,6 +35,9 @@ export class AssociationApplication {
 	async preview(
 		request: PreviewRequest,
 		signal?: AbortSignal,
+		acceptedMetadata?: import("../../external-works/metadata/public.js").CachedMetadata<
+			import("../../external-works/metadata/public.js").WorkDetails
+		>,
 	): Promise<CatalogPreview> {
 		const scope = await this.context.scope();
 		this.prunePreviews();
@@ -50,10 +53,12 @@ export class AssociationApplication {
 				request.rows.length
 		)
 			invalid("Select between one and 100 distinct review items.");
-		const metadata = await this.context.options.metadata.get(
-			request.reference,
-			signal ? { signal } : {},
-		);
+		const metadata =
+			acceptedMetadata ??
+			(await this.context.options.metadata.get(
+				request.reference,
+				signal ? { signal } : {},
+			));
 		this.context.options.sources.assertAccessRevision(scope.revision);
 		const records: ReviewRecord[] = [];
 		const rows: CatalogPreview["rows"] = [];
@@ -123,6 +128,8 @@ export class AssociationApplication {
 	async confirm(
 		request: Confirmation,
 		signal?: AbortSignal,
+		origin: NonNullable<ReviewRecord["decisionOrigin"]> = "manual",
+		acquisition: ReviewRecord["acquisition"] = null,
 	): Promise<ConfirmationResult> {
 		signal?.throwIfAborted();
 		this.context.open();
@@ -300,7 +307,14 @@ export class AssociationApplication {
 						};
 					});
 					store.replaceAssociations(row.reviewId, associations);
-					store.decide(row.reviewId, row.revision, "confirmed", row.reason);
+					store.decide(
+						row.reviewId,
+						row.revision,
+						"confirmed",
+						row.reason,
+						origin,
+						acquisition,
+					);
 				}
 				for (const affected of saved.affectedWorks)
 					if (affected.id !== work.id) {

@@ -72,6 +72,8 @@ export class CatalogRepository implements CatalogStore {
 			available: row.review.available,
 			revision: row.review.revision,
 			decision: row.review.decision,
+			decisionOrigin: row.review.decisionOrigin,
+			acquisition: row.review.acquisition,
 			reason: row.review.reason,
 			evidence: result.evidence,
 			proposals: result.proposals,
@@ -90,6 +92,19 @@ export class CatalogRepository implements CatalogStore {
 	}
 	review(id: string): ReviewRecord | null {
 		const row = this.reviewQuery().where(eq(catalogReviews.id, id)).get();
+		return row ? this.readReview(row) : null;
+	}
+	priorAcquisition(fileId: string, scopeId: string) {
+		const row = this.reviewQuery()
+			.where(
+				and(
+					eq(mediaSources.fileId, fileId),
+					eq(mediaSources.rootId, scopeId),
+					eq(catalogReviews.decisionOrigin, "acquisition"),
+				),
+			)
+			.limit(1)
+			.get();
 		return row ? this.readReview(row) : null;
 	}
 	reviews(
@@ -159,6 +174,17 @@ export class CatalogRepository implements CatalogStore {
 					.from(catalogReviews)
 					.where(eq(catalogReviews.id, source.id))
 					.get();
+				if (
+					previous?.decisionOrigin === "acquisition" &&
+					previous.decision === "confirmed"
+				) {
+					this.store
+						.update(catalogReviews)
+						.set({ available: true })
+						.where(eq(catalogReviews.id, source.id))
+						.run();
+					continue;
+				}
 				const { source: _source, ...storedResult } = result;
 				const changed =
 					!previous ||
@@ -170,6 +196,8 @@ export class CatalogRepository implements CatalogStore {
 					available: true,
 					revision: previous ? previous.revision + Number(changed) : 1,
 					decision: previous?.decision ?? "pending",
+					decisionOrigin: previous?.decisionOrigin ?? "legacy",
+					acquisition: previous?.acquisition ?? null,
 					reason: previous?.reason ?? null,
 				});
 			}
@@ -400,10 +428,18 @@ export class CatalogRepository implements CatalogStore {
 		revision: number,
 		decision: ReviewRecord["decision"],
 		reason: string | null,
+		origin: NonNullable<ReviewRecord["decisionOrigin"]> = "manual",
+		acquisition: ReviewRecord["acquisition"] = null,
 	): void {
 		const result = this.store
 			.update(catalogReviews)
-			.set({ decision, reason, revision: revision + 1 })
+			.set({
+				decision,
+				reason,
+				decisionOrigin: origin,
+				acquisition,
+				revision: revision + 1,
+			})
 			.where(
 				and(eq(catalogReviews.id, id), eq(catalogReviews.revision, revision)),
 			)

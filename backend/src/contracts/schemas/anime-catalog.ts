@@ -136,6 +136,33 @@ const review = Type.Object({
 	sourceVersion: id,
 	available: Type.Boolean(),
 	revision,
+	decisionOrigin: Type.Optional(
+		Type.Union([
+			Type.Literal("manual"),
+			Type.Literal("identification"),
+			Type.Literal("acquisition"),
+			Type.Literal("legacy"),
+		]),
+	),
+	acquisition: Type.Optional(
+		Type.Union([
+			Type.Null(),
+			Type.Object({
+				intentId: Type.String(),
+				candidateId: Type.String(),
+				title: Type.String(),
+				hash: Type.String(),
+				transfer: nullableText,
+				target: Type.Object({
+					workKey: Type.String(),
+					reference,
+					episode: Type.Integer(),
+					snapshotId: Type.String(),
+				}),
+				warnings: Type.Array(Type.String()),
+			}),
+		]),
+	),
 	decision,
 	recognizedWork: Type.Optional(
 		Type.Object({

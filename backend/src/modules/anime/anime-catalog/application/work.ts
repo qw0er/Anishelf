@@ -53,6 +53,15 @@ export class WorkApplication {
 		if (!link) throw new Error("Provider link is missing.");
 		this.context.options.store.transaction((store) => {
 			if (store.work(id)?.revision !== revision) conflict();
+			for (const { review } of store.versions(episodeId, scope.ids)) {
+				store.decide(
+					review.id,
+					review.revision,
+					review.decision,
+					"Episode identity manually edited.",
+					"manual",
+				);
+			}
 			store.saveEpisode(updated);
 			store.saveWork(
 				{ ...work, revision: revision + 1, updatedAt: Date.now() },

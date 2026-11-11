@@ -35,6 +35,7 @@ export interface CatalogStore extends SourceRegistry {
 		fileIds?: readonly string[],
 	): void;
 	review(id: string): ReviewRecord | null;
+	priorAcquisition(fileId: string, scopeId: string): ReviewRecord | null;
 	reviews(
 		scopeIds: readonly string[],
 		decision: ReviewRecord["decision"] | undefined,
@@ -67,6 +68,8 @@ export interface CatalogStore extends SourceRegistry {
 		revision: number,
 		decision: ReviewRecord["decision"],
 		reason: string | null,
+		origin?: NonNullable<ReviewRecord["decisionOrigin"]>,
+		acquisition?: ReviewRecord["acquisition"],
 	): void;
 	operation(
 		key: string,

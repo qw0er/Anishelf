@@ -19,6 +19,9 @@ export interface OneOffAuthorization {
 	discovery: { providerId: string; code: string | null; limited: boolean }[];
 }
 export interface DownloadIntent {
+	acceptedTarget?:
+		| import("../../../anime/public.js").AcceptedAcquisitionTarget
+		| null;
 	id: string;
 	revision: string;
 	workKey: string;

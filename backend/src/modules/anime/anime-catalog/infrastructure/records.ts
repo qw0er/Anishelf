@@ -3,6 +3,7 @@ import type { Store } from "../../../../platform/database/store.js";
 import type { metadataWorks } from "../../external-works/metadata/persistence.js";
 import { airedEpisodeCount } from "../../external-works/metadata/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
+import type { AcquisitionProvenance } from "../../public.js";
 import type {
 	Association,
 	ConfirmationResult,
@@ -112,6 +113,8 @@ export function readCatalogReviews(
 	id: string;
 	available: boolean;
 	revision: number;
+	decisionOrigin?: "manual" | "identification" | "acquisition" | "legacy";
+	acquisition?: AcquisitionProvenance | null;
 	decision: "pending" | "confirmed" | "rejected";
 	reason: string | null;
 	result: Omit<IdentificationResult, "source">;
@@ -121,6 +124,8 @@ export function readCatalogReviews(
 		available: row.available,
 		revision: row.revision,
 		decision: row.decision,
+		decisionOrigin: row.decisionOrigin,
+		acquisition: row.acquisition,
 		reason: row.reason,
 		result: {
 			evidence: {
@@ -550,6 +555,8 @@ export function readCatalogReviews(
 		id: string;
 		available: boolean;
 		revision: number;
+		decisionOrigin?: "manual" | "identification" | "acquisition" | "legacy";
+		acquisition?: AcquisitionProvenance | null;
 		decision: "pending" | "confirmed" | "rejected";
 		reason: string | null;
 		result: Omit<IdentificationResult, "source">;
@@ -562,6 +569,8 @@ export function writeCatalogReviews(
 		id: string;
 		available: boolean;
 		revision: number;
+		decisionOrigin?: "manual" | "identification" | "acquisition" | "legacy";
+		acquisition?: AcquisitionProvenance | null;
 		decision: "pending" | "confirmed" | "rejected";
 		reason: string | null;
 		result: Omit<IdentificationResult, "source">;
@@ -573,6 +582,8 @@ export function writeCatalogReviews(
 			available: value?.available,
 			revision: value?.revision,
 			decision: value?.decision,
+			decisionOrigin: value.decisionOrigin ?? "legacy",
+			acquisition: value.acquisition ?? null,
 			reason: value?.reason ?? null,
 			resultEvidenceParser: value?.result?.evidence?.parser,
 			resultEvidenceParserVersion: value?.result?.evidence?.parserVersion,

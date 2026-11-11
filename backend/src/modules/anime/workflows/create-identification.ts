@@ -15,7 +15,8 @@ export function createIdentificationModule(options: {
 	logger: Logger;
 	metadataContext?: () => string;
 	metadata?: IdentificationMetadata;
-	catalog?: Pick<AnimeCatalogApi, "reviews" | "review">;
+	catalog?: Pick<AnimeCatalogApi, "reviews" | "review"> &
+		Partial<Pick<AnimeCatalogApi, "reusableAcquisitions">>;
 	onPublication?: (
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],

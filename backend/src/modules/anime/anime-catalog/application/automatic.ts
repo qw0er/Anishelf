@@ -25,6 +25,14 @@ export class AutomaticAdmission {
 			this.context.options.sources.assertAccessRevision(scope.revision);
 			const source = this.context.options.store.registerSource(result.source);
 			const record = this.context.options.store.review(source.id);
+			const prior = this.context.options.store.priorAcquisition(
+				result.source.fileId,
+				result.source.scopeId,
+			);
+			if (prior && prior.sourceVersion !== result.source.sourceVersion) {
+				skipped++;
+				continue;
+			}
 			const proposal = record ? automaticProposal(record) : null;
 			if (
 				!record ||
@@ -71,6 +79,7 @@ export class AutomaticAdmission {
 						replace: false,
 					},
 					signal,
+					"identification",
 				);
 				admitted++;
 			} catch (err) {

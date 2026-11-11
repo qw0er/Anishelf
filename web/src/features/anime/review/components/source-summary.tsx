@@ -39,6 +39,21 @@ export function SourceSummary({
 				</p>
 			)}
 			{!item.available && <InlineError>{t("review.unavailable")}</InlineError>}
+			{item.acquisition && (
+				<div className="space-y-1 text-sm text-muted-foreground">
+					<p>
+						{t("review.acquisitionTarget", {
+							episode: item.acquisition.target.episode,
+						})}
+					</p>
+					{item.acquisition.title && (
+						<p className="wrap-anywhere">{item.acquisition.title}</p>
+					)}
+					{item.acquisition.warnings.length > 0 && (
+						<p>{t("review.acquisitionFilenameHint")}</p>
+					)}
+				</div>
+			)}
 			{actions}
 			{item.recognizedWork && (
 				<p className="rounded-lg bg-muted/40 p-3 text-sm">

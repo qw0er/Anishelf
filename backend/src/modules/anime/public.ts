@@ -13,6 +13,21 @@ export type {
 } from "./release-assessment/public.js";
 
 import type { ReleaseAssessmentApi } from "./release-assessment/public.js";
+export interface AcceptedAcquisitionTarget {
+	workKey: string;
+	reference: { id: string };
+	episode: number;
+	snapshotId: string;
+}
+export interface AcquisitionProvenance {
+	intentId: string;
+	candidateId: string;
+	title: string;
+	hash: string;
+	transfer: string | null;
+	target: AcceptedAcquisitionTarget;
+	warnings: string[];
+}
 export interface AnimeApi {
 	readonly acquisition?: ReleaseAssessmentApi;
 	readonly acquisitionList?: {
@@ -36,11 +51,22 @@ export interface AnimeApi {
 		>;
 	};
 	readonly ingestion?: {
+		captureTarget?(
+			key: string,
+			episode: number,
+			signal: AbortSignal,
+		): Promise<AcceptedAcquisitionTarget>;
+		retainTarget?(target: AcceptedAcquisitionTarget, intentId: string): void;
+		releaseTarget?(target: AcceptedAcquisitionTarget, intentId: string): void;
+		recoverableReview?(
+			identity: import("../resources/public.js").SourceIdentity,
+		): Promise<boolean>;
 		ingest(
 			key: string,
 			episode: number,
 			identity: import("../resources/public.js").SourceIdentity,
 			signal: AbortSignal,
+			provenance?: AcquisitionProvenance,
 		): Promise<"available" | "review">;
 	};
 	readonly queries: {

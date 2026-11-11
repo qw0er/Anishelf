@@ -8,7 +8,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import type { OneOffAuthorization } from "../domain/model.js";
+import type { DownloadIntent, OneOffAuthorization } from "../domain/model.js";
 
 export const acquisitionDirectories = sqliteTable("acquisition_directories", {
 	workKey: text("work_key").primaryKey(),
@@ -43,6 +43,9 @@ export const acquisitionDestination = sqliteTable(
 export const acquisitionIntents = sqliteTable(
 	"acquisition_intents",
 	{
+		acceptedTarget: text("accepted_target", { mode: "json" }).$type<
+			DownloadIntent["acceptedTarget"]
+		>(),
 		id: text("id").primaryKey().notNull(),
 		revision: text("revision").notNull(),
 		workKey: text("work_key").notNull(),

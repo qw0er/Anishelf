@@ -7,6 +7,7 @@ import type {
 	ExtractionEvidence,
 	IdentificationResult,
 } from "../../identification/public.js";
+import type { AcquisitionProvenance } from "../../public.js";
 
 export interface EpisodeTarget {
 	kind: "regular" | "special" | "movie";
@@ -70,6 +71,8 @@ export interface ReviewItem {
 		title: string;
 		mappingStatus: "resolved" | "pending";
 	};
+	decisionOrigin?: "manual" | "identification" | "acquisition" | "legacy";
+	acquisition?: AcquisitionProvenance | null;
 	decision: "pending" | "confirmed" | "rejected";
 	reason: string | null;
 	evidence: ExtractionEvidence;

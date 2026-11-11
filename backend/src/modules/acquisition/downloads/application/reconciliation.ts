@@ -1,3 +1,4 @@
+import { DomainError } from "../../../../shared/errors.js";
 import { TorrentError } from "../../torrent-clients/public.js";
 import { DownloadError, type DownloadIntent } from "../public.js";
 import type { DownloadTransfers } from "../transfers/application.js";
@@ -62,8 +63,11 @@ export class DownloadReconciliation {
 				});
 				return;
 			}
-			const code =
-				error instanceof DownloadError
+			const retryableAssociation =
+				error instanceof DomainError && error.code === "CATALOG_CONFLICT";
+			const code = retryableAssociation
+				? "association_conflict_retry"
+				: error instanceof DownloadError
 					? error.code
 					: error instanceof TorrentError
 						? `downloader_${error.code}`
@@ -83,7 +87,9 @@ export class DownloadReconciliation {
 				ingestion:
 					current.ingestion === "validating" ||
 					current.ingestion === "available"
-						? "failed"
+						? retryableAssociation
+							? "pending"
+							: "failed"
 						: current.ingestion,
 				error: code,
 				attempts: current.attempts + 1,

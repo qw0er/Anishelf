@@ -242,3 +242,106 @@ test("a different engine's completed state imports only selected files", async (
 	expect(f.ingestion.ingest).toHaveBeenCalledTimes(1);
 	expect(f.worker.activity(key).items[0]?.state).toBe("available");
 });
+
+test("accepted target survives restart and is supplied to ingestion without re-selection", async () => {
+	const f = await fixture(true);
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+	if (!item?.acceptedTarget) throw Error("Missing accepted target");
+	const accepted = item.acceptedTarget;
+	await f.restart();
+	f.complete();
+	await f.worker.tick();
+	const saved = f.db.acquisitionDownloads.intent(item.id);
+	expect(saved?.acceptedTarget).toEqual(accepted);
+	expect(f.ingestion.ingest).toHaveBeenCalledWith(
+		key,
+		3,
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({ intentId: item.id, target: accepted }),
+	);
+});
+test("a failed metadata pin rolls back a new reservation", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	Object.assign(f.ingestion, {
+		retainTarget: vi.fn(() => {
+			throw Error("pin failed");
+		}),
+	});
+	await f.worker.tick();
+	expect(f.db.acquisitionDownloads.activity(key, 1, 100).items).toHaveLength(0);
+	expect(f.add).not.toHaveBeenCalled();
+});
+test("target changes and their pins commit atomically", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+	if (!item?.acceptedTarget) throw Error();
+	const acceptedTarget = item.acceptedTarget;
+	const context = new DownloadContext({
+		store: f.db.acquisitionDownloads,
+		transport: f.reader,
+		connectionGeneration: () => "account-1",
+		withClient: async (_generation, op) => op(f.client),
+		logger,
+		onAcceptedTarget: () => {
+			throw Error("pin failed");
+		},
+	});
+	expect(() =>
+		context.save({
+			...item,
+			acceptedTarget: { ...acceptedTarget, snapshotId: "another" },
+		}),
+	).toThrow("pin failed");
+	expect(f.db.acquisitionDownloads.intent(item.id)).toEqual(item);
+});
+test("legacy filename-only review is retried once, while a protected review remains stopped", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	f.ingestion.ingest.mockResolvedValueOnce("review");
+	await f.worker.tick();
+	const item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
+	if (!item?.acceptedTarget) throw Error();
+	f.db.acquisitionDownloads.saveIntent({ ...item, acceptedTarget: null });
+	const acceptedTarget = item.acceptedTarget;
+	const capture = vi.fn(async () => acceptedTarget);
+	Object.assign(f.ingestion, {
+		captureTarget: capture,
+		recoverableReview: vi.fn(async () => true),
+	});
+	await f.worker.tick();
+	await f.worker.tick();
+	expect(capture).toHaveBeenCalledTimes(1);
+	expect(f.ingestion.ingest).toHaveBeenCalledTimes(2);
+	expect(f.worker.activity(key).items[0]?.ingestion).toBe("available");
+});
+test("catalog contention retries automatically instead of leaving an otherwise valid download failed", async () => {
+	const f = await fixture();
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	const { DomainError } = await import("../../../../src/shared/errors.js");
+	f.ingestion.ingest.mockRejectedValueOnce(
+		new DomainError("CATALOG_CONFLICT", "Concurrent scan"),
+	);
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		ingestion: "pending",
+		error: "association_conflict_retry",
+	});
+	f.advance();
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]?.ingestion).toBe("available");
+});

@@ -242,3 +242,36 @@ test("WI18 initializes schedules lazily without changing accepted subscription s
 		db.close();
 	}
 });
+
+test("D14 migration preserves download state and protects legacy catalog decisions", async () => {
+	const db = new Database(":memory:");
+	try {
+		db.exec(
+			"CREATE TABLE acquisition_intents (id TEXT PRIMARY KEY, work_key TEXT, episode INTEGER, state TEXT); CREATE TABLE catalog_reviews (id TEXT PRIMARY KEY,decision TEXT,reason TEXT); INSERT INTO acquisition_intents VALUES ('download','work',3,'bound'); INSERT INTO catalog_reviews VALUES ('manual','confirmed','User choice'),('pending','pending','download_target_conflict'),('rejected','rejected','Manual rejection');",
+		);
+		const tasks = db.prepare("SELECT * FROM acquisition_intents").all(),
+			reviews = db.prepare("SELECT * FROM catalog_reviews ORDER BY id").all();
+		const sql = await readFile(
+			new URL(
+				"../../../../migrations/0023_accepted_acquisition_targets.sql",
+				import.meta.url,
+			),
+			"utf8",
+		);
+		db.exec(sql);
+		expect(db.prepare("SELECT * FROM acquisition_intents").all()).toEqual(
+			tasks.map((row) => ({ ...(row as object), accepted_target: null })),
+		);
+		expect(
+			db.prepare("SELECT * FROM catalog_reviews ORDER BY id").all(),
+		).toEqual(
+			reviews.map((row) => ({
+				...(row as object),
+				decision_origin: "legacy",
+				acquisition: null,
+			})),
+		);
+	} finally {
+		db.close();
+	}
+});

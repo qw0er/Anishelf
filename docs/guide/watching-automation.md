@@ -138,3 +138,34 @@ it does not silently switch an already selected source or broaden accepted scope
 Migration `0022_subscription_airing_schedule` adds nullable advisory search timing.
 Existing subscriptions are evaluated lazily without changing their revision, accepted
 starting episode, ownership, pause/completion state, authorization or candidate history.
+
+## Accepted download targets
+
+Anishelf keeps the work, episode and metadata snapshot accepted when a subscription
+release is reserved or an individual episode's release is selected. After verifying
+client task ownership, completion, confined file access, size and source version,
+a task with exactly one selected video is associated directly with that target.
+Missing names, parser failures and contradictory filename titles or episode numbers
+are advisory; they do not block ingestion. The retained snapshot supports ingestion
+without another metadata request, including after restart or cache pruning.
+
+Routine scans reuse confirmed download associations for the same source version.
+An accepted download can correct an association explicitly created by automatic
+identification. Manual confirmations and rejections, conflicting download targets,
+and legacy decisions whose origin is unknown remain protected. Multiple selected
+videos and season packs without explicit episode mappings still require Review.
+Transfer completion remains distinct from verified library availability and playback.
+
+Local Review diagnostics show the accepted episode, release and any filename hint.
+Catalog contention retries with backoff. Changed files or failed ownership and path
+checks retain their verification/recovery behavior. Editing a confirmed association
+is a manual decision that takes precedence over subsequent download retries.
+
+Migration `0023_accepted_acquisition_targets` adds accepted targets to download tasks
+and decision provenance to local Review. Existing decisions are conservatively
+marked as legacy. Older tasks fill their accepted target from cached metadata where
+possible, otherwise by fetching the already-known work ID rather than searching by
+filename. A pending system review caused only by the old filename-target rule is
+retried once if it has no manual decision or associations. Other reviews keep their
+existing recovery controls. Task snapshot pins are released when task history is
+pruned; Catalog retains its own confirmed-decision references independently.

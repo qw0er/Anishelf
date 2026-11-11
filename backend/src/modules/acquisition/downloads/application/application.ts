@@ -24,7 +24,21 @@ export class DownloadsApplication implements AcquisitionDownloadsApi {
 	readonly start: DownloadWorker["start"];
 	readonly close: DownloadWorker["close"];
 	constructor(options: DownloadApplicationOptions) {
-		const context = new DownloadContext(options);
+		const context = new DownloadContext({
+			...options,
+			onAcceptedTarget: (
+				item: import("../domain/model.js").DownloadIntent,
+				previous: import("../domain/model.js").DownloadIntent,
+			) => {
+				if (item.acceptedTarget)
+					options.ingestion.retainTarget?.(item.acceptedTarget, item.id);
+				if (
+					previous.acceptedTarget &&
+					previous.acceptedTarget.snapshotId !== item.acceptedTarget?.snapshotId
+				)
+					options.ingestion.releaseTarget?.(previous.acceptedTarget, item.id);
+			},
+		});
 		const destination = new DownloadDestinationSettings(context);
 		const oneOff = new OneOffDownloads(context);
 		const commands = new DownloadCommands(context, destination, oneOff);

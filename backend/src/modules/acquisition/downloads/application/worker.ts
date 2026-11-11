@@ -39,6 +39,13 @@ export class DownloadWorker {
 				if (!this.context.signal.aborted)
 					this.context.options.store.prune(
 						this.context.now() - policy.historyMs,
+						(item) => {
+							if (item.acceptedTarget)
+								this.context.options.ingestion.releaseTarget?.(
+									item.acceptedTarget,
+									item.id,
+								);
+						},
 					);
 			})
 			.catch(() => {

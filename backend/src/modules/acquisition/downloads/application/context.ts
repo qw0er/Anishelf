@@ -22,10 +22,12 @@ export function conflict(): never {
 	);
 }
 export interface DownloadOptions extends TorrentConnection {
-	store: Pick<DownloadStore, "intent" | "saveIntent" | "hashOwner">;
+	store: Pick<DownloadStore, "intent" | "saveIntent" | "hashOwner"> &
+		Partial<Pick<DownloadStore, "transaction">>;
 	transport: TorrentReader;
 	logger: Logger;
 	now?: () => number;
+	onAcceptedTarget?(item: DownloadIntent, previous: DownloadIntent): void;
 }
 /** Read-only subscription capabilities; task failures remain owned by Downloads. */
 interface DownloadSelection {
@@ -89,7 +91,16 @@ export class DownloadContext<T extends DownloadOptions = DownloadOptions> {
 		)
 			return current;
 		const value = { ...item, revision: randomUUID(), updatedAt: this.now() };
-		this.options.store.saveIntent(value);
+		const write = () => {
+			this.options.store.saveIntent(value);
+			if (
+				JSON.stringify(value.acceptedTarget) !==
+				JSON.stringify(current.acceptedTarget)
+			)
+				this.options.onAcceptedTarget?.(value, current);
+		};
+		if (this.options.store.transaction) this.options.store.transaction(write);
+		else write();
 		if (
 			current.state !== item.state ||
 			current.ingestion !== item.ingestion ||

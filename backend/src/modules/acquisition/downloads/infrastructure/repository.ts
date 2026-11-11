@@ -27,6 +27,9 @@ import {
 } from "./schema.js";
 export class DownloadRepository implements DownloadStore {
 	constructor(private readonly store: Store) {}
+	transaction<T>(operation: () => T): T {
+		return this.store.transaction(() => operation(), { behavior: "immediate" });
+	}
 	destination() {
 		const row = this.store.select().from(destination).get();
 		if (!row) return null;
@@ -190,17 +193,32 @@ export class DownloadRepository implements DownloadStore {
 	saveIntent(data: DownloadIntent) {
 		if (this.intent(data.id)) writeAcquisitionIntents(this.store, data);
 	}
-	prune(before: number) {
-		this.store
-			.update(intents)
-			.set({ source: "", title: "", transfer: null, error: null })
-			.where(
-				and(
-					lt(intents.updatedAt, before),
-					inArray(intents.state, ["available", "missing"]),
-					ne(intents.source, ""),
-				),
-			)
-			.run();
+	prune(before: number, onPruned?: (item: DownloadIntent) => void) {
+		this.transaction(() => {
+			const items = this.store
+				.select()
+				.from(intents)
+				.where(
+					and(
+						lt(intents.updatedAt, before),
+						inArray(intents.state, ["available", "missing"]),
+						ne(intents.source, ""),
+					),
+				)
+				.all();
+			for (const row of items)
+				onPruned?.(readAcquisitionIntents(this.store, row));
+			this.store
+				.update(intents)
+				.set({ source: "", title: "", transfer: null, error: null })
+				.where(
+					and(
+						lt(intents.updatedAt, before),
+						inArray(intents.state, ["available", "missing"]),
+						ne(intents.source, ""),
+					),
+				)
+				.run();
+		});
 	}
 }

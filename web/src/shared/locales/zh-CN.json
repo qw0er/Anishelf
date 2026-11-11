@@ -472,7 +472,9 @@
 		"replace": "明确替换上方显示的现有关联。原始文件和源文件播放记录会保留。",
 		"remove": "明确移除此源文件的当前关联。保留原始文件和源文件记录。",
 		"removeRequired": "移除现有关联前请先选择明确移除。",
-		"identificationCompleted": "资源识别和自动添加已完成。未解决的匹配可在审核中查看。"
+		"identificationCompleted": "资源识别和自动添加已完成。未解决的匹配可在审核中查看。",
+		"acquisitionTarget": "已按下载时确认的目标关联：第 {{episode}} 集。",
+		"acquisitionFilenameHint": "文件名信息不完整或与目标不同，已采用验证后的下载目标。"
 	},
 	"externalPlayers": {
 		"open": "在外部播放器中打开",
@@ -984,7 +986,9 @@
 				"no_eligible_release": "未找到符合下载偏好的单集资源。可稍后重试，或调整下载偏好。",
 				"discovery_unavailable": "资源查找未能完成。请检查资源站和下载客户端，然后重试。",
 				"acquisition_configuration_changed": "下载配置已更改。重试以使用当前配置。",
-				"already_available": "此集已有可用的本地文件。"
+				"already_available": "此集已有可用的本地文件。",
+				"association_requires_manual_review": "存在手动或受保护的关联决定，请在本地审核中处理。",
+				"association_conflict_retry": "目录发生并发变更，入库将自动重试。"
 			}
 		},
 		"rss": {

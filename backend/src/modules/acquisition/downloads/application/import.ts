@@ -11,7 +11,13 @@ export class CompletedDownloadIngestion {
 	constructor(private readonly context: DownloadApplicationContext) {}
 	async run(execution: DownloadExecution, completed: CompletedDownload) {
 		let item = execution.current;
-		if (["review", "failed"].includes(item.ingestion)) return;
+		const legacyReview = item.ingestion === "review";
+		if (
+			item.ingestion === "failed" ||
+			(legacyReview &&
+				(item.acceptedTarget || item.error !== "association_requires_review"))
+		)
+			return;
 		const files = completed.files;
 		const selected = files.filter((file) => file.selected);
 		const videos = selected.filter((file) =>
@@ -60,11 +66,50 @@ export class CompletedDownloadIngestion {
 			throw new DownloadError("source_changed");
 		if (!(await completed.verify()))
 			throw new DownloadError("download_changed");
+		if (
+			item.sourceIdentity &&
+			(item.sourceIdentity.fileId !== identity.fileId ||
+				item.sourceIdentity.sourceVersion !== identity.sourceVersion)
+		)
+			throw new DownloadError("source_changed");
+		if (
+			legacyReview &&
+			!(await this.context.options.ingestion.recoverableReview?.(identity))
+		) {
+			execution.save({
+				...item,
+				ingestion: "review",
+				error: "association_requires_manual_review",
+			});
+			return;
+		}
+		if (!item.acceptedTarget && this.context.options.ingestion.captureTarget) {
+			const acceptedTarget = await this.context.options.ingestion.captureTarget(
+				item.workKey,
+				item.episode,
+				this.context.signal,
+			);
+			item = execution.save({ ...item, acceptedTarget });
+		}
+		item = execution.save({ ...item, sourceIdentity: identity });
 		const outcome = await this.context.options.ingestion.ingest(
 			item.workKey,
 			item.episode,
 			identity,
 			this.context.signal,
+			...(item.acceptedTarget
+				? [
+						{
+							intentId: item.id,
+							candidateId: item.candidateId,
+							title: item.title,
+							hash: item.hash,
+							transfer: item.transfer,
+							target: item.acceptedTarget,
+							warnings: [],
+						},
+					]
+				: []),
 		);
 		if (
 			item.destination.connectionGeneration !==

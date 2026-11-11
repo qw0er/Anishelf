@@ -162,6 +162,13 @@
 			"when": 1794359998322,
 			"tag": "0022_subscription_airing_schedule",
 			"breakpoints": true
+		},
+		{
+			"idx": 23,
+			"version": "6",
+			"when": 1794362309160,
+			"tag": "0023_accepted_acquisition_targets",
+			"breakpoints": true
 		}
 	]
 }

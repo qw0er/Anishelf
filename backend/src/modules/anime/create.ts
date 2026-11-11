@@ -81,10 +81,11 @@ export async function createAnimeModule(options: {
 			metadata?.identities,
 			titleDisplayPreference,
 		),
-		...(assessment && catalog
+		...(assessment && catalog && metadata
 			? {
 					ingestion: new AcquisitionIngestion(
-						assessment,
+						metadata,
+						metadata.identities,
 						new AnitomyIdentificationParser(),
 						catalog,
 						library.sources,

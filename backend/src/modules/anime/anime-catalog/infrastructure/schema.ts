@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { mediaSources } from "../../../resources/persistence.js";
 import { metadataSnapshots } from "../../external-works/metadata/persistence.js";
+import type { AcquisitionProvenance } from "../../public.js";
 
 export const catalogMetadataLinks = sqliteTable(
 	"catalog_provider_links",
@@ -120,6 +121,14 @@ export const catalogReviews = sqliteTable(
 		decision: text("decision", {
 			enum: ["pending", "confirmed", "rejected"],
 		}).notNull(),
+		decisionOrigin: text("decision_origin", {
+			enum: ["manual", "identification", "acquisition", "legacy"],
+		})
+			.notNull()
+			.default("legacy"),
+		acquisition: text("acquisition", {
+			mode: "json",
+		}).$type<AcquisitionProvenance>(),
 		reason: text("reason"),
 		resultEvidenceParser: text("result_evidence_parser").notNull(),
 		resultEvidenceParserVersion: text(

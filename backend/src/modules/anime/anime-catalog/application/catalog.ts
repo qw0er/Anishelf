@@ -1,4 +1,5 @@
 import type { AnimeCatalogApi } from "../public.js";
+import { AcquisitionAssociation } from "./acquisition.js";
 import { AssociationApplication } from "./associations.js";
 import { AutomaticAdmission } from "./automatic.js";
 import { CatalogContext, type CatalogOptions } from "./context.js";
@@ -9,6 +10,8 @@ import { WorkApplication } from "./work.js";
 
 /** Public facade; use cases share one lifecycle and transactional Catalog store. */
 export class AnimeCatalogApplication implements AnimeCatalogApi {
+	readonly associateAcquisition: AnimeCatalogApi["associateAcquisition"];
+	readonly reusableAcquisitions: AnimeCatalogApi["reusableAcquisitions"];
 	readonly findLocalWork: AnimeCatalogApi["findLocalWork"];
 	readonly availableEpisodes: AnimeCatalogApi["availableEpisodes"];
 	private readonly context: CatalogContext;
@@ -48,6 +51,12 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		this.availableEpisodes = queries.availableEpisodes.bind(queries);
 		const review = new ReviewApplication(this.context);
 		this.associations = new AssociationApplication(this.context);
+		const acquisition = new AcquisitionAssociation(
+			this.context,
+			this.associations,
+		);
+		this.associateAcquisition = acquisition.associate.bind(acquisition);
+		this.reusableAcquisitions = acquisition.reusable.bind(acquisition);
 		const work = new WorkApplication(this.context, queries);
 		this.refreshing = new CatalogRefresh(this.context, work);
 		this.list = queries.list.bind(queries);

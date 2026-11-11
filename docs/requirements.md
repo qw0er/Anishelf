@@ -229,7 +229,7 @@ Later/Unassigned. See the [implemented provider boundary](implemented-requiremen
 | D11 | Configure seeding policies | Not started | Optional | — | — |
 | D12 | Configure download bandwidth schedules | Not started | Optional | — | — |
 | D13 | Configure download storage policies | Not started | Optional | — | — |
-| D14 | Reuse verified acquisition targets during ingestion | Not started | Later | [Acquisition target reuse](#acquisition-target-reuse-d14) | — |
+| D14 | Reuse verified acquisition targets during ingestion | Complete | Completed | [Acquisition target reuse](#acquisition-target-reuse-d14) | — |
 
 #### Acquisition Target Reuse (D14)
 
@@ -240,12 +240,15 @@ relationship is unambiguous, associate the file with that accepted target withou
 requiring another metadata search or a filename match. Reuse the confirmed target
 instead of independently identifying the same file during routine scanning.
 
-Treat a filename as supporting evidence rather than a mandatory match; a clear
-contradiction must remain visible for review. Do not infer an individual episode
+Treat a filename as advisory evidence. Missing, unparseable or contradictory names
+must not prevent a verified single-video task from being associated with its accepted
+target; expose a non-blocking diagnostic hint instead. An accepted download target
+may correct a conflicting association explicitly recorded as automatic identification.
+Preserve manual confirmations, rejections and legacy decisions of unknown origin. Do not infer an individual episode
 from task ownership alone when multiple video files, season packs or other layouts
 make their correspondence ambiguous. Unverified ownership, changed or missing files,
-conflicting targets and existing incompatible associations require review or retry;
-never overwrite a manual decision. Preserve existing completion, path, source
+conflicting download targets and incompatible protected associations require review
+or retry; never overwrite a manual decision. Preserve existing completion, path, source
 version and ingestion verification, and keep transfer completion distinct from file
 availability and playability.
 
