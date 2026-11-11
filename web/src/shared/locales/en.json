@@ -1227,7 +1227,8 @@
 			"fallback": "source could not be refreshed",
 			"authorization_required": "Review this subscription and save its current download scope.",
 			"discovery_unavailable": "Source discovery is unavailable; it will retry.",
-			"no_eligible_source": "Waiting for matching releases."
+			"no_eligible_source": "Waiting for matching releases.",
+			"profile_changed": "release profile changed; waiting for reassessment"
 		},
 		"watching": {
 			"title": "Watching automation",
@@ -1266,7 +1267,6 @@
 				"tracking_unavailable": "Waiting for a fresh complete tracking list",
 				"tracking_account_changed": "Tracking account changed; preview activation again",
 				"source_changed": "Source settings changed; review the source and preview activation again",
-				"profile_changed": "Release profile changed; preview activation again",
 				"destination_changed": "Download destination changed; validate it and preview activation again",
 				"authorization_required": "Waiting for the accepted scope to be renewed",
 				"excluded": "Excluded by you",
@@ -1290,13 +1290,14 @@
 				"not_watching": "No longer Watching · acquisition stopped",
 				"completed": "Completed · acquisition stopped",
 				"paused": "Paused",
-				"active": "Acquiring releases"
+				"active": "Acquiring releases",
+				"profile_unavailable": "The global default release profile is unavailable. Choose an available profile in Settings."
 			},
 			"management_one": "Automatic subscriptions · {{count}} work",
 			"management_other": "Automatic subscriptions · {{count}} works",
 			"previewHelp_one": "Enable automatic acquisition for {{count}} Watching work. Manual subscriptions and completed records are preserved.",
 			"previewHelp_other": "Enable automatic acquisition for {{count}} Watching works. Manual subscriptions and completed records are preserved.",
-			"previewProfile": "Release profile: {{name}}",
+			"previewProfile": "Follows global default: {{name}}",
 			"enabled": "Enabled",
 			"disabled": "Disabled",
 			"progressDescription": "Start after your AniList progress.",
@@ -1312,7 +1313,6 @@
 				"tracking_unavailable": "Awaiting sync",
 				"tracking_account_changed": "Account changed",
 				"source_changed": "Source changed",
-				"profile_changed": "Profile changed",
 				"destination_changed": "Destination changed",
 				"authorization_required": "Review required",
 				"excluded": "Excluded",
@@ -1332,7 +1332,8 @@
 				"source_reselection_required": "Select source",
 				"different_account_owner": "Account mismatch",
 				"subscription_limit": "Limit reached",
-				"work_limit": "Limit reached"
+				"work_limit": "Limit reached",
+				"profile_unavailable": "Default profile unavailable"
 			}
 		},
 		"connection": {

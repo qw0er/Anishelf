@@ -54,6 +54,7 @@ export class SubscriptionDiscovery {
 				"The acquisition profile is unavailable.",
 			);
 		const fingerprint = acquisitionProfileFingerprint(profile);
+		const policyRevision = this.context.profileScope(input);
 		const guard = () => {
 			this.context.open();
 			if (permitted && !permitted())
@@ -61,6 +62,21 @@ export class SubscriptionDiscovery {
 					"ACQUISITION_CONFLICT",
 					"Subscription acquisition stopped.",
 				);
+			if (this.context.profileScope(input) !== policyRevision) {
+				options.logger.info(
+					{
+						event: "acquisition.discovery_invalidated",
+						workKey: input.workKey,
+						profileId,
+						reason: "profile_changed",
+					},
+					"Discarding discovery prepared under an earlier profile policy.",
+				);
+				throw new DomainError(
+					"ACQUISITION_CONFLICT",
+					"The acquisition profile changed. Search again.",
+				);
+			}
 			if (
 				(options.store.subscription(input.workKey)?.revision ?? null) !==
 					input.revision ||
@@ -165,6 +181,9 @@ export class SubscriptionDiscovery {
 				options.logger.info(
 					{
 						event: "acquisition.source_discovery_evaluated",
+						profileId,
+						fingerprint,
+						policyRevision,
 						workKey: input.workKey,
 						providerId,
 						outcome: attempts.at(-1)?.outcome,

@@ -14,15 +14,17 @@ AniList Watching and Rewatching entries. Manual subscriptions are independent; W
 Watching automation appears first in Downloads. Activation previews open in a dialog.
 Use **Subscriptions** in the main navigation for the subscription inventory and
 per-work inclusion or exclusion; work subscription states open structured details. Its activation preview uses the
-saved release profile in **Subscription defaults**; there is no separate automation
-profile to configure. Save a changed default before previewing again. Existing
-subscriptions retain their saved profile and starting episode.
-Changing that default stops automatic acquisition until you preview and confirm
-the new scope; a preview prepared against the old default cannot be confirmed.
+current global release profile in **Subscription defaults**. Every automatic
+subscription follows that default, including subscriptions created before an upgrade.
+Changing it re-evaluates unreserved choices without another activation preview;
+existing previews remain valid and confirmation uses the current default. Reserved
+and submitted downloads retain their selection. An unavailable default blocks new
+choices; choose an available profile in Settings to recover. Manual subscriptions
+retain their explicit profile or follow-default behavior.
 
 Watching is off by default. Its preview creates no subscriptions/downloads. Changed
-account/site/profile/target scope requires a new preview. Invalid or fractional
-progress, or progress of at least 10000, cannot create a progress-based subscription.
+account/site/target scope requires a new preview. Invalid or fractional progress,
+or progress of at least 10000, cannot create a progress-based subscription.
 
 Watching and Rewatching share active membership, including previews and the 500-work
 limit. Library’s Watching filter includes both; the Rewatching filter stays exact.
@@ -46,8 +48,8 @@ and duplicate-acquisition checks.
 | Convert to manual | Review and save the work editor; automatic management ends and the saved settings take precedence |
 | Unsubscribe | Record a Watching recreation exclusion; submitted transfers/imports continue |
 | Disable Watching | Stop automatic creation, discovery, refresh and new submissions; manual subscriptions and submitted downloads/imports continue |
-| Leave/rejoin the active group | Pause/resume automatic acquisition; preserve the starting episode and saved profile |
-| Switch between Watching and Rewatching | Keep the same automatic subscription, starting episode, profile and source configuration |
+| Leave/rejoin the active group | Pause/resume automatic acquisition; preserve the starting episode and follow the current default |
+| Switch between Watching and Rewatching | Keep the same automatic subscription, starting episode and source configuration |
 | Account or accepted scope changes | Stop automatic acquisition until a fresh preview is confirmed; never adopt another account’s subscriptions |
 | Full local coverage | Mark completed and stop acquisition for either subscription type; keep configuration and history |
 
@@ -77,7 +79,8 @@ episode view after verification.
 | --- | --- |
 | Waiting for releases | Wait for retry, or use Check updates |
 | Discovery unavailable | Check service/site connectivity; intent is retained |
-| Source/profile/target changed | Review and save against current configuration |
+| Source/target changed | Review and save against current configuration |
+| Global default profile unavailable | Choose an available release profile in Settings |
 | Pinned source unavailable | Repair it or explicitly edit the source |
 | Download/import failure | Use Activity's retry, Review or Settings action |
 | Automatic creation excluded | Include the work again on the Subscriptions page |
@@ -95,3 +98,10 @@ Ambiguous account ownership stays stopped until an explicit activation preview b
 an unowned record; known ownership is never reassigned across accounts. Review automatic
 settings after upgrade, especially if an old automatically created record was edited
 manually without changing its creation marker.
+
+Migration `0021_watching_default_profile` removes saved automatic profile bindings
+without changing account ownership, accepted starting episodes, sources, exclusions,
+pauses, completion, authorizations or history. Manual profile overrides are retained.
+Default changes invalidate old unreserved choices immediately. The 30-second
+subscription cycle re-evaluates cached source entries and retries pending discovery;
+it does not silently switch an already selected source or broaden accepted scope.

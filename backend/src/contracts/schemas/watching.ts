@@ -6,13 +6,16 @@ const nullableString = Type.Union([Type.String(), Type.Null()]);
 const WatchingConfigSchema = Type.Object(
 	{
 		backlog: Type.Union([Type.Literal("progress"), Type.Literal("beginning")]),
-		profileId: Type.String({
-			pattern: "^(builtin|custom):[a-z][a-z0-9-]{0,63}$",
-		}),
 	},
 	{ additionalProperties: false },
 );
+const effectiveProfile = Type.Object({
+	id: Type.String(),
+	name: Type.String(),
+	available: Type.Boolean(),
+});
 export const WatchingStatusSchema = Type.Object({
+	effectiveProfile,
 	revision,
 	enabled: Type.Boolean(),
 	reason: Type.String(),
@@ -33,6 +36,7 @@ export const WatchingStatusSchema = Type.Object({
 	),
 });
 export const WatchingPreviewSchema = Type.Object({
+	effectiveProfile,
 	id: revision,
 	expiresAt: Type.Number(),
 	revision,

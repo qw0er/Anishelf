@@ -12,7 +12,7 @@ import {
 	type SourcesModuleOptions,
 } from "./sources/create.js";
 import { SubscriptionsApplication } from "./subscriptions/application/application.js";
-import { acquisitionProfileFingerprint } from "./subscriptions/domain/profiles.js";
+import { defaultAcquisitionProfileId } from "./subscriptions/domain/profiles.js";
 import { loadAcquisitionProfiles } from "./subscriptions/infrastructure/profiles.js";
 import {
 	createTorrentClientsModule,
@@ -40,6 +40,7 @@ export async function createAcquisitionModule(options: {
 	autoStart?: boolean;
 	rssRefreshIntervalMinutes?: () => number | undefined;
 	defaultAcquisitionProfileId?: () => string | undefined;
+	onSettingsChanged?: (listener: () => void) => () => void;
 }) {
 	const profileCatalog = await loadAcquisitionProfiles(options.dataDir);
 	const profiles = profileCatalog.profiles;
@@ -85,6 +86,9 @@ export async function createAcquisitionModule(options: {
 			: {}),
 	});
 	let watching: WatchingApplication | undefined;
+	let profileRevision = 0;
+	let defaultProfile =
+		options.defaultAcquisitionProfileId?.() ?? defaultAcquisitionProfileId;
 	const subscriptions = new SubscriptionsApplication({
 		onRemoved: (key) => watching?.manualRemove(key),
 		managedStopReason: (subscription) =>
@@ -93,6 +97,7 @@ export async function createAcquisitionModule(options: {
 		profiles,
 		...(profileCatalog.issue ? { profileIssue: profileCatalog.issue } : {}),
 		defaultProfileId: () => options.defaultAcquisitionProfileId?.(),
+		defaultProfileRevision: () => String(profileRevision),
 		lockedCandidates: options.downloadStore.lockedCandidates.bind(
 			options.downloadStore,
 		),
@@ -149,12 +154,16 @@ export async function createAcquisitionModule(options: {
 					}
 				: null;
 		},
-		profileFingerprint: (id) => {
-			const profile = profiles.find((profile) => profile.id === id);
-			return profile ? acquisitionProfileFingerprint(profile) : null;
-		},
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
+	});
+	const unsubscribe = options.onSettingsChanged?.(() => {
+		const next =
+			options.defaultAcquisitionProfileId?.() ?? defaultAcquisitionProfileId;
+		if (next === defaultProfile) return;
+		defaultProfile = next;
+		profileRevision++;
+		subscriptions.defaultProfileChanged();
 	});
 	const downloads =
 		options.resources && options.anime && options.ingestion
@@ -233,6 +242,7 @@ export async function createAcquisitionModule(options: {
 			),
 		close: () => {
 			closing ??= (async () => {
+				unsubscribe?.();
 				watching?.stop();
 				await downloads?.close();
 				const closingSubscriptions = subscriptions.close();

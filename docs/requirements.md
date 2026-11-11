@@ -377,7 +377,7 @@ Details and acceptance criteria may be refined as decisions are made.
 | WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
 | WI15 | Improve evidence-based decisions and their evaluation | Partial | Unassigned | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
 | WI16 | Identify media by its actual contents | Not started | Unassigned | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
-| WI17 | Decouple automatic subscriptions from saved release profiles | Not started | Unassigned | [Automatic subscription profile selection](#automatic-subscription-profile-selection-wi17) | — |
+| WI17 | Decouple automatic subscriptions from saved release profiles | Complete | Completed | [Automatic subscription profile selection](#automatic-subscription-profile-selection-wi17) | — |
 | WI18 | Schedule subscription searches around airing information | Not started | Unassigned | [Airing-aware subscription searches](#airing-aware-subscription-searches-wi18) | — |
 
 #### Airing-aware Subscription Searches (WI18)

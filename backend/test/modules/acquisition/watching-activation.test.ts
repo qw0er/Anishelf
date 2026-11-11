@@ -10,40 +10,78 @@ import {
 
 setupTestLifecycle();
 
-test("Watching only accepts the subscription default and fences default changes before confirmation and new creation", async () => {
+test("Watching follows default changes without renewed preview, including existing and new subscriptions", async () => {
 	const f = await fixture();
-	await expect(
-		f.watching.preview("session", f.watching.status().revision, {
-			...config,
-			profileId: "custom:independent",
-		}),
-	).rejects.toThrow(/Preview and confirm/);
 	const preview = await f.watching.preview(
 		"session",
 		f.watching.status().revision,
 		config,
 	);
-	f.setDefaultProfile("custom:new-default");
-	expect(() => f.watching.confirm("session", preview.id)).toThrow(
-		/Preview and confirm/,
-	);
-	f.setDefaultProfile(config.profileId);
-	await f.enable();
+	f.setDefaultProfile("custom:other");
+	f.watching.confirm("session", preview.id);
 	await f.watching.tick();
-	const existing = f.db.acquisition.subscription(workKey);
-	f.setDefaultProfile("custom:new-default");
+	expect(f.db.acquisition.subscription(workKey)).toMatchObject({
+		profileId: null,
+		startEpisode: 3,
+		createdBy: "watching",
+	});
+	f.setDefaultProfile("custom:instant");
 	f.snapshot.entries.push({
 		workKey: "anilist:anime:2",
-		title: "Another work",
+		title: "Another",
 		status: "watching",
 		progress: 0,
 	});
-	f.snapshot.revision = "default-changed";
-	expect(f.watching.status().reason).toBe("profile_changed");
+	f.snapshot.revision = "changed";
+	expect(f.watching.status().reason).toBe("ready");
 	await f.watching.tick();
-	expect(f.db.acquisition.subscription("anilist:anime:2")).toBeNull();
-	expect(f.db.acquisition.subscription(workKey)).toEqual(existing);
+	expect(f.db.acquisition.subscription("anilist:anime:2")).toMatchObject({
+		profileId: null,
+		startEpisode: 1,
+	});
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.authorization(workKey)).not.toBeNull();
 });
+
+test("unavailable defaults block new acquisition and recover without changing authorization scope", async () => {
+	const f = await fixture();
+	await f.enable();
+	await f.watching.tick();
+	const before = f.db.acquisition.subscription(workKey);
+	f.setDefaultProfile("custom:missing");
+	expect(f.watching.status()).toMatchObject({
+		reason: "profile_unavailable",
+		effectiveProfile: { id: "custom:missing", available: false },
+	});
+	await f.subscriptions.resolvePending();
+	expect(f.search).not.toHaveBeenCalled();
+	expect(f.db.acquisition.subscription(workKey)?.startEpisode).toBe(
+		before?.startEpisode,
+	);
+	f.setDefaultProfile("custom:other");
+	await f.subscriptions.resolvePending();
+	expect(f.db.acquisition.authorization(workKey)).not.toBeNull();
+});
+
+test.each([false, true])(
+	"a default change during discovery fences stale binding (ABA: %s)",
+	async (aba) => {
+		const f = await fixture();
+		await f.enable();
+		await f.watching.tick();
+		const search = required(f.search.getMockImplementation());
+		f.search.mockImplementationOnce(async (...args) => {
+			f.setDefaultProfile("custom:other");
+			if (aba) f.setDefaultProfile("custom:instant");
+			return search(...args);
+		});
+		await f.subscriptions.resolvePending();
+		expect(f.db.acquisition.subscription(workKey)?.feedId).toBeNull();
+		expect(f.db.acquisition.authorization(workKey)).toBeNull();
+		await f.subscriptions.resolvePending();
+		expect(f.db.acquisition.authorization(workKey)).not.toBeNull();
+	},
+);
 
 test("default-off previews do not search; Watching creates a group-managed pending subscription", async () => {
 	const f = await fixture();

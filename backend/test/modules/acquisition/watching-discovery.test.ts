@@ -2,7 +2,6 @@ import { expect, test, vi } from "vitest";
 import { SubscriptionDiscovery } from "../../../src/modules/acquisition/subscriptions/application/discovery.js";
 
 import {
-	config,
 	fixture,
 	required,
 	setupTestLifecycle,
@@ -58,7 +57,7 @@ test("manual automatic-source subscriptions save before discovery and share the 
 		revision: null,
 		source: { kind: "automatic" },
 		startEpisode: 1,
-		profileId: config.profileId,
+		profileId: "custom:instant",
 		target: {
 			destinationRevision: "destination",
 			connectionGeneration: "downloader",
@@ -90,7 +89,7 @@ test.each(["remove", "edit", "pause"])(
 			revision: required(f.db.acquisition.subscription(workKey)).revision,
 			source: { kind: "automatic" },
 			startEpisode: 3,
-			profileId: config.profileId,
+			profileId: "custom:instant",
 			target: {
 				destinationRevision: "destination",
 				connectionGeneration: "downloader",
@@ -177,7 +176,7 @@ test("stopping an automatic subscription during assessment still publishes its s
 		revision: null,
 		source: automatic.sourceInput ?? null,
 		startEpisode: 1,
-		profileId: config.profileId,
+		profileId: "custom:instant",
 		target: {
 			destinationRevision: "destination",
 			connectionGeneration: "downloader",

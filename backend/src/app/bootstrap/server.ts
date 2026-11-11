@@ -61,6 +61,9 @@ export async function createServer(
 				}
 			: {}),
 		rssRefreshIntervalMinutes: () => system.settings.rssRefreshIntervalMinutes,
+		...(system.onSettingsChanged
+			? { onSettingsChanged: system.onSettingsChanged.bind(system) }
+			: {}),
 		defaultAcquisitionProfileId: () =>
 			system.settings.defaultAcquisitionProfileId,
 		dataDir: system.deployment.dataDir,

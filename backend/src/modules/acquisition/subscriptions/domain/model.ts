@@ -14,7 +14,7 @@ export interface Subscription {
 	} | null;
 	automatic?: {
 		sourceGeneration: string;
-		profileFingerprint: string;
+		profileFingerprint?: string;
 		target: {
 			destinationRevision: string;
 			connectionGeneration: string;
@@ -32,6 +32,7 @@ export interface Subscription {
 }
 export interface Candidate {
 	selection?: {
+		policyRevision?: string;
 		profileId: string;
 		fingerprint: string;
 		level: string | null;

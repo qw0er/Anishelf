@@ -22,7 +22,6 @@ export const workKey = "anilist:anime:1";
 
 export const config = {
 	backlog: "progress" as const,
-	profileId: "custom:instant",
 };
 
 export async function fixture() {
@@ -75,8 +74,8 @@ export async function fixture() {
 		availableEpisodes: [],
 		revision: "target",
 	};
-	let fingerprint = "profile-one";
-	let defaultProfileId = config.profileId;
+	let profileRevision = 0;
+	let defaultProfileId = "custom:instant";
 	const destination = {
 		revision: "destination",
 		connectionGeneration: "downloader",
@@ -118,15 +117,22 @@ export async function fixture() {
 				}),
 			},
 			downloads,
+			lockedCandidates: (key) => db.acquisitionDownloads.lockedCandidates(key),
 			logger,
 			profiles: [
 				{
-					id: config.profileId,
+					id: "custom:other",
+					name: "Other",
+					levels: [{ name: "Any", match: {}, acceptAfterMinutes: 0 }],
+				},
+				{
+					id: "custom:instant",
 					name: "Instant",
 					levels: [{ name: "Any", match: {}, acceptAfterMinutes: 0 }],
 				},
 			],
 			defaultProfileId: () => defaultProfileId,
+			defaultProfileRevision: () => String(profileRevision),
 			downloadTarget: () => destination,
 			onRemoved: (key) => watching?.manualRemove(key),
 			managedStopReason: (subscription) =>
@@ -147,7 +153,6 @@ export async function fixture() {
 				subscriptions.saveAtomically(input, commit);
 			},
 			target: () => destination,
-			profileFingerprint: () => fingerprint,
 			logger,
 			now: () => clock,
 		});
@@ -176,11 +181,10 @@ export async function fixture() {
 		enable,
 		destination,
 		target,
-		setFingerprint: (value: string) => {
-			fingerprint = value;
-		},
 		setDefaultProfile: (value: string) => {
 			defaultProfileId = value;
+			profileRevision++;
+			f.subscriptions.defaultProfileChanged();
 		},
 		advance: () => {
 			clock += 3600000;

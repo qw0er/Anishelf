@@ -1214,7 +1214,8 @@
 			"fallback": "无法刷新来源",
 			"authorization_required": "请审核此订阅并保存当前下载范围。",
 			"discovery_unavailable": "来源发现不可用，将自动重试。",
-			"no_eligible_source": "等待匹配的发布。"
+			"no_eligible_source": "等待匹配的发布。",
+			"profile_changed": "发布配置已更改，等待重新评估"
 		},
 		"watching": {
 			"title": "在看自动化",
@@ -1244,7 +1245,7 @@
 			"settings": "自动化设置",
 			"management_other": "自动订阅 · {{count}} 部作品",
 			"previewHelp_other": "为 {{count}} 部在看作品启用自动获取。手动订阅和已完成的记录会保留。",
-			"previewProfile": "发布配置：{{name}}",
+			"previewProfile": "跟随全局默认：{{name}}",
 			"enabled": "已启用",
 			"disabled": "已禁用",
 			"reasons": {
@@ -1258,7 +1259,6 @@
 				"tracking_unavailable": "等待更新后的完整观看列表",
 				"tracking_account_changed": "观看记录账户已更改，请重新预览启用",
 				"source_changed": "来源设置已更改，请检查来源并重新预览启用",
-				"profile_changed": "发布配置已更改，请重新预览启用",
 				"destination_changed": "下载目标已更改，请验证并重新预览启用",
 				"authorization_required": "等待更新已接受的范围",
 				"excluded": "已由您排除",
@@ -1282,7 +1282,8 @@
 				"not_watching": "不再处于在看状态 · 获取已停止",
 				"completed": "已完成 · 获取已停止",
 				"paused": "已暂停",
-				"active": "正在获取发布"
+				"active": "正在获取发布",
+				"profile_unavailable": "全局默认发布配置不可用，请前往设置选择可用配置。"
 			},
 			"progressDescription": "从 AniList 观看进度的下一集开始。",
 			"beginningDescription": "包含之前的集数，复用本地文件。",
@@ -1297,7 +1298,6 @@
 				"tracking_unavailable": "等待同步",
 				"tracking_account_changed": "账户已更改",
 				"source_changed": "来源已更改",
-				"profile_changed": "配置已更改",
 				"destination_changed": "目标已更改",
 				"authorization_required": "待确认",
 				"excluded": "已排除",
@@ -1317,7 +1317,8 @@
 				"source_reselection_required": "待选择来源",
 				"different_account_owner": "账户不匹配",
 				"subscription_limit": "已达上限",
-				"work_limit": "已达上限"
+				"work_limit": "已达上限",
+				"profile_unavailable": "默认配置不可用"
 			}
 		},
 		"episode": {

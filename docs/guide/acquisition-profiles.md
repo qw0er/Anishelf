@@ -5,6 +5,11 @@ They control release preferences and waiting; identity, episode, destination and
 download-authorization checks still apply. Packs and automatic upgrades of reserved
 downloads are not supported.
 
+Watching automatic subscriptions always follow the current global default. Changes
+re-evaluate unreserved choices without another activation preview; reserved and
+submitted downloads retain their selection. Manual subscriptions keep their explicit
+profile or follow-default behavior. See [Subscriptions and Watching](watching-automation.md).
+
 ## Built-in profiles
 
 | ID | Preference and wait from first eligible observation |

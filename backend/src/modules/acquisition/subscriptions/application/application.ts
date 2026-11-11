@@ -135,7 +135,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				sourceError = "source_changed";
 			}
 		}
-		const candidates = this.options.store
+		const candidates = this.selection()
 			.candidates(workKey)
 			.sort(
 				(a, b) =>
@@ -436,7 +436,9 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				? this.options.store.candidates(subscription.workKey)
 				: [];
 		const profileId =
-			subscription.profileId ?? this.profiles().selectedProfileId;
+			subscription.createdBy === "watching"
+				? this.profiles().selectedProfileId
+				: (subscription.profileId ?? this.profiles().selectedProfileId);
 		const candidates = selectCandidates({
 			history,
 			now: this.context.now(),
@@ -456,6 +458,14 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				this.options.anime.assessReleaseTitle(title, work),
 		});
 		for (const candidate of candidates) {
+			if (
+				candidate.selection &&
+				!this.options
+					.lockedCandidates?.(subscription.workKey)
+					.includes(candidate.id)
+			)
+				candidate.selection.policyRevision =
+					this.context.profileScope(subscription);
 			const prior = history.find((other) => other.id === candidate.id);
 			if (JSON.stringify(prior) !== JSON.stringify(candidate))
 				this.options.logger.info(
@@ -482,7 +492,8 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					return subscription
 						? {
 								...subscription,
-								enabled: this.context.runnable(subscription),
+								// Existing reservations retain their choice; all ownership and scope checks still apply.
+								enabled: this.context.stopReason(subscription, false) === null,
 							}
 						: null;
 				})(),
@@ -504,13 +515,17 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				return this.options.store.candidates(workKey).map((candidate) =>
 					locked.has(candidate.id) ||
 					(profile &&
+						candidate.selection?.profileId === profile.id &&
 						candidate.selection?.fingerprint ===
-							acquisitionProfileFingerprint(profile))
+							acquisitionProfileFingerprint(profile) &&
+						(subscription?.createdBy !== "watching" ||
+							candidate.selection.policyRevision ===
+								this.context.profileScope(subscription ?? {})))
 						? candidate
 						: {
 								...candidate,
 								status: "skipped" as const,
-								reasons: ["profile_unavailable"],
+								reasons: [profile ? "profile_changed" : "profile_unavailable"],
 							},
 				);
 			},
@@ -536,10 +551,81 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		this.timer.unref();
 		tick();
 	}
+	defaultProfileChanged() {
+		for (const sub of this.options.store.subscriptions()) {
+			if (sub.createdBy !== "watching") continue;
+			if (sub.automatic)
+				this.options.store.saveSubscription(
+					{ ...sub, automatic: { ...sub.automatic, retryAt: 0 } },
+					this.options.store.candidates(sub.workKey),
+				);
+			this.options.logger.info(
+				{
+					event: "acquisition.subscription_profile_invalidated",
+					workKey: sub.workKey,
+					profileId: this.profiles().selectedProfileId,
+					reason: "global_default_changed",
+					policyRevision: this.context.profileScope(sub),
+				},
+				"Unreserved choices will be re-evaluated against the global default.",
+			);
+		}
+	}
+	private async reassessDefaults() {
+		for (const sub of this.options.store.subscriptions()) {
+			if (
+				!sub.feedId ||
+				sub.createdBy !== "watching" ||
+				!this.context.runnable(sub)
+			)
+				continue;
+			const scope = this.context.profileScope(sub);
+			const candidates = this.options.store.candidates(sub.workKey);
+			const locked = this.options.lockedCandidates?.(sub.workKey) ?? [];
+			if (
+				candidates.length &&
+				candidates.every(
+					(c) => locked.includes(c.id) || c.selection?.policyRevision === scope,
+				)
+			)
+				continue;
+			const feed = this.options.sources.snapshot(sub.sourceInput ?? sub.feedId);
+			if (!feed) continue;
+			try {
+				const target = await this.options.anime.target(
+					sub.workKey,
+					this.context.signal,
+				);
+				const updated = await this.evaluateCandidates(sub, feed, target);
+				const current = this.options.store.subscription(sub.workKey);
+				if (
+					!current ||
+					current.revision !== sub.revision ||
+					!this.context.runnable(current) ||
+					this.context.profileScope(current) !== scope ||
+					this.options.sources.snapshot(sub.sourceInput ?? sub.feedId)
+						?.revision !== feed.revision ||
+					JSON.stringify(locked) !==
+						JSON.stringify(this.options.lockedCandidates?.(sub.workKey) ?? [])
+				)
+					continue;
+				this.options.store.updateCandidates(sub, updated, null);
+			} catch {
+				this.options.logger.debug(
+					{
+						event: "acquisition.profile_reassessment_deferred",
+						workKey: sub.workKey,
+					},
+					"Profile reassessment will retry.",
+				);
+			}
+		}
+	}
 	resolvePending() {
 		return this.context.tracked(async () => {
 			await this.checkCompletion();
 			await this.pending.tick();
+			await this.reassessDefaults();
 		});
 	}
 	activeSourceIds(): string[] {
@@ -669,7 +755,6 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 								...sub.automatic,
 								sourceGeneration:
 									this.options.sources.connector.settings().generation,
-								profileFingerprint: acquisitionProfileFingerprint(profile),
 								target,
 								retryAt: 0,
 							},

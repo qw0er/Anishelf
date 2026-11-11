@@ -44,8 +44,10 @@ export class SubscriptionWorker {
 				candidates: Candidate[];
 				error: string | null;
 				locked: string[];
+				policyRevision: string;
 			}[] = [];
 			for (const subscription of subscriptions) {
+				const policyRevision = this.context.profileScope(subscription);
 				const locked =
 					this.context.options.lockedCandidates?.(subscription.workKey) ?? [];
 				try {
@@ -58,7 +60,13 @@ export class SubscriptionWorker {
 						updated,
 						target,
 					);
-					results.push({ subscription, candidates, error: null, locked });
+					results.push({
+						subscription,
+						candidates,
+						error: null,
+						locked,
+						policyRevision,
+					});
 				} catch {
 					if (this.context.signal.aborted) return;
 					results.push({
@@ -68,6 +76,7 @@ export class SubscriptionWorker {
 						),
 						error: "assessment_unavailable",
 						locked,
+						policyRevision,
 					});
 					this.context.options.logger.warn(
 						{
@@ -98,6 +107,20 @@ export class SubscriptionWorker {
 						this.context.options.lockedCandidates?.(
 							result.subscription.workKey,
 						) ?? [];
+					if (
+						current &&
+						this.context.profileScope(current) !== result.policyRevision
+					) {
+						this.context.options.logger.info(
+							{
+								event: "acquisition.selection_invalidated",
+								workKey: current.workKey,
+								reason: "profile_changed",
+							},
+							"Discarding choices prepared under an earlier profile policy.",
+						);
+						throw new SourceError("source_conflict");
+					}
 					if (
 						!current ||
 						!this.context.runnable(current) ||

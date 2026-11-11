@@ -56,7 +56,16 @@ export class DownloadPlanning {
 						!current ||
 						current.revision !== subscription.revision ||
 						!this.destination.authorized(current) ||
-						!destination
+						!destination ||
+						!this.context.options.selection
+							.candidates(subscription.workKey)
+							.some(
+								(latest) =>
+									latest.id === candidate.id &&
+									latest.status === "selected" &&
+									JSON.stringify(latest.selection) ===
+										JSON.stringify(candidate.selection),
+							)
 					)
 						break;
 					const directory =
@@ -102,6 +111,7 @@ export class DownloadPlanning {
 						this.context.options.logger.info(
 							{
 								event: "acquisition.intent_reserved",
+								...candidate.selection,
 								intentId: intent.id,
 								episode: intent.episode,
 							},

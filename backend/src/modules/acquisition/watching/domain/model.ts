@@ -4,7 +4,6 @@ export interface WatchingGrant extends WatchingConfig {
 	accountId: string;
 	trackingGeneration: string;
 	sourceRevision: string;
-	profileFingerprint: string;
 	destinationRevision: string;
 	downloaderGeneration: string;
 }

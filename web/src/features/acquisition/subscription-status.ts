@@ -6,7 +6,7 @@ import { watchingReason } from "./watching-reason.js";
 const blockedStates = new Set([
 	"tracking_account_changed",
 	"source_changed",
-	"profile_changed",
+	"profile_unavailable",
 	"destination_changed",
 	"authorization_required",
 	"source_reselection_required",

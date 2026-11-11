@@ -48,7 +48,7 @@ test("Watching group gates existing subscriptions while manual takeover and paus
 		revision: saved.revision,
 		source: null,
 		startEpisode: 2,
-		profileId: config.profileId,
+		profileId: "custom:instant",
 		target: {
 			destinationRevision: "destination",
 			connectionGeneration: "downloader",
@@ -71,7 +71,7 @@ test("Watching group gates existing subscriptions while manual takeover and paus
 		revision: paused.subscription?.revision ?? null,
 		source: null,
 		startEpisode: 2,
-		profileId: config.profileId,
+		profileId: "custom:instant",
 		target: {
 			destinationRevision: "destination",
 			connectionGeneration: "downloader",
@@ -89,7 +89,7 @@ test("manual unsubscribe suppresses automatic recreation; explicit inclusion all
 		revision: required(f.db.acquisition.subscription(workKey)).revision,
 		source: { kind: "automatic" },
 		startEpisode: 3,
-		profileId: config.profileId,
+		profileId: "custom:instant",
 		target: {
 			destinationRevision: "destination",
 			connectionGeneration: "downloader",
@@ -173,7 +173,7 @@ test("full local coverage completes both ownership kinds; count growth reopens, 
 		revision: current.revision,
 		source: null,
 		startEpisode: 3,
-		profileId: config.profileId,
+		profileId: "custom:instant",
 		target: {
 			destinationRevision: "destination",
 			connectionGeneration: "downloader",

@@ -224,6 +224,9 @@ test.each([
 	{ change: "paused", submitted: false },
 	{ change: "disable", submitted: true },
 	{ change: "paused", submitted: true },
+	{ change: "profile", submitted: false },
+	{ change: "profile", submitted: true },
+	{ change: "before-reservation", submitted: false },
 ])(
 	"Watching gates new submissions and preserves submitted downloads after $change; submitted=$submitted",
 	async ({ change, submitted }) => {
@@ -275,6 +278,7 @@ test.each([
 			],
 		};
 		let watching: WatchingApplication;
+		let defaultProfile = "custom:instant";
 		const subscriptions = new SubscriptionsApplication({
 			store: f.db.acquisition,
 			sources: sources.api,
@@ -288,7 +292,7 @@ test.each([
 					levels: [{ name: "Any", match: {}, acceptAfterMinutes: 0 }],
 				},
 			],
-			defaultProfileId: () => "custom:instant",
+			defaultProfileId: () => defaultProfile,
 			downloadTarget: () => f.db.acquisitionDownloads.destination(),
 			lockedCandidates: (workKey) =>
 				f.db.acquisitionDownloads.lockedCandidates(workKey),
@@ -298,7 +302,11 @@ test.each([
 		});
 		cleanup.push(() => subscriptions.close());
 		const suspend = () => {
-			if (change === "disable") watching.disable(watching.status().revision);
+			if (change === "profile") {
+				defaultProfile = "custom:missing";
+				subscriptions.defaultProfileChanged();
+			} else if (change === "disable")
+				watching.disable(watching.status().revision);
 			else {
 				snapshot.entries = snapshot.entries.map((entry) => ({
 					...entry,
@@ -346,7 +354,6 @@ test.each([
 				subscriptions.saveAtomically(input, commit);
 			},
 			target: () => f.db.acquisitionDownloads.destination(),
-			profileFingerprint: () => "instant-v1",
 			logger,
 		});
 		cleanup.push(() => watching.close());
@@ -358,15 +365,28 @@ test.each([
 		await worker.validate(destination.revision);
 		const preview = await watching.preview("session", "unconfigured", {
 			backlog: "progress",
-			profileId: "custom:instant",
 		});
 		watching.confirm("session", preview.id);
 		await watching.tick();
 		const subscription = f.db.acquisition.subscription(key);
 		if (!subscription) throw Error("Managed admission failed");
 		await subscriptions.refresh(key, subscription.revision);
+		if (change === "before-reservation") {
+			const target = f.anime.target.getMockImplementation();
+			f.anime.target.mockImplementationOnce(async (...args) => {
+				defaultProfile = "custom:missing";
+				subscriptions.defaultProfileChanged();
+				if (!target) throw Error("Missing target fixture");
+				return target(...args);
+			});
+		}
 		await worker.tick();
-		if (!submitted) {
+		if (change === "before-reservation") {
+			expect(f.db.acquisitionDownloads.activity(key, 1, 100).items).toEqual([]);
+			expect(f.add).not.toHaveBeenCalled();
+			return;
+		}
+		if (!submitted && change !== "profile") {
 			expect(reservedBeforeSuspend).toBe(true);
 			expect(f.add).not.toHaveBeenCalled();
 			expect(f.ingestion.ingest).not.toHaveBeenCalled();
@@ -383,6 +403,8 @@ test.each([
 			await worker.tick();
 			expect(f.add).toHaveBeenCalledTimes(1);
 		}
-		expect(subscriptions.selection().subscription(key)?.enabled).toBe(false);
+		expect(subscriptions.selection().subscription(key)?.enabled).toBe(
+			change === "profile",
+		);
 	},
 );

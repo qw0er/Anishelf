@@ -48,7 +48,6 @@ interface Options {
 		validated: boolean;
 		path: string;
 	} | null;
-	profileFingerprint(id: string): string | null;
 	logger: Logger;
 	now?: () => number;
 }
@@ -147,7 +146,11 @@ export class WatchingApplication implements WatchingApi {
 			retryAt: 0,
 		};
 	}
-	private reason(policy = this.policy(), snapshot = this.snapshot()): string {
+	private reason(
+		policy = this.policy(),
+		snapshot = this.snapshot(),
+		requireProfile = true,
+	): string {
 		if (!policy.enabled || !policy.grant) return "disabled";
 		const grant = policy.grant;
 		if (
@@ -167,13 +170,8 @@ export class WatchingApplication implements WatchingApi {
 			grant.sourceRevision
 		)
 			return "source_changed";
-		if (
-			grant.profileId !==
-				this.options.subscriptions.profiles().selectedProfileId ||
-			this.options.profileFingerprint(grant.profileId) !==
-				grant.profileFingerprint
-		)
-			return "profile_changed";
+		if (requireProfile && !this.effectiveProfile().available)
+			return "profile_unavailable";
 		const target = this.options.target();
 		if (
 			!target?.validated ||
@@ -186,7 +184,7 @@ export class WatchingApplication implements WatchingApi {
 	stopReason(subscription: Subscription): string | null {
 		if (subscription.createdBy !== "watching") return null;
 		const policy = this.policy();
-		const reason = this.reason(policy);
+		const reason = this.reason(policy, this.snapshot(), false);
 		if (reason !== "ready") return reason;
 		if (
 			!subscription.watchingAccountId ||
@@ -242,6 +240,23 @@ export class WatchingApplication implements WatchingApi {
 			});
 		}
 	}
+	private assertProfileAvailable() {
+		if (!this.effectiveProfile().available)
+			throw new DomainError(
+				"ACQUISITION_UNAVAILABLE",
+				"The global default acquisition profile is unavailable. Select an available profile in Settings.",
+			);
+	}
+	private effectiveProfile() {
+		const catalog = this.options.subscriptions.profiles();
+		return {
+			id: catalog.selectedProfileId,
+			name:
+				catalog.profiles.find((p) => p.id === catalog.selectedProfileId)
+					?.name ?? catalog.selectedProfileId,
+			available: catalog.selectionAvailable,
+		};
+	}
 	status(): WatchingStatus {
 		const snapshot = this.snapshot(),
 			policy = this.policy();
@@ -257,14 +272,13 @@ export class WatchingApplication implements WatchingApi {
 			]),
 		].sort();
 		return {
+			effectiveProfile: this.effectiveProfile(),
 			revision: policy.revision,
 			enabled: policy.enabled,
 			reason: this.reason(policy, snapshot),
 			accountId: snapshot.accountId,
 			trackingGeneration: snapshot.generation,
-			config: policy.grant
-				? { backlog: policy.grant.backlog, profileId: policy.grant.profileId }
-				: null,
+			config: policy.grant ? { backlog: policy.grant.backlog } : null,
 			works: keys.map((workKey) => {
 				const row = rows.find((row) => row.workKey === workKey);
 				const subscription = this.options.subscription(workKey);
@@ -318,11 +332,6 @@ export class WatchingApplication implements WatchingApi {
 	): Promise<WatchingPreview> {
 		if (this.shutdown.signal.aborted || revision !== this.policy().revision)
 			conflict();
-		if (
-			config.profileId !==
-			this.options.subscriptions.profiles().selectedProfileId
-		)
-			conflict();
 		const snapshot = this.options.tracking
 			? await abortable(this.options.tracking.refresh(), this.shutdown.signal)
 			: undefined;
@@ -336,12 +345,10 @@ export class WatchingApplication implements WatchingApi {
 				"ACQUISITION_UNAVAILABLE",
 				"A fresh complete tracking list is required.",
 			);
-		const profileFingerprint = this.options.profileFingerprint(
-				config.profileId,
-			),
-			target = this.options.target(),
+		this.assertProfileAvailable();
+		const target = this.options.target(),
 			sources = this.options.sources.connector.settings();
-		if (!profileFingerprint || !target?.validated || !sources.ready)
+		if (!target?.validated || !sources.ready)
 			throw new DomainError(
 				"ACQUISITION_UNAVAILABLE",
 				"Validate a download destination and configure a release profile and source sites first.",
@@ -356,6 +363,7 @@ export class WatchingApplication implements WatchingApi {
 				"Automation currently supports at most 500 Watching works.",
 			);
 		const result: WatchingPreview = {
+			effectiveProfile: this.effectiveProfile(),
 			id: randomUUID(),
 			expiresAt: this.now() + 300000,
 			revision,
@@ -403,7 +411,6 @@ export class WatchingApplication implements WatchingApi {
 				accountId: snapshot.accountId,
 				trackingGeneration: snapshot.generation,
 				sourceRevision: sources.generation,
-				profileFingerprint,
 				destinationRevision: target.revision,
 				downloaderGeneration: target.connectionGeneration,
 			},
@@ -415,7 +422,7 @@ export class WatchingApplication implements WatchingApi {
 				rewatchingWorks: entries.filter(
 					(entry) => entry.status === "rewatching",
 				).length,
-				profileId: config.profileId,
+				profileId: this.effectiveProfile().id,
 				backlog: config.backlog,
 			},
 			"Watching activation scope prepared without authorizing downloads.",
@@ -431,6 +438,7 @@ export class WatchingApplication implements WatchingApi {
 			candidate.result.revision !== this.policy().revision
 		)
 			conflict();
+		this.assertProfileAvailable();
 		const policy: WatchingPolicy = {
 			revision: randomUUID(),
 			enabled: true,
@@ -618,7 +626,7 @@ export class WatchingApplication implements WatchingApi {
 						revision: null,
 						source: { kind: "automatic" },
 						startEpisode,
-						profileId: grant.profileId,
+						profileId: null,
 						target: {
 							destinationRevision: grant.destinationRevision,
 							connectionGeneration: grant.downloaderGeneration,
@@ -629,6 +637,8 @@ export class WatchingApplication implements WatchingApi {
 						const current = this.member(grant.accountId, entry.workKey);
 						if (current && current.revision !== row.revision) conflict();
 						saved.createdBy = "watching";
+						saved.profileId = null;
+						if (saved.automatic) delete saved.automatic.profileFingerprint;
 						saved.watchingAccountId = grant.accountId;
 						this.put({
 							...row,

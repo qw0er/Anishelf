@@ -1,10 +1,16 @@
+import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
 import type { ReleaseAssessmentApi } from "../../../anime/public.js";
 import type { SourcesApi } from "../../sources/public.js";
 import type { Subscription } from "../domain/model.js";
-import type { AcquisitionProfile } from "../domain/profiles.js";
+import {
+	type AcquisitionProfile,
+	acquisitionProfileFingerprint,
+	builtinAcquisitionProfiles,
+	defaultAcquisitionProfileId,
+} from "../domain/profiles.js";
 import type { SubscriptionStore } from "../ports.js";
 export type SubscriptionsOptions = {
 	onRemoved?(workKey: string): void;
@@ -12,6 +18,7 @@ export type SubscriptionsOptions = {
 	profiles?: readonly AcquisitionProfile[];
 	profileIssue?: ProfileCatalogIssue;
 	defaultProfileId?: () => string | undefined;
+	defaultProfileRevision?: () => string;
 	lockedCandidates?: (workKey: string) => string[];
 	store: SubscriptionStore;
 	sources: SourcesApi;
@@ -27,6 +34,24 @@ export type SubscriptionsOptions = {
 	} | null;
 };
 export class SubscriptionsContext {
+	private readonly profileLifetime = randomUUID();
+	profileScope(subscription: Pick<Subscription, "profileId" | "createdBy">) {
+		const followsDefault =
+			subscription.createdBy === "watching" || !subscription.profileId;
+		const id = followsDefault
+			? (this.options.defaultProfileId?.() ?? defaultAcquisitionProfileId)
+			: subscription.profileId;
+		const profile = (this.options.profiles ?? builtinAcquisitionProfiles).find(
+			(p) => p.id === id,
+		);
+		return JSON.stringify([
+			id,
+			profile ? acquisitionProfileFingerprint(profile) : null,
+			followsDefault
+				? this.profileLifetime + (this.options.defaultProfileRevision?.() ?? "")
+				: "explicit",
+		]);
+	}
 	readonly shutdown = new AbortController();
 	readonly pending = new Set<Promise<unknown>>();
 	constructor(readonly options: SubscriptionsOptions) {}
@@ -34,14 +59,25 @@ export class SubscriptionsContext {
 		return this.shutdown.signal;
 	}
 
-	stopReason(subscription: Subscription): string | null {
+	stopReason(subscription: Subscription, selecting = true): string | null {
 		if (!subscription.enabled) return "paused";
 		if (subscription.completion && !subscription.completion.resumed)
 			return "completed";
-		if (subscription.createdBy === "watching")
-			return this.options.managedStopReason
+		if (subscription.createdBy === "watching") {
+			const reason = this.options.managedStopReason
 				? this.options.managedStopReason(subscription)
 				: "authorization_required";
+			if (reason) return reason;
+			const id =
+				this.options.defaultProfileId?.() ?? defaultAcquisitionProfileId;
+			if (
+				selecting &&
+				!(this.options.profiles ?? builtinAcquisitionProfiles).some(
+					(p) => p.id === id,
+				)
+			)
+				return "profile_unavailable";
+		}
 		return null;
 	}
 	runnable(subscription: Subscription) {

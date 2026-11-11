@@ -47,10 +47,12 @@ export class PendingSubscriptions {
 			(!force && scope.retryAt > this.context.now())
 		)
 			return;
+		const policyRevision = this.context.profileScope(sub);
 		const current = () =>
 			!this.context.signal.aborted &&
 			options.store.subscription(sub.workKey)?.revision === sub.revision &&
-			this.context.runnable(sub);
+			this.context.runnable(sub) &&
+			this.context.profileScope(sub) === policyRevision;
 		const permitted = () => {
 			const profile = (options.profiles ?? builtinAcquisitionProfiles).find(
 				(profile) =>
@@ -64,7 +66,9 @@ export class PendingSubscriptions {
 				options.sources.connector.settings().generation ===
 					scope.sourceGeneration &&
 				profile &&
-				acquisitionProfileFingerprint(profile) === scope.profileFingerprint &&
+				(sub.createdBy === "watching" ||
+					acquisitionProfileFingerprint(profile) ===
+						scope.profileFingerprint) &&
 				(!scope.target ||
 					(target?.validated &&
 						target.revision === scope.target.destinationRevision &&

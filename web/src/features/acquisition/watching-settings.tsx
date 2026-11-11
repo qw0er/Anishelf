@@ -8,7 +8,7 @@ import {
 	Plus,
 	Rss,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isRequestCancelled } from "../../shared/api/client.js";
 import type { WatchingAutomationStatus } from "../../shared/api/contracts.js";
@@ -154,16 +154,8 @@ function WatchingForm({
 		mutationFn: () =>
 			previewWatching(status.revision, {
 				backlog,
-				profileId,
 			}),
 	});
-	const resetPreview = preview.reset;
-	const previousProfile = useRef(profileId);
-	useEffect(() => {
-		if (previousProfile.current === profileId) return;
-		previousProfile.current = profileId;
-		resetPreview();
-	}, [profileId, resetPreview]);
 	const update = (updated: WatchingAutomationStatus) => {
 		client.setQueryData(watchingKey, updated);
 		void client.invalidateQueries({ queryKey: watchingKey });
@@ -214,6 +206,13 @@ function WatchingForm({
 		override.isPending;
 	return (
 		<div className="space-y-3">
+			<p className="text-sm text-muted-foreground">
+				{t("acquisition.watching.previewProfile", {
+					name:
+						profiles.data?.profiles.find((p) => p.id === profileId)?.name ??
+						status.effectiveProfile.name,
+				})}
+			</p>
 			{!management && (
 				<>
 					<RadioCardGroup
@@ -279,80 +278,82 @@ function WatchingForm({
 					</div>
 				</>
 			)}
-			{preview.isSuccess &&
-				preview.data &&
-				preview.data.config.profileId === profileId && (
-					<Dialog
-						open
-						onOpenChange={(open) => {
-							if (!open) preview.reset();
-						}}
-					>
-						<DialogContent className="max-h-[85dvh] overflow-y-auto">
-							<DialogHeader>
-								<DialogTitle>
+			{preview.isSuccess && preview.data && (
+				<Dialog
+					open
+					onOpenChange={(open) => {
+						if (!open) preview.reset();
+					}}
+				>
+					<DialogContent className="max-h-[85dvh] overflow-y-auto">
+						<DialogHeader>
+							<DialogTitle>
+								{t("acquisition.watching.previewLabel")}
+							</DialogTitle>
+						</DialogHeader>
+						<div className="space-y-4 text-sm">
+							<p>
+								{t("acquisition.watching.previewProfile", {
+									name:
+										profiles.data?.profiles.find(
+											(profile) => profile.id === profileId,
+										)?.name ?? profileId,
+								})}
+							</p>
+							<p>
+								{t("acquisition.watching.destination", {
+									path: preview.data.destination,
+								})}
+							</p>
+							<p>
+								{t("acquisition.watching.sites", {
+									sites: preview.data.providers.join(" → "),
+								})}
+							</p>
+							<p>
+								{t("acquisition.watching.previewHelp", {
+									count: preview.data.works.length,
+								})}
+							</p>
+							<Collapsible>
+								<CollapsibleTrigger className="cursor-pointer text-sm">
 									{t("acquisition.watching.previewLabel")}
-								</DialogTitle>
-							</DialogHeader>
-							<div className="space-y-4 text-sm">
-								<p>
-									{t("acquisition.watching.previewProfile", {
-										name:
-											profiles.data?.profiles.find(
-												(profile) => profile.id === profileId,
-											)?.name ?? profileId,
-									})}
-								</p>
-								<p>
-									{t("acquisition.watching.destination", {
-										path: preview.data.destination,
-									})}
-								</p>
-								<p>
-									{t("acquisition.watching.sites", {
-										sites: preview.data.providers.join(" → "),
-									})}
-								</p>
-								<p>
-									{t("acquisition.watching.previewHelp", {
-										count: preview.data.works.length,
-									})}
-								</p>
-								<Collapsible>
-									<CollapsibleTrigger className="cursor-pointer text-sm">
-										{t("acquisition.watching.previewLabel")}
-									</CollapsibleTrigger>
-									<CollapsibleContent keepMounted>
-										<ul
-											className="max-h-64 overflow-auto text-sm"
-											aria-label={t("acquisition.watching.previewLabel")}
-										>
-											{preview.data.works.map((work) => (
-												<li key={work.workKey}>
-													{work.title} ·{" "}
-													{work.startEpisode === null
-														? t("acquisition.watching.unsupportedStart")
-														: t("acquisition.watching.fromEpisode", {
-																episode: work.startEpisode,
-															})}{" "}
-													· {watchingReason(work.reason)}
-												</li>
-											))}
-										</ul>
-									</CollapsibleContent>
-								</Collapsible>
-								<ActionButton
-									icon={Play}
-									aria-busy={confirm.isPending}
-									label={t("acquisition.watching.confirm")}
-									shortLabel={t("actions.enable")}
-									disabled={busy || preview.data.expiresAt <= Date.now()}
-									onClick={() => confirm.mutate()}
-								/>
-							</div>
-						</DialogContent>
-					</Dialog>
-				)}
+								</CollapsibleTrigger>
+								<CollapsibleContent keepMounted>
+									<ul
+										className="max-h-64 overflow-auto text-sm"
+										aria-label={t("acquisition.watching.previewLabel")}
+									>
+										{preview.data.works.map((work) => (
+											<li key={work.workKey}>
+												{work.title} ·{" "}
+												{work.startEpisode === null
+													? t("acquisition.watching.unsupportedStart")
+													: t("acquisition.watching.fromEpisode", {
+															episode: work.startEpisode,
+														})}{" "}
+												· {watchingReason(work.reason)}
+											</li>
+										))}
+									</ul>
+								</CollapsibleContent>
+							</Collapsible>
+							<ActionButton
+								icon={Play}
+								aria-busy={confirm.isPending}
+								label={t("acquisition.watching.confirm")}
+								shortLabel={t("actions.enable")}
+								disabled={
+									busy ||
+									!profiles.data?.selectionAvailable ||
+									preview.data.expiresAt <= Date.now()
+								}
+								onClick={() => confirm.mutate()}
+							/>
+						</div>
+					</DialogContent>
+				</Dialog>
+			)}
 			{management &&
 				status.works.some((work) => work.managed || work.excluded) && (
 					<Collapsible defaultOpen>

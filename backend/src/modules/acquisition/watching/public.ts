@@ -20,9 +20,14 @@ export interface WatchingListPort {
 }
 export interface WatchingConfig {
 	backlog: "progress" | "beginning";
-	profileId: string;
+}
+export interface WatchingProfile {
+	id: string;
+	name: string;
+	available: boolean;
 }
 export interface WatchingPreview {
+	effectiveProfile: WatchingProfile;
 	id: string;
 	expiresAt: number;
 	revision: string;
@@ -37,6 +42,7 @@ export interface WatchingPreview {
 	}[];
 }
 export interface WatchingStatus {
+	effectiveProfile: WatchingProfile;
 	revision: string;
 	enabled: boolean;
 	reason: string;

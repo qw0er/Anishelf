@@ -22,6 +22,11 @@ afterEach(() => {
 const base = "/api/acquisition/watching";
 function fixture(overrides: Partial<WatchingAutomationStatus> = {}) {
 	let status: WatchingAutomationStatus = {
+		effectiveProfile: {
+			id: "builtin:general",
+			name: "General",
+			available: true,
+		},
 		revision: "one",
 		enabled: false,
 		reason: "disabled",
@@ -64,7 +69,7 @@ function fixture(overrides: Partial<WatchingAutomationStatus> = {}) {
 					id: "preview",
 					revision: status.revision,
 					expiresAt: Date.now() + 300000,
-					config: { backlog: "progress", profileId: "builtin:general" },
+					config: { backlog: "progress" },
 					destination: "/downloads",
 					providers: ["nyaasi"],
 					works: [
@@ -195,9 +200,9 @@ test("changing activation policy discards the preview; work overrides carry curr
 	).toBeNull();
 });
 
-test("activation uses the saved subscription default instead of an older automation profile and discards previews when the default changes", async () => {
+test("activation uses the saved subscription default instead of an older automation profile and retains previews when the default changes", async () => {
 	const request = fixture({
-		config: { backlog: "progress", profileId: "custom:old-automation" },
+		config: { backlog: "progress" },
 	});
 	render(<WatchingSettings />);
 	const preview = await screen.findByRole("button", {
@@ -217,7 +222,7 @@ test("activation uses the saved subscription default instead of an older automat
 		{},
 		{
 			revision: "one",
-			config: { backlog: "progress", profileId: "builtin:general" },
+			config: { backlog: "progress" },
 		},
 	);
 	queryClient.setQueryData(["acquisition", "profiles"], {
@@ -234,25 +239,26 @@ test("activation uses the saved subscription default instead of an older automat
 	});
 	await waitFor(() =>
 		expect(
-			screen.queryByRole("button", {
+			screen.getByRole("button", {
 				name: "Confirm and enable Watching automation",
 			}),
-		).toBeNull(),
+		).toBeTruthy(),
 	);
-	fireEvent.click(preview);
+	expect(
+		screen.getAllByText("Follows global default: New default").length,
+	).toBeGreaterThan(0);
+	fireEvent.click(
+		screen.getByRole("button", {
+			name: "Confirm and enable Watching automation",
+		}),
+	);
 	await waitFor(() =>
 		expect(request).toHaveBeenCalledWith(
-			`${base}/preview`,
+			`${base}/confirm`,
 			"POST",
 			{},
-			{
-				revision: "one",
-				config: { backlog: "progress", profileId: "custom:new-default" },
-			},
+			{ id: "preview" },
 		),
-	);
-	expect(request.mock.calls.some((call) => call[0] === `${base}/confirm`)).toBe(
-		false,
 	);
 });
 
