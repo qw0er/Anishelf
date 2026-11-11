@@ -17,7 +17,7 @@
 | 1. Sign in | Read the initial password from Backend logs |
 | 2. Add media | Configure Settings resource roots; containers initially use `/data/media` |
 | 3. Review Library | Browse posters/files and resolve uncertain matches in Review |
-| 4. Connect AniList | In Settings, authorize, paste the token, preview and confirm |
+| 4. Connect AniList | In Settings, authorize, paste the token and choose **Connect AniList**. Confirm when switching accounts. |
 | 5. Add downloads | Configure Sources, qBittorrent and a validated destination; Subscribe on a work |
 | 6. Follow progress | Use Activity/Diagnostics; manage transfers in qBittorrent WebUI |
 

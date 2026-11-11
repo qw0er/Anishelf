@@ -1,14 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-	Check,
-	ExternalLink,
-	Eye,
-	PlugZap,
-	RefreshCw,
-	Unplug,
-	X,
-} from "lucide-react";
-import { useState } from "react";
+import { Check, ExternalLink, PlugZap, RefreshCw, Unplug } from "lucide-react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isRequestCancelled, request } from "../../../shared/api/client.js";
 import type {
@@ -19,6 +11,7 @@ import {
 	ActionButton,
 	ActionLink,
 } from "../../../shared/components/ui/action-button.js";
+import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Card,
 	CardContent,
@@ -26,6 +19,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "../../../shared/components/ui/dialog.js";
 import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
 import { StatusBadge } from "../../../shared/components/ui/status-badge.js";
@@ -40,7 +41,11 @@ export function TrackingAccountSettings() {
 	const { t } = useTranslation();
 	const client = useQueryClient();
 	const [credential, setCredential] = useState("");
-	const [preview, setPreview] = useState<TrackingPreviewResponse | null>(null);
+	const credentialInput = useRef<HTMLInputElement>(null);
+	const [pendingSwitch, setPendingSwitch] = useState<{
+		candidate: TrackingPreviewResponse;
+		previousName: string;
+	} | null>(null);
 	const account = useQuery(accountQuery());
 	useRefreshError(
 		"tracking-account",
@@ -51,30 +56,39 @@ export function TrackingAccountSettings() {
 	const command = useMutation({
 		onMutate: () => toast.close("tracking-account-command"),
 		mutationFn: async (
-			operation: "preview" | "confirm" | "disconnect" | "check",
+			operation: "connect" | "confirm" | "disconnect" | "check",
 		) => {
-			if (operation === "preview") {
-				const input = credential.trim();
-				setPreview(null);
-				const result = await request<TrackingPreviewResponse>(
+			let candidate = pendingSwitch?.candidate;
+			if (operation === "connect") {
+				candidate = await request<TrackingPreviewResponse>(
 					"/api/tracking/account/preview",
 					"POST",
 					{},
-					{ credential: input },
+					{ credential: credential.trim() },
 				);
-				setCredential("");
-				setPreview(result);
-				return;
+				if (!account.data || candidate.generation !== account.data.generation)
+					throw new Error("Tracking connection changed during validation.");
+				const previous = account.data.account;
+				if (previous && previous.id !== candidate.account.id) {
+					setCredential("");
+					setPendingSwitch({ candidate, previousName: previous.name });
+					return;
+				}
 			}
 			let result: TrackingAccountResponse;
-			if (operation === "confirm") {
-				if (!preview) return;
+			if (operation === "connect" || operation === "confirm") {
+				if (!candidate) return;
 				result = await request(
 					"/api/tracking/account/confirm",
 					"POST",
 					{},
-					{ candidateId: preview.candidateId, generation: preview.generation },
+					{
+						candidateId: candidate.candidateId,
+						generation: candidate.generation,
+					},
 				);
+				setCredential("");
+				console.info("[Tracking] Account connection saved.");
 			} else if (operation === "disconnect") {
 				if (!account.data) return;
 				result = await request(
@@ -96,7 +110,7 @@ export function TrackingAccountSettings() {
 				predicate: (query) => query.queryKey[1] !== "account",
 			});
 			client.setQueryData(accountKey, result);
-			setPreview(null);
+			setPendingSwitch(null);
 		},
 		onError: (error, operation) => {
 			if (isRequestCancelled(error)) return;
@@ -153,58 +167,40 @@ export function TrackingAccountSettings() {
 					</p>
 				)}
 				{current && (
-					<>
-						<form
-							id="tracking-credential-form"
-							className="space-y-3"
-							onSubmit={(event) => {
-								event.preventDefault();
-								command.mutate("preview");
-							}}
-						>
-							<div className="flex items-center gap-1">
-								<label
-									htmlFor="tracking-credential"
-									className="text-sm font-medium"
-								>
-									{current.provider.authorization.label}
-								</label>
-								<FieldHelp
-									label={t("trackingAccount.credentialHelpLabel")}
-									help={t("trackingAccount.instructions")}
-								/>
-							</div>
-							<Input
-								id="tracking-credential"
-								name="tracking-credential"
-								type="password"
-								autoComplete="off"
-								maxLength={8192}
-								value={credential}
-								onChange={(event) => {
-									setCredential(event.target.value);
-									setPreview(null);
-								}}
-								disabled={busy}
-								required
-							/>
-						</form>
-						{preview && (
-							<section
-								className="space-y-3"
-								aria-label={t("trackingAccount.confirmation")}
+					<form
+						id="tracking-credential-form"
+						className="space-y-3"
+						onSubmit={(event) => {
+							event.preventDefault();
+							if (!busy && !pendingSwitch && credential.trim())
+								command.mutate("connect");
+						}}
+					>
+						<div className="flex items-center gap-1">
+							<label
+								htmlFor="tracking-credential"
+								className="text-sm font-medium"
 							>
-								<p>
-									{t("trackingAccount.confirmAccount", {
-										name: preview.account.name,
-									})}
-								</p>
-								<p className="text-sm text-muted-foreground">
-									{t("trackingAccount.replaceNotice")}
-								</p>
-							</section>
-						)}
-					</>
+								{current.provider.authorization.label}
+							</label>
+							<FieldHelp
+								label={t("trackingAccount.credentialHelpLabel")}
+								help={t("trackingAccount.instructions")}
+							/>
+						</div>
+						<Input
+							id="tracking-credential"
+							ref={credentialInput}
+							name="tracking-credential"
+							type="password"
+							autoComplete="off"
+							maxLength={8192}
+							value={credential}
+							onChange={(event) => setCredential(event.target.value)}
+							disabled={busy}
+							required
+						/>
+					</form>
 				)}
 				<fieldset
 					aria-label={t("trackingAccount.actions")}
@@ -212,47 +208,16 @@ export function TrackingAccountSettings() {
 				>
 					{current && (
 						<>
-							{current.provider.authorization.url && (
-								<ActionLink
-									icon={ExternalLink}
-									label={t("trackingAccount.authorize")}
-									shortLabel={t("trackingAccount.authorize")}
-									href={current.provider.authorization.url}
-									target="_blank"
-									rel="noreferrer"
-								/>
-							)}
 							<ActionButton
-								icon={Eye}
-								label={t("trackingAccount.preview")}
-								shortLabel={t("actions.preview")}
+								icon={Check}
+								label={t("trackingAccount.connect", {
+									provider: current.provider.name,
+								})}
 								type="submit"
 								form="tracking-credential-form"
-								disabled={busy || !credential.trim()}
-								aria-busy={command.isPending && command.variables === "preview"}
+								disabled={busy || pendingSwitch !== null || !credential.trim()}
+								aria-busy={busy && command.variables === "connect"}
 							/>
-							{preview && (
-								<>
-									<ActionButton
-										icon={Check}
-										label={t("trackingAccount.confirm")}
-										shortLabel={t("actions.connect")}
-										disabled={busy}
-										onClick={() => command.mutate("confirm")}
-										aria-busy={
-											command.isPending && command.variables === "confirm"
-										}
-									/>
-									<ActionButton
-										icon={X}
-										label={t("trackingAccount.cancel")}
-										shortLabel={t("actions.cancel")}
-										variant="outline"
-										disabled={busy}
-										onClick={() => setPreview(null)}
-									/>
-								</>
-							)}
 							{current.account && (
 								<>
 									<ActionButton
@@ -279,6 +244,15 @@ export function TrackingAccountSettings() {
 									/>
 								</>
 							)}
+							{current.provider.authorization.url && (
+								<ActionLink
+									icon={ExternalLink}
+									label={t("trackingAccount.authorize")}
+									href={current.provider.authorization.url}
+									target="_blank"
+									rel="noreferrer"
+								/>
+							)}
 						</>
 					)}
 					{account.error && !current && (
@@ -295,6 +269,42 @@ export function TrackingAccountSettings() {
 						/>
 					)}
 				</fieldset>
+				<Dialog
+					open={pendingSwitch !== null}
+					onOpenChange={(open) => {
+						if (!open && !busy) setPendingSwitch(null);
+					}}
+				>
+					<DialogContent showCloseButton={false} finalFocus={credentialInput}>
+						<DialogHeader>
+							<DialogTitle>{t("trackingAccount.switchTitle")}</DialogTitle>
+							<DialogDescription>
+								{t("trackingAccount.switchDescription", {
+									previous: pendingSwitch?.previousName,
+									next: pendingSwitch?.candidate.account.name,
+								})}
+							</DialogDescription>
+						</DialogHeader>
+						<DialogFooter>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={busy}
+								onClick={() => setPendingSwitch(null)}
+							>
+								{t("actions.cancel")}
+							</Button>
+							<ActionButton
+								icon={Check}
+								label={t("trackingAccount.confirm")}
+								type="button"
+								disabled={busy || !pendingSwitch}
+								aria-busy={busy && command.variables === "confirm"}
+								onClick={() => command.mutate("confirm")}
+							/>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
 				{account.error && !current && (
 					<div role="alert" className="space-y-2">
 						<p>{account.error?.message}</p>

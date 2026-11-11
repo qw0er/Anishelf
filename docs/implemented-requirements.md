@@ -684,7 +684,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 #### Delivery Notes (T)
 
-- **T01:** Token preview/confirmation, private credentials and safe account reconnection.
+- **T01:** Verify the token before connecting. Confirm a switch to a different account. Store credentials privately and support reconnection.
 - **T02:** Complete account-scoped snapshots, stale/error feedback, unified local/remote Library and viewing-state details.
 - **T05:** For manual and playback commands; upstream read/write race remains.
 

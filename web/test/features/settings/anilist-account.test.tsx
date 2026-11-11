@@ -47,99 +47,204 @@ const json = (value: unknown, status = 200) =>
 		headers: { "content-type": "application/json" },
 	});
 
-test("previews without retaining token, requires confirmation and clears former account queries", async () => {
-	let status: TrackingAccountResponse = disconnected;
-	fetcher.mockImplementation(async (path, options) => {
-		if (path === "/api/tracking/account" && options?.method === "GET")
-			return json(status);
-		if (path === "/api/tracking/account/preview") {
-			expect(JSON.parse(String(options?.body))).toEqual({
-				credential: "fixture-token",
+test.each([disconnected, connected])(
+	"connects from $state without a dialog and clears former account queries",
+	async (initial) => {
+		let status = initial;
+		const saved = { ...connected, generation: "saved" };
+		fetcher.mockImplementation(async (path, options) => {
+			if (path === "/api/tracking/account" && options?.method === "GET")
+				return json(status);
+			if (path === "/api/tracking/account/preview") {
+				expect(JSON.parse(String(options?.body))).toEqual({
+					credential: "fixture-token",
+				});
+				return json({
+					candidateId: "candidate",
+					account: connected.account,
+					generation: initial.generation,
+					expiresAt: Date.now() + 300000,
+				});
+			}
+			if (path === "/api/tracking/account/confirm") {
+				expect(JSON.parse(String(options?.body))).toEqual({
+					candidateId: "candidate",
+					generation: initial.generation,
+				});
+				status = saved;
+				return json(saved);
+			}
+			throw new Error(`Unexpected route: ${path}`);
+		});
+		queryClient.setQueryData(["tracking", "old-account", "list"], {
+			private: true,
+		});
+		const oldLibraryKey = [
+			"anime-library",
+			"root",
+			7,
+			"old-generation",
+			{ scope: "all" },
+		];
+		queryClient.setQueryData(oldLibraryKey, { private: true });
+		queryClient.setQueryData(
+			["catalog", "root", "local-work-detail", "work-1"],
+			{
+				public: true,
+			},
+		);
+		render(<TrackingAccountSettings />);
+		const connect = await screen.findByRole("button", {
+			name: "Connect AniList",
+		});
+		const actions = screen.getByRole("group", {
+			name: "the tracking service account actions",
+		});
+		const authorize = within(actions).getByRole("link", { name: "Authorize" });
+		expect(authorize.getAttribute("href")).toBe(
+			initial.provider.authorization.url,
+		);
+		expect(actions.lastElementChild).toBe(authorize);
+		if (!initial.account) {
+			expect(
+				within(actions).queryByRole("button", { name: "Check connection" }),
+			).toBeNull();
+			expect(
+				within(actions).queryByRole("button", { name: "Disconnect" }),
+			).toBeNull();
+		}
+		const input = screen.getByLabelText("Access token") as HTMLInputElement;
+		fireEvent.change(input, { target: { value: "fixture-token" } });
+		expect((connect as HTMLButtonElement).form).toBe(input.form);
+		fireEvent.click(connect);
+		await waitFor(() =>
+			expect(queryClient.getQueryData(["tracking", "account"])).toEqual(saved),
+		);
+		expect(input.value).toBe("");
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(
+			within(actions).getByRole("button", { name: "Check connection" }),
+		).toBeTruthy();
+		expect(
+			within(actions).getByRole("button", { name: "Disconnect" }),
+		).toBeTruthy();
+		expect(
+			queryClient.getQueryData(["tracking", "old-account", "list"]),
+		).toBeUndefined();
+		expect(queryClient.getQueryData(oldLibraryKey)).toBeUndefined();
+		expect(
+			queryClient.getQueryData([
+				"catalog",
+				"root",
+				"local-work-detail",
+				"work-1",
+			]),
+		).toEqual({ public: true });
+		expect(
+			JSON.stringify(
+				queryClient
+					.getMutationCache()
+					.getAll()
+					.map((value) => value.state),
+			),
+		).not.toContain("fixture-token");
+	},
+);
+
+test("switching accounts requires confirmation in a dialog and can be cancelled", async () => {
+	let status = connected;
+	const replacement = {
+		...connected,
+		account: { id: "anilist:8", name: "Replacement" },
+		generation: "three",
+	};
+	const confirm = vi.fn(() => {
+		status = replacement;
+		return json(status);
+	});
+	fetcher.mockImplementation(async (path) => {
+		if (path === "/api/tracking/account") return json(status);
+		if (path === "/api/tracking/account/preview")
+			return json({
+				candidateId: "candidate",
+				account: replacement.account,
+				generation: connected.generation,
+				expiresAt: Date.now() + 300000,
 			});
+		if (path === "/api/tracking/account/confirm") return confirm();
+		throw new Error(`Unexpected route: ${path}`);
+	});
+	render(<TrackingAccountSettings />);
+	const connect = await screen.findByRole("button", {
+		name: "Connect AniList",
+	});
+	const input = screen.getByLabelText("Access token") as HTMLInputElement;
+	const beginSwitch = async () => {
+		fireEvent.change(input, { target: { value: "replacement-token" } });
+		fireEvent.click(connect);
+		const dialog = await screen.findByRole("dialog", {
+			name: "Switch tracking account?",
+		});
+		await waitFor(() =>
+			expect(
+				(
+					within(dialog).getByRole("button", {
+						name: "Cancel",
+					}) as HTMLButtonElement
+				).disabled,
+			).toBe(false),
+		);
+		return dialog;
+	};
+	const dialog = await beginSwitch();
+	expect(dialog.textContent).toContain(
+		"This server will switch from Fixture to Replacement.",
+	);
+	expect(input.value).toBe("");
+	expect(confirm).not.toHaveBeenCalled();
+	fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	expect(screen.getByText("Account: Fixture")).toBeTruthy();
+	expect(confirm).not.toHaveBeenCalled();
+
+	const reopened = await beginSwitch();
+	fireEvent.click(
+		within(reopened).getByRole("button", { name: "Switch account" }),
+	);
+	await screen.findByText("Account: Replacement");
+	expect(confirm).toHaveBeenCalledOnce();
+});
+
+test("a stale connection view cannot replace another session's account", async () => {
+	const add = vi.spyOn(toast, "add");
+	const confirm = vi.fn(() => json(connected));
+	fetcher.mockImplementation(async (path) => {
+		if (path === "/api/tracking/account") return json(disconnected);
+		if (path === "/api/tracking/account/preview")
 			return json({
 				candidateId: "candidate",
 				account: connected.account,
-				generation: "one",
+				generation: connected.generation,
 				expiresAt: Date.now() + 300000,
 			});
-		}
-		if (path === "/api/tracking/account/confirm") {
-			expect(JSON.parse(String(options?.body))).toEqual({
-				candidateId: "candidate",
-				generation: "one",
-			});
-			status = connected;
-			return json(connected);
-		}
+		if (path === "/api/tracking/account/confirm") return confirm();
 		throw new Error(`Unexpected route: ${path}`);
 	});
-	queryClient.setQueryData(["tracking", "old-account", "list"], {
-		private: true,
-	});
-	const oldLibraryKey = [
-		"anime-library",
-		"root",
-		7,
-		"old-generation",
-		{ scope: "all" },
-	];
-	queryClient.setQueryData(oldLibraryKey, { private: true });
-	queryClient.setQueryData(["catalog", "root", "local-work-detail", "work-1"], {
-		public: true,
-	});
 	render(<TrackingAccountSettings />);
-	expect(await screen.findByText("Disconnected")).toBeTruthy();
-	expect(
-		screen.getByRole("link", { name: "Authorize" }).getAttribute("href"),
-	).toBe(disconnected.provider.authorization.url);
+	const connect = await screen.findByRole("button", {
+		name: "Connect AniList",
+	});
 	const input = screen.getByLabelText("Access token") as HTMLInputElement;
 	fireEvent.change(input, { target: { value: "fixture-token" } });
-	const actions = screen.getByRole("group", {
-		name: "the tracking service account actions",
-	});
-	const previewButton = within(actions).getByRole("button", {
-		name: "Preview account",
-	});
-	expect((previewButton as HTMLButtonElement).form).toBe(input.form);
-	fireEvent.click(previewButton);
-	await screen.findByText("Connect as Fixture?");
-	expect(input.value).toBe("");
-	expect(
-		fetcher.mock.calls.some(
-			([path]) => path === "/api/tracking/account/confirm",
+	fireEvent.click(connect);
+	await waitFor(() =>
+		expect(add).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "error" }),
 		),
-	).toBe(false);
-	expect(within(actions).getByRole("button", { name: "Cancel" })).toBeTruthy();
-	fireEvent.click(
-		within(actions).getByRole("button", { name: "Confirm connection" }),
 	);
-	await screen.findByText("Account: Fixture");
-	expect(
-		within(actions).getByRole("button", { name: "Check connection" }),
-	).toBeTruthy();
-	expect(
-		within(actions).getByRole("button", { name: "Disconnect" }),
-	).toBeTruthy();
-	expect(
-		queryClient.getQueryData(["tracking", "old-account", "list"]),
-	).toBeUndefined();
-	expect(queryClient.getQueryData(oldLibraryKey)).toBeUndefined();
-	expect(
-		queryClient.getQueryData([
-			"catalog",
-			"root",
-			"local-work-detail",
-			"work-1",
-		]),
-	).toEqual({ public: true });
-	expect(
-		JSON.stringify(
-			queryClient
-				.getMutationCache()
-				.getAll()
-				.map((value) => value.state),
-		),
-	).not.toContain("fixture-token");
+	expect(confirm).not.toHaveBeenCalled();
+	expect(screen.queryByRole("dialog")).toBeNull();
+	expect(input.value).toBe("fixture-token");
 });
 
 test("disconnect uses connection generation and authorization failure offers reconnection", async () => {
