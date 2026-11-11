@@ -101,9 +101,10 @@ Invalid custom files report a startup issue and fall back to built-ins.
 
 Playable originals use direct playback. New requests use the active profile;
 queued/running tasks retain their execution snapshot, and completed copies remain
-available. Browser playback checks actual output descriptions. The default cache
-budget is 10 GiB; lowering it does not delete existing copies. Audio selection and
-playback-version selection remain independent of the default encoding profile.
+available. Browser playback checks actual output descriptions. Preparation uses available
+disk space and reserves 1 GiB for other writes. Manage existing copies on the
+Prepared copies page. Audio selection and playback-version selection remain
+independent of the default encoding profile.
 
 ## Subscription settings
 

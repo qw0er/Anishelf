@@ -382,7 +382,7 @@ export class PreparationArtifacts {
 	publish(
 		task: PreparationTask,
 		processed: ProcessedMedia,
-		maximumBytes: number,
+		minimumFreeBytes: number,
 		progress: MediaExecutionProgress | null,
 		signal: AbortSignal,
 	): Promise<void> {
@@ -391,12 +391,12 @@ export class PreparationArtifacts {
 			this.context.assertOpen();
 			if (this.context.required(task.id).state.status !== "processing")
 				throw new Error("Preparation stopped before publication.");
-			if (processed.sizeBytes >= maximumBytes)
-				throw new DomainError(
-					"PREPARATION_CACHE_FULL",
-					"Prepared media exceeds its output budget.",
-				);
 			const source = await this.context.source(task);
+			if ((await this.context.files.availableBytes()) < minimumFreeBytes)
+				throw new DomainError(
+					"PREPARATION_STORAGE_FULL",
+					"Insufficient free disk storage to publish prepared media.",
+				);
 			await this.context.files.publish(
 				task.spec.executionPlanId,
 				processed.output.path,

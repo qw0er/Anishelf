@@ -18,30 +18,28 @@ export class PreparationWorker {
 		let processed: ProcessedMedia | undefined;
 		let progress: MediaExecutionProgress | null = null;
 		let lastProgressSave = 0;
-		let budgetFailure: PreparationFailureReason = "cache-full";
 		let failure: PreparationFailureReason | undefined;
 		try {
 			signal.throwIfAborted();
 			await this.context.source(task);
-			const disk =
+			const maximumBytes =
 				(await this.context.files.availableBytes()) -
 				this.context.policy.minimumFreeBytes;
-			const remaining =
-				this.context.maximumCacheBytes() - this.artifacts.retainedBytes();
-			if (remaining <= 0)
-				throw new DomainError(
-					"PREPARATION_CACHE_FULL",
-					"Delete a prepared copy before preparing another.",
-				);
-			if (disk <= 0)
+			if (maximumBytes <= 0)
 				throw new DomainError(
 					"PREPARATION_STORAGE_FULL",
 					"Insufficient free disk storage.",
 				);
-			const maximumBytes = Math.min(remaining, disk);
-			budgetFailure = disk < remaining ? "storage-full" : "cache-full";
 			signal.throwIfAborted();
 			this.context.assertOpen();
+			this.context.logger.debug(
+				{
+					event: "preparation.output_space_checked",
+					taskId: task.id,
+					maximumBytes,
+				},
+				"Checked available disk space for preparation output.",
+			);
 			const settings = task.spec.settings;
 			const execution = this.context.processing.start({
 				fileId: task.spec.source.fileId,
@@ -76,14 +74,12 @@ export class PreparationWorker {
 			await this.artifacts.publish(
 				task,
 				processed,
-				maximumBytes,
+				this.context.policy.minimumFreeBytes,
 				progress,
 				signal,
 			);
 		} catch (error) {
-			failure = this.context.closed
-				? "interrupted"
-				: preparationFailure(error, budgetFailure);
+			failure = this.context.closed ? "interrupted" : preparationFailure(error);
 		}
 		// Never acknowledge cancellation before the processor's temporary ownership is released.
 		if (processed) await this.context.processing.release(processed.id);

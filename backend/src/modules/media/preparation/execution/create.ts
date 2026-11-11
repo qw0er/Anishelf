@@ -17,7 +17,6 @@ export function createMediaProcessingModule(options: {
 	inspection: MediaInspectionApi;
 	tools: MediaTools;
 	dataDir: string;
-	maximumProcessedBytes: () => number;
 	logger?: Logger;
 	toolPolicy?: MediaToolPolicy;
 	policy?: MediaProcessingPolicy;
@@ -34,7 +33,6 @@ export function createMediaProcessingModule(options: {
 		),
 		dataDir: options.dataDir,
 		policy: options.policy ?? mediaProcessingPolicy,
-		maximumProcessedBytes: options.maximumProcessedBytes,
 		...(options.logger ? { logger: options.logger } : {}),
 	});
 }

@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { preparationConstraints, rssConstraints } from "../defaults.js";
+import { rssConstraints } from "../defaults.js";
 import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
 import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
 
@@ -162,12 +162,6 @@ export function createSettingsSchemas() {
 					maximum: rssConstraints.maximumRefreshIntervalMinutes,
 				}),
 			),
-			transcodeCacheBudgetGiB: Type.Optional(
-				Type.Integer({
-					minimum: 1,
-					maximum: preparationConstraints.maximumCacheBudgetGiB,
-				}),
-			),
 			defaultTranscodeProfileId: Type.Optional(TranscodeProfileIdSchema),
 			defaultAcquisitionProfileId: Type.Optional(
 				Type.String({ pattern: "^(builtin|custom):[a-z][a-z0-9-]{0,63}$" }),
@@ -201,12 +195,6 @@ export function createSettingsSchemas() {
 				Type.Integer({
 					minimum: rssConstraints.minimumRefreshIntervalMinutes,
 					maximum: rssConstraints.maximumRefreshIntervalMinutes,
-				}),
-			),
-			transcodeCacheBudgetGiB: Type.Optional(
-				Type.Integer({
-					minimum: 1,
-					maximum: preparationConstraints.maximumCacheBudgetGiB,
 				}),
 			),
 			defaultAcquisitionProfileId: Type.Optional(

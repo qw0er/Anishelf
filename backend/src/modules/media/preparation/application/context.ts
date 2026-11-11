@@ -26,7 +26,6 @@ export class PreparationContext {
 		readonly policy: DeepReadonly<PreparationPolicy>,
 		readonly logger: Logger,
 		readonly probe: (path: string) => Promise<MediaInfo>,
-		readonly maximumCacheBytes: () => number = () => policy.maximumCacheBytes,
 	) {}
 	assertOpen(): void {
 		if (this.closed)

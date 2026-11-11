@@ -68,7 +68,6 @@
 			"PLAYBACK_UNAVAILABLE": "Playback progress is unavailable. You can keep watching and retry later.",
 			"PREPARATION_UNAVAILABLE": "Media preparation is unavailable on the server.",
 			"PREPARATION_BUSY": "The preparation queue is full or the prepared copy is in use. Retry shortly.",
-			"PREPARATION_CACHE_FULL": "The prepared media cache is full. Delete a prepared copy and retry.",
 			"PREPARATION_STORAGE_FULL": "There is not enough free disk storage for preparation.",
 			"PLAYBACK_PERSISTENCE_FAILED": "Playback progress could not be loaded or saved. Please retry.",
 			"SUBTITLE_TOO_LARGE": "The subtitle exceeds the {{maximumMiB}} MiB limit.",
@@ -144,11 +143,6 @@
 		"save": "Save directories",
 		"saved": "Settings saved.",
 		"waitForScan": "Wait for the scan to finish before changing directories.",
-		"transcodeCacheBudget": "Transcode cache budget (GiB)",
-		"transcodeCacheBudgetHelp": "Default: {{defaultGiB}} GiB. Applies to new tasks; lowering the budget does not delete existing copies.",
-		"invalidCacheBudget": "Enter a positive whole number for the transcode cache budget.",
-		"cacheSaved": "Transcode cache budget saved.",
-		"cacheSaveFailed": "Could not save the transcode cache budget.",
 		"pathsHelp": "Use non-overlapping absolute server paths. Add directories, then Save to start a scan. Removing every directory returns to setup mode.",
 		"newPathLabel": "New resource directory path",
 		"addPath": "Add directory",
@@ -165,8 +159,7 @@
 			"account": "Account",
 			"about": "About"
 		},
-		"pathHelpLabel": "Directory rules",
-		"cacheHelpLabel": "Cache budget help"
+		"pathHelpLabel": "Directory rules"
 	},
 	"externalPlayers": {
 		"open": "Open in external player",
@@ -1511,8 +1504,8 @@
 	"preparedMedia": {
 		"title": "Prepared copies",
 		"originals": "Original files",
-		"usage": "{{count}} copies · {{used}} / {{budget}} budget",
-		"retained": "Total budget usage: {{size}}, including other retained copies and files still in use.",
+		"usage": "{{count}} copies · {{used}} used · {{available}} free on disk",
+		"retained": "Total prepared copy storage: {{size}}, including other retained copies and files still in use.",
 		"search": "Search filename or path",
 		"status": "Availability",
 		"all": "All states",

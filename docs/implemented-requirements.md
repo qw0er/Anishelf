@@ -12,12 +12,12 @@ means no separate status is recorded, not that verification is implied.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| V01 | Resource directory configuration | Complete | — | [Single-root setup; multi-root support under L12](#delivery-notes-v) | 0.1.0 |
-| V02 | Library scanning | Complete | — | [Startup/manual scans and filesystem updates](#delivery-notes-v) | 0.1.0 |
-| V03 | Resource browsing | Complete | — | Actual directory hierarchy, original filenames, stable natural sorting, and parent navigation | 0.1.0 |
-| V04 | Web playback | Complete | — | Browser playback of supported original media with seeking | 0.1.0 |
-| V05 | Basic playback controls | Complete | — | Play, pause, seek, volume, fullscreen, and return to the original directory | 0.1.0 |
-| V06 | Failure feedback | Complete | — | Missing/unreadable resources and unsupported-media or playback errors | 0.1.0 |
+| V01 | Resource directory configuration | Complete | Completed | [Single-root setup; multi-root support under L12](#delivery-notes-v) | 0.1.0 |
+| V02 | Library scanning | Complete | Completed | [Startup/manual scans and filesystem updates](#delivery-notes-v) | 0.1.0 |
+| V03 | Resource browsing | Complete | Completed | Actual directory hierarchy, original filenames, stable natural sorting, and parent navigation | 0.1.0 |
+| V04 | Web playback | Complete | Completed | Browser playback of supported original media with seeking | 0.1.0 |
+| V05 | Basic playback controls | Complete | Completed | Play, pause, seek, volume, fullscreen, and return to the original directory | 0.1.0 |
+| V06 | Failure feedback | Complete | Completed | Missing/unreadable resources and unsupported-media or playback errors | 0.1.0 |
 
 #### Delivery Notes (V)
 
@@ -30,17 +30,17 @@ Original V1 delivered read-only originals, resource-root confinement, persistent
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| L05 | Search filenames recursively | Complete | — | Name search within the current directory and its descendants | 1.3.0 |
-| L18 | Choose file and directory sorting | Complete | — | Natural-name, size, or modification-time sorting | 1.3.0 |
-| L06 | Watch filesystem changes and update the library incrementally | Complete | — | [Incremental updates with monitoring recovery](#delivery-notes-l) | 0.4.1 |
-| L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Complete | — | Filename/directory extraction with preserved evidence | 0.3.0 |
-| L08 | Review unidentified files and manually link or correct anime and episode associations | Complete | — | [Automatic admission and protected manual Review](#delivery-notes-l) | 0.3.0 |
-| L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Complete | — | [Episode proposals, ambiguity and confirmed corrections](#delivery-notes-l) | 0.3.0 |
-| L10 | Associate multiple file versions with an episode and select a version for playback | Complete | — | Episode associations and Web version selection with changed-file protection | 0.3.0 |
-| L12 | Configure and manage multiple resource roots | Complete | — | [Separate roots with partial-failure recovery](#delivery-notes-l) | 0.4.1 |
-| L13 | Move files or folders with preservation rules | Complete | — | [Confirmed same-filesystem moves; history retained](#delivery-notes-l) | 1.3.0 |
-| L19 | Delete files or folders with preservation rules | Complete | — | [Confirmed recursive deletion; history retained](#delivery-notes-l) | 1.3.0 |
-| L14 | Download an existing original media file from the Web interface to the user's device | Complete | — | — | 0.2.5 |
+| L05 | Search filenames recursively | Complete | Completed | Name search within the current directory and its descendants | 1.3.0 |
+| L18 | Choose file and directory sorting | Complete | Completed | Natural-name, size, or modification-time sorting | 1.3.0 |
+| L06 | Watch filesystem changes and update the library incrementally | Complete | Completed | [Incremental updates with monitoring recovery](#delivery-notes-l) | 0.4.1 |
+| L07 | Parse anime titles, seasons, episode numbers, and release variants from filenames | Complete | Completed | Filename/directory extraction with preserved evidence | 0.3.0 |
+| L08 | Review unidentified files and manually link or correct anime and episode associations | Complete | Completed | [Automatic admission and protected manual Review](#delivery-notes-l) | 0.3.0 |
+| L09 | Distinguish regular episodes, specials, continuous season numbering, and multi-episode files | Complete | Completed | [Episode proposals, ambiguity and confirmed corrections](#delivery-notes-l) | 0.3.0 |
+| L10 | Associate multiple file versions with an episode and select a version for playback | Complete | Completed | Episode associations and Web version selection with changed-file protection | 0.3.0 |
+| L12 | Configure and manage multiple resource roots | Complete | Completed | [Separate roots with partial-failure recovery](#delivery-notes-l) | 0.4.1 |
+| L13 | Move files or folders with preservation rules | Complete | Completed | [Confirmed same-filesystem moves; history retained](#delivery-notes-l) | 1.3.0 |
+| L19 | Delete files or folders with preservation rules | Complete | Completed | [Confirmed recursive deletion; history retained](#delivery-notes-l) | 1.3.0 |
+| L14 | Download an existing original media file from the Web interface to the user's device | Complete | Completed | — | 0.2.5 |
 | WI10 | Prevent interface flicker when adding a work | Complete | Completed | [Library and detail refresh continuity](#library-and-detail-refresh-continuity-wi10) | 1.5.0 |
 
 #### Delivery Notes (L)
@@ -78,8 +78,7 @@ Index-publication refreshes emit a debug log containing the previous and new rev
 **Validation:** Biome, frontend type checks and architecture checks passed. All 502
 frontend tests passed across 83 files, including regression coverage for content and
 artwork continuity, retained spoiler state, updated responses and query-owner
-isolation. Real-browser visual acceptance remains pending; status is Completed,
-not Verified. No first release is assigned.
+isolation. Real-browser visual acceptance remains pending. No first release is assigned.
 
 #### Multi-root resource management (L12)
 
@@ -155,14 +154,14 @@ qBittorrent is a separate capability (D01–D07).
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| M01 | Search external anime metadata and store provider identifiers | Complete | — | [AniList/Bangumi search with stable work identities](#delivery-notes-m) | 0.3.0 |
-| M02 | Display covers, aliases, descriptions, seasons, episode counts, airing information, and available same-provider work relations | Complete | — | Cached details, artwork, available episode data and same-provider relations | 0.3.0 |
-| M03 | Provide anime detail and episode views, organizing the library by title | Complete | — | [Poster library, work details and episode/version actions](#delivery-notes-m) | 0.3.0 |
-| M04 | Manually select, correct, and refresh metadata mappings | Complete | — | Review selection/reassociation, episode corrections and metadata refresh | 0.3.0 |
+| M01 | Search external anime metadata and store provider identifiers | Complete | Completed | [AniList/Bangumi search with stable work identities](#delivery-notes-m) | 0.3.0 |
+| M02 | Display covers, aliases, descriptions, seasons, episode counts, airing information, and available same-provider work relations | Complete | Completed | Cached details, artwork, available episode data and same-provider relations | 0.3.0 |
+| M03 | Provide anime detail and episode views, organizing the library by title | Complete | Completed | [Poster library, work details and episode/version actions](#delivery-notes-m) | 0.3.0 |
+| M04 | Manually select, correct, and refresh metadata mappings | Complete | Completed | Review selection/reassociation, episode corrections and metadata refresh | 0.3.0 |
 | WI11 | Prioritize upcoming broadcast plans on work details | Complete | Completed | [Announced future airtimes and next-broadcast highlight](#delivery-notes-m) | 1.4.1 |
-| M05 | Cache metadata so external outages do not prevent browsing or playback | Complete | — | [Cached browsing and playback during provider outages](#delivery-notes-m) | 0.3.0 |
-| M06 | Multiple independently selectable metadata providers | Complete | — | [Source selection and isolated identities](#delivery-notes-m) | 1.0.6 |
-| M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Complete | — | Available provider language information and stable local identities; no invented translations | 0.3.0 |
+| M05 | Cache metadata so external outages do not prevent browsing or playback | Complete | Completed | [Cached browsing and playback during provider outages](#delivery-notes-m) | 0.3.0 |
+| M06 | Multiple independently selectable metadata providers | Complete | Completed | [Source selection and isolated identities](#delivery-notes-m) | 1.0.6 |
+| M07 | Preserve multilingual program titles, aliases and descriptions with language tags, original language and locale-independent IDs | Complete | Completed | Available provider language information and stable local identities; no invented translations | 0.3.0 |
 | M09 | Save a title display preference, including available Bangumi Chinese titles | Complete | Completed | [Title display preference](#title-display-preference-m09) | 1.4.2 |
 
 #### Delivery Notes (M)
@@ -215,21 +214,21 @@ embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles | Complete | — | — | 0.2.0 |
-| P08 | Discover and select embedded subtitles and extract ASS/SSA tracks on demand | Complete | — | [Embedded selection and cached extraction](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
-| P09 | Render styled ASS/SSA with fonts and support embedded bitmap subtitles | Complete | — | [JASSUB rendering and Movi bitmap playback](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
-| P16 | Play embedded bitmap subtitles in the Web player | Complete | — | [Direct PGS and VobSub playback in MKV](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 1.6.0 |
-| P06 | Remux matching streams during manual preparation | Complete | — | Subject to profile and container constraints | 0.2.0 |
-| P07 | Prepare full-file Web-compatible copies with seeking and avoid unnecessary re-encoding | Complete | — | Completed-file preparation, reuse, cancellation, retry and recovery | 0.2.0 |
-| P12 | Hardware-accelerated transcoding | Complete | — | [Hardware encoding through custom FFmpeg profiles](#delivery-notes-p) | 0.2.0 |
-| P10 | Select audio tracks | Complete | — | — | 0.2.0 |
-| P23 | Adjust subtitle timing | Complete | — | — | 0.2.0 |
-| P24 | Change playback speed | Complete | — | — | 0.2.0 |
-| P25 | Use playback keyboard shortcuts | Complete | — | — | 0.2.0 |
-| P27 | Improve prepared-media file management | Complete | — | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | 1.5.0 |
-| P11 | Next-episode navigation and automatic continuation | Complete | — | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
-| P13 | Chapter navigation | Complete | — | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
-| P28 | Validate Movi Player for broader browser container and codec playback | Complete | — | [Integration and recorded smoke validation](development/movi.md#recorded-smoke-validation) | 1.6.0 |
+| P03 | Select or disable external VTT/SRT/ASS/SSA subtitles | Complete | Completed | — | 0.2.0 |
+| P08 | Discover and select embedded subtitles and extract ASS/SSA tracks on demand | Complete | Completed | [Embedded selection and cached extraction](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
+| P09 | Render styled ASS/SSA with fonts and support embedded bitmap subtitles | Complete | Completed | [JASSUB rendering and Movi bitmap playback](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
+| P16 | Play embedded bitmap subtitles in the Web player | Complete | Completed | [Direct PGS and VobSub playback in MKV](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 1.6.0 |
+| P06 | Remux matching streams during manual preparation | Complete | Completed | Subject to profile and container constraints | 0.2.0 |
+| P07 | Prepare full-file Web-compatible copies with seeking and avoid unnecessary re-encoding | Complete | Completed | Completed-file preparation, reuse, cancellation, retry and recovery | 0.2.0 |
+| P12 | Hardware-accelerated transcoding | Complete | Completed | [Hardware encoding through custom FFmpeg profiles](#delivery-notes-p) | 0.2.0 |
+| P10 | Select audio tracks | Complete | Completed | — | 0.2.0 |
+| P23 | Adjust subtitle timing | Complete | Completed | — | 0.2.0 |
+| P24 | Change playback speed | Complete | Completed | — | 0.2.0 |
+| P25 | Use playback keyboard shortcuts | Complete | Completed | — | 0.2.0 |
+| P27 | Improve prepared-media file management | Complete | Completed | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | 1.5.0 |
+| P11 | Next-episode navigation and automatic continuation | Complete | Completed | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
+| P13 | Chapter navigation | Complete | Completed | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
+| P28 | Validate Movi Player for broader browser container and codec playback | Complete | Completed | [Integration and recorded smoke validation](development/movi.md#recorded-smoke-validation) | 1.6.0 |
 
 #### Delivery Notes (P)
 
@@ -284,8 +283,8 @@ and a retry action until dismissed. Filesystem deletion failures preserve metada
 so cleanup can be retried. Listing never probes media or invalidates copies; playback
 continues to validate source identity and output through the existing access path.
 
-The visible inventory refreshes periodically and after cleanup. Valid copies are
-not evicted when the budget is lowered.
+The visible inventory refreshes periodically and after cleanup. It shows prepared
+copy usage and available disk space. Preparation reserves 1 GiB of free disk space.
 Untracked disk files, temporary processing output and task-history management are
 outside this inventory.
 
@@ -316,7 +315,7 @@ Metadata supports AniList and Bangumi. Tracking supports one AniList account, wi
 AniList authoritative for viewing state and cumulative episode progress. Basic
 metadata lookup and identification do not require personal tracker authorization.
 Additional trackers, simultaneous accounts and cross-source episode mappings remain
-Later/Unassigned. Associating metadata works does not enable Bangumi Tracking or
+future work. Associating metadata works does not enable Bangumi Tracking or
 arbitrary episode-number conversion. Internal provider boundaries belong in
 [Architecture](development/architecture.md#source-organization-and-dependency-boundaries).
 
@@ -324,18 +323,19 @@ arbitrary episode-number conversion. Internal provider boundaries belong in
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| W01 | Save playback position and duration and resume playback | Complete | — | — | 0.2.0 |
-| W02 | History page with recent viewing records and resume/replay | Complete | — | History covers continue watching | 0.2.0 |
-| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Complete | — | [Completion detection and manual progress corrections](#delivery-notes-w) | 0.4.0 |
-| W04 | Display and update AniList tracking statuses | Complete | — | Remote display/filters and manual status updates | 0.4.0 |
-| W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Complete | — | Detail indicators/counts and Library available-unwatched counts | 0.4.0 |
-| W08 | Treat rewatching as active viewing across Library and Watching automation | Complete | — | [Shared active-viewing behavior; distinct Rewatching status](#delivery-notes-w) | 1.3.1 |
+| W01 | Save playback position and duration and resume playback | Complete | Completed | — | 0.2.0 |
+| W02 | History page with recent viewing records and resume/replay | Complete | Completed | History covers continue watching | 0.2.0 |
+| W03 | Detect episode completion and submit progress updates or manual corrections to AniList | Complete | Completed | [Completion detection and manual progress corrections](#delivery-notes-w) | 0.4.0 |
+| W04 | Display and update AniList tracking statuses | Complete | Completed | Remote display/filters and manual status updates | 0.4.0 |
+| W05 | Show watched counts and available unwatched episodes from AniList progress, alongside local playback history | Complete | Completed | Detail indicators/counts and Library available-unwatched counts | 0.4.0 |
+| W08 | Treat rewatching as active viewing across Library and Watching automation | Complete | Completed | [Shared active-viewing behavior; distinct Rewatching status](#delivery-notes-w) | 1.3.1 |
+| W12 | Handle duplicate, out-of-order, or concurrent playback progress updates | Complete | Completed | [Session and sequence protection](#delivery-notes-w) | 0.2.0 |
 
 #### Delivery Notes (W)
 
 - **W03:** Unified detail/player commands and 90-percent/natural-end completion with 30-second normal-play minimum.
 - **W06:** **Delivered:** Server-backed playback history and progress shared across Web devices. **Remaining:** Native client integration. **Release record:** 0.2.0 (Web playback history and progress; partial).
-- **W12:** **Delivered:** Duplicate detection, sequence ordering and newer-session precedence. **Remaining:** Broader cross-client and delayed-update handling. **Release record:** 0.2.0 (Web session protection; partial).
+- **W12:** Server-side session and sequence checks detect duplicate updates, reject stale or out-of-order updates, and give newer sessions precedence. Clients must use the playback session and progress protocol.
 - **W08:** Distinct tracking status with shared active-viewing behavior; see requirements below.
 
 #### Rewatching as Active Viewing (W08)
@@ -382,17 +382,17 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| S01 | Enable or pause RSS discovery from an anime's own page | Complete | — | Download submission separate | 1.0.0 |
-| S02 | Set and preserve a subscription starting episode and backlog scope | Complete | — | [Fixed starting scope and activation preview](#delivery-notes-s) | 1.0.0 |
-| S03 | Configure RSS and discover releases periodically | Complete | — | [Per-anime RSS and configurable recurring discovery](#delivery-notes-s) | 1.0.0 |
-| S04 | Match releases to titles and episodes and explain uncertain matches | Complete | — | Uncertain releases are automatically skipped without review | 1.0.0 |
-| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Complete | — | [Selection profiles for RSS, search and Watching](#delivery-notes-s) | 1.0.0 |
-| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Complete | — | [Exclude duplicate releases, local files and active downloads](#delivery-notes-s) | 1.0.0 |
-| S07 | Explain decisions and automatically choose one release per episode | Complete | — | [Automatic release selection with decision explanations](#delivery-notes-s) | 1.0.0 |
-| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Complete | — | [Group-managed automation; manual work stays independent](#delivery-notes-s) | 1.0.0 |
-| S10 | Automatically subscribe to anime in AniList Watching | Complete | — | [Opt-in Watching automation with explicit activation scope](#delivery-notes-s) | 1.0.0 |
-| S11 | Find a suitable release source without entering an RSS URL for each anime | Complete | — | [Configured-site discovery with pinned sources](#delivery-notes-s) | 1.0.0 |
-| S12 | Keep manual and automatic subscription management independent | Complete | — | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
+| S01 | Enable or pause RSS discovery from an anime's own page | Complete | Completed | Download submission separate | 1.0.0 |
+| S02 | Set and preserve a subscription starting episode and backlog scope | Complete | Completed | [Fixed starting scope and activation preview](#delivery-notes-s) | 1.0.0 |
+| S03 | Configure RSS and discover releases periodically | Complete | Completed | [Per-anime RSS and configurable recurring discovery](#delivery-notes-s) | 1.0.0 |
+| S04 | Match releases to titles and episodes and explain uncertain matches | Complete | Completed | Uncertain releases are automatically skipped without review | 1.0.0 |
+| S05 | Filter by subtitle language, release group, resolution, codec, and keywords | Complete | Completed | [Selection profiles for RSS, search and Watching](#delivery-notes-s) | 1.0.0 |
+| S06 | Deduplicate and exclude existing files, active downloads, and unwanted episodes | Complete | Completed | [Exclude duplicate releases, local files and active downloads](#delivery-notes-s) | 1.0.0 |
+| S07 | Explain decisions and automatically choose one release per episode | Complete | Completed | [Automatic release selection with decision explanations](#delivery-notes-s) | 1.0.0 |
+| S08 | Coordinate tracking-status changes with subscriptions and explain their effect on existing tasks | Complete | Completed | [Group-managed automation; manual work stays independent](#delivery-notes-s) | 1.0.0 |
+| S10 | Automatically subscribe to anime in AniList Watching | Complete | Completed | [Opt-in Watching automation with explicit activation scope](#delivery-notes-s) | 1.0.0 |
+| S11 | Find a suitable release source without entering an RSS URL for each anime | Complete | Completed | [Configured-site discovery with pinned sources](#delivery-notes-s) | 1.0.0 |
+| S12 | Keep manual and automatic subscription management independent | Complete | Completed | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
 | WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | [H.264/VP9 preferred with fallback](#delivery-notes-s) | 1.4.1 |
 | WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | 1.4.2 |
 | WI14 | Improve Chinese resource searches using available Chinese titles | Complete | Completed | [Chinese search titles and merged names](#chinese-search-titles-and-merged-names-wi14) | 1.4.2 |
@@ -563,15 +563,15 @@ Full season-pack ingestion is not currently supported.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Complete | — | [Private client settings and validated path mapping](#delivery-notes-d) | 1.0.0 |
-| D02 | Submit releases, persist task associations, and prevent duplicate submissions | Complete | — | [Durable requests, deduplication and submission recovery](#delivery-notes-d) | 1.0.0 |
-| D03 | Display acquisition state, progress and errors | Complete | — | [Detail Activity; transfer details in qBittorrent WebUI](#delivery-notes-d) | 1.0.0 |
-| D04 | Manage downloads and recover acquisitions | Complete | — | [WebUI transfer controls; Anishelf acquisition recovery](#delivery-notes-d) | 1.0.0 |
-| D05 | Check completed files, scan them, and associate them with episodes | Complete | — | [File verification, association/Review and import retry](#delivery-notes-d) | 1.0.0 |
-| D06 | Recover from disconnections, externally removed tasks, and server restarts | Complete | — | [Restart reconciliation and external-removal suppression](#delivery-notes-d) | 1.0.0 |
-| D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Complete | — | [Separate WebUI task/data deletion and Catalog actions](#delivery-notes-d) | 1.0.0 |
-| D09 | Download an individual episode without creating a subscription | Complete | — | [Single-episode automatic acquisition](#delivery-notes-d) | 1.4.0 |
-| D10 | Obtain and display download progress from the download client | Complete | — | [Compact episode progress and scoped task details](#delivery-notes-d) | 1.4.0 |
+| D01 | Connect to qBittorrent and validate configuration and download-path mappings | Complete | Completed | [Private client settings and validated path mapping](#delivery-notes-d) | 1.0.0 |
+| D02 | Submit releases, persist task associations, and prevent duplicate submissions | Complete | Completed | [Durable requests, deduplication and submission recovery](#delivery-notes-d) | 1.0.0 |
+| D03 | Display acquisition state, progress and errors | Complete | Completed | [Detail Activity; transfer details in qBittorrent WebUI](#delivery-notes-d) | 1.0.0 |
+| D04 | Manage downloads and recover acquisitions | Complete | Completed | [WebUI transfer controls; Anishelf acquisition recovery](#delivery-notes-d) | 1.0.0 |
+| D05 | Check completed files, scan them, and associate them with episodes | Complete | Completed | [File verification, association/Review and import retry](#delivery-notes-d) | 1.0.0 |
+| D06 | Recover from disconnections, externally removed tasks, and server restarts | Complete | Completed | [Restart reconciliation and external-removal suppression](#delivery-notes-d) | 1.0.0 |
+| D07 | Distinguish task cancellation, downloaded-data deletion, and library-record removal | Complete | Completed | [Separate WebUI task/data deletion and Catalog actions](#delivery-notes-d) | 1.0.0 |
+| D09 | Download an individual episode without creating a subscription | Complete | Completed | [Single-episode automatic acquisition](#delivery-notes-d) | 1.4.0 |
+| D10 | Obtain and display download progress from the download client | Complete | Completed | [Compact episode progress and scoped task details](#delivery-notes-d) | 1.4.0 |
 | D14 | Reuse verified acquisition targets during ingestion | Complete | Completed | [Accepted download targets](#accepted-download-targets-d14) | 1.6.1 |
 
 #### Delivery Notes (D)
@@ -649,8 +649,8 @@ pruned while Catalog retains its confirmed decisions. **Release record:** 1.6.1.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| C01 | Generate a transferable original-media URL or single-file M3U playlist for manual opening in an external player | Complete | — | [—](#delivery-notes-c) | 0.2.0 |
-| C02 | Invoke platform-compatible external players through browser protocol links; manage browser-local custom URL templates in Settings | Complete | — | — | 0.2.1 |
+| C01 | Generate a transferable original-media URL or single-file M3U playlist for manual opening in an external player | Complete | Completed | [—](#delivery-notes-c) | 0.2.0 |
+| C02 | Invoke platform-compatible external players through browser protocol links; manage browser-local custom URL templates in Settings | Complete | Completed | — | 0.2.1 |
 
 #### Delivery Notes (C)
 
@@ -675,11 +675,11 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Complete | — | [Account confirmation, private credentials and reconnection](#delivery-notes-t) | 0.4.0 |
-| T02 | Read, cache and refresh the connected account's AniList lists and viewing state | Complete | — | [Account-scoped snapshots and unified Library state](#delivery-notes-t) | 0.4.0 |
-| T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Complete | — | Manual updates and mapped automatic episode completion | 0.4.0 |
-| T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Complete | — | Manual and playback updates retained across failures and restart | 0.4.0 |
-| T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Complete | — | [Conflict checks; upstream read/write race remains](#delivery-notes-t) | 0.4.0 |
+| T01 | Authorize AniList, display the connected account, check connectivity, and disconnect | Complete | Completed | [Account confirmation, private credentials and reconnection](#delivery-notes-t) | 0.4.0 |
+| T02 | Read, cache and refresh the connected account's AniList lists and viewing state | Complete | Completed | [Account-scoped snapshots and unified Library state](#delivery-notes-t) | 0.4.0 |
+| T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Complete | Completed | Manual updates and mapped automatic episode completion | 0.4.0 |
+| T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Complete | Completed | Manual and playback updates retained across failures and restart | 0.4.0 |
+| T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Complete | Completed | [Conflict checks; upstream read/write race remains](#delivery-notes-t) | 0.4.0 |
 | WI01 | Review tracking-service completion error feedback | Complete | Completed | Tracking completion errors are displayed with retry controls. | 1.5.1 |
 
 #### Delivery Notes (T)
@@ -698,17 +698,17 @@ AniList is the viewing-state authority. The delivered scope includes account con
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| O04 | Unified settings for directories and integrations | Complete | — | [Shared Settings for resources, playback and integrations](#delivery-notes-o) | 1.0.3 |
-| O07 | LAN access, single-user authentication, and credential protection | Complete | — | [Password access, protected sessions and media links](#single-user-authentication-o07) | 0.3.3 |
-| O08 | In-app completion and failure feedback | Complete | — | Scan result Toasts and preparation results in the floating task monitor | 0.2.0 |
-| O11 | Log rotation and retention | Complete | — | Size/time rotation and archive retention; live file reopening excluded | 0.2.6 |
-| O12 | Configure diagnostic log output destinations | Complete | — | [stdout, file or both; automatic recovery excluded](#delivery-notes-o) | 0.2.6 |
-| O13 | Write diagnostic logs and close output on shutdown | Complete | — | [Diagnostic output closed on normal shutdown](#delivery-notes-o) | 0.2.6 |
-| O14 | Interface localization and language preferences | Complete | — | [English/Chinese UI with browser-local language preference](#delivery-notes-o) | 0.2.0 |
-| O15 | Keep displayed server data responsive and consistent | Complete | — | — | 0.2.0 |
-| O17 | Unified configuration | Complete | — | Consistent defaults and validated user overrides; built-in cache budget | 0.2.0 |
-| O18 | User-editable prepared-media cache budget | Complete | — | Settings control, validation and persisted disk-space limit | 0.2.6 |
-| O21 | Remote deployment without a repository checkout | Complete | — | [Flag-driven Docker/Podman deployment without checkout](#delivery-notes-o) | 1.0.0 |
+| O04 | Unified settings for directories and integrations | Complete | Completed | [Shared Settings for resources, playback and integrations](#delivery-notes-o) | 1.0.3 |
+| O07 | LAN access, single-user authentication, and credential protection | Complete | Completed | [Password access, protected sessions and media links](#single-user-authentication-o07) | 0.3.3 |
+| O08 | In-app completion and failure feedback | Complete | Completed | Scan result Toasts and preparation results in the floating task monitor | 0.2.0 |
+| O11 | Log rotation and retention | Complete | Completed | Size/time rotation and archive retention; live file reopening excluded | 0.2.6 |
+| O12 | Configure diagnostic log output destinations | Complete | Completed | [stdout, file or both; automatic recovery excluded](#delivery-notes-o) | 0.2.6 |
+| O13 | Write diagnostic logs and close output on shutdown | Complete | Completed | [Diagnostic output closed on normal shutdown](#delivery-notes-o) | 0.2.6 |
+| O14 | Interface localization and language preferences | Complete | Completed | [English/Chinese UI with browser-local language preference](#delivery-notes-o) | 0.2.0 |
+| O15 | Keep displayed server data responsive and consistent | Complete | Completed | — | 0.2.0 |
+| O17 | Unified configuration | Complete | Completed | Consistent defaults and validated user overrides | 0.2.0 |
+| O18 | User-editable prepared-media cache budget | Retired | Removed | Preparation uses available disk space with a system reserve | 0.2.6 |
+| O21 | Remote deployment without a repository checkout | Complete | Completed | [Flag-driven Docker/Podman deployment without checkout](#delivery-notes-o) | 1.0.0 |
 | O22 | View the changelog within the application | Complete | Completed | [Offline bundled release notes](#in-app-changelog-o22) | 1.4.2 |
 | WI06 | Show qBittorrent and Jackett connection status below section titles | Complete | Completed | [Connection status placement](#connection-status-placement-wi06) | 1.4.2 |
 
@@ -730,7 +730,6 @@ the web build and available offline. The existing update check discovers newer r
 #### Delivery Notes (O)
 
 - **O04:** Shared Settings sections for resource roots, playback/manual preparation, external players, acquisition services, tracking account, security and About. **Release record:** 1.0.3 (settings scope); 1.5.0 (immediate single-value saves).
-- **O05:** **Delivered:** Durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention. **Remaining:** Broader product history. **Release record:** 1.0.0 (acquisition; partial).
 - **O07:** Single-password access, persistent sign-in, protected mutations, login limits, local recovery and 24-hour file-specific media links; secure sessions through an HTTPS proxy. **Release record:** 0.3.3; 1.0.1 (secure proxy sessions).
 - **O12:** **Delivered:** stdout/file/both routing. **Excluded:** automatic log-output fallback and destination recovery after failure; these are outside the current scope, not planned remainder. **Release record:** 0.2.6; 1.0.0 (simplified).
 - **O13:** **Delivered:** diagnostic log output with normal-shutdown closure. **Excluded:** guaranteed bounded buffering and loss accounting; these are outside the current scope, not planned remainder. **Release record:** 0.2.6; 1.0.0 (simplified; partial).
@@ -744,13 +743,10 @@ Single-value settings save when changed and report success or failure through a 
 Failed drafts remain editable for correction and retry. Forms whose values must be
 saved together keep an explicit Save action. **Release record:** 1.5.0.
 
-#### User-editable Prepared-media Cache Budget (O18)
+#### Prepared Copy Storage (O18)
 
-Allow users to configure and persist a disk-space limit for generated media copies
-through Settings. Preserve the choice across upgrades and enforce it for subsequent
-preparation. Account for retained in-use copies and distinguish cache exhaustion
-from insufficient disk space. Lowering the limit must not silently delete existing
-copies; provide explicit cleanup. Preserve originals, history and settings.
+The former cache budget setting is retired. Preparation checks available disk space
+before processing and publication. Existing copies remain available for manual cleanup.
 
 #### Unified Configuration (O17)
 

@@ -12,13 +12,10 @@ import type { expectedOutputSpec } from "../../planning/public.js";
 import type { MediaExecutionRequest } from "../ports.js";
 
 export function validateExecutionRequest(request: MediaExecutionRequest) {
-	if (
-		request.maximumBytes !== undefined &&
-		(!Number.isSafeInteger(request.maximumBytes) || request.maximumBytes <= 0)
-	)
+	if (!Number.isSafeInteger(request.maximumBytes) || request.maximumBytes <= 0)
 		throw new MediaToolError(
 			"INVALID_INPUT",
-			"Invalid execution output budget.",
+			"Invalid execution output size limit.",
 		);
 	const plan = freeze(structuredClone(request.plan));
 	if (

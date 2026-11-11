@@ -14,7 +14,7 @@ Media contains `inspection`, `preparation/planning`, `preparation/execution`,
 never queries browser capabilities or decides whether a file needs preparation.
 Execution remains a private preparation collaborator. Artifacts owns publication,
 reader leases and deletion; tasks retain the source/plan provenance needed to validate
-those files. Existing queue, recovery and byte-budget safeguards are retained.
+those files. Existing queue, recovery and free-space safeguards are retained.
 
 ## Resource binding
 
@@ -83,7 +83,7 @@ no content is silently dropped or converted. Output inspection validates preserv
 before publication. Profile changes never invalidate completed bytes.
 
 Preparation retains deduplication, queue/concurrency limits, cancellation, atomic
-publication, cache budgets, reader leases and source invalidation. Startup does not
+publication, disk space checks, reader leases and source invalidation. Startup does not
 implicitly rerun interrupted commands. Automatic preparation is removed.
 
 Migration 0020 adds the persisted subtitle-preservation flag, cancels unfinished

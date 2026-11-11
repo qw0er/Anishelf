@@ -1,7 +1,6 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { Logger } from "pino";
-import { preparationConstraints } from "../../contracts/defaults.js";
 import type { MediaTools } from "../../platform/media/index.js";
 import {
 	mediaToolPolicy,
@@ -126,10 +125,6 @@ export async function createMediaModule(options: {
 	});
 	const processing = createMediaProcessingModule({
 		dataDir: configuration.deployment.dataDir,
-		maximumProcessedBytes: () =>
-			(configuration.settings.transcodeCacheBudgetGiB ??
-				preparationConstraints.defaultCacheBudgetGiB) *
-			1024 ** 3,
 		sources: library.sources,
 		inspection,
 		tools,
@@ -143,10 +138,6 @@ export async function createMediaModule(options: {
 		repository: database.preparation,
 		profiles: () => configuration.transcodeProfiles,
 		dataDir: configuration.deployment.dataDir,
-		maximumCacheBytes: () =>
-			(configuration.settings.transcodeCacheBudgetGiB ??
-				preparationConstraints.defaultCacheBudgetGiB) *
-			1024 ** 3,
 		planning,
 		processing,
 		logger,

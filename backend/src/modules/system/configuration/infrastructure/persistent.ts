@@ -11,10 +11,7 @@ import {
 } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { Check } from "typebox/value";
-import {
-	preparationConstraints,
-	rssConstraints,
-} from "../../../../contracts/defaults.js";
+import { rssConstraints } from "../../../../contracts/defaults.js";
 import { TranscodeProfileIdSchema } from "../../../../contracts/schemas/transcode-profiles.js";
 import { canonicalPath } from "../../../../platform/canonical-path.js";
 import { storageRules } from "../../../../platform/storage.js";
@@ -100,22 +97,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 			"CONFIG_INVALID",
 			"settings.json rssRefreshIntervalMinutes must be an integer between 1 and 1440.",
 		);
-	const cacheBudget = settings.transcodeCacheBudgetGiB;
-	if (
-		cacheBudget !== undefined &&
-		(typeof cacheBudget !== "number" ||
-			!Number.isSafeInteger(cacheBudget) ||
-			cacheBudget < 1 ||
-			cacheBudget > preparationConstraints.maximumCacheBudgetGiB)
-	)
-		throw new DomainError(
-			"CONFIG_INVALID",
-			"settings.json transcodeCacheBudgetGiB must be a positive integer within the safe byte budget.",
-		);
-	const cache =
-		cacheBudget === undefined
-			? {}
-			: { transcodeCacheBudgetGiB: cacheBudget as number };
 	const acquisitionId = settings.defaultAcquisitionProfileId;
 	if (
 		acquisitionId !== undefined &&
@@ -187,7 +168,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 					),
 				}),
 		...profile,
-		...cache,
 	};
 }
 
@@ -248,7 +228,11 @@ async function loadPersistentSettings(
 	}
 	const settings = parsePersistentSettings(source);
 	await validateResourceDirectories(dataDir, settings.resourceRoots);
-	if (Object.hasOwn(JSON.parse(source), "scanIntervalMinutes"))
+	const stored = JSON.parse(source);
+	if (
+		Object.hasOwn(stored, "scanIntervalMinutes") ||
+		Object.hasOwn(stored, "transcodeCacheBudgetGiB")
+	)
 		await writePersistentSettings(dataDir, settings);
 	return settings;
 }

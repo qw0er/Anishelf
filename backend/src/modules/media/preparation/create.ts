@@ -30,7 +30,6 @@ export function createPreparationApplication(options: {
 	logger: Logger;
 	probe: (path: string) => Promise<MediaInfo>;
 	policy?: DeepReadonly<PreparationPolicy>;
-	maximumCacheBytes?: () => number;
 }): PreparationApplication {
 	const policy = freeze(structuredClone(options.policy ?? preparationPolicy));
 	validatePreparationPolicy(policy);
@@ -44,7 +43,6 @@ export function createPreparationApplication(options: {
 			policy,
 			options.logger,
 			options.probe,
-			options.maximumCacheBytes,
 		);
 
 		const artifacts = createArtifacts(context);

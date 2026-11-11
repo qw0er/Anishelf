@@ -71,7 +71,7 @@ beforeEach(async () => {
 			count: 3,
 			copyBytes: 3000,
 			retainedBytes: 4000,
-			budgetBytes: 10000,
+			availableBytes: 10000,
 		},
 	};
 	vi.spyOn(api, "getPreparedMedia").mockImplementation(async () =>
@@ -107,8 +107,10 @@ function show(path = "/prepared-media") {
 test("lists copy metadata and usage, disables unverified playback and busy deletion, and links originals", async () => {
 	show();
 	await screen.findByText("First.mkv");
-	expect(screen.getByText("3 copies · 3 KB / 10 KB budget")).toBeTruthy();
-	expect(screen.getByText(/Total budget usage: 4 KB/)).toBeTruthy();
+	expect(
+		screen.getByText("3 copies · 3 KB used · 10 KB free on disk"),
+	).toBeTruthy();
+	expect(screen.getByText(/Total prepared copy storage: 4 KB/)).toBeTruthy();
 	const first = screen.getByText("First.mkv").closest("li");
 	if (!first) throw new Error("Missing row");
 	expect(

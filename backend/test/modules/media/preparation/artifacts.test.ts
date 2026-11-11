@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { expect, test, vi } from "vitest";
@@ -52,47 +52,35 @@ test("pins borrowed artifacts and deleting cache preserves original media and du
 	expect((await completed(f, task.id)).status).toBe("ready");
 });
 
-test.each([
-	[10, undefined, "cache-full"],
-	[undefined, Number.MAX_SAFE_INTEGER, "storage-full"],
-] as const)(
-	"storage limits fail safely (%s, %s)",
-	async (maximumCacheBytes, minimumFreeBytes, reason) => {
-		const f = await fixture({
-			...(maximumCacheBytes === undefined ? {} : { maximumCacheBytes }),
-			...(minimumFreeBytes === undefined ? {} : { minimumFreeBytes }),
-		});
-		const task = await completed(
-			f,
-			await taskId(f.preparation.create(await f.input())),
-		);
-		expect(task.status).toBe("failed");
-		expect(task.failureReason).toBe(reason);
-		expect(task.resource).toBeNull();
-		expect(f.database.preparation.artifacts()).toHaveLength(0);
-	},
-);
-
-test("invalidated borrowed bytes still count against the cache budget", async () => {
-	const f = await fixture({ maximumCacheBytes: 20 });
-	const first = await completed(
+test("insufficient disk space prevents starting preparation", async () => {
+	const f = await fixture({ minimumFreeBytes: Number.MAX_SAFE_INTEGER });
+	const task = await completed(
 		f,
 		await taskId(f.preparation.create(await f.input())),
 	);
-	const borrowed = await f.preparation.openArtifact(required(first.artifactId));
-	await writeFile(f.sourcePath, "replaced source");
-	expect((await f.preparation.get(first.id)).failureReason).toBe(
-		"source-changed",
+	expect(task.status).toBe("failed");
+	expect(task.failureReason).toBe("storage-full");
+	expect(task.resource).toBeNull();
+	expect(f.processing.start).not.toHaveBeenCalled();
+	expect(f.database.preparation.artifacts()).toHaveLength(0);
+});
+
+test("preparation uses disk space and checks it again before publishing", async () => {
+	const f = await fixture({ minimumFreeBytes: 100 });
+	const freeSpace = vi
+		.spyOn(PreparedMediaFiles.prototype, "availableBytes")
+		.mockResolvedValueOnce(80 * 1024 ** 3 + 100)
+		.mockResolvedValueOnce(99);
+	const task = await completed(
+		f,
+		await taskId(f.preparation.create(await f.input())),
 	);
-	const secondId = await taskId(f.preparation.create(await f.input()));
-	expect((await completed(f, secondId)).failureReason).toBe("cache-full");
-	expect(vi.mocked(f.processing.start).mock.calls[1]?.[0].maximumBytes).toBe(
-		10,
+	expect(f.processing.start).toHaveBeenCalledWith(
+		expect.objectContaining({ maximumBytes: 80 * 1024 ** 3 }),
 	);
-	await borrowed.release();
-	const { fileId: _fileId, ...retry } = await f.input();
-	await f.preparation.retry(secondId, retry);
-	expect((await completed(f, secondId)).status).toBe("ready");
+	expect(task.failureReason).toBe("storage-full");
+	expect(f.database.preparation.artifacts()).toHaveLength(0);
+	freeSpace.mockRestore();
 });
 
 test("invalidated borrowers prevent replacing the same artifact until all handles release", async () => {
@@ -121,20 +109,6 @@ test("invalidated borrowers prevent replacing the same artifact until all handle
 	await two.release();
 	await f.preparation.retry(ready.id, input);
 	expect((await completed(f, ready.id)).status).toBe("ready");
-});
-
-test("new preparation attempts read the updated cache budget", async () => {
-	let budget = 10;
-	const f = await fixture({ cacheBudget: () => budget });
-	const id = await taskId(f.preparation.create(await f.input()));
-	expect((await completed(f, id)).failureReason).toBe("cache-full");
-	budget = 100;
-	const { fileId: _fileId, ...retry } = await f.input();
-	await f.preparation.retry(id, retry);
-	expect((await completed(f, id)).status).toBe("ready");
-	expect(vi.mocked(f.processing.start).mock.calls[1]?.[0].maximumBytes).toBe(
-		100,
-	);
 });
 
 test("published output inspection survives restart and existing cache entries are inspected once", async () => {

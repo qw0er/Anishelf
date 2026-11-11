@@ -76,7 +76,7 @@ export interface MediaProcessingOptions {
 	/** An empty selection explicitly produces video-only output. */
 	audioStreamIndices: readonly number[];
 	signal?: AbortSignal;
-	/** Optional tighter bound for a caller's remaining storage budget. */
+	/** Maximum bytes the execution may write to its output file. */
 	maximumBytes: number;
 	timeoutMs: number;
 }

@@ -70,7 +70,6 @@
 			"PLAYBACK_UNAVAILABLE": "播放进度不可用，您可以继续观看并稍后重试。",
 			"PREPARATION_UNAVAILABLE": "服务器上的媒体准备功能不可用。",
 			"PREPARATION_BUSY": "准备队列已满或准备好的副本正在使用中，请稍后重试。",
-			"PREPARATION_CACHE_FULL": "媒体准备缓存已满，请删除一个副本后重试。",
 			"PREPARATION_STORAGE_FULL": "磁盘空间不足，无法准备媒体。",
 			"PLAYBACK_PERSISTENCE_FAILED": "无法加载或保存播放进度，请重试。",
 			"SUBTITLE_TOO_LARGE": "字幕超过 {{maximumMiB}} MiB 的限制。",
@@ -143,11 +142,6 @@
 		"save": "保存目录",
 		"saved": "设置已保存。",
 		"waitForScan": "请等待扫描完成后再修改目录。",
-		"transcodeCacheBudget": "转码缓存预算（GiB）",
-		"transcodeCacheBudgetHelp": "默认值：{{defaultGiB}} GiB。适用于新任务；降低预算不会删除已有副本。",
-		"invalidCacheBudget": "请输入正整数作为转码缓存预算。",
-		"cacheSaved": "转码缓存预算已保存。",
-		"cacheSaveFailed": "无法保存转码缓存预算。",
 		"pathsHelp": "使用互不重叠的服务器绝对路径。添加目录后保存即可开始扫描。移除所有目录将返回初始设置。",
 		"newPathLabel": "新资源目录路径",
 		"addPath": "添加目录",
@@ -164,8 +158,7 @@
 			"account": "账户",
 			"about": "关于"
 		},
-		"pathHelpLabel": "目录规则",
-		"cacheHelpLabel": "缓存预算帮助"
+		"pathHelpLabel": "目录规则"
 	},
 	"actions": {
 		"details": "详细信息",
@@ -1490,8 +1483,8 @@
 	"preparedMedia": {
 		"title": "转码副本",
 		"originals": "原始文件",
-		"usage": "{{count}} 个副本 · {{used}} / {{budget}} 预算",
-		"retained": "预算总占用：{{size}}，包括其他保留副本及仍在使用中的文件。",
+		"usage": "{{count}} 个副本 · 已用 {{used}} · 磁盘可用 {{available}}",
+		"retained": "准备副本总占用：{{size}}，包括其他保留副本及仍在使用中的文件。",
 		"search": "搜索文件名或路径",
 		"status": "可用状态",
 		"all": "全部状态",

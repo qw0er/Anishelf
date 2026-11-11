@@ -3,7 +3,6 @@ export interface PersistentSettings {
 	resourceRoots: string[];
 	titleDisplayPreference?: "chinese" | "native" | "english" | "romaji";
 	defaultMetadataProvider?: "anilist" | "bangumi";
-	transcodeCacheBudgetGiB?: number;
 	defaultTranscodeProfileId?: string;
 	defaultAcquisitionProfileId?: string;
 	qbittorrentWebUiUrl?: string | null;

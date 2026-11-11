@@ -154,7 +154,7 @@ and chapters. Their encoding parameters, used only when encoding is needed, are:
 | `builtin:compact` | MKV | libvpx-vp9, CRF 32, cpu-used 2, b 0, yuv420p | Opus, 128k |
 
 `defaultTranscodeProfileId` remains in `settings.json`, defaulting to
-`builtin:balanced`. Cache budgets remain separate from encoding profiles.
+`builtin:balanced`.
 
 ## Runtime validation and API
 

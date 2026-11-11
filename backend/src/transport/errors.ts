@@ -107,11 +107,6 @@ const domainErrors: Record<ErrorCode, { status: number; message: string }> = {
 		message:
 			"The preparation queue is full or the prepared media is in use. Retry shortly.",
 	},
-	PREPARATION_CACHE_FULL: {
-		status: 507,
-		message:
-			"The prepared media cache is full. Delete a prepared copy and retry.",
-	},
 	PREPARATION_STORAGE_FULL: {
 		status: 507,
 		message: "Insufficient disk storage for media preparation.",

@@ -26,12 +26,13 @@ import { expectMediaDuration } from "../../support/media.js";
 import { settingsStore } from "../../support/settings-store.js";
 
 const run = promisify(execFile);
+const maximumOutputBytes = 10 * 1024 * 1024;
 function options(plan: MediaProcessingPlan): MediaProcessingOptions {
 	return {
 		plan,
 		videoStreamIndex: 2,
 		audioStreamIndices: [4],
-		maximumBytes: 10 * 1024 * 1024,
+		maximumBytes: maximumOutputBytes,
 		timeoutMs: 30000,
 	};
 }
@@ -233,7 +234,10 @@ test("real two-audio FFmpeg completes all four processing branches, preserves tr
 			return {
 				kind: "processing" as const,
 				mode: planned.mode,
-				request: planned.execution,
+				request: {
+					...planned.execution,
+					maximumBytes: maximumOutputBytes,
+				},
 			};
 		}
 

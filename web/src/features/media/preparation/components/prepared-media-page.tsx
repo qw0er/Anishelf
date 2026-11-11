@@ -204,7 +204,7 @@ function PreparedMediaInventory({
 							{t("preparedMedia.usage", {
 								count: query.data.usage.count,
 								used: size(query.data.usage.copyBytes),
-								budget: size(query.data.usage.budgetBytes),
+								available: size(query.data.usage.availableBytes),
 							})}
 							{query.data.usage.retainedBytes !==
 								query.data.usage.copyBytes && (

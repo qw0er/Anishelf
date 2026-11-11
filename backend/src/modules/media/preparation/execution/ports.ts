@@ -27,7 +27,7 @@ export interface MediaExecutionAdapter {
 
 export interface MediaExecutionRequest extends MediaExecutionSpecification {
 	/** A resource owner can narrow the output budget for this execution. */
-	maximumBytes?: number;
+	maximumBytes: number;
 	signal?: AbortSignal;
 	onEvent?: (event: MediaExecutionEvent) => void;
 }

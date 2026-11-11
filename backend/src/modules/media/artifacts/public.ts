@@ -67,7 +67,7 @@ export interface PreparationArtifacts {
 	publish(
 		task: PreparationTask,
 		processed: ProcessedMedia,
-		maximumBytes: number,
+		minimumFreeBytes: number,
 		progress: MediaExecutionProgress | null,
 		signal: AbortSignal,
 	): Promise<void>;

@@ -80,7 +80,6 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 			executor: MediaExecutionAdapter;
 			dataDir: string;
 			policy?: DeepReadonly<MediaProcessingPolicy>;
-			maximumProcessedBytes?: () => number;
 			logger?: Logger;
 		},
 	) {
@@ -222,22 +221,7 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 		if (check.status !== "supported")
 			throw new MediaExecutionCapabilityError(check);
 		signal.throwIfAborted();
-		const retainedBytes = [...this.outputs.values()].reduce(
-			(total, output) => total + output.sizeBytes,
-			0,
-		);
-		const budget =
-			this.options.maximumProcessedBytes?.() ??
-			this.policy.maximumProcessedBytes;
-		const maximumBytes = Math.min(
-			budget - retainedBytes,
-			request.maximumBytes ?? budget,
-		);
-		if (maximumBytes <= 0)
-			throw new MediaToolError(
-				"TOOL_FAILED",
-				"Release existing processed media before generating more output.",
-			);
+		const { maximumBytes } = request;
 		await this.options.sources.revalidateSource(source);
 		signal.throwIfAborted();
 		const workspace = await this.files.allocate();

@@ -51,7 +51,7 @@ export const PreparedMediaListSchema = Type.Object(
 				count: NonnegativeIntegerSchema,
 				copyBytes: NonnegativeIntegerSchema,
 				retainedBytes: NonnegativeIntegerSchema,
-				budgetBytes: NonnegativeIntegerSchema,
+				availableBytes: NonnegativeIntegerSchema,
 			},
 			{ additionalProperties: false },
 		),

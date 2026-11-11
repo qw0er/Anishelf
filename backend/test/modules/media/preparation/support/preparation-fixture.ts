@@ -50,8 +50,6 @@ export function required<T>(value: T | null | undefined): T {
 export async function fixture(
 	options: {
 		beforeOutput?: (request: MediaExecutionRequest) => Promise<void>;
-		maximumCacheBytes?: number;
-		cacheBudget?: () => number;
 		minimumFreeBytes?: number;
 		maximumQueuedTasks?: number;
 	} = {},
@@ -188,13 +186,8 @@ export async function fixture(
 			profiles,
 			dataDir,
 			logger,
-			...(options.cacheBudget
-				? { maximumCacheBytes: options.cacheBudget }
-				: {}),
 			policy: {
 				...preparationPolicy,
-				maximumCacheBytes:
-					options.maximumCacheBytes ?? preparationPolicy.maximumCacheBytes,
 				minimumFreeBytes:
 					options.minimumFreeBytes ?? preparationPolicy.minimumFreeBytes,
 				maximumQueuedTasks:

@@ -78,7 +78,10 @@ test("inventory lists artifacts beyond task limits with stable paging, filtering
 	expect(searched.items.map((item) => item.filename)).toEqual([
 		"Episode 51.mkv",
 	]);
-	expect(searched.usage).toEqual(first.usage);
+	expect(searched.usage).toEqual({
+		...first.usage,
+		availableBytes: expect.any(Number),
+	});
 	expect((await inventory(f, "?sort=size")).items[0]?.sizeBytes).toBe(52);
 	expect((await inventory(f, "?search=not-found")).total).toBe(0);
 	expect((await inventory(f, "?page=999")).page).toBe(2);

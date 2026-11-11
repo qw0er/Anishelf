@@ -51,11 +51,8 @@ export const playbackSelectionConstraints = Object.freeze({
 	maximumFailedResources: 256,
 });
 
-/** Shared preparation list and persistent cache budget defaults. */
 export const preparationConstraints = Object.freeze({
 	moreBatchSize: 10,
-	defaultCacheBudgetGiB: 50,
-	maximumCacheBudgetGiB: Math.floor(Number.MAX_SAFE_INTEGER / 1024 ** 3),
 });
 
 export const subtitleFontConstraints: Readonly<{

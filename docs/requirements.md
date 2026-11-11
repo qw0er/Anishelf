@@ -19,40 +19,30 @@ Anishelf is a personal animation media library intended to connect:
 
 Its core value is better Web playback, shared client state, and coordination between tracking and automatic downloading.
 
-This document defines product goals, user-visible behavior, acceptance constraints,
-future scope, issues, improvements and work progress. Implemented capabilities are
-recorded in [Implemented requirements](implemented-requirements.md).
-Requirements describe outcomes; module
-ownership, API shapes, persistence mechanisms, libraries and algorithms belong in
+This document tracks product behavior, future work and issues. See
+[Implemented requirements](implemented-requirements.md) for completed capabilities,
+[History](history.md) for archived iterations, and the [operator guides](guide/README.md)
+for operational prerequisites. Technical design belongs in
 [Architecture](development/architecture.md), [Playback design](development/playback.md)
-and the [Design system](development/design-system.md). Operational prerequisites
-belong in the [operator guides](guide/README.md).
+and the [Design system](development/design-system.md).
 
-Implementation descriptions and release records do not make a particular mechanism
-mandatory for future changes. A design may evolve while preserving the product
-requirements. When implementation and current documents disagree, verify the intended
-behavior and update the affected documents together; do not silently treat an old
-implementation choice as a new requirement. Future features specify outcomes and
-acceptance boundaries without selecting their technical solution in advance.
-Completed requirements are recorded in [Implemented requirements](implemented-requirements.md); archived iterations and detailed designs are in [History](history.md).
-The completed anime-library, AniList accounts and automatic-acquisition iterations are archived in History.
-The current release is 1.6.1; 1.6.2 is the upcoming release. Later and Optional items remain future work.
-The retained V2 implementation status remains recorded separately in History.
+Requirements describe outcomes rather than prescribing implementation. When code and
+documentation disagree, verify the intended behavior and update the affected documents.
+The current release is 1.6.1; 1.6.2 is upcoming.
 
 ## 2. Feature Inventory and Version Tracking
 
-The inventory lists partial and not-started capabilities; fully implemented capabilities
-are in [Implemented requirements](implemented-requirements.md). It separates capability,
-delivery state, status and delivery boundary. Keep each table cell brief; put detailed behavior, acceptance constraints
-and release extensions in the corresponding notes or requirement sections.
+The inventory tracks partial and not-started capabilities. Keep table entries brief;
+record detailed behavior, acceptance criteria and delivery boundaries in the notes.
 
 - **Item** describes a feature, improvement or reported bug.
-- **Delivery** is `Not started`, `Partial` or `Complete`, measured against the current documented scope. `—` means it has not been assessed or does not apply to the item. `Complete` does not imply universal compatibility or the absence of documented limitations.
-- **Status** combines planning and work progress: `Unassigned` is recorded without a decision to schedule it; `Low priority` is deferred without an active implementation plan; `Later` is a future core candidate; `Optional` is a possible extension; `Planned` is selected but not started; `In progress` is active; `Completed` is implemented and awaiting acceptance verification; `Verified` has passed its acceptance checks. `—` means no separate status is recorded or applicable. Record blockers and reopen items when needed. Status does not by itself assign a release.
-- **Details** summarizes the delivered boundary, remaining work, reported behavior or open questions, and links to detailed notes. For partial delivery, distinguish delivered behavior from remaining work explicitly in the notes.
-- **First release** records the first project release containing any delivered part of the capability, based on the existing release records. `—` means no first release is recorded or the field does not apply; `Unreleased` retains an existing “Next release” record without assigning a release number. Later extensions and release qualifications appear in delivery notes. V1 and V2 are historical iteration names, not project versions.
-- Improvements and reported bugs are tracked in [Section 4](#4-improvements) and [Section 5](#5-bugs); feature work is recorded with its feature. `Planned` does not mean work has started.
-- A scope reduction is a requirement decision, not a delivery state. Record excluded guarantees and relevant release history in the notes instead of using `Simplified` as a status. Split remaining work into a new ID only when it needs independent planning and acceptance.
+- **Delivery** measures the documented scope: `Not started`, `Partial` or `Complete`. `—` means unassessed or inapplicable. Complete items may still have documented limitations.
+- **Status** records planning and progress: `Block` awaits a prerequisite identified in the notes; `Low priority` is deferred; `Later` is planned for future implementation; `Optional` is a possible extension; `Completed` covers both implementation and acceptance. Status does not assign a release.
+- **Details** links to notes on behavior, open questions and, for partial work, what is delivered and remains.
+- **First release** is the first release containing any part of the capability. `—` means none is recorded or applicable; `Unreleased` means not yet released. V1 and V2 are historical iteration names, not releases.
+
+Record scope exclusions and release qualifications in the notes. Split remaining work
+into a new ID when it needs independent planning and acceptance.
 
 ### 2.1 Resource Access and Library
 
@@ -156,12 +146,12 @@ Allow an administrator to limit the impact of media preparation on the server:
 - Expose configured limits and queued, running and waiting states, including why a
   task is waiting. Validate settings and retain the last valid configuration across
   invalid changes and restart.
-- Preserve manual task priority, cancellation, recovery, cache and free-space
+- Preserve manual task priority, cancellation, recovery and free-space
   protections. Applying a new limit must not corrupt active tasks or prepared files.
 
 GPU-specific limits and exact resource enforcement depend on the selected encoder
 and runtime and require separate feasibility validation. These controls extend the
-existing single-worker queue and storage budgets; they are not required for basic
+existing single-worker queue and free-space protection; they are not required for basic
 preparation.
 
 #### Configuration and Storage Boundary (V2)
@@ -171,14 +161,13 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 ### Provider integration boundary
 
 Additional trackers, simultaneous accounts and cross-source episode mappings remain
-Later/Unassigned. See the [implemented provider boundary](implemented-requirements.md#provider-integration-boundary).
+future work. See the [implemented provider boundary](implemented-requirements.md#provider-integration-boundary).
 
 ### 2.4 Viewing History and Tracking
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| W06 | Share playback history and progress across clients | Partial | Later | [Shared Web records; native client integration pending](#delivery-notes-w) | 0.2.0 |
-| W12 | Handle duplicate, out-of-order, or concurrent playback progress updates | Partial | Later | [Web session ordering protected; broader client handling pending](#delivery-notes-w) | 0.2.0 |
+| W06 | Share playback history and progress across clients | Partial | Block | [Shared Web records; native client integration blocked](#delivery-notes-w) | 0.2.0 |
 | W07 | Record separate rewatch history | Not started | Optional | — | — |
 | W09 | Rate works | Not started | Optional | — | — |
 | W10 | Add personal tags to works | Not started | Optional | — | — |
@@ -186,8 +175,7 @@ Later/Unassigned. See the [implemented provider boundary](implemented-requiremen
 
 #### Delivery Notes (W)
 
-- **W06:** **Delivered:** Server-backed playback history and progress shared across Web devices. **Remaining:** Native client integration. **Release record:** 0.2.0 (Web playback history and progress; partial).
-- **W12:** **Delivered:** Duplicate detection, sequence ordering and newer-session precedence. **Remaining:** Broader cross-client and delayed-update handling. **Release record:** 0.2.0 (Web session protection; partial).
+- **W06:** **Delivered:** Server-backed playback history and progress shared across Web devices. **Remaining:** Native client integration depends on desktop and mobile clients (C07 and C08). **Release record:** 0.2.0 (Web playback history and progress; partial).
 
 ### 2.5 Subscriptions and Resource Discovery
 
@@ -227,8 +215,8 @@ Later/Unassigned. See the [implemented provider boundary](implemented-requiremen
 | C11 | Mobile picture-in-picture playback | Not started | Optional | — | — |
 | C13 | Mobile background playback | Not started | Optional | — | — |
 | C14 | Mobile offline viewing | Not started | Optional | — | — |
-| C15 | Desktop offline caching and viewing | Not started | Unassigned | — | — |
-| C16 | Adapt Web playback fullscreen for iPhone | Not started | Unassigned | — | — |
+| C15 | Desktop offline caching and viewing | Not started | Optional | — | — |
+| C16 | Adapt Web playback fullscreen for iPhone | Not started | Optional | — | — |
 | C12 | Casting | Not started | Optional | — | — |
 
 Desktop clients should provide library management and acquisition alongside playback;
@@ -251,25 +239,44 @@ The proposed implementation and staged validation are in the
 | --- | --- | --- | --- | --- | --- |
 | T06 | Connect and synchronize multiple tracking services | Not started | Optional | — | — |
 | T07 | Synchronize ratings with tracking services | Not started | Optional | — | — |
+| T08 | Track viewing status and episode progress with a Bangumi account | Not started | Later | [Bangumi tracking](#bangumi-tracking-t08) | — |
+
+#### Bangumi Tracking (T08)
+
+Allow users to connect a Bangumi account, read its viewing status and episode
+progress, and submit manual changes and eligible playback completion updates. Report
+authorization and synchronization failures without losing pending updates. Use
+confirmed Bangumi work and episode associations; do not assume that AniList and
+Bangumi episode numbers match. Supporting Bangumi alone does not require simultaneous
+tracking-service synchronization (T06).
 
 ### 2.9 Interface, Settings, and Maintenance
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| O03 | Dashboard for continued viewing, new episodes, downloads, and exceptions | Not started | Later | — | — |
-| O05 | Task history, logs, and automation decision explanations | Partial | Later | [Acquisition activity and diagnostics; broader history pending](#delivery-notes-o) | 1.0.0 |
-| O06 | Back up and restore metadata, viewing history, and configuration | Not started | Later | — | — |
+| O03 | Dashboard for continued viewing, new episodes, downloads, and exceptions | Not started | Optional | — | — |
 | O09 | Support multiple users and permissions | Not started | Optional | — | — |
 | O19 | In-app editor for hand-written configuration files | Not started | Later | [Draft, validate and save supported custom profiles](#delivery-notes-o) | — |
-| O23 | Support multi-node deployments | Not started | Unassigned | — | — |
-| O24 | Separate cache and persistent data storage locations | Not started | Unassigned | — | — |
+| O23 | Support multi-node deployments | Not started | Optional | — | — |
+| O24 | Separate cache and persistent data storage locations | Not started | Optional | — | — |
+| O25 | Configure a total storage limit for prepared copies | Not started | Optional | [Prepared Copy Storage Limit](#prepared-copy-storage-limit-o25) | — |
 
 #### Delivery Notes (O)
 
-- **O05:** **Delivered:** Durable per-anime acquisition activity, decision reasons, safe correlated logs and terminal-detail retention. **Remaining:** Broader product history. **Release record:** 1.0.0 (acquisition; partial).
 - **O19:** Edit and validate supported custom profile files, including acquisition and transcode profiles.
 - **O24:** Allow cache and persistent application data to be stored separately so
   cache cleanup does not remove persistent data.
+
+#### Prepared Copy Storage Limit (O25)
+
+Allow an administrator to opt into a total storage limit for prepared copies.
+By default, preparation uses available disk space and the system's free-space
+reserve. When a limit is configured, show usage and the limit on the Prepared
+copies page. If a new copy would exceed the limit, explain the failure and provide
+access to manual cleanup. Preserve existing copies when the limit is lowered.
+
+See [O18](implemented-requirements.md#prepared-copy-storage-o18) for the retired
+cache budget setting.
 
 #### Configuration File Editor (O19)
 
@@ -303,7 +310,7 @@ See [implemented requirements](implemented-requirements.md#logging-maintenance-o
 ## 3. Rules for Future Features
 
 These acceptance constraints apply to relevant delivered and future capabilities.
-Unassigned features do not become dependencies of selected work.
+Optional features do not automatically become dependencies of planned work.
 
 - **Keep states separate:** tracking, subscriptions, downloads, file availability, and viewing status are independent. Deleting a watched file must not erase its history.
 - **Verify ingestion:** download completion alone does not prove that a file exists or is playable.
@@ -325,11 +332,11 @@ Details and acceptance criteria may be refined as decisions are made.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| WI03 | Optimize resource matching | — | Unassigned | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
-| WI09 | Improve automatic acquisition frequency | — | Unassigned | Review the current frequency and define the desired scheduling behavior. | — |
-| WI12 | Improve resource-search title matching and feedback | Not started | Unassigned | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
-| WI15 | Improve evidence-based decisions and their evaluation | Partial | Unassigned | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
-| WI16 | Identify media by its actual contents | Not started | Unassigned | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
+| WI03 | Optimize resource matching | — | Low priority | Improve the accuracy of matching resource-search results to the intended work and episode. | — |
+| WI09 | Improve automatic acquisition frequency | — | Low priority | Review the current frequency and define the desired scheduling behavior. | — |
+| WI12 | Improve resource-search title matching and feedback | Not started | Low priority | [Title matching and result feedback](#resource-search-improvements-wi12) | — |
+| WI15 | Improve evidence-based decisions and their evaluation | Partial | Low priority | [Evidence-based decision quality](#evidence-based-decision-quality-wi15) | — |
+| WI16 | Identify media by its actual contents | Not started | Low priority | [Media identification during scanning](#media-identification-during-scanning-wi16) | — |
 
 #### Matching Improvements from Real Failures (L16)
 
@@ -433,7 +440,7 @@ behavior, impact, reproduction conditions and verification evidence as they beco
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| B01 | An active embedded subtitle cue can be missing after resume and track selection | Partial | Later | [ASS/SSA workaround verified. Movi's built-in path remains affected.](#missing-embedded-subtitle-after-resume-b01) | — |
+| B01 | An active embedded subtitle cue can be missing after resume and track selection | Partial | Block | [ASS/SSA workaround verified. Movi's built-in path awaits an upstream fix.](#missing-embedded-subtitle-after-resume-b01) | — |
 
 ### Missing embedded subtitle after resume (B01)
 

@@ -17,7 +17,7 @@ const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
 	await Promise.all(cleanup.splice(0).map((fn) => fn()));
 });
-async function fixture(block = false, maximumProcessedBytes?: () => number) {
+async function fixture(block = false) {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-processing-app-"));
 	await writeFile(join(root, "source.mp4"), "source");
 	const index = new LibraryIndex();
@@ -98,7 +98,6 @@ async function fixture(block = false, maximumProcessedBytes?: () => number) {
 		},
 		executor: { execute: executeMedia },
 		dataDir: root,
-		...(maximumProcessedBytes ? { maximumProcessedBytes } : {}),
 	});
 	cleanup.push(async () => {
 		await application.close();
@@ -107,6 +106,7 @@ async function fixture(block = false, maximumProcessedBytes?: () => number) {
 		await rm(root, { recursive: true, force: true });
 	});
 	const request = {
+		maximumBytes: 1024,
 		fileId: file.id,
 		sourceVersion: source.identity.sourceVersion,
 		plan: {
@@ -287,9 +287,9 @@ test.each(["width", "height", "pixelFormat"] as const)(
 	},
 );
 
-test("processing honors a configured output budget above ten GiB", async () => {
+test("processing honors a disk-derived output limit above ten GiB", async () => {
 	const budget = 24 * 1024 ** 3;
-	const f = await fixture(false, () => budget);
+	const f = await fixture();
 	const processed = await f.application.start({
 		...f.request,
 		maximumBytes: budget,

@@ -17,9 +17,6 @@ export function settingsResponse(
 		...(settings.qbittorrentWebUiUrl === undefined
 			? {}
 			: { qbittorrentWebUiUrl: settings.qbittorrentWebUiUrl }),
-		...(settings.transcodeCacheBudgetGiB === undefined
-			? {}
-			: { transcodeCacheBudgetGiB: settings.transcodeCacheBudgetGiB }),
 		...(settings.defaultTranscodeProfileId === undefined
 			? {}
 			: { defaultTranscodeProfileId: settings.defaultTranscodeProfileId }),

@@ -110,6 +110,7 @@ export class PreparationQueries {
 				}),
 			),
 		);
+		const availableBytes = await context.files.availableBytes();
 		context.sources.assertAccessRevision(epoch);
 		const items = inspected.filter(
 			(item): item is PreparedMediaItem => item != null,
@@ -118,7 +119,7 @@ export class PreparationQueries {
 			count: items.length,
 			copyBytes: items.reduce((total, item) => total + item.sizeBytes, 0),
 			retainedBytes: artifacts.retainedBytes(),
-			budgetBytes: context.maximumCacheBytes(),
+			availableBytes,
 		};
 		const search = input.search?.trim().toLowerCase() ?? "";
 		const filtered = items.filter(

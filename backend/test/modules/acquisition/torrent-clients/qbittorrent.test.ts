@@ -111,9 +111,9 @@ test("Configuration validates and persists the direct browser URL", async () => 
 	expect(
 		(await save({ qbittorrentWebUiUrl: null })).json().qbittorrentWebUiUrl,
 	).toBeNull();
-	expect((await save({ transcodeCacheBudgetGiB: 12 })).json()).toMatchObject({
+	expect((await save({ rssRefreshIntervalMinutes: 12 })).json()).toMatchObject({
 		qbittorrentWebUiUrl: null,
-		transcodeCacheBudgetGiB: 12,
+		rssRefreshIntervalMinutes: 12,
 	});
 	expect(
 		(

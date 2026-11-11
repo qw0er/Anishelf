@@ -5,13 +5,9 @@ import {
 import { MediaProcessError } from "../../../../platform/media/processing-process.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PreparationFailureReason } from "../domain/model.js";
-export function preparationFailure(
-	error: unknown,
-	budgetFailure: PreparationFailureReason = "cache-full",
-): PreparationFailureReason {
-	if (error instanceof MediaOutputBudgetError) return budgetFailure;
+export function preparationFailure(error: unknown): PreparationFailureReason {
+	if (error instanceof MediaOutputBudgetError) return "storage-full";
 	if (error instanceof DomainError) {
-		if (error.code === "PREPARATION_CACHE_FULL") return "cache-full";
 		if (error.code === "PREPARATION_STORAGE_FULL") return "storage-full";
 		if (
 			[
