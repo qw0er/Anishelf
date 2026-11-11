@@ -315,7 +315,12 @@ test("WebUI settings save independently of API connection drafts", async () => {
 	fireEvent.change(screen.getByLabelText("API URL"), {
 		target: { value: "http://draft:9117/" },
 	});
-	fireEvent.click(screen.getByRole("button", { name: "WebUI settings" }));
+	const webUiSettings = screen.getByRole("button", { name: "WebUI settings" });
+	const resourceSites = screen.getByRole("region", { name: "Resource sites" });
+	expect(resourceSites.compareDocumentPosition(webUiSettings)).toBe(
+		Node.DOCUMENT_POSITION_FOLLOWING,
+	);
+	fireEvent.click(webUiSettings);
 	const managementUrl = screen.getByLabelText("Browser URL (optional)");
 	fireEvent.change(managementUrl, {
 		target: { value: "https://jackett.example.com/" },

@@ -1049,7 +1049,6 @@
 			"connecting": "正在连接…",
 			"testAndLoad": "测试连接并加载站点",
 			"loaded": "Jackett 已响应 · {{count}} 个已配置站点",
-			"noSites": "未选择站点。",
 			"moveEarlier": "将 {{name}} 前移",
 			"moveLater": "将 {{name}} 后移",
 			"removeAria": "移除 {{name}}",

@@ -1045,7 +1045,6 @@
 			"connecting": "Connecting…",
 			"testAndLoad": "Test connection and load sites",
 			"loaded": "Jackett responded · {{count}} configured sites",
-			"noSites": "No sites selected.",
 			"moveEarlier": "Move {{name}} earlier",
 			"moveLater": "Move {{name}} later",
 			"removeAria": "Remove {{name}}",

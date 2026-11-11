@@ -432,7 +432,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					}
 					label={t("acquisition.sources.connectionSettings")}
 				>
-					<Field className="flex flex-col gap-2 sm:col-span-2">
+					<Field className="flex flex-col gap-2">
 						<FieldHeading
 							id="source-api-url"
 							label={t("acquisition.sources.apiUrl")}
@@ -477,77 +477,18 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					</div>
 				</ConnectionSettings>
 			</form>
-			<Collapsible className="border-t pt-4">
-				<CollapsibleTrigger className="cursor-pointer text-sm font-medium">
-					{t("acquisition.webui.settings")}
-				</CollapsibleTrigger>
-				<CollapsibleContent keepMounted>
-					<div className="flex flex-col gap-3 pt-4">
-						<div className="flex flex-col gap-2">
-							<div className="field-heading justify-between">
-								<label className="field-label" htmlFor="source-management-url">
-									{t("acquisition.sources.managementUrl")}
-								</label>
-								<FieldHelp
-									label={
-										t("acquisition.sources.managementUrl") +
-										" · " +
-										t("actions.help")
-									}
-									help={t("acquisition.sources.managementHelp")}
-								/>
-							</div>
-							<Input
-								id="source-management-url"
-								type="url"
-								maxLength={2048}
-								placeholder="http://localhost:9117/"
-								value={managementUrl}
-								aria-invalid={!managementValid || undefined}
-								aria-describedby={
-									!managementValid ? "source-management-url-error" : undefined
-								}
-								onChange={(event) => setManagementUrl(event.target.value)}
-								onBlur={flushManagementUrl}
-							/>
-							<FieldError
-								id="source-management-url-error"
-								className="field-error"
-							>
-								{!managementValid && t("acquisition.sources.invalidUrl")}
-							</FieldError>
-						</div>
-					</div>
-				</CollapsibleContent>
-			</Collapsible>
-
-			{(settings.managementUrl ||
-				(settings.origin === "bundled" &&
-					settings.bundledSetup === "manual")) && (
+			{settings.origin === "bundled" && settings.bundledSetup === "manual" && (
 				<div className="action-row">
-					{settings.managementUrl && (
-						<ActionLink
-							icon={ExternalLink}
-							label={t("acquisition.sources.openManagement")}
-							shortLabel={t("actions.open")}
-							href={settings.managementUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-						/>
-					)}
-					{settings.origin === "bundled" &&
-						settings.bundledSetup === "manual" && (
-							<ActionButton
-								icon={RefreshCw}
-								label={t("acquisition.sources.retrySetup")}
-								shortLabel={t("actions.retry")}
-								type="button"
-								variant="outline"
-								disabled={busy || changed}
-								onClick={() => bundled.mutate(true)}
-								aria-busy={bundled.isPending}
-							/>
-						)}
+					<ActionButton
+						icon={RefreshCw}
+						label={t("acquisition.sources.retrySetup")}
+						shortLabel={t("actions.retry")}
+						type="button"
+						variant="outline"
+						disabled={busy || changed}
+						onClick={() => bundled.mutate(true)}
+						aria-busy={bundled.isPending}
+					/>
 				</div>
 			)}
 
@@ -586,7 +527,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 						/>
 					</div>
 				</div>
-				{providers.length > 0 ? (
+				{providers.length > 0 && (
 					<ul
 						aria-label={t("acquisition.sources.selectedSites")}
 						className="max-h-64 min-w-0 divide-y overflow-y-auto rounded-lg border"
@@ -672,10 +613,6 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 							</li>
 						))}
 					</ul>
-				) : (
-					<p className="text-sm text-muted-foreground">
-						{t("acquisition.sources.noSites")}
-					</p>
 				)}
 				{selectableSites.length > 0 && (
 					<Field className="flex flex-col gap-2">
@@ -845,6 +782,67 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 					{t("acquisition.sources.actionFailed")}
 				</p>
 			)}
+
+			<div className="space-y-3 border-t pt-4">
+				<Collapsible>
+					<CollapsibleTrigger className="cursor-pointer text-sm font-medium">
+						{t("acquisition.webui.settings")}
+					</CollapsibleTrigger>
+					<CollapsibleContent keepMounted>
+						<div className="flex flex-col gap-3 pt-4">
+							<div className="flex flex-col gap-2">
+								<div className="field-heading justify-between">
+									<label
+										className="field-label"
+										htmlFor="source-management-url"
+									>
+										{t("acquisition.sources.managementUrl")}
+									</label>
+									<FieldHelp
+										label={
+											t("acquisition.sources.managementUrl") +
+											" · " +
+											t("actions.help")
+										}
+										help={t("acquisition.sources.managementHelp")}
+									/>
+								</div>
+								<Input
+									id="source-management-url"
+									type="url"
+									maxLength={2048}
+									placeholder="http://localhost:9117/"
+									value={managementUrl}
+									aria-invalid={!managementValid || undefined}
+									aria-describedby={
+										!managementValid ? "source-management-url-error" : undefined
+									}
+									onChange={(event) => setManagementUrl(event.target.value)}
+									onBlur={flushManagementUrl}
+								/>
+								<FieldError
+									id="source-management-url-error"
+									className="field-error"
+								>
+									{!managementValid && t("acquisition.sources.invalidUrl")}
+								</FieldError>
+							</div>
+						</div>
+					</CollapsibleContent>
+				</Collapsible>
+				{settings.managementUrl && (
+					<div className="action-row">
+						<ActionLink
+							icon={ExternalLink}
+							label={t("acquisition.sources.openManagement")}
+							shortLabel={t("actions.open")}
+							href={settings.managementUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+						/>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
