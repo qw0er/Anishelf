@@ -239,11 +239,9 @@
 		"continuation": {
 			"label": "下一集",
 			"next": "下一集：第 {{number}} 集",
-			"automatic": "自动续播",
 			"choose": "请选择文件版本以继续播放。",
 			"loading": "正在查找下一集…",
 			"retry": "重试查找下一集",
-			"countdown_other": "将在 {{count}} 秒后继续播放…",
 			"playBlocked": "请点击播放以继续，浏览器未能自动开始播放。"
 		}
 	},
@@ -1440,12 +1438,6 @@
 			"uncomparable": "此构建无法与稳定版比较。",
 			"no-release": "尚未发布稳定版。"
 		}
-	},
-	"playbackPreferences": {
-		"title": "播放偏好",
-		"storageError": "无法在此浏览器中读取或保存播放偏好。请检查浏览器存储权限后重试。",
-		"saved": "播放偏好已保存。",
-		"scope": "适用于当前浏览器中的所有动画。"
 	},
 	"automaticPreparation": {
 		"title": "自动准备",

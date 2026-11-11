@@ -131,6 +131,7 @@ failures and works already present in the user's library or tracking list.
 | --- | --- | --- | --- | --- | --- |
 | P20 | Configure media preparation task concurrency | Partial | Optional | [Fixed single-worker queue; configurable concurrency optional](#delivery-notes-p) | 0.2.0 |
 | P21 | Limit CPU processing capacity per preparation task | Not started | Optional | — | — |
+| P29 | Automatically play the next episode after playback ends | Not started | Optional | — | — |
 
 #### Delivery Notes (P)
 

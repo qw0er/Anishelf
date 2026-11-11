@@ -16,21 +16,16 @@ import {
 	animePlayerPath,
 	libraryReturnPath,
 } from "../../../../shared/navigation.js";
-import { useAutomaticContinuation } from "../../../settings/public.js";
 import { continuationContext, continuationEpisode } from "../continuation.js";
 import type { Version } from "../detail-format.js";
 import { localWorkDetailQuery, sourceQuery } from "../queries.js";
 
-const countdownSeconds = 10;
-
 export function PlayerContinuation({
 	fileId,
 	sourceVersion,
-	ended,
 }: {
 	fileId: string;
 	sourceVersion: string;
-	ended: boolean;
 }) {
 	const scope = useQueryScope();
 	const source = useQuery(sourceQuery(fileId, scope));
@@ -90,7 +85,6 @@ export function PlayerContinuation({
 			workId={context.workId}
 			number={context.nextNumber}
 			versions={next?.versions ?? []}
-			ended={ended}
 		/>
 	);
 }
@@ -100,45 +94,27 @@ function ContinuationControls({
 	workId,
 	number,
 	versions,
-	ended,
 }: {
 	episodeId: string;
 	workId: string;
 	number: number;
 	versions: Version[];
-	ended: boolean;
 }) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [params] = useSearchParams();
 	const nextLabel = t("player.continuation.next", { number });
-	const { enabled: automatic } = useAutomaticContinuation();
-	const [endAutomatic, setEndAutomatic] = useState(automatic);
 	const [choosing, setChoosing] = useState(false);
-	const [cancelled, setCancelled] = useState(false);
-	const targetIdentity = JSON.stringify(
-		versions.map((version) => [version.fileId, version.sourceVersion]),
-	);
-	const [countdownTarget, setCountdownTarget] = useState(targetIdentity);
-	const [remaining, setRemaining] = useState(countdownSeconds);
 	const navigating = useRef(false);
 	const [only] = versions;
-	const counting =
-		ended &&
-		automatic &&
-		endAutomatic &&
-		!cancelled &&
-		versions.length === 1 &&
-		targetIdentity === countdownTarget;
 	const play = useCallback(
-		(version: Version, reason: "manual" | "automatic") => {
+		(version: Version) => {
 			if (navigating.current) return;
 			navigating.current = true;
-			setCancelled(true);
 			console.info("[playback] Next episode selected.", {
 				workId,
 				episodeId,
-				reason,
+				reason: "manual",
 			});
 			void navigate(
 				animePlayerPath(
@@ -153,58 +129,24 @@ function ContinuationControls({
 		},
 		[workId, episodeId, params, navigate],
 	);
-	useEffect(() => {
-		if (!ended) {
-			setCancelled(false);
-			setRemaining(countdownSeconds);
-			setCountdownTarget(targetIdentity);
-			setEndAutomatic(automatic);
-		} else if (!automatic || targetIdentity !== countdownTarget)
-			setCancelled(true);
-	}, [ended, automatic, targetIdentity, countdownTarget]);
-	useEffect(() => {
-		if (!counting) return;
-		const timer = window.setInterval(
-			() => setRemaining((value) => Math.max(0, value - 1)),
-			1000,
-		);
-		return () => window.clearInterval(timer);
-	}, [counting]);
-	useEffect(() => {
-		if (counting && remaining === 0 && only) play(only, "automatic");
-	}, [counting, remaining, only, play]);
 	return (
 		<section
 			aria-label={t("player.continuation.label")}
 			className="flex min-w-0 max-w-full flex-wrap items-center gap-2"
 		>
-			<Tooltip content={counting ? t("actions.cancel") : nextLabel}>
+			<Tooltip content={nextLabel}>
 				<Button
 					variant={versions.length ? "default" : "outline"}
 					className="player-action"
-					aria-label={
-						counting
-							? `${t("player.continuation.countdown", { count: remaining })} ${t("actions.cancel")}`
-							: nextLabel
-					}
+					aria-label={nextLabel}
 					disabled={versions.length === 0}
 					onClick={() => {
-						if (counting) {
-							setCancelled(true);
-							console.info("[playback] Automatic continuation cancelled.");
-						} else if (versions.length === 1 && only) play(only, "manual");
-						else {
-							setCancelled(true);
-							setChoosing(true);
-						}
+						if (versions.length === 1 && only) play(only);
+						else setChoosing(true);
 					}}
 				>
 					<SkipForward className="size-4" aria-hidden="true" />
-					<span className={counting ? undefined : "player-action-label"}>
-						{counting
-							? `${t("player.continuation.countdown", { count: remaining })} ${t("actions.cancel")}`
-							: nextLabel}
-					</span>
+					<span className="player-action-label">{nextLabel}</span>
 				</Button>
 			</Tooltip>
 
@@ -221,9 +163,7 @@ function ContinuationControls({
 								<span className="min-w-0 flex-1 wrap-anywhere">
 									{version.relativePath}
 								</span>
-								<Button onClick={() => play(version, "manual")}>
-									{t("anime.play")}
-								</Button>
+								<Button onClick={() => play(version)}>{t("anime.play")}</Button>
 							</li>
 						))}
 					</ul>

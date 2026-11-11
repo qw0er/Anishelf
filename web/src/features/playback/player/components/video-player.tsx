@@ -21,7 +21,6 @@ export default function VideoPlayer({
 	sourceVersion,
 	playbackReady = true,
 	onMedia,
-	onEndedChange,
 	onPlaybackFailure,
 	onPlaybackRecovered,
 	onAudioChange,
@@ -33,7 +32,6 @@ export default function VideoPlayer({
 	sourceVersion: string;
 	playbackReady?: boolean;
 	onMedia?(clock: PlaybackClock | null, timeline: MediaTimeline): void;
-	onEndedChange?(ended: boolean): void;
 	onPlaybackFailure?(failure: PlaybackFailure): void;
 	onPlaybackRecovered?(): void;
 	onAudioChange?(index: number): void;
@@ -50,7 +48,6 @@ export default function VideoPlayer({
 	current.current = { active, playbackReady, displayTitle, t };
 	const callbacks = useRef({
 		onMedia,
-		onEndedChange,
 		onPlaybackFailure,
 		onPlaybackRecovered,
 		onAudioChange,
@@ -58,7 +55,6 @@ export default function VideoPlayer({
 	});
 	callbacks.current = {
 		onMedia,
-		onEndedChange,
 		onPlaybackFailure,
 		onPlaybackRecovered,
 		onAudioChange,
@@ -229,8 +225,6 @@ export default function VideoPlayer({
 			)
 				callbacks.current.onAudioChange?.(track.sourceStreamIndex);
 		};
-		const ended = () => callbacks.current.onEndedChange?.(true);
-		const play = () => callbacks.current.onEndedChange?.(false);
 		void (async () => {
 			const module = await loadPlayer();
 			if (abort.signal.aborted) return;
@@ -265,8 +259,6 @@ export default function VideoPlayer({
 			player.addEventListener("statechange", stateChanged);
 			player.addEventListener("error", fail);
 			player.addEventListener("errordisplay", errorDisplay);
-			player.addEventListener("ended", ended);
-			player.addEventListener("play", play);
 			player.addEventListener("audiotrackchange", audioChanged);
 			player.append(...subtitles.tracks);
 			player.setAttribute(
@@ -285,8 +277,6 @@ export default function VideoPlayer({
 				player.removeEventListener("statechange", stateChanged);
 				player.removeEventListener("error", fail);
 				player.removeEventListener("errordisplay", errorDisplay);
-				player.removeEventListener("ended", ended);
-				player.removeEventListener("play", play);
 				player.removeEventListener("audiotrackchange", audioChanged);
 				player.src = null;
 				player.remove();

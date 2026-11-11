@@ -60,10 +60,6 @@ export default function FilePlayer({
 		(!source || displayTitle.sourceVersion === source.sourceVersion)
 			? displayTitle.title
 			: data.file.name;
-	const [endedAsset, setEndedAsset] = useState<string | null>(null);
-	const activeKey = active
-		? `${active.asset.id}:${active.asset.revision}`
-		: null;
 	const blocked = !selection.loading && !active;
 	const [optionsOpen, setOptionsOpen] = useState(false);
 	const preparationAction = slots?.renderPreparation({
@@ -151,7 +147,6 @@ export default function FilePlayer({
 							active={active}
 							sourceVersion={source.sourceVersion}
 							playbackReady={playback.restored}
-							onEndedChange={(ended) => setEndedAsset(ended ? activeKey : null)}
 							onMedia={playback.attach}
 							onPlaybackFailure={selection.failed}
 							onPlaybackRecovered={selection.recovered}
@@ -173,7 +168,6 @@ export default function FilePlayer({
 						slots?.renderContinuation?.({
 							fileId: data.file.id,
 							sourceVersion: source.sourceVersion,
-							ended: Boolean(activeKey && endedAsset === activeKey),
 						})}
 					<PlaybackActionsMenu
 						key={`actions:${data.file.id}`}
@@ -215,7 +209,6 @@ export default function FilePlayer({
 							onSelect={selectAsset}
 						/>
 					)}
-					{slots?.renderOptions?.()}
 					<div className="action-row">{!blocked && preparationAction}</div>
 				</DialogContent>
 			</Dialog>

@@ -13,7 +13,6 @@ import {
 	AboutSettings,
 	ExternalPlayerSettings,
 	MetadataSourceSettings,
-	PlaybackPreferencesSettings,
 	PreparationProfileSettings,
 	ResourceSettings,
 } from "../../../features/settings/ui.js";
@@ -118,7 +117,6 @@ export function SettingsPage() {
 						className={activeSection === "playback" ? "stack-page" : "hidden"}
 						data-settings-section="playback"
 					>
-						<PlaybackPreferencesSettings />
 						<PreparationProfileSettings preparation={preparation} />
 						<ExternalPlayerSettings />
 					</div>

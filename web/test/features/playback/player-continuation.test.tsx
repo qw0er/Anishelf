@@ -10,13 +10,11 @@ import {
 	localWorkDetailQuery,
 	sourceQuery,
 } from "../../../src/features/anime/catalog/queries.js";
-import { AutomaticContinuationSetting } from "../../../src/features/settings/components/playback-preferences.js";
 import type { CatalogSourceResponse } from "../../../src/shared/api/contracts.js";
 import { queryClient } from "../../../src/shared/api/query-client.js";
 import "../../../src/shared/i18n.js";
 import { animeDetailFixture, animeFixture } from "../../fixtures/anime.js";
 import {
-	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -24,7 +22,6 @@ import {
 	within,
 } from "../../support/query-test-utils.js";
 
-const preferenceKey = "anishelf.autoContinue";
 function sourceFixture(numbers = [1]): CatalogSourceResponse {
 	return {
 		sourceVersion: "v1",
@@ -57,7 +54,7 @@ function seed(versions = 1) {
 	});
 	return detail;
 }
-function Harness({ ended }: { ended: boolean }) {
+function Harness() {
 	const location = useLocation();
 	return (
 		<>
@@ -67,19 +64,19 @@ function Harness({ ended }: { ended: boolean }) {
 			</output>
 			<output data-testid="autoplay">{String(location.state?.autoPlay)}</output>
 			{location.pathname === "/files/file-1" && (
-				<PlayerContinuation fileId="file-1" sourceVersion="v1" ended={ended} />
+				<PlayerContinuation fileId="file-1" sourceVersion="v1" />
 			)}
 		</>
 	);
 }
-function tree(ended = false) {
+function tree() {
 	return (
 		<MemoryRouter
 			initialEntries={[
 				"/files/file-1?anime=work-1&episode=ep-1&library=%2F%3Fsearch%3DFrieren&audio=9&asset=old",
 			]}
 		>
-			<Harness ended={ended} />
+			<Harness />
 		</MemoryRouter>
 	);
 }
@@ -140,7 +137,7 @@ test("manual navigation preserves library context, chooses the correct episode a
 
 test("missing episodes disable navigation without a separate availability explanation", () => {
 	seed(0);
-	render(tree(true));
+	render(tree());
 	expect(
 		screen
 			.getByRole("button", { name: "Next: Episode 2" })
@@ -151,17 +148,9 @@ test("missing episodes disable navigation without a separate availability explan
 	);
 });
 
-test("multiple available versions require explicit choice even with automatic continuation enabled", async () => {
+test("multiple available versions require explicit choice", () => {
 	seed(2);
-	localStorage.setItem(preferenceKey, "true");
-	render(tree(true));
-	vi.useFakeTimers();
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(11000);
-	});
-	expect(screen.getByTestId("destination").textContent).toContain(
-		"/files/file-1?",
-	);
+	render(tree());
 	fireEvent.click(screen.getByRole("button", { name: "Next: Episode 2" }));
 	const dialog = screen.getByRole("dialog");
 	fireEvent.click(
@@ -169,127 +158,5 @@ test("multiple available versions require explicit choice even with automatic co
 	);
 	expect(screen.getByTestId("destination").textContent).toContain(
 		"/files/file-3?",
-	);
-});
-
-test("enabled continuation waits for the end and navigates once after ten seconds", async () => {
-	seed();
-	localStorage.setItem(preferenceKey, "true");
-	const view = render(tree());
-	vi.useFakeTimers();
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(11000);
-	});
-	expect(screen.queryByText(/Continuing in/)).toBeNull();
-	view.rerender(tree(true));
-	expect(screen.getByText("Continuing in 10 seconds… Cancel")).toBeTruthy();
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(9000);
-	});
-	expect(screen.getByText("Continuing in 1 second… Cancel")).toBeTruthy();
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(1000);
-	});
-	expect(screen.getByTestId("destination").textContent).toContain(
-		"/files/file-2?",
-	);
-});
-
-test("cancel and replay reset the end countdown without changing the saved preference", async () => {
-	seed();
-	localStorage.setItem(preferenceKey, "true");
-	const view = render(tree(true));
-	vi.useFakeTimers();
-	fireEvent.click(
-		screen.getByRole("button", { name: /Continuing in .* Cancel/ }),
-	);
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(12000);
-	});
-	expect(screen.queryByText(/Continuing in/)).toBeNull();
-	expect(localStorage.getItem(preferenceKey)).toBe("true");
-	view.rerender(tree());
-	view.rerender(tree(true));
-	expect(screen.getByText("Continuing in 10 seconds… Cancel")).toBeTruthy();
-	view.rerender(tree());
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(12000);
-	});
-	expect(screen.getByTestId("destination").textContent).toContain(
-		"/files/file-1?",
-	);
-});
-
-test("changing the preference at the end persists it without retroactively starting playback", async () => {
-	seed();
-	render(
-		<>
-			{tree(true)}
-			<AutomaticContinuationSetting />
-		</>,
-	);
-	vi.useFakeTimers();
-	fireEvent.click(
-		screen.getByRole("checkbox", { name: "Continue automatically" }),
-	);
-	expect(localStorage.getItem(preferenceKey)).toBe("true");
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(11000);
-	});
-	expect(screen.getByTestId("destination").textContent).toContain(
-		"/files/file-1?",
-	);
-});
-
-test("disabling the shared preference cancels the active countdown and re-enabling waits for another end", async () => {
-	seed();
-	localStorage.setItem(preferenceKey, "true");
-	vi.useFakeTimers();
-	render(
-		<>
-			{tree(true)}
-			<AutomaticContinuationSetting />
-		</>,
-	);
-	expect(screen.getByText("Continuing in 10 seconds… Cancel")).toBeTruthy();
-	fireEvent.click(
-		screen.getByRole("checkbox", { name: "Continue automatically" }),
-	);
-	expect(screen.queryByText(/Continuing in/)).toBeNull();
-	fireEvent.click(
-		screen.getByRole("checkbox", { name: "Continue automatically" }),
-	);
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(11000);
-	});
-	expect(screen.queryByText(/Continuing in/)).toBeNull();
-	expect(screen.getByTestId("destination").textContent).toContain(
-		"/files/file-1?",
-	);
-});
-
-test("a target revision change cancels an active countdown", async () => {
-	const detail = structuredClone(seed());
-	localStorage.setItem(preferenceKey, "true");
-	vi.useFakeTimers();
-	render(tree(true));
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(9000);
-	});
-	const version = detail.episodes[1]?.versions[0];
-	if (!version) throw Error("Missing version fixture");
-	version.sourceVersion = "changed-version";
-	await act(async () =>
-		queryClient.setQueryData(localWorkDetailQuery("work-1", "").queryKey, {
-			...detail,
-			detail: animeDetailFixture(detail),
-		}),
-	);
-	expect(screen.queryByText(/Continuing in/)).toBeNull();
-	await act(async () => {
-		await vi.advanceTimersByTimeAsync(11000);
-	});
-	expect(screen.getByTestId("destination").textContent).toContain(
-		"/files/file-1?",
 	);
 });

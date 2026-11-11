@@ -226,7 +226,7 @@ embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
 | P24 | Change playback speed | Complete | Completed | — | 0.2.0 |
 | P25 | Use playback keyboard shortcuts | Complete | Completed | — | 0.2.0 |
 | P27 | Improve prepared-media file management | Complete | Completed | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | 1.5.0 |
-| P11 | Next-episode navigation and automatic continuation | Complete | Completed | [Next-episode navigation and opt-in continuation](#delivery-notes-p) | 1.3.1 |
+| P11 | Next-episode navigation | Complete | Completed | [Next-episode navigation](#delivery-notes-p) | 1.3.1 |
 | P13 | Chapter navigation | Complete | Completed | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
 | P28 | Validate Movi Player for broader browser container and codec playback | Complete | Completed | [Integration and recorded smoke validation](development/movi.md#recorded-smoke-validation) | 1.6.0 |
 
@@ -234,7 +234,7 @@ embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
 
 - **P05:** Capability-based playback negotiation was delivered in 0.2.0 and retired in 1.6.0. Users explicitly choose the original or a prepared copy.
 - **P17:** Preset-based automatic preparation was delivered in 1.4.0 and retired in 1.6.0. Preparation is manual.
-- **P11:** Consecutive local regular episodes, explicit version choice and opt-in browser-local continuation with cancellable countdown.
+- **P11:** Navigate to the next consecutive local regular episode, with explicit version choice when needed.
 - **P12:** Custom preparation profiles can select FFmpeg hardware encoders. Availability depends on the server's FFmpeg build, hardware and drivers. **Release record:** 0.2.0 (hardware encoding).
 - **P18:** Preparation can preserve HDR streams when packaging permits. **Release record:** 1.4.0 (HDR stream preservation; partial).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
