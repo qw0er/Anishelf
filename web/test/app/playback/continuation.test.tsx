@@ -107,7 +107,7 @@ test("actual playback end offers a cancellable continuation while preserving the
 		fireEvent.playing(video);
 		video.currentTime = 100;
 		fireEvent.ended(video);
-		await screen.findByText("Continuing in 10 seconds…");
+		await screen.findByText("Continuing in 10 seconds… Cancel");
 		await waitFor(() =>
 			expect(
 				fetcher.mock.calls.some(
@@ -117,7 +117,9 @@ test("actual playback end offers a cancellable continuation while preserving the
 				),
 			).toBe(true),
 		);
-		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: /Continuing in .* Cancel/ }),
+		);
 		expect(screen.queryByText(/Continuing in/)).toBeNull();
 		expect(screen.getByLabelText("Video: Local Frieren — Episode 1")).toBe(
 			video,

@@ -13,6 +13,7 @@ import {
 	NativeSelect,
 	NativeSelectOption,
 } from "../../../../shared/components/ui/native-select.js";
+import { useRefreshError } from "../../../../shared/hooks/use-refresh-error.js";
 import { audioTrackLabel } from "../../../media/public.js";
 import { getPlaybackOptions } from "../api.js";
 
@@ -51,6 +52,13 @@ export function PlaybackVersionSelection({
 				{ signal: boundedSignal(signal) },
 			),
 	});
+	useRefreshError(
+		`playback-versions:${source.fileId}`,
+		query.error,
+		query.errorUpdatedAt,
+		() => void query.refetch(),
+		{ scoped: true, title: t("player.versionsUnavailable") },
+	);
 	const assets = query.data?.assets.map((inspection) => inspection.asset) ?? [];
 	return (
 		<label htmlFor={selectId} className="space-y-1 text-sm">
@@ -92,11 +100,6 @@ export function PlaybackVersionSelection({
 					</NativeSelectOption>
 				))}
 			</NativeSelect>
-			{query.error && (
-				<span role="alert" className="block text-muted-foreground">
-					{t("player.versionsUnavailable")}
-				</span>
-			)}
 		</label>
 	);
 }

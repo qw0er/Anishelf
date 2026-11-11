@@ -182,11 +182,11 @@ test("enabled continuation waits for the end and navigates once after ten second
 	});
 	expect(screen.queryByText(/Continuing in/)).toBeNull();
 	view.rerender(tree(true));
-	expect(screen.getByText("Continuing in 10 seconds…")).toBeTruthy();
+	expect(screen.getByText("Continuing in 10 seconds… Cancel")).toBeTruthy();
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(9000);
 	});
-	expect(screen.getByText("Continuing in 1 second…")).toBeTruthy();
+	expect(screen.getByText("Continuing in 1 second… Cancel")).toBeTruthy();
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(1000);
 	});
@@ -200,7 +200,9 @@ test("cancel and replay reset the end countdown without changing the saved prefe
 	localStorage.setItem(preferenceKey, "true");
 	const view = render(tree(true));
 	vi.useFakeTimers();
-	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+	fireEvent.click(
+		screen.getByRole("button", { name: /Continuing in .* Cancel/ }),
+	);
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(12000);
 	});
@@ -208,7 +210,7 @@ test("cancel and replay reset the end countdown without changing the saved prefe
 	expect(localStorage.getItem(preferenceKey)).toBe("true");
 	view.rerender(tree());
 	view.rerender(tree(true));
-	expect(screen.getByText("Continuing in 10 seconds…")).toBeTruthy();
+	expect(screen.getByText("Continuing in 10 seconds… Cancel")).toBeTruthy();
 	view.rerender(tree());
 	await act(async () => {
 		await vi.advanceTimersByTimeAsync(12000);
@@ -249,7 +251,7 @@ test("disabling the shared preference cancels the active countdown and re-enabli
 			<AutomaticContinuationSetting />
 		</>,
 	);
-	expect(screen.getByText("Continuing in 10 seconds…")).toBeTruthy();
+	expect(screen.getByText("Continuing in 10 seconds… Cancel")).toBeTruthy();
 	fireEvent.click(
 		screen.getByRole("checkbox", { name: "Continue automatically" }),
 	);

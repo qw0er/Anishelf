@@ -131,6 +131,9 @@ test("manual mark creates a Tracking decision, confirms separately and reports t
 	fireEvent.click(
 		await screen.findByRole("button", { name: "Mark as watched" }),
 	);
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Review the progress change" }),
+	);
 	await screen.findByText(/including skipped episodes/);
 	const first = fetcher.mock.calls.find(
 		([url, init]) =>
@@ -146,7 +149,15 @@ test("manual mark creates a Tracking decision, confirms separately and reports t
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await screen.findByText("Progress change queued");
+	await waitFor(() =>
+		expect(
+			(
+				screen.getByRole("button", {
+					name: "Mark as watched",
+				}) as HTMLButtonElement
+			).disabled,
+		).toBe(true),
+	);
 	expect(notify.mock.calls.some(([notice]) => notice.type === "loading")).toBe(
 		false,
 	);
@@ -184,6 +195,9 @@ test("keep then mark again remains actionable and final submission failures offe
 		await screen.findByRole("button", { name: "Mark as watched" }),
 	);
 	fireEvent.click(
+		await screen.findByRole("button", { name: "Review the progress change" }),
+	);
+	fireEvent.click(
 		await screen.findByRole("button", { name: "Keep current progress" }),
 	);
 	await waitFor(() =>
@@ -196,11 +210,22 @@ test("keep then mark again remains actionable and final submission failures offe
 	);
 	expect(screen.queryByRole("status")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Mark as watched" }));
+	fireEvent.click(
+		await screen.findByRole("button", { name: "Review the progress change" }),
+	);
 	await screen.findByText(/including skipped episodes/);
 	fireEvent.click(
 		screen.getByRole("button", { name: "Confirm progress update" }),
 	);
-	await screen.findByText("Progress change queued");
+	await waitFor(() =>
+		expect(
+			(
+				screen.getByRole("button", {
+					name: "Mark as watched",
+				}) as HTMLButtonElement
+			).disabled,
+		).toBe(true),
+	);
 	expect(notify.mock.calls.some(([notice]) => notice.type === "loading")).toBe(
 		false,
 	);
@@ -213,7 +238,7 @@ test("keep then mark again remains actionable and final submission failures offe
 	).toBe(true);
 	operation = { ...op("failed"), error: "unavailable" };
 	await queryClient.invalidateQueries({ queryKey: ["tracking", "operations"] });
-	await screen.findByText("Could not save the progress change");
+	await screen.findByRole("button", { name: "Retry" });
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 	await waitFor(() =>
 		expect(

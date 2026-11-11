@@ -25,6 +25,7 @@ export default function VideoPlayer({
 	onPlaybackFailure,
 	onPlaybackRecovered,
 	onAudioChange,
+	onRetry,
 }: {
 	fileId: string;
 	displayTitle: string;
@@ -36,6 +37,7 @@ export default function VideoPlayer({
 	onPlaybackFailure?(failure: PlaybackFailure): void;
 	onPlaybackRecovered?(): void;
 	onAudioChange?(index: number): void;
+	onRetry?(): void;
 }) {
 	const { t } = useTranslation();
 	const container = useRef<HTMLDivElement>(null);
@@ -52,6 +54,7 @@ export default function VideoPlayer({
 		onPlaybackFailure,
 		onPlaybackRecovered,
 		onAudioChange,
+		onRetry,
 	});
 	callbacks.current = {
 		onMedia,
@@ -59,6 +62,7 @@ export default function VideoPlayer({
 		onPlaybackFailure,
 		onPlaybackRecovered,
 		onAudioChange,
+		onRetry,
 	};
 	const bindingKey = `${active.asset.id}:${active.asset.revision}:${active.resource.url}`;
 	useEffect(() => {
@@ -97,6 +101,10 @@ export default function VideoPlayer({
 				id: `video-playback:${fileId}`,
 				type: "error",
 				title: current.current.t(`player.failures.${failure.kind}`),
+				actionProps: {
+					children: current.current.t("actions.retry"),
+					onClick: () => callbacks.current.onRetry?.(),
+				},
 			});
 			console.warn("[playback] Movi Player failed.", {
 				fileId,

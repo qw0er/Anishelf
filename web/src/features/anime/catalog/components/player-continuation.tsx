@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { SkipForward } from "lucide-react";
+import { Loader2, SkipForward } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router";
@@ -65,9 +65,13 @@ export function PlayerContinuation({
 		);
 	if (!detail.data || detail.data.work.id !== context.workId)
 		return (
-			<span role="status" className="text-sm text-muted-foreground">
+			<Button variant="outline" disabled aria-busy="true">
+				<Loader2
+					className="size-4 motion-safe:animate-spin"
+					aria-hidden="true"
+				/>
 				{t("player.continuation.loading")}
-			</span>
+			</Button>
 		);
 	const next = continuationEpisode(
 		detail.data.episodes,
@@ -169,35 +173,26 @@ function ContinuationControls({
 	useEffect(() => {
 		if (counting && remaining === 0 && only) play(only, "automatic");
 	}, [counting, remaining, only, play]);
-	const countdown = (
-		<div className="flex flex-wrap items-center gap-2">
-			<p role="status" className="text-sm">
-				{t("player.continuation.countdown", { count: remaining })}
-			</p>
-			<Button
-				variant="outline"
-				onClick={() => {
-					setCancelled(true);
-					console.info("[playback] Automatic continuation cancelled.");
-				}}
-			>
-				{t("actions.cancel")}
-			</Button>
-		</div>
-	);
 	return (
 		<section
 			aria-label={t("player.continuation.label")}
 			className="flex min-w-0 max-w-full flex-wrap items-center gap-2"
 		>
-			<Tooltip content={nextLabel}>
+			<Tooltip content={counting ? t("actions.cancel") : nextLabel}>
 				<Button
 					variant={versions.length ? "default" : "outline"}
 					className="player-action"
-					aria-label={nextLabel}
+					aria-label={
+						counting
+							? `${t("player.continuation.countdown", { count: remaining })} ${t("actions.cancel")}`
+							: nextLabel
+					}
 					disabled={versions.length === 0}
 					onClick={() => {
-						if (versions.length === 1 && only) play(only, "manual");
+						if (counting) {
+							setCancelled(true);
+							console.info("[playback] Automatic continuation cancelled.");
+						} else if (versions.length === 1 && only) play(only, "manual");
 						else {
 							setCancelled(true);
 							setChoosing(true);
@@ -205,16 +200,14 @@ function ContinuationControls({
 					}}
 				>
 					<SkipForward className="size-4" aria-hidden="true" />
-					<span className="player-action-label">{nextLabel}</span>
+					<span className={counting ? undefined : "player-action-label"}>
+						{counting
+							? `${t("player.continuation.countdown", { count: remaining })} ${t("actions.cancel")}`
+							: nextLabel}
+					</span>
 				</Button>
 			</Tooltip>
 
-			{ended && versions.length > 1 && (
-				<p role="status" className="text-sm text-muted-foreground">
-					{t("player.continuation.choose")}
-				</p>
-			)}
-			{counting && countdown}
 			<Dialog open={choosing} onOpenChange={setChoosing}>
 				<DialogContent>
 					<DialogTitle>{t("anime.chooseVersion")}</DialogTitle>

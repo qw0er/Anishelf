@@ -16,14 +16,15 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../../shared/components/ui/collapsible.js";
+import {
+	Dialog,
+	DialogContent,
+	DialogTitle,
+} from "../../../shared/components/ui/dialog.js";
 import { RadioOptions } from "../../../shared/components/ui/radio-options.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import { useRefreshError } from "../../../shared/hooks/use-refresh-error.js";
-import {
-	appliesToEpisode,
-	isResultState,
-	operationsQuery,
-} from "./operations.js";
+import { appliesToEpisode, operationsQuery } from "./operations.js";
 import { accountQuery, trackingIdentity } from "./queries.js";
 import { useTrackingMutation } from "./use-tracking-mutation.js";
 import { useViewingState } from "./use-viewing-state.js";
@@ -159,6 +160,12 @@ function TargetControl({
 		},
 		{ revision: operation?.revision, status, target },
 	);
+	const [detailsOpen, setDetailsOpen] = useState(false);
+	const needsDecision =
+		current?.state === "decision-required" ||
+		current?.state === "conflict" ||
+		current?.state === "authorization-required";
+	const loadFailed = Boolean(operations.error && !operations.data);
 	const known = (viewing.snapshot?.entry?.progress ?? 0) >= target.episode;
 	const busy =
 		mutation.isPending ||
@@ -172,18 +179,35 @@ function TargetControl({
 		>
 			<Tooltip
 				content={t(
-					known ? "playbackCompletion.watched" : "playbackCompletion.mark",
+					loadFailed || current?.state === "failed"
+						? "actions.retry"
+						: needsDecision
+							? `trackingUpdate.states.${current?.state}`
+							: known
+								? "playbackCompletion.watched"
+								: "playbackCompletion.mark",
 				)}
 			>
 				<Button
 					variant={known ? "secondary" : "outline"}
 					className="responsive-action"
 					aria-label={t(
-						known ? "playbackCompletion.watched" : "playbackCompletion.mark",
+						loadFailed || current?.state === "failed"
+							? "actions.retry"
+							: needsDecision
+								? `trackingUpdate.states.${current?.state}`
+								: known
+									? "playbackCompletion.watched"
+									: "playbackCompletion.mark",
 					)}
-					disabled={busy || Boolean(operations.error && !operations.data)}
+					disabled={busy}
 					aria-busy={busy}
-					onClick={() => mutation.mutate("mark")}
+					onClick={() => {
+						if (loadFailed) void operations.refetch();
+						else if (needsDecision) setDetailsOpen(true);
+						else if (current?.state === "failed") mutation.mutate("retry");
+						else mutation.mutate("mark");
+					}}
 				>
 					{busy ? (
 						<Loader2
@@ -195,93 +219,105 @@ function TargetControl({
 					) : (
 						<Check className="size-4 shrink-0" aria-hidden="true" />
 					)}
-					<span className="responsive-action-label">
-						{t(known ? "player.watched" : "playbackCompletion.mark")}
+					<span
+						className={
+							needsDecision || loadFailed || current?.state === "failed"
+								? undefined
+								: "responsive-action-label"
+						}
+					>
+						{t(
+							loadFailed || current?.state === "failed"
+								? "actions.retry"
+								: needsDecision
+									? `trackingUpdate.states.${current?.state}`
+									: known
+										? "player.watched"
+										: "playbackCompletion.mark",
+						)}
 					</span>
 				</Button>
 			</Tooltip>
-			{current && !isResultState(current.state) && (
-				<span role="status" className="text-sm text-muted-foreground">
-					{t(`trackingUpdate.states.${current.state}`)}
-				</span>
-			)}
-			{current?.state === "decision-required" && (
-				<>
-					<span>
-						{t(
-							current.decisionReason === "initial-status-required"
-								? "playbackCompletion.initial"
-								: "playbackCompletion.advance",
-							{ episode: current.desired.progress },
-						)}
-					</span>
-					{current.decisionReason === "initial-status-required" && (
-						<RadioOptions<typeof status>
-							legend={t("playbackCompletion.status")}
-							value={status}
-							onChange={setStatus}
-							options={(
-								viewing.snapshot?.provider.capabilities.statuses ?? []
-							).map((value) => ({
-								value,
-								label: t(`trackingList.statuses.${value}`),
-							}))}
-						/>
+			<Dialog
+				open={detailsOpen && Boolean(needsDecision)}
+				onOpenChange={setDetailsOpen}
+			>
+				<DialogContent>
+					<DialogTitle>{t("playbackCompletion.label")}</DialogTitle>
+					{current?.state === "decision-required" && (
+						<>
+							<span>
+								{t(
+									current.decisionReason === "initial-status-required"
+										? "playbackCompletion.initial"
+										: "playbackCompletion.advance",
+									{ episode: current.desired.progress },
+								)}
+							</span>
+							{current.decisionReason === "initial-status-required" && (
+								<RadioOptions<typeof status>
+									legend={t("playbackCompletion.status")}
+									value={status}
+									onChange={setStatus}
+									options={(
+										viewing.snapshot?.provider.capabilities.statuses ?? []
+									).map((value) => ({
+										value,
+										label: t(`trackingList.statuses.${value}`),
+									}))}
+								/>
+							)}
+							<Button
+								variant="outline"
+								disabled={mutation.isPending}
+								onClick={() => {
+									setDetailsOpen(false);
+									mutation.mutate("confirm");
+								}}
+							>
+								{t("playbackCompletion.confirm")}
+							</Button>
+							<Button
+								variant="ghost"
+								disabled={mutation.isPending}
+								onClick={() => {
+									setDetailsOpen(false);
+									mutation.mutate("keep");
+								}}
+							>
+								{t("playbackCompletion.keep")}
+							</Button>
+						</>
 					)}
-					<Button
-						variant="outline"
-						disabled={mutation.isPending}
-						onClick={() => mutation.mutate("confirm")}
-					>
-						{t("playbackCompletion.confirm")}
-					</Button>
-					<Button
-						variant="ghost"
-						disabled={mutation.isPending}
-						onClick={() => mutation.mutate("keep")}
-					>
-						{t("playbackCompletion.keep")}
-					</Button>
-				</>
-			)}
-			{current?.state === "failed" && (
-				<Button
-					variant="outline"
-					disabled={mutation.isPending}
-					onClick={() => mutation.mutate("retry")}
-				>
-					{t("actions.retry")}
-				</Button>
-			)}
-			{current?.state === "conflict" && (
-				<>
-					<Button
-						variant="outline"
-						disabled={mutation.isPending}
-						onClick={() => mutation.mutate("remote")}
-					>
-						{t("trackingUpdate.keepRemote")}
-					</Button>
-					<Button
-						variant="outline"
-						disabled={mutation.isPending}
-						onClick={() => mutation.mutate("local")}
-					>
-						{t("trackingUpdate.submitLocal")}
-					</Button>
-				</>
-			)}
-			{current?.state === "authorization-required" && (
-				<span role="alert">{t("trackingList.reconnect")}</span>
-			)}
-			{operations.error && !operations.data && (
-				<p role="alert" className="text-sm">
-					{t("playbackCompletion.loadFailed")}
-					<Button variant="outline" onClick={() => void operations.refetch()}>
-						{t("actions.retry")}
-					</Button>
-				</p>
-			)}
+					{current?.state === "conflict" && (
+						<>
+							<Button
+								variant="outline"
+								disabled={mutation.isPending}
+								onClick={() => {
+									setDetailsOpen(false);
+									mutation.mutate("remote");
+								}}
+							>
+								{t("trackingUpdate.keepRemote")}
+							</Button>
+							<Button
+								variant="outline"
+								disabled={mutation.isPending}
+								onClick={() => {
+									setDetailsOpen(false);
+									mutation.mutate("local");
+								}}
+							>
+								{t("trackingUpdate.submitLocal")}
+							</Button>
+						</>
+					)}
+					{current?.state === "authorization-required" && (
+						<span role="alert">{t("trackingList.reconnect")}</span>
+					)}
+				</DialogContent>
+			</Dialog>
 		</fieldset>
 	);
 }

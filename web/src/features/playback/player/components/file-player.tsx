@@ -155,20 +155,10 @@ export default function FilePlayer({
 							onMedia={playback.attach}
 							onPlaybackFailure={selection.failed}
 							onPlaybackRecovered={selection.recovered}
+							onRetry={onRetry}
 							onAudioChange={(index) => selectAudio(String(index))}
 						/>
 					</QueryScope>
-				</div>
-			)}
-			{selection.runtimeFailure && (
-				<div
-					role="alert"
-					className="flex items-center gap-3 text-sm text-destructive"
-				>
-					<span>{t(`player.failures.${selection.runtimeFailure.kind}`)}</span>
-					<Button variant="outline" onClick={onRetry}>
-						{t("actions.retry")}
-					</Button>
 				</div>
 			)}
 
