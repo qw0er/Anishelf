@@ -140,16 +140,11 @@ failures and works already present in the user's library or tracking list.
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| P08 | Discover/select subtitles and extract tracks packaged in video files such as MKV | Partial | Later | [Embedded selection and on-demand ASS/SSA extraction](#delivery-notes-p) | 0.2.0 |
-| P09 | Support ASS/SSA styling and fonts, plus a compatibility path for image subtitles | Partial | Unassigned | [JASSUB ASS/SSA styling and embedded fonts](#delivery-notes-p) | 0.2.0 |
-| P16 | Extract embedded PGS/VobSub bitmap subtitle assets with explicit unsupported-Web feedback | Not started | Later | — | — |
 | P20 | Configure media preparation task concurrency | Partial | Optional | [Fixed single-worker queue; configurable concurrency optional](#delivery-notes-p) | 0.2.0 |
 | P21 | Limit CPU processing capacity per preparation task | Not started | Optional | — | — |
 
 #### Delivery Notes (P)
 
-- **P08:** **Current:** Movi discovers embedded tracks and matching sidecars remain selectable. The server extracts selected embedded ASS/SSA tracks and eligible fonts on demand. **Remaining:** Bitmap subtitle extraction (P16). **Release record:** 0.2.0 (text subtitles); 0.2.6 (embedded fonts in the former renderer); 1.6.0 (client rendering replaces server extraction).
-- **P09:** **Current:** JASSUB renders selected embedded and external ASS/SSA with styles, positioning, drawings and effects. Embedded tracks can use validated TTF/OTF attachments. Movi provides basic subtitle fallback. **Remaining:** Bitmap compatibility work. **Release record:** 0.2.0 (styled rendering); 0.2.6 (embedded fonts); 1.6.0 (basic Movi rendering).
 - **P20:** **Delivered:** A fixed single-worker queue. **Remaining:** Configurable task concurrency. **Release record:** 0.2.0 (single-worker queue; partial).
 
 #### Media Processing Resource Controls (P20–P21)
@@ -169,18 +164,6 @@ GPU-specific limits and exact resource enforcement depend on the selected encode
 and runtime and require separate feasibility validation. These controls extend the
 existing single-worker queue and storage budgets; they are not required for basic
 preparation.
-
-#### Subtitles and Embedded Extraction (P03, Partial P08–P09)
-
-See the [archived V2 requirements and design](history.md#v2-requirements).
-
-#### Deferred Subtitle Requirements (P16)
-
-P16 has no assigned release. See [P15 embedded fonts](implemented-requirements.md#embedded-fonts-p15) for embedded font rendering.
-
-- **P16 Bitmap extraction:** extract supported PGS/VobSub subtitles in their native
-  format, preserving required paired files and access restrictions. Explain when
-  Web playback is unsupported. Rendering, OCR and burn-in remain unassigned.
 
 #### Configuration and Storage Boundary (V2)
 
@@ -457,7 +440,7 @@ behavior, impact, reproduction conditions and verification evidence as they beco
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| B01 | An active embedded subtitle cue can be missing after resume and track selection | Not started | Later | [Waiting for an upstream Movi fix](#missing-embedded-subtitle-after-resume-b01) | — |
+| B01 | An active embedded subtitle cue can be missing after resume and track selection | Partial | Later | [ASS/SSA workaround verified. Movi's built-in path remains affected.](#missing-embedded-subtitle-after-resume-b01) | — |
 
 ### Missing embedded subtitle after resume (B01)
 
@@ -471,11 +454,17 @@ spanning a 20-second file. Seeking back to the start also failed to restore that
 cue in the same test. A separate fixture displayed later cues after track selection
 and seeking. See the [recorded smoke validation](development/movi.md#recorded-smoke-validation).
 
-The bug also reproduces in standalone Movi 0.4.1. In Anishelf, the JASSUB
-ASS/SSA path works around it by rendering the complete track at the current
-playback time. The Chromium browser test showed the active cue after seeking to
-3 seconds and selecting the track, with playback continuing normally. B01
-remains deferred for the built-in Movi renderer and its fallback path.
+Anishelf's JASSUB path works around B01 for ASS/SSA by rendering the complete
+track at the current playback time. The Chromium browser test showed the active
+cue after seeking to three seconds and selecting the track, with playback
+continuing normally.
+
+Standalone Movi 0.4.1 tests also reproduced missing active cues in MKV samples
+with embedded SRT, WebVTT, PGS, VobSub and DVB. Playback resumed inside the cue
+before the track was enabled. The same steps displayed the active cues in
+external SRT and WebVTT samples. The built-in Movi path, including the ASS/SSA
+fallback, remains deferred pending an upstream fix.
+See [Movi Player issue #33](https://github.com/MrUjjwalG/movi-player/issues/33).
 
 ## Movi Player and manual preparation direction
 

@@ -215,6 +215,9 @@ embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | P03 | Select or disable external VTT/SRT/ASS/SSA subtitles | Complete | — | — | 0.2.0 |
+| P08 | Discover and select embedded subtitles and extract ASS/SSA tracks on demand | Complete | — | [Embedded selection and cached extraction](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
+| P09 | Render styled ASS/SSA with fonts and support embedded bitmap subtitles | Complete | — | [JASSUB rendering and Movi bitmap playback](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
+| P16 | Play embedded bitmap subtitles in the Web player | Complete | — | [Direct PGS and VobSub playback in MKV](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 1.6.0 |
 | P06 | Remux matching streams during manual preparation | Complete | — | Subject to profile and container constraints | 0.2.0 |
 | P07 | Prepare full-file Web-compatible copies with seeking and avoid unnecessary re-encoding | Complete | — | Completed-file preparation, reuse, cancellation, retry and recovery | 0.2.0 |
 | P12 | Hardware-accelerated transcoding | Complete | — | [Hardware encoding through custom FFmpeg profiles](#delivery-notes-p) | 0.2.0 |
@@ -230,7 +233,6 @@ embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
 #### Delivery Notes (P)
 
 - **P05:** Capability-based playback negotiation was delivered in 0.2.0 and retired in 1.6.0. Users explicitly choose the original or a prepared copy.
-- **P08–P09:** Current subtitle behavior, remaining work and release history are recorded in the [playback inventory](requirements.md#delivery-notes-p).
 - **P17:** Preset-based automatic preparation was delivered in 1.4.0 and retired in 1.6.0. Preparation is manual.
 - **P11:** Consecutive local regular episodes, explicit version choice and opt-in browser-local continuation with cancellable countdown.
 - **P12:** Custom preparation profiles can select FFmpeg hardware encoders. Availability depends on the server's FFmpeg build, hardware and drivers. **Release record:** 0.2.0 (hardware encoding).
@@ -295,9 +297,13 @@ a task whose preparation profile is no longer current creates a replacement task
 the requested profile; a changed source still requires a new preparation. File actions
 reflect the active task and can cancel it. **Release record:** 1.5.0.
 
-#### Subtitles and Embedded Extraction (P03, Partial P08–P09)
+#### Subtitles and Embedded Extraction (P03, P08, P09, P16)
 
-See the [archived V2 requirements and design](history.md#v2-requirements).
+- **P08:** Movi discovers embedded tracks and lets users select them. Anishelf extracts selected embedded ASS/SSA tracks and eligible fonts from the active original or prepared copy. Successful track extractions are cached in memory by asset revision and stream index. **Release record:** 0.2.0 (text subtitles), 0.2.6 (embedded fonts in the former renderer), 1.6.0 (transition to client rendering). ASS/SSA extraction and caching are implemented on the development branch.
+- **P09:** JASSUB renders external and embedded ASS/SSA with styles, positioning, drawings and effects. Embedded tracks can use validated TTF/OTF attachments, with Movi supplying a basic rendering fallback. **Release record:** 0.2.0 (styled rendering), 0.2.6 (embedded fonts), 1.6.0 (basic Movi rendering). JASSUB rendering is implemented on the development branch and covered by [browser smoke tests](development/movi.md#recorded-smoke-validation).
+- **P16:** Movi renders embedded bitmap tracks directly in the browser. MKV samples with PGS, VobSub and DVB displayed successfully in desktop Chrome. Container and browser compatibility varies. The [B01 bug record](requirements.md#missing-embedded-subtitle-after-resume-b01) covers the active cue that can be missed after resuming and selecting an embedded track. **Release record:** 1.6.0 (Movi 0.4.1 integration).
+
+See the [archived V2 requirements and design](history.md#v2-requirements) for the earlier extraction proposals.
 
 #### Configuration and Storage Boundary (V2)
 

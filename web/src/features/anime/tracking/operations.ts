@@ -48,9 +48,7 @@ export const operationsQuery = (
 		retry: false,
 	});
 /** Results are announced once and then leave the controls; history is never replayed. */
-export function isResultState(
-	state: TrackingOperationResponse["state"],
-): boolean {
+function isResultState(state: TrackingOperationResponse["state"]): boolean {
 	return state === "succeeded" || state === "cancelled";
 }
 /** Detail edits apply to the whole work; player commands only to their own episode. */
