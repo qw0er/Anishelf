@@ -39,6 +39,7 @@ export class TrackingViewingCommands {
 		private readonly resolver: TrackingTargetResolver = new ExactTrackingTargets(),
 		private readonly logger?: Logger,
 		private readonly identities?: MetadataIdentitiesApi,
+		private readonly supportsMovie?: (mediaId: string) => Promise<boolean>,
 	) {}
 	async resolveTarget(
 		fileId: string,
@@ -78,6 +79,28 @@ export class TrackingViewingCommands {
 											account.provider,
 										)
 									: { state: "unmapped" as const };
+						if (
+							result.state === "resolved" &&
+							association.kind === "movie" &&
+							account.provider.capabilities.progress === "episode-collections"
+						) {
+							try {
+								if (account.state !== "connected")
+									return { state: "unavailable", target: null };
+								if (!(await this.supportsMovie?.(result.mediaId)))
+									return { state: "unsupported", target: null };
+							} catch {
+								this.logger?.debug(
+									{
+										event: "tracking.movie_episode_check_failed",
+										provider: account.provider.key,
+										mediaId: result.mediaId,
+									},
+									"Could not verify Tracking movie episode.",
+								);
+								return { state: "unavailable", target: null };
+							}
+						}
 						if (result.state === "resolved")
 							target = {
 								fileId,
@@ -215,15 +238,21 @@ export class TrackingViewingCommands {
 				"TRACKING_CONFLICT",
 				"No pending viewing decision.",
 			);
+		const episodeCollections =
+			this.tracking.status().provider.capabilities.progress ===
+			"episode-collections";
 		const decisionReason =
 			input.action === "keep"
 				? undefined
-				: this.decision(
+				: (this.decision(
 						target,
 						remote,
 						input.confirmSkipped ?? false,
 						input.initialStatus,
-					);
+					) ??
+					(episodeCollections && !input.confirmSkipped
+						? "skipped-episodes"
+						: undefined));
 		return this.tracking.update(target.mediaId, {
 			commandId: input.commandId,
 			generation: input.generation,
@@ -232,7 +261,9 @@ export class TrackingViewingCommands {
 			target,
 			baseline: remote,
 			desired: {
-				progress: Math.max(remote?.progress ?? 0, target.episode),
+				progress: episodeCollections
+					? target.episode
+					: Math.max(remote?.progress ?? 0, target.episode),
 				...(!remote && input.initialStatus
 					? { status: input.initialStatus }
 					: {}),
@@ -279,7 +310,10 @@ export class TrackingViewingCommands {
 			target.mediaId,
 			account.generation,
 		);
-		if ((remote?.progress ?? 0) >= target.episode)
+		if (
+			account.provider.capabilities.progress !== "episode-collections" &&
+			(remote?.progress ?? 0) >= target.episode
+		)
 			return { state: "ignored", reason: "already-tracked" };
 		if (
 			operation?.origin === "automatic" &&

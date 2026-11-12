@@ -9,20 +9,27 @@ export class TrackingConnectionCheck {
 	constructor(
 		private readonly connection: TrackingConnectionState,
 		private readonly credentials: TrackingCredentials,
-		private readonly provider: TrackingAccountProvider,
+		private readonly providerFor: (
+			key: string,
+		) => TrackingAccountProvider | undefined,
 		private readonly logger: Logger | undefined,
 	) {}
 	async check(): Promise<TrackingStatus> {
 		this.connection.assertOpen();
 		const connection = this.connection.snapshot();
+		const provider = this.providerFor(this.connection.status().provider.key);
+		const signal = this.connection.accountSignal();
 		const sequence = ++this.checkSequence;
 		if (!connection.account) return this.connection.status();
 		try {
 			const credential = await this.credentials.read(connection);
-			const account = await this.provider.viewer(
-				credential,
-				this.connection.accountSignal(),
-			);
+			this.connection.assertCurrent(connection.generation);
+			if (!provider)
+				throw new DomainError(
+					"TRACKING_UNAVAILABLE",
+					"Tracking provider unavailable.",
+				);
+			const account = await provider.viewer(credential, signal);
 			this.connection.assertCurrent(connection.generation);
 			if (sequence !== this.checkSequence)
 				throw new DomainError(

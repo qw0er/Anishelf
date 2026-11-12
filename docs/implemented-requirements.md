@@ -311,13 +311,12 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 ### Provider integration boundary
 
-Metadata supports AniList and Bangumi. Tracking supports one AniList account, with
-AniList authoritative for viewing state and cumulative episode progress. Basic
-metadata lookup and identification do not require personal tracker authorization.
-Additional trackers, simultaneous accounts and cross-source episode mappings remain
-future work. Associating metadata works does not enable Bangumi Tracking or
-arbitrary episode-number conversion. Internal provider boundaries belong in
-[Architecture](development/architecture.md#source-organization-and-dependency-boundaries).
+Metadata supports AniList and Bangumi. Tracking connects one account from either
+source and uses that source as authoritative for viewing state and episode
+progress. Bangumi writes main-episode marks using Bangumi chapter IDs. Basic
+metadata lookup and identification are available independently of Tracking
+authorization. Simultaneous accounts and cross-source episode mappings remain
+future work. See [Architecture](development/architecture.md#source-organization-and-dependency-boundaries).
 
 ### 2.4 Viewing History and Tracking
 

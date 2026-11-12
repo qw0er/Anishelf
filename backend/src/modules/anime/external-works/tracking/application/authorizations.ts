@@ -13,7 +13,9 @@ export class TrackingAuthorizations {
 	private readonly validations = new Map<string, string>();
 	constructor(
 		private readonly connection: TrackingConnectionState,
-		private readonly provider: TrackingAccountProvider,
+		private readonly providerFor: (
+			key: string,
+		) => TrackingAccountProvider | undefined,
 		private readonly now: () => number,
 		private readonly logger: Logger | undefined,
 	) {}
@@ -45,8 +47,12 @@ export class TrackingAuthorizations {
 	async preview(
 		sessionId: string,
 		credential: string,
+		providerKey = this.connection.status().provider.key,
 	): Promise<TrackingPreview> {
 		this.connection.assertOpen();
+		const provider = this.providerFor(providerKey);
+		if (!provider)
+			throw new DomainError("INVALID_REQUEST", "Unknown Tracking provider.");
 		if (!credential || credential.length > 8192)
 			throw new DomainError("INVALID_REQUEST", "Invalid access credential.");
 		for (const [key, candidate] of this.candidates)
@@ -61,16 +67,13 @@ export class TrackingAuthorizations {
 		this.candidates.delete(sessionId);
 		this.validations.set(sessionId, id);
 		try {
-			const account = await this.provider.viewer(
+			const account = await provider.viewer(
 				credential,
-				this.connection.signal,
+				this.connection.accountSignal(),
 			);
 			this.connection.assertCurrent(generation);
 			try {
-				if (
-					externalIdParts(account.id).provider !==
-					this.connection.status().provider.key
-				)
+				if (externalIdParts(account.id).provider !== providerKey)
 					throw new Error("Wrong provider.");
 			} catch {
 				throw new DomainError(
@@ -85,6 +88,7 @@ export class TrackingAuthorizations {
 				);
 			const candidate: TrackingCandidate = {
 				id,
+				providerKey,
 				credential,
 				account,
 				generation,
@@ -106,6 +110,7 @@ export class TrackingAuthorizations {
 			this.logger?.info(
 				{
 					event: "tracking.account_previewed",
+					provider: providerKey,
 					accountId: account.id,
 					expiresAt: candidate.expiresAt,
 				},

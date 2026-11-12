@@ -14,6 +14,7 @@ import type { TrackingCredentials, TrackingStore } from "../ports.js";
 
 export interface TrackingConnectionOptions {
 	authorization: TrackingAuthorization;
+	providers?: readonly TrackingAuthorization["provider"][];
 	store: TrackingStore;
 	credentials: TrackingCredentials;
 	now?: () => number;
@@ -29,6 +30,7 @@ export class TrackingConnectionState {
 	constructor(private readonly options: TrackingConnectionOptions) {
 		this.logger = options.logger;
 		this.connection = options.store.get() ?? {
+			providerKey: options.authorization.provider.key,
 			generation: randomUUID(),
 			account: null,
 			credentialId: null,
@@ -38,9 +40,10 @@ export class TrackingConnectionState {
 		if (
 			this.connection.account &&
 			externalIdParts(this.connection.account.id).provider !==
-				options.authorization.provider.key
+				this.descriptor().key
 		) {
 			this.connection = {
+				providerKey: this.descriptor().key,
 				generation: randomUUID(),
 				account: null,
 				credentialId: null,
@@ -75,9 +78,19 @@ export class TrackingConnectionState {
 			}
 		}
 	}
+	private descriptor() {
+		return (
+			this.options.providers?.find(
+				(provider) => provider.key === this.connection.providerKey,
+			) ?? this.options.authorization.provider
+		);
+	}
 	status(): TrackingStatus {
 		return {
-			provider: this.options.authorization.provider,
+			provider: this.descriptor(),
+			...(this.options.providers
+				? { providers: [...this.options.providers] }
+				: {}),
 			generation: this.connection.generation,
 			account: this.connection.account ? { ...this.connection.account } : null,
 			state: this.connection.state,
@@ -162,6 +175,7 @@ export class TrackingConnectionState {
 	): Promise<TrackingStatus> {
 		this.assertGeneration(generation);
 		const next: TrackingConnection = {
+			providerKey: candidate.providerKey,
 			generation: randomUUID(),
 			account: candidate.account,
 			credentialId: randomUUID(),
@@ -203,6 +217,7 @@ export class TrackingConnectionState {
 		this.logger?.info(
 			{
 				event: "tracking.account_connected",
+				provider: candidate.providerKey,
 				accountId: next.account?.id,
 				generation: next.generation,
 			},
@@ -214,6 +229,7 @@ export class TrackingConnectionState {
 		this.assertGeneration(generation);
 		const previous = this.connection;
 		const next: TrackingConnection = {
+			providerKey: this.descriptor().key,
 			generation: randomUUID(),
 			account: null,
 			credentialId: null,

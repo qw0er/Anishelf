@@ -664,9 +664,13 @@
 		}
 	},
 	"trackingAccount": {
+		"bangumiToken": "个人访问令牌",
+		"bangumiInstructions": "在 Bangumi 创建个人访问令牌，然后粘贴到这里。",
+		"createToken": "创建 Bangumi 令牌",
+
 		"title": "观看记录账户",
 		"actions": "观看记录服务账户操作",
-		"description": "连接您的观看记录和进度。",
+		"description": "为默认元数据来源连接观看记录账户。",
 		"loading": "正在加载观看记录服务连接…",
 		"account": "账户：{{name}}",
 		"disconnected": "尚未连接账户。",
@@ -738,6 +742,7 @@
 		}
 	},
 	"trackingUpdate": {
+		"bangumiProgress": "将 Bangumi 进度设为 {{episode}} 集。此前的本篇集数会标为看过，之后的已看标记会清除。",
 		"edit": "编辑进度",
 		"progress": "已看集数",
 		"decrease": "减少已看集数",

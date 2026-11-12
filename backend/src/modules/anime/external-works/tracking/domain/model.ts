@@ -4,6 +4,7 @@ export interface TrackingAccount {
 	name: string;
 }
 export interface TrackingConnection {
+	providerKey?: string;
 	generation: string;
 	account: TrackingAccount | null;
 	credentialId: string | null;
@@ -12,6 +13,7 @@ export interface TrackingConnection {
 }
 export interface TrackingStatus {
 	provider: TrackingProviderDescriptor;
+	providers?: TrackingProviderDescriptor[];
 	generation: string;
 	account: TrackingAccount | null;
 	state: TrackingConnection["state"];
@@ -27,6 +29,7 @@ export interface TrackingPreview {
 
 /** Server-only authorization candidate, never part of an HTTP response. */
 export interface TrackingCandidate {
+	providerKey: string;
 	id: string;
 	credential: string;
 	account: TrackingAccount;
@@ -43,7 +46,7 @@ export interface TrackingProviderDescriptor {
 	name: string;
 	authorization: { kind: "credential"; label: string; url: string | null };
 	capabilities: {
-		progress: "cumulative-episodes";
+		progress: "cumulative-episodes" | "episode-collections";
 		maximumProgress: number;
 		statuses: ViewingStatus[];
 	};

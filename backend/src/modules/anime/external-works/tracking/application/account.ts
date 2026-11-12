@@ -36,9 +36,13 @@ export class TrackingAccountApplication
 		);
 	}
 
-	preview(sessionId: string, credential: string): Promise<TrackingPreview> {
+	preview(
+		sessionId: string,
+		credential: string,
+		providerKey?: string,
+	): Promise<TrackingPreview> {
 		return this.options.diagnostics.observe("preview", () =>
-			this.options.authorizations.preview(sessionId, credential),
+			this.options.authorizations.preview(sessionId, credential, providerKey),
 		);
 	}
 	confirm(

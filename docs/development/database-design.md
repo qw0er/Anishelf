@@ -43,8 +43,8 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `metadata_pins` | Composite snapshot/owner primary key and cascading snapshot foreign key |
 | `media_inspections` | One JSON FFprobe result per scope/file, source version and inspection/FFprobe format version |
 | `metadata_artwork` | Existing scalar asset attributes, nonnegative size and LRU index |
-| `tracking_operations` | Account/media identity, revision, origin, delivery/retry state, baseline, desired fields, attempted payload, target and remote-state columns |
-| `tracking_connection` | One constrained row, valid connection states, paired account fields and required connected credentials |
+| `tracking_operations` | Account/media identity, revision, origin, delivery/retry state, baseline, desired fields, attempted payload, episode baseline for multi-request updates, target and remote-state columns |
+| `tracking_connection` | One constrained row with the selected provider, valid connection states, paired account fields and required connected credentials |
 | `tracking_list_cache` | Account snapshot header and ordered viewing entries; summaries join the shared Metadata index |
 | `tracking_intent_versions` | Existing composite identity and nonnegative manual version |
 | `tracking_commands` | Existing composite command identity and nonnegative revision |

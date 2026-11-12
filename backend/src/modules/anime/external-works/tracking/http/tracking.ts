@@ -26,7 +26,11 @@ export function registerTrackingRoutes(
 			},
 		},
 		async (request) =>
-			tracking.preview(request.session.sessionId, request.body.credential),
+			tracking.preview(
+				request.session.sessionId,
+				request.body.credential,
+				request.body.providerKey,
+			),
 	);
 	app.post(
 		"/api/tracking/account/confirm",

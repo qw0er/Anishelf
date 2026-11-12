@@ -2,9 +2,180 @@
 # Retrieved 2026-10-25.
 openapi: 3.0.2
 info:
-  title: Bangumi metadata subset
+  title: Bangumi metadata and tracking subset
   version: 2026-10-25
 paths:
+  /v0/me:
+    get:
+      operationId: getMyself
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {}
+  /v0/users/{username}/collections:
+    get:
+      operationId: getUserCollections
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: subject_type
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {}
+  /v0/users/{username}/collections/{subject_id}:
+    get:
+      operationId: getUserCollection
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: subject_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {}
+  /v0/users/-/collections/{subject_id}:
+    post:
+      operationId: postUserCollection
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectCollectionWrite"
+      responses:
+        "204":
+          description: Updated
+    patch:
+      operationId: patchUserCollection
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectCollectionWrite"
+      responses:
+        "204":
+          description: Updated
+  /v0/users/-/collections/{subject_id}/episodes:
+    get:
+      operationId: getUserSubjectEpisodeCollection
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: episode_type
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {}
+    patch:
+      operationId: patchUserSubjectEpisodeCollection
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EpisodeCollectionWrite"
+      responses:
+        "204":
+          description: Updated
+  /v0/episodes:
+    get:
+      operationId: getEpisodes
+      parameters:
+        - name: subject_id
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {}
   /v0/search/subjects:
     post:
       tags:
@@ -169,6 +340,24 @@ paths:
         - OptionalHTTPBearer: []
 components:
   schemas:
+    SubjectCollectionWrite:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: integer
+          enum: [1, 2, 3, 4, 5]
+    EpisodeCollectionWrite:
+      type: object
+      required: [episode_id, type]
+      properties:
+        episode_id:
+          type: array
+          items:
+            type: integer
+        type:
+          type: integer
+          enum: [0, 2]
     SubjectType:
       title: SubjectType
       example: 2

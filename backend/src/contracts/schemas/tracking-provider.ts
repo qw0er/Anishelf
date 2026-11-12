@@ -8,7 +8,10 @@ export const TrackingProviderSchema = Type.Object({
 		url: Type.Union([Type.String(), Type.Null()]),
 	}),
 	capabilities: Type.Object({
-		progress: Type.Literal("cumulative-episodes"),
+		progress: Type.Union([
+			Type.Literal("cumulative-episodes"),
+			Type.Literal("episode-collections"),
+		]),
 		maximumProgress: Type.Integer({ minimum: 0 }),
 		statuses: Type.Array(
 			Type.Union([

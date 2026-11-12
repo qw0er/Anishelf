@@ -161,8 +161,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 
 ### Provider integration boundary
 
-Additional trackers, simultaneous accounts and cross-source episode mappings remain
-future work. See the [implemented provider boundary](implemented-requirements.md#provider-integration-boundary).
+Simultaneous accounts and cross-source episode mappings remain future work. See the [implemented provider boundary](implemented-requirements.md#provider-integration-boundary).
 
 ### 2.4 Viewing History and Tracking
 
@@ -240,16 +239,15 @@ The proposed implementation and staged validation are in the
 | --- | --- | --- | --- | --- | --- |
 | T06 | Connect and synchronize multiple tracking services | Not started | Optional | — | — |
 | T07 | Synchronize ratings with tracking services | Not started | Optional | — | — |
-| T08 | Track viewing status and episode progress with a Bangumi account | Not started | Later | [Bangumi tracking](#bangumi-tracking-t08) | — |
+| T08 | Track viewing status and episode progress with a Bangumi account | Complete | — | [Bangumi tracking](#bangumi-tracking-t08) | — |
 
 #### Bangumi Tracking (T08)
 
-Allow users to connect a Bangumi account, read its viewing status and episode
-progress, and submit manual changes and eligible playback completion updates. Report
-authorization and synchronization failures without losing pending updates. Use
-confirmed Bangumi work and episode associations; do not assume that AniList and
-Bangumi episode numbers match. Supporting Bangumi alone does not require simultaneous
-tracking-service synchronization (T06).
+Users can connect a Bangumi account with a personal access token, read animation
+collections, and submit viewing status, manual progress, and eligible playback
+completion updates. Tracking uses confirmed Bangumi work and episode associations
+and preserves pending updates across authorization failures and account switches.
+The account settings offer a connection for the default metadata source.
 
 ### 2.9 Interface, Settings, and Maintenance
 

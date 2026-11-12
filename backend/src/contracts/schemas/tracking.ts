@@ -7,6 +7,7 @@ const TrackingAccountSchema = Type.Object({
 });
 export const TrackingStatusSchema = Type.Object({
 	provider: TrackingProviderSchema,
+	providers: Type.Optional(Type.Array(TrackingProviderSchema)),
 	generation: Type.String(),
 	account: Type.Union([TrackingAccountSchema, Type.Null()]),
 	state: Type.Union([
@@ -22,7 +23,10 @@ export const TrackingStatusSchema = Type.Object({
 	checkedAt: Type.Union([Type.Number(), Type.Null()]),
 });
 export const TrackingPreviewRequestSchema = Type.Object(
-	{ credential: Type.String({ minLength: 1, maxLength: 8192 }) },
+	{
+		credential: Type.String({ minLength: 1, maxLength: 8192 }),
+		providerKey: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+	},
 	{ additionalProperties: false },
 );
 export const TrackingPreviewSchema = Type.Object({

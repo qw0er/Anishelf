@@ -15,7 +15,11 @@ export type {
 } from "./domain/list.js";
 export interface TrackingAccountsApi {
 	status(): TrackingStatus;
-	preview(sessionId: string, credential: string): Promise<TrackingPreview>;
+	preview(
+		sessionId: string,
+		credential: string,
+		providerKey?: string,
+	): Promise<TrackingPreview>;
 	confirm(
 		sessionId: string,
 		candidateId: string,

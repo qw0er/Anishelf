@@ -24,7 +24,19 @@ export interface TrackingOperationStore {
 	): { operationId: string; revision: number } | undefined;
 	admit(operation: TrackingOperation): void;
 }
+export interface TrackingProgressInspection {
+	state: "matched" | "write" | "confirmation-required";
+	baseline: string;
+}
 export interface TrackingUpdateProvider {
+	inspectProgress?(
+		lease: TrackingLease,
+		mediaId: string,
+		remote: TrackingRemoteState | null,
+		target: number,
+		automatic: boolean,
+		signal: AbortSignal,
+	): Promise<TrackingProgressInspection | undefined>;
 	get(
 		lease: TrackingLease,
 		mediaId: string,
@@ -36,6 +48,11 @@ export interface TrackingUpdateProvider {
 		entryId: string | null,
 		desired: TrackingDesiredState,
 		signal: AbortSignal,
+		context?: {
+			automatic: boolean;
+			remote: TrackingRemoteState | null;
+			episodeBaseline?: string;
+		},
 	): Promise<TrackingRemoteState>;
 }
 export interface TrackingStore {
@@ -56,6 +73,12 @@ export interface TrackingListAccess {
 	acquire(): Promise<TrackingLease>;
 	assertCurrent(generation: string): void;
 	authorizationFailed(generation: string): void;
+}
+export interface TrackingProvider {
+	descriptor: import("./domain/model.js").TrackingProviderDescriptor;
+	accountProvider: TrackingAccountProvider;
+	listProvider: TrackingListProvider;
+	updateProvider: TrackingUpdateProvider;
 }
 export interface TrackingAccountProvider {
 	viewer(credential: string, signal: AbortSignal): Promise<TrackingAccount>;

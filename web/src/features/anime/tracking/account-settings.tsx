@@ -37,7 +37,11 @@ import { animeLibraryQueryKey } from "../shared/query-keys.js";
 import { accountQuery } from "./queries.js";
 
 const accountKey = accountQuery().queryKey;
-export function TrackingAccountSettings() {
+export function TrackingAccountSettings({
+	metadataProvider,
+}: {
+	metadataProvider: string;
+}) {
 	const { t } = useTranslation();
 	const client = useQueryClient();
 	const [credential, setCredential] = useState("");
@@ -53,6 +57,11 @@ export function TrackingAccountSettings() {
 		account.errorUpdatedAt,
 		() => void account.refetch(),
 	);
+	const current = account.data;
+	const providers = current?.providers ?? (current ? [current.provider] : []);
+	const selected = providers.find(
+		(provider) => provider.key === metadataProvider,
+	);
 	const command = useMutation({
 		onMutate: () => toast.close("tracking-account-command"),
 		mutationFn: async (
@@ -60,11 +69,15 @@ export function TrackingAccountSettings() {
 		) => {
 			let candidate = pendingSwitch?.candidate;
 			if (operation === "connect") {
+				if (!selected) return;
 				candidate = await request<TrackingPreviewResponse>(
 					"/api/tracking/account/preview",
 					"POST",
 					{},
-					{ credential: credential.trim() },
+					{
+						credential: credential.trim(),
+						...(current?.providers ? { providerKey: selected.key } : {}),
+					},
 				);
 				if (!account.data || candidate.generation !== account.data.generation)
 					throw new Error("Tracking connection changed during validation.");
@@ -124,19 +137,18 @@ export function TrackingAccountSettings() {
 		},
 	});
 	const busy = command.isPending;
-	const current = account.data;
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
-				<CardTitle>
-					{current?.provider.name ?? t("trackingAccount.title")}
-				</CardTitle>
+				<CardTitle>{selected?.name ?? t("trackingAccount.title")}</CardTitle>
 				<CardDescription>{t("trackingAccount.description")}</CardDescription>
 				{current && (
 					<div className="space-y-2 text-sm">
 						{current.account && (
 							<p>
 								{t("trackingAccount.account", { name: current.account.name })}
+								{current.provider.key !== metadataProvider &&
+									` (${current.provider.name})`}
 							</p>
 						)}
 						<div role="status" className="flex flex-wrap items-center gap-1">
@@ -166,7 +178,10 @@ export function TrackingAccountSettings() {
 						{t("trackingAccount.loading")}
 					</p>
 				)}
-				{current && (
+				{current && !selected && (
+					<p role="status">{t("metadataSource.unsupported")}</p>
+				)}
+				{selected && (
 					<form
 						id="tracking-credential-form"
 						className="space-y-3"
@@ -181,11 +196,17 @@ export function TrackingAccountSettings() {
 								htmlFor="tracking-credential"
 								className="text-sm font-medium"
 							>
-								{current.provider.authorization.label}
+								{selected.key === "bangumi"
+									? t("trackingAccount.bangumiToken")
+									: selected.authorization.label}
 							</label>
 							<FieldHelp
 								label={t("trackingAccount.credentialHelpLabel")}
-								help={t("trackingAccount.instructions")}
+								help={t(
+									selected.key === "bangumi"
+										? "trackingAccount.bangumiInstructions"
+										: "trackingAccount.instructions",
+								)}
 							/>
 						</div>
 						<Input
@@ -206,54 +227,54 @@ export function TrackingAccountSettings() {
 					aria-label={t("trackingAccount.actions")}
 					className="action-row"
 				>
-					{current && (
+					{selected && (
+						<ActionButton
+							icon={Check}
+							label={t("trackingAccount.connect", {
+								provider: selected.name,
+							})}
+							type="submit"
+							form="tracking-credential-form"
+							disabled={busy || pendingSwitch !== null || !credential.trim()}
+							aria-busy={busy && command.variables === "connect"}
+						/>
+					)}
+					{current?.account && (
 						<>
 							<ActionButton
-								icon={Check}
-								label={t("trackingAccount.connect", {
-									provider: current.provider.name,
-								})}
-								type="submit"
-								form="tracking-credential-form"
-								disabled={busy || pendingSwitch !== null || !credential.trim()}
-								aria-busy={busy && command.variables === "connect"}
+								icon={PlugZap}
+								label={t("trackingAccount.check")}
+								shortLabel={t("actions.test")}
+								variant="outline"
+								disabled={busy}
+								onClick={() => command.mutate("check")}
+								aria-busy={command.isPending && command.variables === "check"}
 							/>
-							{current.account && (
-								<>
-									<ActionButton
-										icon={PlugZap}
-										label={t("trackingAccount.check")}
-										shortLabel={t("actions.test")}
-										variant="outline"
-										disabled={busy}
-										onClick={() => command.mutate("check")}
-										aria-busy={
-											command.isPending && command.variables === "check"
-										}
-									/>
-									<ActionButton
-										icon={Unplug}
-										label={t("trackingAccount.disconnect")}
-										shortLabel={t("actions.disconnect")}
-										variant="outline"
-										disabled={busy}
-										onClick={() => command.mutate("disconnect")}
-										aria-busy={
-											command.isPending && command.variables === "disconnect"
-										}
-									/>
-								</>
-							)}
-							{current.provider.authorization.url && (
-								<ActionLink
-									icon={ExternalLink}
-									label={t("trackingAccount.authorize")}
-									href={current.provider.authorization.url}
-									target="_blank"
-									rel="noreferrer"
-								/>
-							)}
+							<ActionButton
+								icon={Unplug}
+								label={t("trackingAccount.disconnect")}
+								shortLabel={t("actions.disconnect")}
+								variant="outline"
+								disabled={busy}
+								onClick={() => command.mutate("disconnect")}
+								aria-busy={
+									command.isPending && command.variables === "disconnect"
+								}
+							/>
 						</>
+					)}
+					{selected?.authorization.url && (
+						<ActionLink
+							icon={ExternalLink}
+							label={t(
+								selected.key === "bangumi"
+									? "trackingAccount.createToken"
+									: "trackingAccount.authorize",
+							)}
+							href={selected.authorization.url}
+							target="_blank"
+							rel="noreferrer"
+						/>
 					)}
 					{account.error && !current && (
 						<ActionButton

@@ -7,6 +7,7 @@ import {
 	waitFor,
 	within,
 } from "../../support/query-test-utils.js";
+import { trackingProvider } from "../../support/tracking-fixture.js";
 import { setupAppTest } from "../support/lifecycle.js";
 import { openFile, renderApp } from "../support/render-app.js";
 import { appFixture, fetcher, json } from "../support/state.js";
@@ -298,4 +299,51 @@ test("clearing the path list saves setup mode", async () => {
 		(screen.getByRole("button", { name: "Scan library" }) as HTMLButtonElement)
 			.disabled,
 	).toBe(true);
+});
+
+test("the Account form follows the saved metadata source", async () => {
+	const fallback = fetcher.getMockImplementation();
+	fetcher.mockImplementation(async (input, init) => {
+		if (input === "/api/tracking/account")
+			return json({
+				provider: trackingProvider,
+				providers: [
+					trackingProvider,
+					{ ...trackingProvider, key: "bangumi", name: "Bangumi" },
+				],
+				generation: "fixture",
+				account: null,
+				state: "disconnected",
+				connectivity: "unknown",
+				checkedAt: null,
+			});
+		return (await fallback?.(input, init)) ?? json({}, 404);
+	});
+	renderApp("/settings?section=account");
+	await screen.findByRole("button", { name: "Connect AniList" });
+	expect(screen.getByRole("heading", { name: "AniList" })).toBeTruthy();
+	fireEvent.change(screen.getByLabelText("Access token"), {
+		target: { value: "anilist-draft" },
+	});
+
+	const sections = within(
+		screen.getByRole("navigation", { name: "Settings sections" }),
+	);
+	fireEvent.click(sections.getByRole("link", { name: "Library" }));
+	fireEvent.change(await screen.findByRole("combobox", { name: "Source" }), {
+		target: { value: "bangumi" },
+	});
+	await screen.findByText("Metadata source saved.");
+	fireEvent.click(sections.getByRole("link", { name: "Account" }));
+
+	const connect = await screen.findByRole("button", {
+		name: "Connect Bangumi",
+	});
+	expect(connect).toHaveProperty("disabled", true);
+	expect(screen.getByLabelText("Personal access token")).toHaveProperty(
+		"value",
+		"",
+	);
+	expect(screen.getByRole("heading", { name: "Bangumi" })).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Connect AniList" })).toBeNull();
 });

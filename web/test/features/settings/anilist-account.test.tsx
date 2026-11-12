@@ -93,7 +93,7 @@ test.each([disconnected, connected])(
 				public: true,
 			},
 		);
-		render(<TrackingAccountSettings />);
+		render(<TrackingAccountSettings metadataProvider="anilist" />);
 		const connect = await screen.findByRole("button", {
 			name: "Connect AniList",
 		});
@@ -174,7 +174,7 @@ test("switching accounts requires confirmation in a dialog and can be cancelled"
 		if (path === "/api/tracking/account/confirm") return confirm();
 		throw new Error(`Unexpected route: ${path}`);
 	});
-	render(<TrackingAccountSettings />);
+	render(<TrackingAccountSettings metadataProvider="anilist" />);
 	const connect = await screen.findByRole("button", {
 		name: "Connect AniList",
 	});
@@ -230,7 +230,7 @@ test("a stale connection view cannot replace another session's account", async (
 		if (path === "/api/tracking/account/confirm") return confirm();
 		throw new Error(`Unexpected route: ${path}`);
 	});
-	render(<TrackingAccountSettings />);
+	render(<TrackingAccountSettings metadataProvider="anilist" />);
 	const connect = await screen.findByRole("button", {
 		name: "Connect AniList",
 	});
@@ -275,7 +275,7 @@ test("disconnect uses connection generation and authorization failure offers rec
 		}
 		return json(status);
 	});
-	render(<TrackingAccountSettings />);
+	render(<TrackingAccountSettings metadataProvider="anilist" />);
 	await screen.findByText("Account: Fixture");
 	fireEvent.click(screen.getByRole("button", { name: "Check connection" }));
 	await waitFor(() =>
@@ -308,7 +308,7 @@ test("connection checks show busy feedback only on the initiating action", async
 		if (path === "/api/tracking/account") return json(connected);
 		throw new Error(`Unexpected route: ${path}`);
 	});
-	render(<TrackingAccountSettings />);
+	render(<TrackingAccountSettings metadataProvider="anilist" />);
 	const check = await screen.findByRole("button", { name: "Check connection" });
 	const disconnect = screen.getByRole("button", { name: "Disconnect" });
 	fireEvent.click(check);
@@ -320,4 +320,76 @@ test("connection checks show busy feedback only on the initiating action", async
 	expect(disconnect.hasAttribute("disabled")).toBe(true);
 	finishCheck?.(json(connected));
 	await waitFor(() => expect(check.getAttribute("aria-busy")).toBe("false"));
+});
+
+test("a Bangumi credential is previewed for the selected source before switching", async () => {
+	const bangumi = {
+		...trackingProvider,
+		key: "bangumi",
+		name: "Bangumi",
+		authorization: {
+			...trackingProvider.authorization,
+			url: "https://next.bgm.tv/demo/access-token",
+		},
+	};
+	const providers = [trackingProvider, bangumi];
+	let status = { ...connected, providers };
+	const replacement = { id: "bangumi:7", name: "Bangumi viewer" };
+	const confirm = vi.fn(() => {
+		status = {
+			...status,
+			provider: bangumi,
+			account: replacement,
+			generation: "three",
+		};
+		return json(status);
+	});
+	fetcher.mockImplementation(async (path, options) => {
+		if (path === "/api/tracking/account") return json(status);
+		if (path === "/api/tracking/account/preview") {
+			expect(JSON.parse(String(options?.body))).toEqual({
+				providerKey: "bangumi",
+				credential: "bangumi-token",
+			});
+			return json({
+				candidateId: "bangumi-candidate",
+				account: replacement,
+				generation: connected.generation,
+				expiresAt: Date.now() + 300000,
+			});
+		}
+		if (path === "/api/tracking/account/confirm") return confirm();
+		throw new Error(`Unexpected route: ${path}`);
+	});
+	render(<TrackingAccountSettings metadataProvider="bangumi" />);
+	await screen.findByRole("button", { name: "Connect Bangumi" });
+	expect(screen.getByRole("heading", { name: "Bangumi" })).toBeTruthy();
+	expect(screen.queryByRole("combobox")).toBeNull();
+	expect(screen.queryByRole("button", { name: "Connect AniList" })).toBeNull();
+	expect(
+		screen
+			.getByRole("link", { name: "Create Bangumi token" })
+			.getAttribute("href"),
+	).toBe(bangumi.authorization.url);
+	const connect = screen.getByRole("button", { name: "Connect Bangumi" });
+	const input = screen.getByLabelText("Personal access token");
+	fireEvent.change(input, { target: { value: "bangumi-token" } });
+	fireEvent.click(connect);
+	const dialog = await screen.findByRole("dialog", {
+		name: "Switch tracking account?",
+	});
+	expect(confirm).not.toHaveBeenCalled();
+	fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	expect(screen.getByText("Account: Fixture (AniList)")).toBeTruthy();
+	fireEvent.change(input, { target: { value: "bangumi-token" } });
+	fireEvent.click(connect);
+	const reopened = await screen.findByRole("dialog", {
+		name: "Switch tracking account?",
+	});
+	fireEvent.click(
+		within(reopened).getByRole("button", { name: "Switch account" }),
+	);
+	await screen.findByText("Account: Bangumi viewer");
+	expect(confirm).toHaveBeenCalledOnce();
 });

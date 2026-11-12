@@ -61,6 +61,12 @@ export function readTrackingOperations(
 		attempt: row.attemptPresent
 			? {
 					revision: row.attemptRevision,
+					...(row.attemptEpisodeBaseline === null
+						? {}
+						: { episodeBaseline: row.attemptEpisodeBaseline }),
+					...(row.attemptAutomatic === null
+						? {}
+						: { automatic: row.attemptAutomatic }),
 					baseline: row.attemptBaselinePresent
 						? {
 								id: row.attemptBaselineId,
@@ -134,6 +140,8 @@ export function writeTrackingOperations(
 			remoteUpdatedAt: value?.remote?.updatedAt ?? null,
 			attemptPresent: value?.attempt !== null && value?.attempt !== undefined,
 			attemptRevision: value?.attempt?.revision ?? null,
+			attemptEpisodeBaseline: value.attempt?.episodeBaseline ?? null,
+			attemptAutomatic: value.attempt?.automatic ?? null,
 			attemptBaselinePresent:
 				value?.attempt?.baseline !== null &&
 				value?.attempt?.baseline !== undefined,

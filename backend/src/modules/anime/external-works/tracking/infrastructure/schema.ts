@@ -13,6 +13,7 @@ export const trackingConnection = sqliteTable(
 	"tracking_connection",
 	{
 		id: integer("id").primaryKey(),
+		providerKey: text("provider_key").notNull().default("anilist"),
 		generation: text("generation").notNull(),
 		accountId: text("account_id"),
 		accountName: text("account_name"),
@@ -142,6 +143,8 @@ export const trackingOperations = sqliteTable(
 		remoteUpdatedAt: integer("remote_updated_at"),
 		attemptPresent: integer("attempt_present", { mode: "boolean" }).notNull(),
 		attemptRevision: integer("attempt_revision"),
+		attemptEpisodeBaseline: text("attempt_episode_baseline"),
+		attemptAutomatic: integer("attempt_automatic", { mode: "boolean" }),
 		attemptBaselinePresent: integer("attempt_baseline_present", {
 			mode: "boolean",
 		}).notNull(),

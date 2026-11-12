@@ -150,7 +150,17 @@ export class BangumiProvider implements MetadataProvider {
 			return await operation();
 		} catch (cause) {
 			if (cause instanceof BangumiError)
-				throw new MetadataError(cause.failure, { cause });
+				throw new MetadataError(
+					{
+						...cause.failure,
+						code:
+							cause.failure.code === "unauthorized" ||
+							cause.failure.code === "invalid-request"
+								? "unavailable"
+								: cause.failure.code,
+					},
+					{ cause },
+				);
 			throw cause;
 		}
 	}

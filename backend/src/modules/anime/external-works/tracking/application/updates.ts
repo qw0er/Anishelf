@@ -194,10 +194,21 @@ export class TrackingUpdates {
 			previous && !terminal(previous) && previous.state !== "decision-required";
 		const operation: TrackingOperation = {
 			id: previous?.id ?? randomUUID(),
-			origin: input.origin ?? "manual-detail",
+			origin:
+				pending &&
+				desired.progress === undefined &&
+				previous.origin === "automatic"
+					? previous.origin
+					: (input.origin ?? "manual-detail"),
 			commandId,
 			intentAt: this.now(),
-			target: input.target ?? null,
+			target:
+				input.target ??
+				(pending &&
+				desired.progress === undefined &&
+				previous.origin === "automatic"
+					? previous.target
+					: null),
 			decisionReason: input.decisionReason ?? null,
 			accountId: status.account.id,
 			mediaId,
@@ -418,6 +429,7 @@ export class TrackingUpdates {
 			desired: op.desired,
 		};
 		let signal: AbortSignal | undefined;
+		let currentRemote: TrackingRemoteState | null = null;
 		try {
 			const lease = await this.options.access.acquire();
 			if (lease.generation !== generation) return;
@@ -431,10 +443,43 @@ export class TrackingUpdates {
 				throw new TrackingProviderError("invalid-request", null);
 			signal = AbortSignal.any([lease.signal, this.lifetime.signal]);
 			let remote = await this.options.provider.get(lease, op.mediaId, signal);
+			currentRemote = remote;
+			const automatic = attempt.automatic ?? op.origin === "automatic";
+			const activeSignal = signal;
+			const inspect = async (
+				state: TrackingRemoteState | null,
+				desired: TrackingDesiredState,
+			) =>
+				desired.progress === undefined
+					? undefined
+					: this.options.provider.inspectProgress?.(
+							lease,
+							op.mediaId,
+							state,
+							desired.progress,
+							automatic,
+							activeSignal,
+						);
+			const progress = await inspect(remote, attempt.desired);
 			signal.throwIfAborted();
 			this.options.access.assertCurrent(generation);
-			if (!matches(remote, attempt.desired)) {
-				if (!unchanged(remote, attempt)) {
+			const reached = (
+				state: TrackingRemoteState | null,
+				desired: TrackingDesiredState,
+				checked: typeof progress,
+			) =>
+				checked === undefined
+					? matches(state, desired)
+					: checked.state === "matched" &&
+						state !== null &&
+						(automatic || state.progress === desired.progress) &&
+						(desired.status === undefined || state.status === desired.status);
+			if (!reached(remote, attempt.desired, progress)) {
+				if (
+					!unchanged(remote, attempt) ||
+					(attempt.episodeBaseline !== undefined &&
+						attempt.episodeBaseline !== progress?.baseline)
+				) {
 					const latest = this.options.store
 						.list(op.accountId)
 						.find((item) => item.id === op.id);
@@ -448,22 +493,58 @@ export class TrackingUpdates {
 					});
 					return;
 				}
+				if (progress?.state === "confirmation-required") {
+					const latest = this.options.store
+						.list(op.accountId)
+						.find((item) => item.id === op.id);
+					if (latest?.revision === op.revision)
+						this.persist({
+							...latest,
+							remote,
+							state: "decision-required",
+							decisionReason: "skipped-episodes",
+							attempt: null,
+							retryAt: null,
+							error: null,
+						});
+					return;
+				}
 				// Persist the exact payload before dispatch; restart/cancellation must reconcile it.
 				const latest = this.options.store
 					.list(op.accountId)
 					.find((item) => item.id === op.id);
 				if (!latest) return;
-				this.persist({ ...latest, attempt, remote, state: "submitting" });
+				const recordedAttempt = progress
+					? { ...attempt, automatic, episodeBaseline: progress.baseline }
+					: attempt;
+				this.persist({
+					...latest,
+					attempt: recordedAttempt,
+					remote,
+					state: "submitting",
+				});
 				remote = await this.options.provider.save(
 					lease,
 					op.mediaId,
 					remote?.id ?? null,
-					attempt.desired,
+					progress?.state === "matched" && remote && attempt.desired.status
+						? { status: attempt.desired.status }
+						: attempt.desired,
 					signal,
+					...(progress
+						? [{ automatic, remote, episodeBaseline: progress.baseline }]
+						: []),
 				);
+				currentRemote = remote;
 				signal.throwIfAborted();
 				this.options.access.assertCurrent(generation);
-				if (!matches(remote, attempt.desired))
+				if (
+					!reached(
+						remote,
+						attempt.desired,
+						await inspect(remote, attempt.desired),
+					)
+				)
 					throw new TrackingProviderError("invalid-response", null);
 			}
 			signal.throwIfAborted();
@@ -472,7 +553,11 @@ export class TrackingUpdates {
 				.list(op.accountId)
 				.find((item) => item.id === op.id);
 			if (!latest) return;
-			const complete = matches(remote, latest.desired);
+			const complete =
+				latest.revision === attempt.revision ||
+				(latest.desired.progress === attempt.desired.progress &&
+					latest.desired.status === attempt.desired.status) ||
+				(progress === undefined && matches(remote, latest.desired));
 			this.persist({
 				...latest,
 				baseline: remote,
@@ -503,6 +588,16 @@ export class TrackingUpdates {
 							error.code === "TRACKING_AUTHORIZATION_REQUIRED"
 						? "unauthorized"
 						: "unavailable";
+			if (code === "remote-changed") {
+				this.persist({
+					...latest,
+					remote: currentRemote,
+					state: "conflict",
+					retryAt: null,
+					error: code,
+				});
+				return;
+			}
 			const attempts = latest.attempts + 1;
 			const transient = [
 				"unavailable",

@@ -62,6 +62,7 @@ export function SettingsPage() {
 		? requestedSection
 		: "library";
 	const { settings, scanning, scanPending } = useAppRuntime();
+	const metadataProvider = settings?.defaultMetadataProvider ?? "anilist";
 	return settings ? (
 		<div className="stack-page">
 			<PageHeader title={t("settingsPage.title")} />
@@ -133,7 +134,10 @@ export function SettingsPage() {
 						className={activeSection === "account" ? "stack-page" : "hidden"}
 						data-settings-section="account"
 					>
-						<TrackingAccountSettings />
+						<TrackingAccountSettings
+							key={metadataProvider}
+							metadataProvider={metadataProvider}
+						/>
 						<SecuritySettings />
 					</div>
 				</div>

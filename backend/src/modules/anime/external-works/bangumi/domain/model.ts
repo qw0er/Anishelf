@@ -30,6 +30,8 @@ export const searchSchema = Type.Object({
 export type BangumiFailureCode =
 	| "invalid-response"
 	| "not-found"
+	| "unauthorized"
+	| "invalid-request"
 	| "rate-limited"
 	| "unavailable"
 	| "busy";

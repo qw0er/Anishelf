@@ -28,6 +28,7 @@ export async function createMetadataModule(options: {
 	artworkHosts: readonly string[];
 	defaultSearchProvider?: () => string;
 	titleDisplayPreference?: () => TitleDisplayPreference;
+	trackingProviders?: readonly string[];
 }): Promise<MetadataModule> {
 	const artwork = new MetadataArtworkCache({
 		hosts: options.artworkHosts,
@@ -50,6 +51,7 @@ export async function createMetadataModule(options: {
 		options.logger,
 		options.defaultSearchProvider ?? (() => options.defaultProvider),
 		options.titleDisplayPreference,
+		options.trackingProviders,
 	);
 }
 
@@ -61,6 +63,7 @@ export function createMetadataApplication(
 	defaultSearchProvider: () => string = () =>
 		source.providers()[0]?.key ?? "anilist",
 	titleDisplayPreference: () => TitleDisplayPreference = () => "native",
+	trackingProviders: readonly string[] = ["anilist"],
 ): MetadataModule {
 	const identities = new MetadataIdentities(source, store, logger);
 	const titles = new MetadataTitles(titleDisplayPreference);
@@ -145,7 +148,7 @@ export function createMetadataApplication(
 				key,
 				name: key === "anilist" ? "AniList" : "Bangumi",
 				metadata: true as const,
-				tracking: key === "anilist",
+				tracking: trackingProviders.includes(key),
 			})),
 		close: async () => {
 			await libraryTitles.close();

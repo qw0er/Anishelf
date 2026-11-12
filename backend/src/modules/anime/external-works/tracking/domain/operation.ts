@@ -10,6 +10,8 @@ export interface TrackingDesiredState {
 	status?: ViewingStatus;
 }
 export interface TrackingAttempt {
+	episodeBaseline?: string;
+	automatic?: boolean;
 	revision: number;
 	baseline: TrackingRemoteState | null;
 	desired: TrackingDesiredState;

@@ -45,6 +45,7 @@ export type TrackingProviderFailureCode =
 	| "not-found"
 	| "unavailable"
 	| "invalid-response"
+	| "remote-changed"
 	| "rate-limited"
 	| "unauthorized";
 /** Provider-neutral, sanitized failure exposed by the Tracking list port. */
@@ -53,7 +54,7 @@ export class TrackingProviderError extends Error {
 		readonly code: TrackingProviderFailureCode,
 		readonly retryAt: number | null,
 	) {
-		super("Tracking provider list read failed.");
+		super("Tracking provider request failed.");
 		this.name = "TrackingProviderError";
 	}
 }

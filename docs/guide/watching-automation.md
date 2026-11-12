@@ -1,7 +1,7 @@
 # Subscriptions and Watching
 
 Subscribe manually from a work's details, or opt into automatic creation from your
-AniList Watching and Rewatching entries. Manual subscriptions are independent; Watching subscriptions belong to an automatic group. Both share source selection, download and import processing.
+the connected account’s Watching entries, including Rewatching where supported. Manual subscriptions are independent; Watching subscriptions belong to an automatic group. Both share source selection, download and import processing.
 
 ## Setup
 

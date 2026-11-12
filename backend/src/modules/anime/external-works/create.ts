@@ -6,7 +6,7 @@ import {
 	createAniListMetadata,
 	createAniListTracking,
 } from "./adapters/anilist.js";
-import { createBangumiMetadata } from "./adapters/bangumi.js";
+import { createBangumiSources } from "./adapters/bangumi.js";
 import { AniListWrapper } from "./anilist/public.js";
 import { createMetadataModule } from "./metadata/create.js";
 import type { MetadataModule } from "./metadata/public.js";
@@ -19,15 +19,16 @@ export async function createExternalWorks(options: {
 }) {
 	const { system, database, logger } = options;
 	const requests = new AniListWrapper({ logger });
+	const bangumi = createBangumiSources(logger);
 	const tracking = await createTrackingModule({
 		dataDir: system.deployment.dataDir,
 		store: database.tracking,
 		listStore: database.trackingLists,
 		operationStore: database.trackingOperations,
 		...createAniListTracking(requests),
+		additionalProviders: [bangumi.tracking],
 		logger,
 	});
-	const bangumi = createBangumiMetadata(logger);
 	const metadataSources = createAniListMetadata(requests);
 	let metadata: MetadataModule | undefined;
 	try {
@@ -35,6 +36,9 @@ export async function createExternalWorks(options: {
 			dataDir: system.deployment.dataDir,
 			store: database.metadata,
 			...metadataSources,
+			trackingProviders: tracking.status().providers?.map(({ key }) => key) ?? [
+				tracking.status().provider.key,
+			],
 			providers: [...metadataSources.providers, bangumi.provider],
 			artworkHosts: [...metadataSources.artworkHosts, "lain.bgm.tv"],
 			titleDisplayPreference: () =>
@@ -60,6 +64,7 @@ export async function createExternalWorks(options: {
 				undefined,
 				logger,
 				metadata?.identities,
+				bangumi.supportsMovie,
 			),
 		metadata,
 		tracking,

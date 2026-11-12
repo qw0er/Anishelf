@@ -8,6 +8,7 @@ export class TrackingRepository implements TrackingStore {
 		const row = this.store.select().from(trackingConnection).get();
 		if (!row) return undefined;
 		return {
+			providerKey: row.providerKey,
 			generation: row.generation,
 			account:
 				row.accountId !== null && row.accountName !== null
@@ -21,6 +22,7 @@ export class TrackingRepository implements TrackingStore {
 	save(connection: TrackingConnection) {
 		const value = {
 			id: 1,
+			providerKey: connection.providerKey ?? "anilist",
 			generation: connection.generation,
 			accountId: connection.account?.id ?? null,
 			accountName: connection.account?.name ?? null,

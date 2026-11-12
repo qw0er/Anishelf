@@ -676,9 +676,13 @@
 		"acquisitionFilenameHint": "Filename evidence differs or is incomplete; the verified download target takes precedence."
 	},
 	"trackingAccount": {
+		"bangumiToken": "Personal access token",
+		"bangumiInstructions": "Create a personal access token in Bangumi, then paste it here.",
+		"createToken": "Create Bangumi token",
+
 		"title": "Tracking account",
 		"actions": "the tracking service account actions",
-		"description": "Connect your viewing history and progress.",
+		"description": "Connect a tracking account for the default metadata source.",
 		"loading": "Loading the tracking service connection…",
 		"account": "Account: {{name}}",
 		"disconnected": "No account connected.",
@@ -752,6 +756,7 @@
 		"episodeProgressAired": "{{progress}} / {{aired}} episodes"
 	},
 	"trackingUpdate": {
+		"bangumiProgress": "Set Bangumi progress to {{episode}}. Main episodes through this point will be marked watched, and watched marks after it will be cleared.",
 		"edit": "Edit progress",
 		"progress": "Episodes watched",
 		"decrease": "Decrease episodes watched",

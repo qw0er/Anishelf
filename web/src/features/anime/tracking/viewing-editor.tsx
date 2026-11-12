@@ -113,16 +113,19 @@ function ViewingForm({
 			snapshot.provider.capabilities.statuses[0] ??
 			"watching",
 	);
+	const bangumi = snapshot.provider.key === "bangumi";
 	const [progressEdited, setProgressEdited] = useState(false);
+	const [confirmProgress, setConfirmProgress] = useState(false);
 	const [statusEdited, setStatusEdited] = useState(false);
-	const progressChanged =
-		progressEdited &&
-		(Number(progress) !== remote?.progress ||
-			Boolean(
-				pending &&
-					operation.desired.progress !== undefined &&
-					Number(progress) !== operation.desired.progress,
-			));
+	const progressChanged = bangumi
+		? confirmProgress
+		: progressEdited &&
+			(Number(progress) !== remote?.progress ||
+				Boolean(
+					pending &&
+						operation.desired.progress !== undefined &&
+						Number(progress) !== operation.desired.progress,
+				));
 	const statusChanged =
 		statusEdited &&
 		(status !== remote?.status ||
@@ -165,7 +168,8 @@ function ViewingForm({
 						: { ...body, keepRemote: command === "remote" },
 				);
 			const desired: TrackingUpdateRequest["desired"] = {};
-			if (!remote || progressChanged) desired.progress = Number(progress);
+			if (progressChanged || (!bangumi && !remote))
+				desired.progress = Number(progress);
 			if (!remote || statusChanged) desired.status = status;
 			return request<TrackingOperationResponse>(
 				`/api/tracking/entries/${encodeURIComponent(mediaId)}/updates`,
@@ -200,7 +204,9 @@ function ViewingForm({
 		Number.isInteger(Number(progress)) &&
 		Number(progress) >= 0 &&
 		Number(progress) <= snapshot.provider.capabilities.maximumProgress;
-	const changed = !remote || progressChanged || statusChanged;
+	const changed =
+		(!remote || progressChanged || statusChanged) &&
+		(!bangumi || !progressEdited || confirmProgress);
 	return (
 		<form
 			className="grid gap-4"
@@ -234,6 +240,7 @@ function ViewingForm({
 						disabled={!valid || Number(progress) <= 0}
 						onClick={() => {
 							setProgressEdited(true);
+							setConfirmProgress(false);
 							setProgress(String(Number(progress) - 1));
 						}}
 					>
@@ -249,6 +256,7 @@ function ViewingForm({
 						value={progress}
 						onChange={(event) => {
 							setProgressEdited(true);
+							setConfirmProgress(false);
 							setProgress(event.target.value);
 						}}
 					/>
@@ -262,6 +270,7 @@ function ViewingForm({
 						}
 						onClick={() => {
 							setProgressEdited(true);
+							setConfirmProgress(false);
 							setProgress(String(Number(progress) + 1));
 						}}
 					>
@@ -269,6 +278,17 @@ function ViewingForm({
 					</Button>
 				</div>
 			</div>
+			{bangumi && (
+				<label className="flex items-start gap-2 text-sm">
+					<input
+						type="checkbox"
+						className="mt-1"
+						checked={confirmProgress}
+						onChange={(event) => setConfirmProgress(event.target.checked)}
+					/>
+					{t("trackingUpdate.bangumiProgress", { episode: progress })}
+				</label>
+			)}
 			<Field className="grid gap-1">
 				<label htmlFor={statusId}>{t("trackingUpdate.status")}</label>
 				<NativeSelect
@@ -311,10 +331,20 @@ function ViewingForm({
 						{t(
 							operation.decisionReason === "initial-status-required"
 								? "playbackCompletion.initial"
-								: "playbackCompletion.advance",
+								: bangumi
+									? "trackingUpdate.bangumiProgress"
+									: "playbackCompletion.advance",
 							{ episode: operation.desired.progress },
 						)}
 					</p>
+					{bangumi &&
+						operation.decisionReason === "initial-status-required" && (
+							<p>
+								{t("trackingUpdate.bangumiProgress", {
+									episode: operation.desired.progress,
+								})}
+							</p>
+						)}
 					<div className="flex flex-wrap gap-2">
 						<Button
 							type="button"
@@ -338,6 +368,13 @@ function ViewingForm({
 			<div className="flex flex-wrap gap-2">
 				{operation?.state === "conflict" ? (
 					<>
+						{bangumi && operation.desired.progress !== undefined && (
+							<p className="basis-full text-sm">
+								{t("trackingUpdate.bangumiProgress", {
+									episode: operation.desired.progress,
+								})}
+							</p>
+						)}
 						<Button
 							type="button"
 							variant="outline"

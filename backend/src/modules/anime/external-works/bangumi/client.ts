@@ -1,6 +1,7 @@
 import createClient from "openapi-fetch";
 import PQueue from "p-queue";
 import type { Logger } from "pino";
+import { type Static, type TSchema, Type } from "typebox";
 import { Check, Errors } from "typebox/value";
 import { buildInfo } from "../../../../platform/build-info.js";
 import {
@@ -10,9 +11,61 @@ import {
 	searchSchema,
 	subjectSchema,
 } from "./domain/model.js";
-import type { paths } from "./openapi.gen.js";
+import type { components, paths } from "./openapi.gen.js";
 
-/** One process-wide client is shared by every Bangumi metadata operation. */
+const positiveId = Type.Integer({
+	minimum: 1,
+	maximum: Number.MAX_SAFE_INTEGER,
+});
+const accountSchema = Type.Object({
+	id: positiveId,
+	username: Type.String({ minLength: 1 }),
+	nickname: Type.String(),
+});
+const collectionSchema = Type.Object({
+	subject_id: positiveId,
+	subject_type: Type.Literal(2),
+	type: Type.Union([
+		Type.Literal(1),
+		Type.Literal(2),
+		Type.Literal(3),
+		Type.Literal(4),
+		Type.Literal(5),
+	]),
+	ep_status: Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+	updated_at: Type.String(),
+	subject: Type.Optional(
+		Type.Object({
+			id: positiveId,
+			name: Type.String(),
+			name_cn: Type.String(),
+			date: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+			eps: Type.Optional(Type.Integer({ minimum: 0 })),
+			images: Type.Optional(
+				Type.Union([Type.Null(), Type.Object({ common: Type.String() })]),
+			),
+		}),
+	),
+});
+const episodeSchema = Type.Object({
+	id: positiveId,
+	type: Type.Literal(0),
+	ep: Type.Optional(Type.Number()),
+	subject_id: Type.Optional(positiveId),
+});
+const episodeCollectionSchema = Type.Object({
+	episode: episodeSchema,
+	type: Type.Union([
+		Type.Literal(0),
+		Type.Literal(1),
+		Type.Literal(2),
+		Type.Literal(3),
+	]),
+});
+
+type SubjectStatus = components["schemas"]["SubjectCollectionWrite"]["type"];
+
+/** The shared limiter applies to both metadata and authenticated Tracking requests. */
 export class BangumiClient implements BangumiMetadataApi {
 	private readonly queue = new PQueue({
 		concurrency: 1,
@@ -65,7 +118,14 @@ export class BangumiClient implements BangumiMetadataApi {
 					this.checkCooldown();
 				}
 				throw new BangumiError({
-					code: response.status === 404 ? "not-found" : "unavailable",
+					code:
+						response.status === 404
+							? "not-found"
+							: response.status === 401 || response.status === 403
+								? "unauthorized"
+								: response.status === 400 || response.status === 422
+									? "invalid-request"
+									: "unavailable",
 					message: "Bangumi request failed.",
 					retryAt: null,
 				});
@@ -233,6 +293,195 @@ export class BangumiClient implements BangumiMetadataApi {
 			return data;
 		});
 	}
+	private authorization(credential: string) {
+		return { Authorization: `Bearer ${credential}` };
+	}
+
+	private checked<S extends TSchema>(schema: S, data: unknown): Static<S> {
+		if (Check(schema, data)) return data;
+		throw new BangumiError({
+			code: "invalid-response",
+			message: "Invalid Bangumi Tracking response.",
+			retryAt: null,
+		});
+	}
+
+	private async pages<S extends TSchema>(
+		item: S,
+		limit: number,
+		signal: AbortSignal,
+		page: (offset: number, signal: AbortSignal) => Promise<unknown>,
+	): Promise<Static<S>[]> {
+		const schema = Type.Object({
+			total: Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+			offset: Type.Integer({ minimum: 0 }),
+			limit: Type.Integer({ minimum: 1 }),
+			data: Type.Array(item, { maxItems: limit }),
+		});
+		const results: Static<S>[] = [];
+		while (true) {
+			const offset = results.length;
+			const data = await this.request(signal, async (active) =>
+				this.checked(schema, await page(offset, active)),
+			);
+			if (
+				data.offset !== offset ||
+				data.data.length > data.limit ||
+				(data.data.length === 0 && offset < data.total)
+			)
+				throw new BangumiError({
+					code: "invalid-response",
+					message: "Invalid Bangumi pagination.",
+					retryAt: null,
+				});
+			results.push(...data.data);
+			if (results.length >= data.total) return results;
+		}
+	}
+
+	viewer(credential: string, signal: AbortSignal) {
+		return this.request(signal, async (active) =>
+			this.checked(
+				accountSchema,
+				(
+					await this.client.GET("/v0/me", {
+						headers: this.authorization(credential),
+						signal: active,
+					})
+				).data,
+			),
+		);
+	}
+
+	collections(username: string, credential: string, signal: AbortSignal) {
+		return this.pages(
+			collectionSchema,
+			50,
+			signal,
+			async (offset, active) =>
+				(
+					await this.client.GET("/v0/users/{username}/collections", {
+						params: {
+							path: { username },
+							query: { subject_type: 2, limit: 50, offset },
+						},
+						headers: this.authorization(credential),
+						signal: active,
+					})
+				).data,
+		);
+	}
+
+	async collection(
+		username: string,
+		subjectId: number,
+		credential: string,
+		signal: AbortSignal,
+	) {
+		try {
+			return await this.request(signal, async (active) =>
+				this.checked(
+					collectionSchema,
+					(
+						await this.client.GET(
+							"/v0/users/{username}/collections/{subject_id}",
+							{
+								params: { path: { username, subject_id: subjectId } },
+								headers: this.authorization(credential),
+								signal: active,
+							},
+						)
+					).data,
+				),
+			);
+		} catch (error) {
+			if (error instanceof BangumiError && error.failure.code === "not-found")
+				return null;
+			throw error;
+		}
+	}
+
+	episodes(subjectId: number, signal: AbortSignal, credential?: string) {
+		return this.pages(
+			episodeSchema,
+			100,
+			signal,
+			async (offset, active) =>
+				(
+					await this.client.GET("/v0/episodes", {
+						params: {
+							query: { subject_id: subjectId, type: 0, limit: 100, offset },
+						},
+						...(credential ? { headers: this.authorization(credential) } : {}),
+						signal: active,
+					})
+				).data,
+		);
+	}
+
+	episodeCollections(
+		subjectId: number,
+		credential: string,
+		signal: AbortSignal,
+	) {
+		return this.pages(
+			episodeCollectionSchema,
+			100,
+			signal,
+			async (offset, active) =>
+				(
+					await this.client.GET(
+						"/v0/users/-/collections/{subject_id}/episodes",
+						{
+							params: {
+								path: { subject_id: subjectId },
+								query: { episode_type: 0, limit: 100, offset },
+							},
+							headers: this.authorization(credential),
+							signal: active,
+						},
+					)
+				).data,
+		);
+	}
+
+	writeCollection(
+		subjectId: number,
+		type: SubjectStatus,
+		create: boolean,
+		credential: string,
+		signal: AbortSignal,
+	) {
+		return this.request(signal, async (active) => {
+			const path = "/v0/users/-/collections/{subject_id}";
+			const options = {
+				params: { path: { subject_id: subjectId } },
+				body: { type },
+				headers: this.authorization(credential),
+				signal: active,
+			};
+			if (create) await this.client.POST(path, options);
+			else await this.client.PATCH(path, options);
+		});
+	}
+
+	writeEpisodes(
+		subjectId: number,
+		episodeIds: number[],
+		type: 0 | 2,
+		credential: string,
+		signal: AbortSignal,
+	) {
+		return this.request(signal, async (active) => {
+			await this.client.PATCH("/v0/users/-/collections/{subject_id}/episodes", {
+				params: { path: { subject_id: subjectId } },
+				body: { episode_id: episodeIds, type },
+				headers: this.authorization(credential),
+				signal: active,
+			});
+		});
+	}
+
 	private invalid(
 		operation: "search" | "detail",
 		reason: "schema" | "pagination" | "subject_id" | "missing_title",

@@ -166,7 +166,11 @@ function TargetControl({
 		current?.state === "conflict" ||
 		current?.state === "authorization-required";
 	const loadFailed = Boolean(operations.error && !operations.data);
-	const known = (viewing.snapshot?.entry?.progress ?? 0) >= target.episode;
+	const known =
+		viewing.snapshot?.provider.capabilities.progress === "episode-collections"
+			? operation?.state === "succeeded" &&
+				operation.target?.episode === target.episode
+			: (viewing.snapshot?.entry?.progress ?? 0) >= target.episode;
 	const busy =
 		mutation.isPending ||
 		operations.isPending ||
@@ -206,7 +210,11 @@ function TargetControl({
 						if (loadFailed) void operations.refetch();
 						else if (needsDecision) setDetailsOpen(true);
 						else if (current?.state === "failed") mutation.mutate("retry");
-						else mutation.mutate("mark");
+						else {
+							if (viewing.snapshot?.provider.key === "bangumi")
+								setDetailsOpen(true);
+							mutation.mutate("mark");
+						}
 					}}
 				>
 					{busy ? (
@@ -250,10 +258,20 @@ function TargetControl({
 								{t(
 									current.decisionReason === "initial-status-required"
 										? "playbackCompletion.initial"
-										: "playbackCompletion.advance",
+										: viewing.snapshot?.provider.key === "bangumi"
+											? "trackingUpdate.bangumiProgress"
+											: "playbackCompletion.advance",
 									{ episode: current.desired.progress },
 								)}
 							</span>
+							{current.decisionReason === "initial-status-required" &&
+								viewing.snapshot?.provider.key === "bangumi" && (
+									<p>
+										{t("trackingUpdate.bangumiProgress", {
+											episode: current.desired.progress,
+										})}
+									</p>
+								)}
 							{current.decisionReason === "initial-status-required" && (
 								<RadioOptions<typeof status>
 									legend={t("playbackCompletion.status")}
@@ -291,6 +309,14 @@ function TargetControl({
 					)}
 					{current?.state === "conflict" && (
 						<>
+							{viewing.snapshot?.provider.key === "bangumi" &&
+								current.desired.progress !== undefined && (
+									<p>
+										{t("trackingUpdate.bangumiProgress", {
+											episode: current.desired.progress,
+										})}
+									</p>
+								)}
 							<Button
 								variant="outline"
 								disabled={mutation.isPending}
