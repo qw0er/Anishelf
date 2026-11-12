@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.7.0
+
+### Added
+
+- Connect a Bangumi account with a personal access token to read animation
+  collections and synchronize viewing status and episode progress. Manual edits
+  and eligible playback completions use confirmed Bangumi work and episode
+  associations. Automatic updates advance through a continuous sequence of main
+  episodes; manual progress edits set the main-episode range while preserving
+  special-episode marks. See the [Bangumi guide](https://github.com/qw0er/Anishelf/blob/main/docs/guide/README.md#bangumi-viewing-progress).
+- Use the connected account's Watching entries for optional subscription automation.
+  One AniList or Bangumi account can be connected at a time.
+
 ## 1.6.3
 
 ### Changed

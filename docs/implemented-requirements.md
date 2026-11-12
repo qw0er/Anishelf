@@ -199,7 +199,8 @@ External anime metadata is a dependency of the delivered identification workflow
 Each project identity belongs to one source entry. Cross-source association, ID
 aliases and metadata composition are unsupported. Historical groups are split during
 migration while preserving the primary project ID and local confirmations. Bangumi
-schedules, relations, Tracking and a canonical episode catalog are not currently supplied.
+schedules and relations are not currently supplied. Bangumi episode identities are
+available for tracking; a general canonical episode catalog is not currently supplied.
 
 Provider and parser uncertainty is handled through Review. Provider-required service access is distinct from T01–T05 personal account authorization, personal list access and viewing-state updates; basic identification must not require the user to authorize a personal tracker account.
 
@@ -679,6 +680,7 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 | T03 | Reuse existing work/episode mappings to submit viewing progress and tracking-status updates to AniList | Complete | Completed | Manual updates and mapped automatic episode completion | 0.4.0 |
 | T04 | Persist pending updates, coalesce superseded updates, retry failures, report expired authorization, and show results | Complete | Completed | Manual and playback updates retained across failures and restart | 0.4.0 |
 | T05 | Detect remote changes before retrying pending updates and resolve conflicts without silently overwriting newer state | Complete | Completed | [Conflict checks; upstream read/write race remains](#delivery-notes-t) | 0.4.0 |
+| T08 | Track viewing status and episode progress with a Bangumi account | Complete | Completed | [Bangumi tracking](#bangumi-tracking-t08) | 1.7.0 |
 | WI01 | Review tracking-service completion error feedback | Complete | Completed | Tracking completion errors are displayed with retry controls. | 1.5.1 |
 
 #### Delivery Notes (T)
@@ -686,6 +688,17 @@ See the [archived V2 requirements and design](history.md#v2-requirements).
 - **T01:** Verify the token before connecting. Confirm a switch to a different account. Store credentials privately and support reconnection.
 - **T02:** Complete account-scoped snapshots, stale/error feedback, unified local/remote Library and viewing-state details.
 - **T05:** For manual and playback commands; upstream read/write race remains.
+
+#### Bangumi Tracking (T08)
+
+Users can connect a Bangumi account with a personal access token, read animation
+collections, and submit viewing status, manual progress, and eligible playback
+completion updates. Tracking uses confirmed Bangumi work and episode associations
+and preserves pending updates across authorization failures and account switches.
+The account settings offer a connection for the default metadata source. Automatic
+updates advance through a continuous sequence of main episodes; manual progress
+edits set the main-episode range without changing special-episode marks. One AniList
+or Bangumi account can be connected at a time.
 
 #### AniList Accounts: Delivered Scope
 

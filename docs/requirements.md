@@ -28,7 +28,7 @@ and the [Design system](development/design-system.md).
 
 Requirements describe outcomes rather than prescribing implementation. When code and
 documentation disagree, verify the intended behavior and update the affected documents.
-The current release is 1.6.2; 1.6.3 is upcoming.
+The current release is 1.6.3; 1.7.0 is upcoming.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -239,15 +239,6 @@ The proposed implementation and staged validation are in the
 | --- | --- | --- | --- | --- | --- |
 | T06 | Connect and synchronize multiple tracking services | Not started | Optional | — | — |
 | T07 | Synchronize ratings with tracking services | Not started | Optional | — | — |
-| T08 | Track viewing status and episode progress with a Bangumi account | Complete | — | [Bangumi tracking](#bangumi-tracking-t08) | — |
-
-#### Bangumi Tracking (T08)
-
-Users can connect a Bangumi account with a personal access token, read animation
-collections, and submit viewing status, manual progress, and eligible playback
-completion updates. Tracking uses confirmed Bangumi work and episode associations
-and preserves pending updates across authorization failures and account switches.
-The account settings offer a connection for the default metadata source.
 
 ### 2.9 Interface, Settings, and Maintenance
 
