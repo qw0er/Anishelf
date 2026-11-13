@@ -24,13 +24,14 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Backend watcher plus Vite; Ctrl+C stops both |
-| `npm run dev:desktop` | Build and launch the Anishelf desktop app |
-| `npm run dev:host` | Expose Vite on `0.0.0.0:5173` for trusted LAN development |
-| `npm run dev:backend` / `npm run dev:web` | Run one workspace |
-| `npm start` | Build and run Backend. Web hosting is opt-in |
-| `npm run start:backend` | Run the built Backend |
-| `npm run start:desktop` | Launch the built desktop app |
+| `npm run dev` / `npm run dev:web` | Start the local backend watcher and Web Vite server |
+| `npm run dev:desktop` | Start the local backend watcher and build and open Electron |
+| `npm run dev:web:lan` | Start the local backend watcher and expose Vite on `0.0.0.0:5173` for trusted LAN development |
+| `npm start` / `npm run start:web` | Build Backend and Web and serve the built Web UI at the backend address |
+| `npm run start:desktop` | Build Backend and Electron, then launch both without watch mode |
+| `npm run dev:backend` / `npm run start:backend` | Run only Backend with a watcher, or launch the existing backend build |
+| `npm run dev:web:client` | Run only the Web Vite server |
+| `npm run dev:desktop:client` / `npm run start:desktop:client` | Build and open only Electron, or launch the existing desktop build |
 | `npm run check` | Biome, lint, architecture, type checks and tests |
 | `npm run build` | Build the server, Web, and desktop apps |
 | `node --import tsx scripts/manual-tests/anime-corpus.mts summary` / `generate <new-directory>` | Inspect integration fixtures or generate an exclusive placeholder directory |
@@ -46,7 +47,7 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 
 | Setting | Use |
 | --- | --- |
-| `ANISHELF_API_TARGET` | Override the Backend origin for Vite's Web proxy and the Electron desktop app |
+| `ANISHELF_API_TARGET` | Select the Backend origin for Vite's Web proxy and the Electron desktop app. Set it when running a client against an existing server or using a nondefault Backend port |
 | `ANISHELF_FRONTEND_DIR` | Enable Backend Web hosting from an absolute directory containing a prebuilt `index.html` |
 | `ANISHELF_PUBLIC_ORIGIN` | Set the browser-facing origin for domain access |
 | `ANISHELF_TRUSTED_PROXIES` | Trust only the actual proxy chain; packaged containers include their private Web proxy |

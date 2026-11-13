@@ -442,7 +442,8 @@ media server:
 
 ```sh
 npm ci
-npm start
+npm run build --workspace @anishelf/backend
+npm run start:backend
 ```
 
 Backend listens on `127.0.0.1:3000` by default. Check `/api/health` and use the
@@ -452,12 +453,10 @@ the proxy's actual source address with `ANISHELF_TRUSTED_PROXIES`. Preserve
 the Host header and have the proxy set `X-Forwarded-Proto` from the connection.
 See the [device session API](../development/clients.md#device-session-api).
 
-To serve the browser interface from Backend, build Web and explicitly enable
-hosting from the repository root:
+To build and serve the browser interface and API together from the repository root:
 
 ```sh
-npm run build --workspace @anishelf/web
-ANISHELF_FRONTEND_DIR="$PWD/apps/web/dist" npm start
+npm start
 ```
 
 The Web interface and API share the Backend address. For development, use
