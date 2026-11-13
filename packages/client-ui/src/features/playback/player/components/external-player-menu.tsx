@@ -81,6 +81,15 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 						label={player.name}
 						render={
 							<ExternalPlayerLink
+								request={
+									available && media.data
+										? {
+												playerId: player.id,
+												mediaUrl: media.data.url,
+												mimeType: media.data.mimeType,
+											}
+										: undefined
+								}
 								href={
 									available && media.data
 										? buildPlayerUrl(

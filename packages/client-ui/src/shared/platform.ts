@@ -4,6 +4,12 @@ export interface ClientStorage {
 	removeItem(key: string): void;
 }
 
+export interface OpenPlayerRequest {
+	playerId: string;
+	mediaUrl: string;
+	mimeType: string;
+}
+
 export interface ClientPlatform {
 	preferences: ClientStorage;
 	sessionStorage: ClientStorage;
@@ -16,7 +22,7 @@ export interface ClientPlatform {
 	};
 	onPreferenceChange(key: string, callback: () => void): () => void;
 	openExternal(url: string): void;
-	openPlayer(url: string): void;
+	openPlayer(request: OpenPlayerRequest): void;
 	copyText(text: string): Promise<void>;
 	downloadFile(url: string, filename: string): void;
 	downloadText(content: string, filename: string, mediaType: string): void;

@@ -264,9 +264,11 @@ test("menu prepares native anchors for detected presets and custom players witho
 	);
 	expect(screen.queryByRole("menuitem", { name: "MX Player" })).toBeNull();
 	fireEvent.click(item);
-	expect(testPlatform.openPlayer).toHaveBeenCalledWith(
-		item.getAttribute("href"),
-	);
+	expect(testPlatform.openPlayer).toHaveBeenCalledWith({
+		playerId: "iina",
+		mediaUrl: `${window.location.origin}/api/media/file_123?access_token=test-token`,
+		mimeType: "video/mp4",
+	});
 	expect(open).not.toHaveBeenCalled();
 	expect(save).not.toHaveBeenCalled();
 });

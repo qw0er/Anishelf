@@ -19,6 +19,7 @@ export async function initializeClient(host: ClientHost) {
 	return runtime;
 }
 
+export { resolveBrowserPlayerUrl } from "../features/settings/public.js";
 export type { ClientPlatform } from "../shared/platform.js";
 
 export function createClientRoutes(): RouteObject[] {

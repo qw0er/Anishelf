@@ -1,4 +1,7 @@
-import type { ClientPlatform } from "@anishelf/client-ui";
+import {
+	type ClientPlatform,
+	resolveBrowserPlayerUrl,
+} from "@anishelf/client-ui";
 
 function downloadFile(url: string, filename: string) {
 	const anchor = document.createElement("a");
@@ -59,8 +62,8 @@ export const browserPlatform: ClientPlatform = {
 		window.open(url, "_blank", "noopener,noreferrer");
 		console.debug("platform.external_link_requested");
 	},
-	openPlayer(url) {
-		window.location.assign(url);
+	openPlayer(request) {
+		window.location.assign(resolveBrowserPlayerUrl(browserPlatform, request));
 		console.debug("platform.external_player_requested");
 	},
 	async copyText(text) {

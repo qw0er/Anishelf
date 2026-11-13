@@ -1,6 +1,22 @@
 import { setTimeout } from "node:timers/promises";
 import { developmentDefaults } from "@anishelf/contracts/defaults";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, shell } from "electron";
+
+function openExternal(url: string) {
+	const parsed = URL.parse(url);
+	if (
+		!parsed ||
+		!["http:", "https:"].includes(parsed.protocol) ||
+		parsed.username ||
+		parsed.password
+	) {
+		console.warn("Blocked an unsupported external URL.");
+		return;
+	}
+	void shell.openExternal(parsed.href).catch((error: unknown) => {
+		console.error("Failed to open an external URL:", error);
+	});
+}
 
 async function loadRenderer(window: BrowserWindow, rendererUrl: URL) {
 	const deadline = Date.now() + 30_000;
@@ -33,10 +49,15 @@ function createWindow(rendererUrl: URL) {
 		height: 800,
 	});
 
-	window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+	window.setMenu(null);
+	window.webContents.setWindowOpenHandler(({ url }) => {
+		openExternal(url);
+		return { action: "deny" };
+	});
 	window.webContents.on("will-navigate", (event, url) => {
-		if (new URL(url).origin !== rendererUrl.origin) {
+		if (URL.parse(url)?.origin !== rendererUrl.origin) {
 			event.preventDefault();
+			openExternal(url);
 		}
 	});
 	console.info(`Loading desktop page from ${rendererUrl.origin}`);

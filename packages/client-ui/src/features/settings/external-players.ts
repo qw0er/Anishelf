@@ -1,4 +1,28 @@
-import { externalPlayerPolicy } from "./external-player-policy.js";
+import type {
+	ClientPlatform,
+	OpenPlayerRequest,
+} from "../../shared/platform.js";
+import {
+	detectClientPlatform,
+	externalPlayerPolicy,
+	presetsForPlatform,
+} from "./external-player-policy.js";
+
+export function resolveBrowserPlayerUrl(
+	platform: Pick<ClientPlatform, "preferences" | "device">,
+	{ playerId, mediaUrl, mimeType }: OpenPlayerRequest,
+): string {
+	const preset = presetsForPlatform(detectClientPlatform(platform.device)).find(
+		(player) => player.id === playerId,
+	);
+	const player =
+		preset ??
+		readCustomPlayers(platform.preferences).find(
+			(item) => item.id === playerId,
+		);
+	if (!player) throw new Error("Unknown external player");
+	return buildPlayerUrl(player.template, mediaUrl, mimeType);
+}
 
 export interface CustomExternalPlayer {
 	id: string;
