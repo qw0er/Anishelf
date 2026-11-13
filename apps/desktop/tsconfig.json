@@ -1,12 +1,9 @@
 {
 	"compilerOptions": {
-		"rootDir": "./src",
-		"outDir": "./dist",
+		"rootDir": "src",
+		"outDir": "dist",
 		"module": "nodenext",
 		"target": "esnext",
-		"moduleResolution": "nodenext",
-		"lib": ["ESNext", "DOM"],
-		"rewriteRelativeImportExtensions": true,
 		"types": ["node"],
 		"sourceMap": true,
 		"strict": true,
@@ -16,5 +13,5 @@
 		"isolatedModules": true,
 		"skipLibCheck": true
 	},
-	"include": ["src/main", "src/preload"]
+	"include": ["src/main"]
 }

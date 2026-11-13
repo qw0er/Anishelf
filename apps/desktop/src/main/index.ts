@@ -1,65 +1,74 @@
-import { createHash } from "node:crypto";
-import { fileURLToPath } from "node:url";
-import {
-	app,
-	BrowserWindow,
-	dialog,
-	session,
-	type WebContents,
-} from "electron";
-import { registerDesktopIpc } from "./ipc.js";
-import { openExternal } from "./native/links.js";
-import {
-	registerDesktopScheme,
-	registerRendererFiles,
-} from "./renderer/protocol.js";
-import { createDesktopWindow } from "./renderer/window.js";
-import { attachDeviceCredentials, serverAddress } from "./server/connection.js";
-import { openDeviceTokenStore } from "./server/device-tokens.js";
+import { app, BrowserWindow, dialog, net, protocol } from "electron";
 
-registerDesktopScheme();
+const rendererUrl = "anishelf://desktop/";
+const rendererRoot = new URL("../renderer/", import.meta.url);
 
-const windows = new Set<WebContents>();
-const rendererRoot = fileURLToPath(new URL("../renderer/", import.meta.url));
-const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
+protocol.registerSchemesAsPrivileged([
+	{
+		scheme: "anishelf",
+		privileges: { standard: true, secure: true },
+	},
+]);
 
-async function prepareSession() {
-	const target = serverAddress();
-	const userData = app.getPath("userData");
-	const serverId = createHash("sha256").update(target.origin).digest("hex");
-	const desktopSession = session.fromPartition(
-		`persist:anishelf-desktop-${serverId}`,
-	);
-	const tokens = await openDeviceTokenStore(target.origin, userData);
-	registerRendererFiles(desktopSession, target.origin, rendererRoot);
-	attachDeviceCredentials(
-		desktopSession,
-		target.origin,
-		tokens.authorization,
-		windows,
-	);
-	registerDesktopIpc(target.origin, tokens.set, windows);
-	return desktopSession;
+function registerRenderer() {
+	protocol.handle("anishelf", async (request) => {
+		const url = new URL(request.url);
+		const path = url.pathname === "/" ? "/index.html" : url.pathname;
+		// Vite emits flat, hashed asset names. Serve only the entry and those assets.
+		if (
+			url.host !== "desktop" ||
+			request.method !== "GET" ||
+			(path !== "/index.html" && !/^\/assets\/[\w.-]+\.(?:js|css)$/.test(path))
+		) {
+			return new Response(null, { status: 404 });
+		}
+
+		const response = await net.fetch(new URL(path.slice(1), rendererRoot).href);
+		const headers = new Headers(response.headers);
+		headers.set(
+			"Content-Security-Policy",
+			"default-src 'none'; script-src 'self'; style-src 'self'",
+		);
+		return new Response(response.body, { status: response.status, headers });
+	});
 }
 
-app
-	.whenReady()
-	.then(async () => {
-		const desktopSession = await prepareSession();
-		createDesktopWindow(desktopSession, preload, windows, openExternal);
-		app.on("activate", () => {
-			if (BrowserWindow.getAllWindows().length === 0)
-				createDesktopWindow(desktopSession, preload, windows, openExternal);
-		});
-	})
-	.catch((error: unknown) => {
-		console.error("desktop.start_failed", { error });
-		dialog.showErrorBox(
-			"Anishelf could not start",
-			error instanceof Error ? error.message : "Unexpected startup failure.",
-		);
-		app.exit(1);
+async function createWindow() {
+	const window = new BrowserWindow({
+		width: 1280,
+		height: 800,
+		webPreferences: {
+			contextIsolation: true,
+			nodeIntegration: false,
+			sandbox: true,
+		},
 	});
+	await window.loadURL(rendererUrl);
+	console.info("desktop.window_opened");
+}
+
+app.whenReady().then(async () => {
+	try {
+		registerRenderer();
+		await createWindow();
+		app.on("activate", () => {
+			if (BrowserWindow.getAllWindows().length === 0) {
+				void createWindow().catch(reportStartupFailure);
+			}
+		});
+	} catch (error) {
+		reportStartupFailure(error);
+	}
+});
+
+function reportStartupFailure(error: unknown) {
+	console.error("desktop.start_failed", { error });
+	dialog.showErrorBox(
+		"Anishelf could not start",
+		"Could not open the desktop window.",
+	);
+	app.exit(1);
+}
 
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") app.quit();

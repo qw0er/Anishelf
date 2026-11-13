@@ -686,11 +686,9 @@ device requests use HTTPS, including through a trusted TLS proxy. Password
 changes accept either authenticated session type and revoke all sessions and
 media links.
 
-Electron loads its local build through a custom protocol. The renderer sends API
-and media requests directly to Backend. The main process attaches the device
-credential in Chromium and handles native operations through a preload IPC bridge.
-The desktop CORS policy grants access to the exact app origin and leaves cookie
-authentication and CSRF under the browser session policy.
+The desktop shell is not yet connected to Backend. The desktop CORS policy grants
+access to the exact app origin and leaves cookie authentication and CSRF under the
+browser session policy.
 
 `ANISHELF_PUBLIC_ORIGIN` is an optional fixed external address, not a Host
 allowlist or a Backend login gate. Standard Compose passes it to both Web and

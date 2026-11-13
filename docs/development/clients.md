@@ -84,19 +84,15 @@ clients; this document does not assume those interfaces already exist.
 
 ## Desktop
 
-The [desktop workspace guide](../../apps/desktop/README.md) covers local renderer
-loading, direct device authentication and IPC.
+The [desktop workspace guide](../../apps/desktop/README.md) describes the current
+minimal Electron shell, which is not connected to the shared application or server.
 
-The desktop client uses Electron with the shared React UI. It connects to a
+The proposed desktop client uses Electron with the shared React UI. It connects to a
 separately running Anishelf server on the same machine or over HTTPS. Test
 packaging on Windows, macOS and Linux before claiming platform support.
 
-Start with the existing Web player. A later native playback integration should
-first evaluate mpv in a separate window, including commands, events, subtitles,
-track selection and progress reporting. If an embedded native video view becomes
-necessary, prototype composition and controls before choosing an integration;
-Qt WebEngine with libmpv remains an alternative worth evaluating. Changing hosts
-would still require rewriting host-specific process, window and packaging code.
+Use the existing Web player for desktop playback, including track and subtitle
+selection, resume and progress reporting.
 
 ## Mobile
 
@@ -140,7 +136,7 @@ confirmed server state.
    packaging, authentication and real media across the three desktop platforms.
 2. Deliver mobile remote connection and Web playback; validate touch layouts,
    authentication, lifecycle and real media on Android and iOS.
-3. Add desktop mpv and mobile native playback independently, after validating
+3. Add mobile native playback after validating
    authentication, range requests, subtitle and audio tracks, seeking, errors,
    background transitions and progress reporting with representative media.
 4. Design cross-client conflict handling and continuation, then consider optional

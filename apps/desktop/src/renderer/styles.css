@@ -1,0 +1,33 @@
+:root {
+	color-scheme: light dark;
+	font-family: system-ui, sans-serif;
+	background: #fafafa;
+	color: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		background: #0f0f10;
+		color: #fafafa;
+	}
+}
+
+body {
+	margin: 0;
+}
+
+main {
+	box-sizing: border-box;
+	display: grid;
+	min-block-size: 100dvh;
+	place-items: center;
+	padding: 1.5rem;
+	text-align: center;
+}
+
+h1 {
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 600;
+	line-height: 2rem;
+}

@@ -2,7 +2,7 @@
 
 [Architecture](architecture.md) · [Future clients](clients.md) · [Playback assets](playback.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
 
-The npm workspaces live in `apps/server/` (Fastify backend), `apps/web/`
+The npm workspaces live in `apps/desktop/` (Electron shell), `apps/server/` (Fastify backend), `apps/web/`
 (browser entry and PWA), `packages/client-ui/` (React app and tests),
 `packages/client-core/` (shared API client), and `packages/contracts/`
 (shared HTTP protocol). The packages export TypeScript directly. Node.js 24
@@ -25,13 +25,12 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Backend watcher plus Vite; Ctrl+C stops both |
-| `npm run dev:desktop:all` | Start the backend watcher, build the desktop app, and launch Electron |
-| `npm run dev:desktop` | Build and launch Electron against a running backend |
+| `npm run dev:desktop` | Build and launch the standalone Electron shell |
 | `npm run dev:host` | Expose Vite on `0.0.0.0:5173` for trusted LAN development |
 | `npm run dev:backend` / `npm run dev:web` | Run one workspace |
 | `npm start` | Build and run Backend. Web hosting is opt-in |
 | `npm run start:backend` | Run the built Backend |
-| `npm run start:desktop` | Load the built desktop app in Electron and connect directly to a running backend |
+| `npm run start:desktop` | Launch the built Electron shell |
 | `npm run check` | Biome, lint, architecture, type checks and tests |
 | `npm run build` | Build the server, Web, and desktop apps |
 | `node --import tsx scripts/manual-tests/anime-corpus.mts summary` / `generate <new-directory>` | Inspect integration fixtures or generate an exclusive placeholder directory |
