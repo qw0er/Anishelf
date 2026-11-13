@@ -1,7 +1,7 @@
 import {
 	evaluateReleaseCorpus,
 	loadReleaseCorpus,
-} from "../../backend/test/support/anime-release-corpus.js";
+} from "../../apps/server/test/support/anime-release-corpus.js";
 
 const [command = "test", ...extra] = process.argv.slice(2);
 if (extra.length || !["summary", "test"].includes(command)) {

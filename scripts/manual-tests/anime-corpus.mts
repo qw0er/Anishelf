@@ -4,11 +4,11 @@ import {
 	materializeCorpus,
 	parseCorpusCommand,
 	summarizeCorpus,
-} from "../../backend/test/support/anime-corpus.js";
+} from "../../apps/server/test/support/anime-corpus.js";
 import {
 	loadReportedCorpus,
 	reportedResources,
-} from "../../backend/test/support/anime-reported-cases.js";
+} from "../../apps/server/test/support/anime-reported-cases.js";
 
 const parsed = parseCorpusCommand(process.argv.slice(2));
 if (!parsed) {

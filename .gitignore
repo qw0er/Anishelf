@@ -39,5 +39,5 @@ temp
 .env.*
 !.env.example
 
-/backend/build-info.json
-/web/build-info.json
+/apps/server/build-info.json
+/apps/web/build-info.json

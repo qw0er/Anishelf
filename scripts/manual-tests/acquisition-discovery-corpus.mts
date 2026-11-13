@@ -1,7 +1,7 @@
 import {
 	evaluateDiscoveryCorpus,
 	loadDiscoveryCorpus,
-} from "../../backend/test/support/acquisition-discovery-corpus.js";
+} from "../../apps/server/test/support/acquisition-discovery-corpus.js";
 
 const [command = "test", ...extra] = process.argv.slice(2);
 if (extra.length || !["test", "summary"].includes(command)) {

@@ -2,7 +2,7 @@ import {
 	evaluateParsingCorpus,
 	loadParsingCorpus,
 	summarizeParsingCorpus,
-} from "../../backend/test/support/anime-parsing-corpus.js";
+} from "../../apps/server/test/support/anime-parsing-corpus.js";
 
 const [command = "test", ...arguments_] = process.argv.slice(2);
 if (arguments_.length || !["test", "summary"].includes(command)) {

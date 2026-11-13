@@ -14,8 +14,8 @@
 	"overrides": [
 		{
 			"includes": [
-				"backend/src/modules/*/*/application/**",
-				"backend/src/modules/*/*/application.ts"
+				"apps/server/src/modules/*/*/application/**",
+				"apps/server/src/modules/*/*/application.ts"
 			],
 			"linter": {
 				"rules": {
@@ -36,7 +36,7 @@
 			}
 		},
 		{
-			"includes": ["web/src/**"],
+			"includes": ["apps/web/src/**"],
 			"linter": {
 				"rules": {
 					"style": {

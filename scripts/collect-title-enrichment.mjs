@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 // Explicit maintenance command only. Tests consume frozen JSON and never use the network.
-const root = resolve("backend/test/fixtures/title-enrichment");
+const root = resolve("apps/server/test/fixtures/title-enrichment");
 const { seeds } = JSON.parse(await readFile(`${root}/seeds.json`, "utf8"));
 const headers = {
 	"User-Agent":

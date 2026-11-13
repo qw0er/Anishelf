@@ -1,7 +1,7 @@
 import {
 	evaluateRetrievalCorpus,
 	loadRetrievalCorpus,
-} from "../../backend/test/support/anime-retrieval-corpus.js";
+} from "../../apps/server/test/support/anime-retrieval-corpus.js";
 
 const [command = "test", ...extra] = process.argv.slice(2);
 if (extra.length || !["summary", "test"].includes(command)) {

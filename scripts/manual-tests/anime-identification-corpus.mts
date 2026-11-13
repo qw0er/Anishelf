@@ -1,9 +1,9 @@
 import {
 	evaluateIdentificationCorpus,
 	identificationAuditFailed,
-} from "../../backend/test/support/anime-identification-corpus.js";
-import { loadReportedCorpus } from "../../backend/test/support/anime-reported-cases.js";
-import { evaluateReportedCorpus } from "../../backend/test/support/anime-reported-corpus.js";
+} from "../../apps/server/test/support/anime-identification-corpus.js";
+import { loadReportedCorpus } from "../../apps/server/test/support/anime-reported-cases.js";
+import { evaluateReportedCorpus } from "../../apps/server/test/support/anime-reported-corpus.js";
 
 const [command = "test", ...arguments_] = process.argv.slice(2);
 if (command !== "test" || arguments_.length) {

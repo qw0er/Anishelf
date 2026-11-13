@@ -7,8 +7,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-COPY backend/package.json ./backend/package.json
-COPY web/package.json ./web/package.json
+COPY apps/server/package.json ./apps/server/package.json
+COPY apps/web/package.json ./apps/web/package.json
 COPY scripts/build-info.mjs ./scripts/build-info.mjs
 ARG ANISHELF_BUILD_TAG=""
 ARG ANISHELF_BUILD_COMMIT=""
@@ -21,17 +21,17 @@ ENV ANISHELF_BUILD_TAG=$ANISHELF_BUILD_TAG \
 RUN npm ci && npm rebuild better-sqlite3
 
 FROM dependencies AS backend-build
-COPY backend/ ./backend/
+COPY apps/server/ ./apps/server/
 RUN npm run build --workspace @anishelf/backend \
-    && rm -rf node_modules backend/node_modules web/node_modules \
+    && rm -rf node_modules apps/server/node_modules apps/web/node_modules \
     && npm ci --omit=dev --workspace @anishelf/backend \
     && npm rebuild better-sqlite3 \
-    && mkdir -p backend/node_modules
+    && mkdir -p apps/server/node_modules
 
 FROM dependencies AS web-build
 # Web imports shared contracts and build defaults from the backend workspace.
-COPY backend/ ./backend/
-COPY web/ ./web/
+COPY apps/server/ ./apps/server/
+COPY apps/web/ ./apps/web/
 COPY CHANGELOG.md ./CHANGELOG.md
 RUN npm run build --workspace @anishelf/web
 
@@ -49,24 +49,24 @@ RUN apt-get update \
     && mkdir -p /var/lib/anishelf /data/media \
     && chown -R node:node /var/lib/anishelf /data
 COPY --from=backend-build /app/node_modules ./node_modules
-COPY --from=backend-build /app/backend/package.json ./backend/package.json
-COPY --from=backend-build /app/backend/build-info.json ./backend/build-info.json
-COPY --from=backend-build /app/backend/node_modules ./backend/node_modules
-COPY --from=backend-build /app/backend/dist ./backend/dist
-COPY --from=backend-build /app/backend/migrations ./backend/migrations
+COPY --from=backend-build /app/apps/server/package.json ./apps/server/package.json
+COPY --from=backend-build /app/apps/server/build-info.json ./apps/server/build-info.json
+COPY --from=backend-build /app/apps/server/node_modules ./apps/server/node_modules
+COPY --from=backend-build /app/apps/server/dist ./apps/server/dist
+COPY --from=backend-build /app/apps/server/migrations ./apps/server/migrations
 COPY package/qbittorrent-init.mjs ./package/qbittorrent-init.mjs
 COPY package/jackett-init.mjs ./package/jackett-init.mjs
 EXPOSE 3000
 USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD node -e 'fetch(`http://${process.env.ANISHELF_HOST === "0.0.0.0" ? "127.0.0.1" : process.env.ANISHELF_HOST === "::" ? "[::1]" : process.env.ANISHELF_HOST.includes(":") ? `[${process.env.ANISHELF_HOST}]` : process.env.ANISHELF_HOST}:${process.env.ANISHELF_PORT}/api/health`).then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1));'
-CMD ["node", "backend/dist/index.js"]
+CMD ["node", "apps/server/dist/index.js"]
 
 FROM caddy:2-alpine AS web
 ENV XDG_CONFIG_HOME=/tmp/caddy/config \
     XDG_DATA_HOME=/tmp/caddy/data
 COPY package/Caddyfile /etc/caddy/Caddyfile
-COPY --from=web-build /app/web/dist /srv
+COPY --from=web-build /app/apps/web/dist /srv
 EXPOSE 8080
 USER 1000:1000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

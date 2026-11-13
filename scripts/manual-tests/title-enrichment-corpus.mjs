@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 async function summary() {
 	const root = new URL(
-		"../../backend/test/fixtures/title-enrichment/",
+		"../../apps/server/test/fixtures/title-enrichment/",
 		import.meta.url,
 	);
 	const { cases } = JSON.parse(
@@ -33,7 +33,7 @@ async function summary() {
 async function test(split) {
 	// Loaded only for an explicit test command; summary never starts the verifier.
 	const { testTitleEnrichmentCorpus } = await import(
-		"../../backend/test/manual/title-enrichment-corpus.js"
+		"../../apps/server/test/manual/title-enrichment-corpus.js"
 	);
 	console.error(
 		JSON.stringify({

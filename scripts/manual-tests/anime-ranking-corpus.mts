@@ -1,7 +1,7 @@
 import {
 	evaluateRankingCorpus,
 	loadRankingCorpus,
-} from "../../backend/test/support/anime-ranking-corpus.js";
+} from "../../apps/server/test/support/anime-ranking-corpus.js";
 
 const [command = "test", ...arguments_] = process.argv.slice(2);
 if (arguments_.length || !["test", "summary"].includes(command)) {

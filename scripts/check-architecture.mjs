@@ -9,8 +9,8 @@ const rules = require("../.dependency-cruiser.cjs");
 
 export async function checkArchitecture(baseDir = process.cwd()) {
 	for (const relative of [
-		"backend/src/modules/anime",
-		"web/src/features/anime",
+		"apps/server/src/modules/anime",
+		"apps/web/src/features/anime",
 	]) {
 		const directory = join(baseDir, relative);
 		let files;
@@ -23,7 +23,7 @@ export async function checkArchitecture(baseDir = process.cwd()) {
 		for (const file of files) {
 			if (!file.endsWith(".ts") && !file.endsWith(".tsx")) continue;
 			if (
-				relative.startsWith("backend") &&
+				relative.startsWith("apps/server/") &&
 				!/^(?:external-works\/(?:tracking|metadata)|anime-library|anime-catalog|identification)\/(?:application\/|domain\/|(?:ports|public|policy|defaults)\.ts$)/.test(
 					file,
 				)
@@ -41,7 +41,7 @@ export async function checkArchitecture(baseDir = process.cwd()) {
 	}
 
 	const result = await cruise(
-		["backend/src", "web/src"],
+		["apps/server/src", "apps/web/src"],
 		{
 			...rules.options,
 			baseDir,
@@ -55,8 +55,10 @@ export async function checkArchitecture(baseDir = process.cwd()) {
 	if ((graph.summary.environment.issues ?? []).length > 0)
 		throw new Error(JSON.stringify(graph.summary.environment.issues));
 	if (
-		!graph.modules.some((module) => module.source.startsWith("backend/src/")) ||
-		!graph.modules.some((module) => module.source.startsWith("web/src/"))
+		!graph.modules.some((module) =>
+			module.source.startsWith("apps/server/src/"),
+		) ||
+		!graph.modules.some((module) => module.source.startsWith("apps/web/src/"))
 	)
 		throw new Error(
 			"Architecture scan must include both TypeScript workspaces.",

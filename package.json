@@ -5,8 +5,8 @@
 	"version": "1.7.0",
 	"private": true,
 	"workspaces": [
-		"backend",
-		"web"
+		"apps/server",
+		"apps/web"
 	],
 	"devDependencies": {
 		"@biomejs/biome": "^2.6.2",
@@ -29,7 +29,7 @@
 		"test:deployment": "npm run test:installer && node --test package/qbittorrent-init.test.mjs package/jackett-init.test.mjs",
 		"test": "npm run architecture:test && npm run test:deployment && npm run test --workspace @anishelf/backend && npm run test --workspace @anishelf/web",
 		"build": "npm run build --workspaces",
-		"start": "npm run build && ANISHELF_FRONTEND_DIR=\"./web/dist\" npm run start --workspace @anishelf/backend",
+		"start": "npm run build && ANISHELF_FRONTEND_DIR=\"$PWD/apps/web/dist\" npm run start --workspace @anishelf/backend",
 		"start:backend": "npm run start --workspace @anishelf/backend",
 		"dev:backend": "ANISHELF_LOG_LEVEL=debug npm run dev --workspace @anishelf/backend",
 		"dev:web": "ANISHELF_LOG_LEVEL=debug npm run dev --workspace @anishelf/web",

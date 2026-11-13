@@ -2,6 +2,9 @@
 
 [Architecture](architecture.md) · [Future clients](clients.md) · [Playback assets](playback.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
 
+The npm workspaces live in `apps/server/` (Fastify backend) and `apps/web/`
+(React web app).
+
 ## Local development
 
 Use Node.js 24 (`.nvmrc`) and FFmpeg/FFprobe for media integration work. From the
@@ -20,18 +23,18 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | `npm run dev` | Backend watcher plus Vite; Ctrl+C stops both |
 | `npm run dev:host` | Expose Vite on `0.0.0.0:5173` for trusted LAN development |
 | `npm run dev:backend` / `npm run dev:web` | Run one workspace |
-| `npm start` | Build both workspaces and serve `web/dist` through Backend |
+| `npm start` | Build both workspaces and serve `apps/web/dist` through Backend |
 | `npm run start:backend` | Run built Backend; frontend hosting requires `ANISHELF_FRONTEND_DIR` |
 | `npm run check` | Biome, lint, architecture, type checks and tests |
 | `npm run build` | Build both workspaces |
 | `node --import tsx scripts/manual-tests/anime-corpus.mts summary` / `generate <new-directory>` | Inspect integration fixtures or generate an exclusive placeholder directory |
 | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test` | Audit the complete offline path-to-admission pipeline; unsafe admissions, comparable episode errors and reported regressions return nonzero |
-| `node --import tsx scripts/manual-tests/anime-parsing-corpus.mts summary` / `test` | Inspect or evaluate the offline [filename/directory parsing corpus](../../backend/test/fixtures/anime-parsing/README.md); strict benchmark failures return nonzero |
-| `node --import tsx scripts/manual-tests/anime-retrieval-corpus.mts summary` / `test` | Run the small [first-page candidate search replay](../../backend/test/fixtures/anime-retrieval/README.md) for common query cases |
-| `node --import tsx scripts/manual-tests/anime-release-corpus.mts summary` / `test` | Evaluate [subscription release identity/episode eligibility and declared attributes](../../backend/test/fixtures/anime-releases/README.md) using real publication titles and explicit boundary cases |
-| `node --import tsx scripts/manual-tests/acquisition-discovery-corpus.mts summary` / `test` | Run the small offline [subscription resource discovery corpus](../../backend/test/fixtures/acquisition-discovery/README.md) for Jackett query planning, pagination, deduplication, and coverage limits |
-| `node --import tsx scripts/manual-tests/anime-ranking-corpus.mts summary` / `test` | Inspect or evaluate [work identification and candidate ranking](../../backend/test/fixtures/anime-ranking/README.md) over frozen evidence and candidate pools; strict Top-1 misses return nonzero |
-| `node --import tsx scripts/manual-tests/anime-numbering-corpus.mts summary` / `test` | Inspect or evaluate [known-work episode numbering and directory conversion](../../backend/test/fixtures/anime-numbering/README.md) with independently comparable target labels |
+| `node --import tsx scripts/manual-tests/anime-parsing-corpus.mts summary` / `test` | Inspect or evaluate the offline [filename/directory parsing corpus](../../apps/server/test/fixtures/anime-parsing/README.md); strict benchmark failures return nonzero |
+| `node --import tsx scripts/manual-tests/anime-retrieval-corpus.mts summary` / `test` | Run the small [first-page candidate search replay](../../apps/server/test/fixtures/anime-retrieval/README.md) for common query cases |
+| `node --import tsx scripts/manual-tests/anime-release-corpus.mts summary` / `test` | Evaluate [subscription release identity/episode eligibility and declared attributes](../../apps/server/test/fixtures/anime-releases/README.md) using real publication titles and explicit boundary cases |
+| `node --import tsx scripts/manual-tests/acquisition-discovery-corpus.mts summary` / `test` | Run the small offline [subscription resource discovery corpus](../../apps/server/test/fixtures/acquisition-discovery/README.md) for Jackett query planning, pagination, deduplication, and coverage limits |
+| `node --import tsx scripts/manual-tests/anime-ranking-corpus.mts summary` / `test` | Inspect or evaluate [work identification and candidate ranking](../../apps/server/test/fixtures/anime-ranking/README.md) over frozen evidence and candidate pools; strict Top-1 misses return nonzero |
+| `node --import tsx scripts/manual-tests/anime-numbering-corpus.mts summary` / `test` | Inspect or evaluate [known-work episode numbering and directory conversion](../../apps/server/test/fixtures/anime-numbering/README.md) with independently comparable target labels |
 
 ## Development proxy and hosting
 
@@ -68,7 +71,7 @@ Add structured lifecycle/failure logs when changing business behavior.
 3. Review and commit generated SQL and migration metadata with the change.
 4. Verify upgrade preservation and restart behavior using a disk-backed fixture.
 
-Ship `backend/migrations/` with `backend/dist`. Startup applies committed migrations;
+Ship `apps/server/migrations/` with `apps/server/dist`. Startup applies committed migrations;
 do not use destructive schema push at runtime. Back up before upgrades; rollback
 requires a matching database backup. See [database design](database-design.md).
 
@@ -145,7 +148,7 @@ tests use `query-setup` when needed. Advance polling timers inside React `act`.
 | `debug` / `trace` | Workflow decisions, provider pacing, requests, polling and reuse |
 | Secrets | Omit credentials, tokens, cookies, raw private locators, provider payloads and tool arguments |
 
-Construction/redaction live in `backend/src/platform/logging/`; owners create child
+Construction/redaction live in `apps/server/src/platform/logging/`; owners create child
 loggers. Avoid secrets in message strings or unrecognized fields. File output and
 rotation settings are in [Operations](../guide/operations.md#operational-log-levels).
 
@@ -168,7 +171,7 @@ Normal status reads do not emit business events.
 | Web suite | `npm run test --workspace @anishelf/web` |
 | One backend file | `npm run test --workspace @anishelf/backend -- test/app/anime-detail.test.ts` |
 | Deployment fixtures | `npm run test:deployment` |
-| Complete identification audit | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`; [corpus usage](../../backend/test/fixtures/anime-identification/README.md) |
+| Complete identification audit | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`; [corpus usage](../../apps/server/test/fixtures/anime-identification/README.md) |
 
 Both Vitest workspaces use up to eight workers based on available CPU parallelism.
 Use `--maxWorkers` to override the count.

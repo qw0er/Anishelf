@@ -1,113 +1,121 @@
-const modulePath = "backend/src/modules/[^/]+/(?:external-works/)?[^/]+/";
+const modulePath = "apps/server/src/modules/[^/]+/(?:external-works/)?[^/]+/";
 const implementation = `${modulePath}(?:(?:application|infrastructure|http)(?:/|\\.ts$)|files\\.ts$)`;
 module.exports = {
 	forbidden: [
 		{
 			name: "torrent-clients-implementation-is-private",
 			severity: "error",
-			from: { path: "^backend/src/modules/acquisition/(?!torrent-clients/)" },
+			from: {
+				path: "^apps/server/src/modules/acquisition/(?!torrent-clients/)",
+			},
 			to: {
-				path: "^backend/src/modules/acquisition/torrent-clients/",
+				path: "^apps/server/src/modules/acquisition/torrent-clients/",
 				pathNot:
-					"^backend/src/modules/acquisition/torrent-clients/(?:public|create)\\.ts$",
+					"^apps/server/src/modules/acquisition/torrent-clients/(?:public|create)\\.ts$",
 			},
 		},
 		{
 			name: "torrent-clients-do-not-import-business-consumers",
 			severity: "error",
-			from: { path: "^backend/src/modules/acquisition/torrent-clients/" },
+			from: { path: "^apps/server/src/modules/acquisition/torrent-clients/" },
 			to: {
-				path: "^backend/src/modules/acquisition/(?:downloads|subscriptions|watching|sources)/|^backend/src/modules/(?:anime|resources)/",
+				path: "^apps/server/src/modules/acquisition/(?:downloads|subscriptions|watching|sources)/|^apps/server/src/modules/(?:anime|resources)/",
 			},
 		},
 		{
 			name: "torrent-connection-uses-configuration-port",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/acquisition/torrent-clients/(?:application/|domain/|ports\\.ts$)",
+				path: "^apps/server/src/modules/acquisition/torrent-clients/(?:application/|domain/|ports\\.ts$)",
 			},
 			to: {
-				path: "^backend/src/modules/acquisition/torrent-clients/qbittorrent/",
+				path: "^apps/server/src/modules/acquisition/torrent-clients/qbittorrent/",
 			},
 		},
 		{
 			name: "downloads-do-not-import-downloader-adapters",
 			severity: "error",
-			from: { path: "^backend/src/modules/acquisition/downloads/" },
+			from: { path: "^apps/server/src/modules/acquisition/downloads/" },
 			to: {
-				path: "^backend/src/modules/acquisition/torrent-clients/qbittorrent/|(?:^|/)node_modules/@ctrl/qbittorrent/",
+				path: "^apps/server/src/modules/acquisition/torrent-clients/qbittorrent/|(?:^|/)node_modules/@ctrl/qbittorrent/",
 			},
 		},
 		{
 			name: "sources-implementation-is-private",
 			severity: "error",
-			from: { path: "^backend/src/modules/acquisition/(?!sources/)" },
+			from: { path: "^apps/server/src/modules/acquisition/(?!sources/)" },
 			to: {
-				path: "^backend/src/modules/acquisition/sources/",
+				path: "^apps/server/src/modules/acquisition/sources/",
 				pathNot:
-					"^backend/src/modules/acquisition/sources/(?:public|persistence|create|integration)\\.ts$",
+					"^apps/server/src/modules/acquisition/sources/(?:public|persistence|create|integration)\\.ts$",
 			},
 		},
 		{
 			name: "sources-domain-does-not-import-adapters",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/acquisition/sources/(?:domain/|public\\.ts$|integration\\.ts$|infrastructure/store\\.ts$)",
+				path: "^apps/server/src/modules/acquisition/sources/(?:domain/|public\\.ts$|integration\\.ts$|infrastructure/store\\.ts$)",
 			},
-			to: { path: "^backend/src/modules/acquisition/sources/(?:rss|jackett)/" },
+			to: {
+				path: "^apps/server/src/modules/acquisition/sources/(?:rss|jackett)/",
+			},
 		},
 		{
 			name: "subscriptions-do-not-import-downloads",
 			severity: "error",
-			from: { path: "^backend/src/modules/acquisition/subscriptions/" },
-			to: { path: "^backend/src/modules/acquisition/downloads/" },
+			from: { path: "^apps/server/src/modules/acquisition/subscriptions/" },
+			to: { path: "^apps/server/src/modules/acquisition/downloads/" },
 		},
 		{
 			name: "acquisition-sources-do-not-import-business-consumers",
 			severity: "error",
-			from: { path: "^backend/src/modules/acquisition/sources/" },
+			from: { path: "^apps/server/src/modules/acquisition/sources/" },
 			to: {
-				path: "^backend/src/modules/acquisition/(?:subscriptions|downloads|watching|torrent-clients)/|^backend/src/modules/(?:anime|resources)/",
+				path: "^apps/server/src/modules/acquisition/(?:subscriptions|downloads|watching|torrent-clients)/|^apps/server/src/modules/(?:anime|resources)/",
 			},
 		},
 		{
 			name: "download-transfers-do-not-import-business-consumers",
 			severity: "error",
-			from: { path: "^backend/src/modules/acquisition/downloads/transfers/" },
+			from: {
+				path: "^apps/server/src/modules/acquisition/downloads/transfers/",
+			},
 			to: {
-				path: "^backend/src/modules/(?:anime|resources)/|^backend/src/modules/acquisition/(?:subscriptions)/",
+				path: "^apps/server/src/modules/(?:anime|resources)/|^apps/server/src/modules/acquisition/(?:subscriptions)/",
 			},
 		},
 		{
 			name: "anime-applications-use-ports",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/anime/(?:external-works/(?:tracking|metadata)|anime-library|anime-catalog|identification)/(?:application/|domain/|ports\\.ts$|public\\.ts$)",
+				path: "^apps/server/src/modules/anime/(?:external-works/(?:tracking|metadata)|anime-library|anime-catalog|identification)/(?:application/|domain/|ports\\.ts$|public\\.ts$)",
 			},
 			to: {
-				path: "^backend/src/modules/anime/(?:external-works/)?(?:[^/]+/infrastructure/|(?:anilist|bangumi)/)",
+				path: "^apps/server/src/modules/anime/(?:external-works/)?(?:[^/]+/infrastructure/|(?:anilist|bangumi)/)",
 			},
 		},
 		{
 			name: "provider-protocol-does-not-import-business",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/anime/external-works/(anilist|bangumi)/",
+				path: "^apps/server/src/modules/anime/external-works/(anilist|bangumi)/",
 			},
 			to: {
-				path: "^backend/src/modules/anime/(?:external-works/(?!$1/)[^/]+/|(?!(?:external-works)/)[^/]+/)",
+				path: "^apps/server/src/modules/anime/(?:external-works/(?!$1/)[^/]+/|(?!(?:external-works)/)[^/]+/)",
 			},
 		},
 		{
 			name: "configuration-application-does-not-project-http",
 			severity: "error",
-			from: { path: "^backend/src/modules/system/configuration/application/" },
-			to: { path: "^backend/src/contracts/(?:http\\.ts$|schemas/)" },
+			from: {
+				path: "^apps/server/src/modules/system/configuration/application/",
+			},
+			to: { path: "^apps/server/src/contracts/(?:http\\.ts$|schemas/)" },
 		},
 		{
 			name: "no-unresolved-source-imports",
 			severity: "error",
-			from: { path: "^(backend|web)/src" },
+			from: { path: "^apps/(?:server|web)/src" },
 			to: {
 				couldNotResolve: true,
 				// Vite resolves this exported npm asset; its query is not a JS module specifier.
@@ -117,41 +125,41 @@ module.exports = {
 		{
 			name: "no-runtime-cycles",
 			severity: "error",
-			from: { path: "^(backend|web)/src" },
+			from: { path: "^apps/(?:server|web)/src" },
 			to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
 		},
 		{
 			name: "domain-and-ports-do-not-import-http-dtos",
 			severity: "error",
 			from: {
-				path: `^${modulePath}(?:domain/|ports\\.ts$|settings\\.ts$|profile\\.ts$|snapshot\\.ts$|negotiation\\.ts$|result\\.ts$)|^backend/src/shared/`,
+				path: `^${modulePath}(?:domain/|ports\\.ts$|settings\\.ts$|profile\\.ts$|snapshot\\.ts$|negotiation\\.ts$|result\\.ts$)|^apps/server/src/shared/`,
 			},
-			to: { path: "^backend/src/contracts/(?:http\\.ts$|schemas/)" },
+			to: { path: "^apps/server/src/contracts/(?:http\\.ts$|schemas/)" },
 		},
 		{
 			name: "platform-does-not-import-business",
 			severity: "error",
-			from: { path: "^backend/src/platform/" },
-			to: { path: "^backend/src/(modules|app|transport)/" },
+			from: { path: "^apps/server/src/platform/" },
+			to: { path: "^apps/server/src/(modules|app|transport)/" },
 		},
 		{
 			name: "shared-does-not-import-business",
 			severity: "error",
-			from: { path: "^backend/src/shared/" },
-			to: { path: "^backend/src/(modules|app|platform|transport)/" },
+			from: { path: "^apps/server/src/shared/" },
+			to: { path: "^apps/server/src/(modules|app|platform|transport)/" },
 		},
 		{
 			name: "modules-do-not-import-app",
 			severity: "error",
 			from: { path: `^${modulePath}` },
-			to: { path: "^backend/src/app/" },
+			to: { path: "^apps/server/src/app/" },
 		},
 		{
 			name: "domain-does-not-import-implementation",
 			severity: "error",
 			from: { path: `^${modulePath}domain/` },
 			to: {
-				path: `^${implementation}|^backend/src/(app|transport)/|(?:^|/)fastify(?:/|$)`,
+				path: `^${implementation}|^apps/server/src/(app|transport)/|(?:^|/)fastify(?:/|$)`,
 			},
 		},
 		{
@@ -159,7 +167,7 @@ module.exports = {
 			severity: "error",
 			from: { path: `^${modulePath}domain/` },
 			to: {
-				path: "^backend/src/platform/",
+				path: "^apps/server/src/platform/",
 				pathNot: "(?:policy|config|model|errors)\\.ts$",
 				dependencyTypesNot: ["type-only"],
 			},
@@ -174,70 +182,73 @@ module.exports = {
 			name: "backend-module-entry-points",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/([^/]+)/(?!integration/|workflows/)([^/]+)/",
+				path: "^apps/server/src/modules/([^/]+)/(?!integration/|workflows/)([^/]+)/",
 			},
 			to: {
-				path: "^backend/src/modules/$1/(?!$2/)[^/]+/",
+				path: "^apps/server/src/modules/$1/(?!$2/)[^/]+/",
 				pathNot:
-					"(?:public|policy|defaults|persistence|create)\\.ts$|^backend/src/modules/acquisition/sources/integration\\.ts$",
+					"(?:public|policy|defaults|persistence|create)\\.ts$|^apps/server/src/modules/acquisition/sources/integration\\.ts$",
 			},
 		},
 		{
 			name: "large-public-does-not-load-implementation",
 			severity: "error",
-			from: { path: "^backend/src/modules/[^/]+/public\\.ts$" },
+			from: { path: "^apps/server/src/modules/[^/]+/public\\.ts$" },
 			to: {
-				path: "^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|create\\.ts$|http\\.ts$|persistence\\.ts$)|^backend/src/modules/[^/]+/(?:external-works/)?[^/]+/(?:create\\.ts$|application(?:/|\\.ts$)|infrastructure/|http/)",
+				path: "^apps/server/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|create\\.ts$|http\\.ts$|persistence\\.ts$)|^apps/server/src/modules/[^/]+/(?:external-works/)?[^/]+/(?:create\\.ts$|application(?:/|\\.ts$)|infrastructure/|http/)",
 			},
 		},
 
 		{
 			name: "backend-large-module-boundary",
 			severity: "error",
-			from: { path: "^backend/src/modules/([^/]+)/" },
+			from: { path: "^apps/server/src/modules/([^/]+)/" },
 			to: {
-				path: "^backend/src/modules/(?!$1/)[^/]+/",
-				pathNot: "^backend/src/modules/[^/]+/(?:public|persistence)\\.ts$",
+				path: "^apps/server/src/modules/(?!$1/)[^/]+/",
+				pathNot: "^apps/server/src/modules/[^/]+/(?:public|persistence)\\.ts$",
 			},
 		},
 		{
 			name: "backend-app-uses-module-entries",
 			severity: "error",
-			from: { path: "^backend/src/app/" },
+			from: { path: "^apps/server/src/app/" },
 			to: {
-				path: "^backend/src/modules/",
+				path: "^apps/server/src/modules/",
 				pathNot:
-					"^backend/src/modules/[^/]+/(?:public|create|http|persistence)\\.ts$",
+					"^apps/server/src/modules/[^/]+/(?:public|create|http|persistence)\\.ts$",
 			},
 		},
 		{
 			name: "backend-external-consumers-use-public-api",
 			severity: "error",
-			from: { path: "^backend/src/", pathNot: "^backend/src/(app|modules)/" },
+			from: {
+				path: "^apps/server/src/",
+				pathNot: "^apps/server/src/(app|modules)/",
+			},
 			to: {
-				path: "^backend/src/modules/",
-				pathNot: "^backend/src/modules/[^/]+/public\\.ts$",
+				path: "^apps/server/src/modules/",
+				pathNot: "^apps/server/src/modules/[^/]+/public\\.ts$",
 			},
 		},
 		{
 			name: "business-does-not-use-assembly-entries",
 			severity: "error",
 			from: {
-				path: "^backend/src/modules/",
+				path: "^apps/server/src/modules/",
 				pathNot:
-					"^backend/src/modules/[^/]+/(?:create|http|persistence)\\.ts$|^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|(?:external-works/)?[^/]+/create\\.ts$)",
+					"^apps/server/src/modules/[^/]+/(?:create|http|persistence)\\.ts$|^apps/server/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|(?:external-works/)?[^/]+/create\\.ts$)",
 			},
 			to: {
-				path: "^backend/src/modules/[^/]+/(?:(?:create|http)\\.ts$|(?:external-works/)?[^/]+/create\\.ts$|integration/|workflows/create-[^/]+\\.ts$)",
+				path: "^apps/server/src/modules/[^/]+/(?:(?:create|http)\\.ts$|(?:external-works/)?[^/]+/create\\.ts$|integration/|workflows/create-[^/]+\\.ts$)",
 			},
 		},
 
 		{
 			name: "http-does-not-call-other-modules",
 			severity: "error",
-			from: { path: "^backend/src/modules/([^/]+/[^/]+)/http/" },
+			from: { path: "^apps/server/src/modules/([^/]+/[^/]+)/http/" },
 			to: {
-				path: "^backend/src/modules/(?!$1/)[^/]+/[^/]+/",
+				path: "^apps/server/src/modules/(?!$1/)[^/]+/[^/]+/",
 				dependencyTypesNot: ["type-only"],
 			},
 		},
@@ -252,29 +263,29 @@ module.exports = {
 			name: "persistence-is-adapter-only",
 			severity: "error",
 			from: {
-				path: "^backend/src/",
+				path: "^apps/server/src/",
 				pathNot:
-					"^backend/src/app/|^backend/src/modules/[^/]+/(?:create|persistence)\\.ts$|^backend/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|(?:external-works/)?[^/]+/create\\.ts$)|^backend/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository|records)\\.ts$",
+					"^apps/server/src/app/|^apps/server/src/modules/[^/]+/(?:create|persistence)\\.ts$|^apps/server/src/modules/[^/]+/(?:integration/|workflows/create-[^/]+\\.ts$|(?:external-works/)?[^/]+/create\\.ts$)|^apps/server/src/modules/[^/]+/[^/]+/infrastructure/(?:schema|repository|records)\\.ts$",
 			},
 			to: {
-				path: "^backend/src/modules/[^/]+/persistence\\.ts$|^backend/src/modules/[^/]+/[^/]+/persistence\\.ts$",
+				path: "^apps/server/src/modules/[^/]+/persistence\\.ts$|^apps/server/src/modules/[^/]+/[^/]+/persistence\\.ts$",
 			},
 		},
 
 		{
 			name: "web-only-imports-browser-contracts",
 			severity: "error",
-			from: { path: "^web/src/" },
-			to: { path: "^backend/src/", pathNot: "^backend/src/contracts/" },
+			from: { path: "^apps/web/src/" },
+			to: { path: "^apps/server/src/", pathNot: "^apps/server/src/contracts/" },
 		},
 		{
 			name: "web-feature-entry-points",
 			severity: "error",
 			from: {
-				path: "^web/src/features/(resources|media|playback)/([^/]+)/",
+				path: "^apps/web/src/features/(resources|media|playback)/([^/]+)/",
 			},
 			to: {
-				path: "^web/src/features/$1/(?!$2/)[^/]+/",
+				path: "^apps/web/src/features/$1/(?!$2/)[^/]+/",
 				pathNot: "public\\.ts$",
 			},
 		},
@@ -282,84 +293,84 @@ module.exports = {
 			name: "web-anime-feature-entry-points",
 			severity: "error",
 			from: {
-				path: "^web/src/features/anime/(catalog|metadata|review|library|tracking)/",
+				path: "^apps/web/src/features/anime/(catalog|metadata|review|library|tracking)/",
 			},
 			to: {
-				path: "^web/src/features/anime/(?!$1/)(catalog|metadata|review|library|tracking)/",
+				path: "^apps/web/src/features/anime/(?!$1/)(catalog|metadata|review|library|tracking)/",
 				pathNot: "public\\.ts$",
 			},
 		},
 		{
 			name: "web-anime-catalog-does-not-import-review",
 			severity: "error",
-			from: { path: "^web/src/features/anime/catalog/" },
-			to: { path: "^web/src/features/anime/review/" },
+			from: { path: "^apps/web/src/features/anime/catalog/" },
+			to: { path: "^apps/web/src/features/anime/review/" },
 		},
 		{
 			name: "web-anime-metadata-is-independent",
 			severity: "error",
-			from: { path: "^web/src/features/anime/metadata/" },
+			from: { path: "^apps/web/src/features/anime/metadata/" },
 			to: {
-				path: "^web/src/features/anime/(catalog|review|library|tracking)/",
+				path: "^apps/web/src/features/anime/(catalog|review|library|tracking)/",
 			},
 		},
 		{
 			name: "web-anime-shared-is-a-leaf",
 			severity: "error",
-			from: { path: "^web/src/features/anime/shared/" },
+			from: { path: "^apps/web/src/features/anime/shared/" },
 			to: {
-				path: "^web/src/features/anime/",
-				pathNot: "^web/src/features/anime/shared/",
+				path: "^apps/web/src/features/anime/",
+				pathNot: "^apps/web/src/features/anime/shared/",
 			},
 		},
 		{
 			name: "web-public-does-not-load-ui-barrels",
 			severity: "error",
-			from: { path: "^web/src/features/[^/]+/public\\.ts$" },
+			from: { path: "^apps/web/src/features/[^/]+/public\\.ts$" },
 			to: {
-				path: "^web/src/features/.*/ui\\.ts$",
+				path: "^apps/web/src/features/.*/ui\\.ts$",
 				reachable: true,
 			},
 		},
 		{
 			name: "web-large-module-boundary",
 			severity: "error",
-			from: { path: "^web/src/features/([^/]+)/" },
+			from: { path: "^apps/web/src/features/([^/]+)/" },
 			to: {
-				path: "^web/src/features/(?!$1/)[^/]+/",
-				pathNot: "^web/src/features/[^/]+/public\\.ts$",
+				path: "^apps/web/src/features/(?!$1/)[^/]+/",
+				pathNot: "^apps/web/src/features/[^/]+/public\\.ts$",
 			},
 		},
 		{
 			name: "web-app-uses-feature-public-api",
 			severity: "error",
-			from: { path: "^web/src/app/|^web/src/main\\.tsx$" },
+			from: { path: "^apps/web/src/app/|^apps/web/src/main\\.tsx$" },
 			to: {
-				path: "^web/src/features/",
-				pathNot: "^web/src/features/[^/]+/(?:public|ui)\\.ts$",
+				path: "^apps/web/src/features/",
+				pathNot: "^apps/web/src/features/[^/]+/(?:public|ui)\\.ts$",
 			},
 		},
 		{
 			name: "web-business-does-not-import-ui-entry",
 			severity: "error",
 			from: {
-				path: "^web/src/features/",
-				pathNot: "^web/src/features/[^/]+/ui\\.ts$",
+				path: "^apps/web/src/features/",
+				pathNot: "^apps/web/src/features/[^/]+/ui\\.ts$",
 			},
-			to: { path: "^web/src/features/[^/]+/ui\\.ts$" },
+			to: { path: "^apps/web/src/features/[^/]+/ui\\.ts$" },
 		},
 
 		{
 			name: "web-shared-does-not-import-features",
 			severity: "error",
-			from: { path: "^web/src/shared/" },
-			to: { path: "^web/src/(features|app)/" },
+			from: { path: "^apps/web/src/shared/" },
+			to: { path: "^apps/web/src/(features|app)/" },
 		},
 		{
 			name: "web-features-do-not-import-app",
 			severity: "error",
-			from: { path: "^web/src/features/" },
-			to: { path: "^web/src/app/" },
+			from: { path: "^apps/web/src/features/" },
+			to: { path: "^apps/web/src/app/" },
 		},
 	],
 	options: {

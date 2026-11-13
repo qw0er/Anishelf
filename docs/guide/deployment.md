@@ -364,11 +364,11 @@ services:
 
 ```sh
 # Docker Compose
-docker compose exec backend node backend/dist/cli.js auth reset-password
+docker compose exec backend node apps/server/dist/cli.js auth reset-password
 docker compose restart backend web
 
 # Rootless Quadlet
-podman exec anishelf-backend node backend/dist/cli.js auth reset-password
+podman exec anishelf-backend node apps/server/dist/cli.js auth reset-password
 systemctl --user restart anishelf-backend.service anishelf-web.service
 ```
 

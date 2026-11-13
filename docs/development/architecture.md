@@ -297,7 +297,7 @@ ports. Module and dependency checks cover the nested External Works directories.
 
 ### Local work detail query naming
 
-App's [detail adapter](../../backend/src/app/anime-detail.ts) exposes descriptive work
+App's [detail adapter](../../apps/server/src/app/anime-detail.ts) exposes descriptive work
 details separately from `/api/anime/status/:key`, which combines cached Tracking,
 subscription summaries and download counts. Status reads do not load metadata or
 download task pages. Activity and candidate diagnostics load when opened. Local IDs become authoritative
@@ -667,9 +667,9 @@ source access, provider scheduling and persistence outlive their consumers.
 
 | Topic | Source |
 | --- | --- |
-| Tables, constraints, migrations | [Database design](database-design.md), `backend/migrations/`, module persistence entries |
-| App assembly and shutdown | `backend/src/app/bootstrap/server.ts`, `backend/src/app/lifecycle.ts` |
-| Acquisition assembly | `backend/src/modules/acquisition/create.ts` |
+| Tables, constraints, migrations | [Database design](database-design.md), `apps/server/migrations/`, module persistence entries |
+| App assembly and shutdown | `apps/server/src/app/bootstrap/server.ts`, `apps/server/src/app/lifecycle.ts` |
+| Acquisition assembly | `apps/server/src/modules/acquisition/create.ts` |
 | Installer | `scripts/install.pyz` (zipapp), `scripts/installer/`, canonical `package/deploy/` templates |
 | Historical design and acceptance | [History](../history.md) |
 
@@ -749,7 +749,7 @@ unqualified numeric inputs resolve against AniList. Details and artwork use proj
 routes. The cross-source association command has been removed.
 
 The consumed OpenAPI subset is checked in at
-`backend/src/modules/anime/external-works/bangumi/openapi.yaml`, copied from the
+`apps/server/src/modules/anime/external-works/bangumi/openapi.yaml`, copied from the
 [official v0 schema](https://github.com/bangumi/api/blob/master/open-api/v0.yaml).
 Regenerate types with:
 

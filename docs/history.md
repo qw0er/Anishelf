@@ -2140,7 +2140,7 @@ Acceptance focuses on application behavior: ambiguous or incomplete evidence sta
 in Review; users can resolve, correct, confirm or reject associations; saved decisions
 survive rescan, metadata refresh and restart; provider outages preserve cached browsing
 and existing playback. Existing automated scenario tests provide evidence for these
-behaviors. The [offline identification corpus](../backend/test/fixtures/anime-identification/README.md)
+behaviors. The [offline identification corpus](../apps/server/test/fixtures/anime-identification/README.md)
 remains a regression fixture and optional diagnostic resource, not a release gate.
 
 | ID | Requirements | Passing result |
