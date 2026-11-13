@@ -1,44 +1,24 @@
-import { app, BrowserWindow, dialog, net, protocol } from "electron";
+import { fileURLToPath } from "node:url";
+import { desktopOrigin } from "@anishelf/contracts/defaults";
+import { app, BrowserWindow, dialog } from "electron";
+import { registerDesktopIpc } from "./ipc.js";
+import {
+	registerRendererProtocol,
+	registerRendererScheme,
+} from "./protocol.js";
 import { resolveServerOrigin } from "./server-address.js";
 
-const rendererUrl = "anishelf://desktop/";
-const rendererRoot = new URL("../renderer/", import.meta.url);
+const rendererUrl = `${desktopOrigin}/`;
+const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
 
-protocol.registerSchemesAsPrivileged([
-	{
-		scheme: "anishelf",
-		privileges: { standard: true, secure: true },
-	},
-]);
-
-function registerRenderer() {
-	protocol.handle("anishelf", async (request) => {
-		const url = new URL(request.url);
-		const path = url.pathname === "/" ? "/index.html" : url.pathname;
-		// Vite emits flat, hashed asset names. Serve only the entry and those assets.
-		if (
-			url.host !== "desktop" ||
-			request.method !== "GET" ||
-			(path !== "/index.html" && !/^\/assets\/[\w.-]+\.(?:js|css)$/.test(path))
-		) {
-			return new Response(null, { status: 404 });
-		}
-
-		const response = await net.fetch(new URL(path.slice(1), rendererRoot).href);
-		const headers = new Headers(response.headers);
-		headers.set(
-			"Content-Security-Policy",
-			"default-src 'none'; script-src 'self'; style-src 'self'",
-		);
-		return new Response(response.body, { status: response.status, headers });
-	});
-}
+registerRendererScheme();
 
 async function createWindow() {
 	const window = new BrowserWindow({
 		width: 1280,
 		height: 800,
 		webPreferences: {
+			preload,
 			contextIsolation: true,
 			nodeIntegration: false,
 			sandbox: true,
@@ -49,8 +29,9 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
+	let origin: string;
 	try {
-		const origin = resolveServerOrigin();
+		origin = resolveServerOrigin();
 		console.info("desktop.server_configured", { origin });
 	} catch (error) {
 		const message =
@@ -62,7 +43,8 @@ app.whenReady().then(async () => {
 	}
 
 	try {
-		registerRenderer();
+		registerDesktopIpc(origin);
+		registerRendererProtocol(origin);
 		await createWindow();
 		app.on("activate", () => {
 			if (BrowserWindow.getAllWindows().length === 0) {
