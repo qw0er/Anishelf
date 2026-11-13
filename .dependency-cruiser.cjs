@@ -325,8 +325,48 @@ module.exports = {
 			severity: "error",
 			from: { path: "^apps/desktop/src/renderer/" },
 			to: {
-				path: "^apps/desktop/src/(?!renderer/)|(?:^|/)node_modules/electron(?:/|$)|^electron$",
+				path: "^apps/desktop/src/(?!renderer/|ipc/)|(?:^|/)node_modules/electron(?:/|$)|^electron$",
 			},
+		},
+		{
+			name: "desktop-main-does-not-import-renderer-or-preload",
+			severity: "error",
+			from: { path: "^apps/desktop/src/main/" },
+			to: {
+				path: "^apps/desktop/src/(?:renderer|preload)/|^packages/client-(?:core|ui)/",
+			},
+		},
+		{
+			name: "desktop-main-assembly-owns-cross-module-wiring",
+			severity: "error",
+			from: { path: "^apps/desktop/src/main/(native|renderer|server)/" },
+			to: {
+				path: "^apps/desktop/src/main/(?!$1/|renderer-url\\.ts$)",
+			},
+		},
+		{
+			name: "desktop-preload-imports-only-electron-and-ipc-types",
+			severity: "error",
+			from: { path: "^apps/desktop/src/preload/" },
+			to: {
+				pathNot:
+					"^apps/desktop/src/ipc/|(?:^|/)node_modules/electron(?:/|$)|^electron$",
+			},
+		},
+		{
+			name: "desktop-ipc-contract-is-type-only",
+			severity: "error",
+			from: { path: "^apps/desktop/src/(?:main|preload|renderer)/" },
+			to: {
+				path: "^apps/desktop/src/ipc/",
+				dependencyTypesNot: ["type-only"],
+			},
+		},
+		{
+			name: "desktop-ipc-contract-has-no-dependencies",
+			severity: "error",
+			from: { path: "^apps/desktop/src/ipc/" },
+			to: {},
 		},
 		{
 			name: "desktop-renderer-does-not-import-node-builtins",

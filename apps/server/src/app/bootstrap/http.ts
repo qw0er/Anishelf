@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { desktopOrigin } from "@anishelf/contracts/defaults";
 import { HealthResponseSchema } from "@anishelf/contracts/schemas";
+import cors, { type FastifyCorsOptions } from "@fastify/cors";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, {
 	type FastifyPluginAsync,
@@ -10,7 +12,10 @@ import type { Logger } from "pino";
 import type { DeploymentConfig } from "../../modules/system/public.js";
 import { apiError, classifyHttpError } from "../../transport/errors.js";
 import type { HttpInstance } from "../../transport/instance.js";
-import { checkRequestOrigin } from "../../transport/security.js";
+import {
+	checkRequestOrigin,
+	isDesktopApiRequest,
+} from "../../transport/security.js";
 import { registerFrontend } from "../../transport/static.js";
 export function createHttpApp(options: {
 	config: Pick<
@@ -113,12 +118,6 @@ export function createHttpApp(options: {
 	app.setNotFoundHandler((request, reply) =>
 		reply.code(404).send(apiError("ROUTE_NOT_FOUND", request.id)),
 	);
-	app.get(
-		"/api/health",
-		{ schema: { response: { 200: HealthResponseSchema } } },
-		async () => ({ status: "ok" as const }),
-	);
-
 	app.addHook("onClose", options.closeDependencies);
 	const registerRoutes: FastifyPluginAsync<
 		Record<never, never>,
@@ -126,6 +125,31 @@ export function createHttpApp(options: {
 		TypeBoxTypeProvider,
 		Logger
 	> = async (http) => {
+		const desktopCors: FastifyCorsOptions = {
+			origin: desktopOrigin,
+			methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+			allowedHeaders: ["Authorization", "Content-Type", "Range"],
+			exposedHeaders: [
+				"Accept-Ranges",
+				"Content-Range",
+				"Content-Disposition",
+				"Retry-After",
+				"X-Request-Id",
+			],
+		};
+		await http.register(cors, {
+			delegator(request, callback) {
+				callback(
+					null,
+					isDesktopApiRequest(request) ? desktopCors : { origin: false },
+				);
+			},
+		});
+		http.get(
+			"/api/health",
+			{ schema: { response: { 200: HealthResponseSchema } } },
+			async () => ({ status: "ok" as const }),
+		);
 		await options.configure?.(http);
 		for (const register of options.registrations) register(http);
 		if (options.frontendRoot)

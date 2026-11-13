@@ -79,7 +79,79 @@ test("allows defaults, policy and public contracts, same-module implementation, 
 	);
 });
 
+test("allows Electron processes to use the desktop IPC contract and main to assemble its modules", async () => {
+	assert.deepEqual(
+		await scan({
+			"apps/desktop/src/ipc/desktop.ts":
+				"export interface DesktopBridge { configuration(): Promise<string> }",
+			"apps/desktop/src/preload/index.cts":
+				"import type { DesktopBridge } from '../ipc/desktop.js'; export type { DesktopBridge };",
+			"apps/desktop/src/renderer/main.ts":
+				"import type { DesktopBridge } from '../ipc/desktop.js'; export type { DesktopBridge };",
+			"apps/desktop/src/main/index.ts":
+				"export { open } from './server/connection.js';",
+			"apps/desktop/src/main/server/connection.ts":
+				"export { open } from './tokens.js';",
+			"apps/desktop/src/main/server/tokens.ts": "export const open = () => {};",
+		}),
+		[],
+	);
+});
+
 for (const [name, files] of [
+	[
+		"desktop-renderer-does-not-import-main-or-electron",
+		{
+			"apps/desktop/src/renderer/main.ts":
+				"export { open } from '../main/server/connection.js';",
+			"apps/desktop/src/main/server/connection.ts":
+				"export const open = () => {};",
+		},
+	],
+	[
+		"desktop-main-does-not-import-renderer-or-preload",
+		{
+			"apps/desktop/src/main/index.ts":
+				"export { render } from '../renderer/main.js';",
+			"apps/desktop/src/renderer/main.ts": "export const render = () => {};",
+		},
+	],
+	[
+		"desktop-main-assembly-owns-cross-module-wiring",
+		{
+			"apps/desktop/src/main/native/download.ts":
+				"export { open } from '../server/connection.js';",
+			"apps/desktop/src/main/server/connection.ts":
+				"export const open = () => {};",
+		},
+	],
+	[
+		"desktop-preload-imports-only-electron-and-ipc-types",
+		{
+			"apps/desktop/src/preload/index.cts":
+				"import type { Bridge } from '../renderer/bridge.js'; export type { Bridge };",
+			"apps/desktop/src/renderer/bridge.ts":
+				"export interface Bridge { name: string }",
+		},
+	],
+	[
+		"desktop-ipc-contract-is-type-only",
+		{
+			"apps/desktop/src/preload/index.cts":
+				"const { channel } = require('../ipc/desktop.js'); module.exports = channel;",
+			"apps/desktop/src/ipc/desktop.ts":
+				"export const channel = 'desktop:configuration';",
+		},
+	],
+	[
+		"desktop-ipc-contract-has-no-dependencies",
+		{
+			"apps/desktop/src/ipc/desktop.ts":
+				"import type { Server } from '../main/server/connection.js'; export type { Server };",
+			"apps/desktop/src/main/server/connection.ts":
+				"export interface Server { origin: string }",
+		},
+	],
 	[
 		"torrent-clients-implementation-is-private",
 		{

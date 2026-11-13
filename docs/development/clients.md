@@ -71,7 +71,7 @@ original media. External players can use that link without a device token.
 | --- | --- |
 | Server | Existing Fastify business services, media access, library, acquisition and playback/history APIs |
 | Shared Web UI | Library, detail, search, history and settings, adapted for desktop and touch layouts |
-| Desktop | Full application with a managed local server or a connection to a remote server |
+| Desktop | Full application that connects to a separately running server |
 | Mobile | Remote-server client; no bundled server required |
 | Player adapter | Translate common playback commands and events to the active Web or native player |
 
@@ -84,15 +84,12 @@ clients; this document does not assume those interfaces already exist.
 
 ## Desktop
 
-See the [desktop workspace guide](../../apps/desktop/README.md) for the current
-gateway, device login, and local process management.
+The [desktop workspace guide](../../apps/desktop/README.md) covers local renderer
+loading, direct device authentication and IPC.
 
-The preferred starting point is Electron with the existing React UI and Fastify
-backend. Package the backend as a separately managed process for local operation,
-and allow the user to select a remote server instead. Local operation needs a
-platform-appropriate data directory, database and native dependency packaging,
-FFmpeg availability, startup readiness, shutdown and recovery. Test packaging on
-Windows, macOS and Linux before claiming support.
+The desktop client uses Electron with the shared React UI. It connects to a
+separately running Anishelf server on the same machine or over HTTPS. Test
+packaging on Windows, macOS and Linux before claiming platform support.
 
 Start with the existing Web player. A later native playback integration should
 first evaluate mpv in a separate window, including commands, events, subtitles,
@@ -139,7 +136,7 @@ confirmed server state.
 
 ## Proposed stages and validation
 
-1. Deliver desktop local and remote operation with Web playback; validate lifecycle,
+1. Deliver desktop connections to separately running servers with Web playback. Validate lifecycle,
    packaging, authentication and real media across the three desktop platforms.
 2. Deliver mobile remote connection and Web playback; validate touch layouts,
    authentication, lifecycle and real media on Android and iOS.

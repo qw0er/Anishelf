@@ -1,7 +1,10 @@
 import type { FastifyRequest } from "fastify";
 import { DomainError } from "../../../../shared/errors.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
-import { isDirectLoopbackRequest } from "../../../../transport/security.js";
+import {
+	isDesktopApiRequest,
+	isDirectLoopbackRequest,
+} from "../../../../transport/security.js";
 import type { AuthenticationService } from "../application.js";
 import type { createDeviceSessions } from "../device-sessions.js";
 import type { DeviceSession } from "../ports.js";
@@ -35,17 +38,14 @@ export function registerAuthorization(
 	mediaLinks: ReturnType<typeof createMediaLinks>,
 ) {
 	const devices = new WeakMap<FastifyRequest, DeviceSession>();
-	const anonymousRoutes = new Set([
-		"/api/auth/session",
-		"/api/auth/login",
-		"/api/health",
-	]);
+	const anonymousRoutes = new Set(["/api/auth/session", "/api/auth/login"]);
 	app.addHook("onRequest", async function authorizeRequest(request, reply) {
 		const url = new URL(request.url, "http://localhost");
 		const { pathname: path } = url;
 		if (!(path === "/api" || path.startsWith("/api/"))) return;
 		reply.header("Cache-Control", "no-store");
 		const route = request.routeOptions.url;
+		if (route === "/api/health") return;
 		const authorization = request.headers.authorization;
 		if (request.method === "POST" && route === deviceLoginPath) {
 			requireDeviceTransport(request);
@@ -82,6 +82,11 @@ export function registerAuthorization(
 				);
 			devices.set(request, device);
 			return;
+		}
+		if (isDesktopApiRequest(request)) {
+			if (await mediaLinks.permits(request.method, url)) return;
+			reply.header("WWW-Authenticate", 'Bearer realm="Anishelf"');
+			throw new DomainError("AUTH_REQUIRED", "Sign in to continue.");
 		}
 		// Cookie-only changes are excluded from @fastify/session's dirty tracking.
 		// Persist the upgrade explicitly so the browser receives Secure immediately.

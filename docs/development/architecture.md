@@ -658,6 +658,7 @@ application through its persistence port.
 | Business APIs | Single-user login with a browser session or a device bearer credential |
 | Browser sessions | Cookie authentication with CSRF on mutations |
 | Device sessions | Expiring, individually revocable tokens over HTTPS or direct loopback HTTP; only token hashes are stored |
+| Electron renderer | Fixed `anishelf://desktop` CORS origin for the API with device credentials |
 | HTTP access | Valid domain/IP Hosts at any published port; an optional exact hostname allowlist is independent of the public URL |
 | HTTPS proxy | A configured external origin declares its scheme to Web; automatic deployments use trusted proxy headers; Backend trusts the private Web hop |
 | Original-media external links | Expiring, source-bound scoped tokens |
@@ -684,6 +685,12 @@ Direct HTTP device requests require a loopback socket peer and a Host of
 device requests use HTTPS, including through a trusted TLS proxy. Password
 changes accept either authenticated session type and revoke all sessions and
 media links.
+
+Electron loads its local build through a custom protocol. The renderer sends API
+and media requests directly to Backend. The main process attaches the device
+credential in Chromium and handles native operations through a preload IPC bridge.
+The desktop CORS policy grants access to the exact app origin and leaves cookie
+authentication and CSRF under the browser session policy.
 
 `ANISHELF_PUBLIC_ORIGIN` is an optional fixed external address, not a Host
 allowlist or a Backend login gate. Standard Compose passes it to both Web and

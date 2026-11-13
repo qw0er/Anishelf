@@ -3,7 +3,7 @@ import {
 	resolveBrowserPlayerUrl,
 } from "@anishelf/client-ui";
 
-function downloadFile(url: string, filename: string) {
+function downloadBlob(url: string, filename: string) {
 	const anchor = document.createElement("a");
 	anchor.href = url;
 	anchor.download = filename;
@@ -59,28 +59,26 @@ export const desktopPlatform: ClientPlatform = {
 		};
 	},
 	openExternal(url) {
-		window.open(url, "_blank", "noopener,noreferrer");
-		console.debug("platform.external_link_requested");
+		void window.desktop.openExternal(url).catch(() => {
+			console.warn("platform.external_link_failed");
+		});
 	},
 	openPlayer(request) {
-		window.location.assign(resolveBrowserPlayerUrl(desktopPlatform, request));
-		console.debug("platform.external_player_requested");
+		const url = resolveBrowserPlayerUrl(desktopPlatform, request);
+		void window.desktop.openPlayer(url).catch(() => {
+			console.warn("platform.external_player_failed");
+		});
 	},
-	async copyText(text) {
-		try {
-			await navigator.clipboard.writeText(text);
-		} catch (error) {
-			console.debug("platform.clipboard_write_failed", {
-				errorType: error instanceof Error ? error.name : "unknown",
-			});
-			throw error;
-		}
+	copyText: (text) => window.desktop.copyText(text),
+	downloadFile(url, filename) {
+		void window.desktop.downloadFile(url, filename).catch(() => {
+			console.warn("platform.download_failed");
+		});
 	},
-	downloadFile,
 	downloadText(content, filename, mediaType) {
 		const url = URL.createObjectURL(new Blob([content], { type: mediaType }));
 		try {
-			downloadFile(url, filename);
+			downloadBlob(url, filename);
 		} finally {
 			// Give the browser time to start the download.
 			window.setTimeout(() => URL.revokeObjectURL(url), 1000);

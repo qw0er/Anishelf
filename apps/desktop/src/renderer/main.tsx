@@ -1,7 +1,4 @@
-import { createApiClient } from "@anishelf/client-core";
-import type { ClientSession } from "@anishelf/client-core/authentication";
 import { createServerConnection } from "@anishelf/client-core/connection";
-import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
 import {
 	ClientApp,
 	createClientRoutes,
@@ -10,51 +7,33 @@ import {
 import type { BuildInfo } from "@anishelf/contracts/http";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter } from "react-router";
+import { createHashRouter } from "react-router";
 import changelog from "../../../../CHANGELOG.md?raw";
 import "@anishelf/client-ui/styles.css";
+import {
+	createDesktopAuthentication,
+	isSessionCommand,
+} from "./authentication.js";
 import { desktopPlatform } from "./platform.js";
 
 declare const __ANISHELF_BUILD__: BuildInfo;
-declare const __ANISHELF_DESKTOP_DEV__: boolean;
 
-async function desktopConnection(onAuthRequired: () => void) {
-	const options = {
-		origin: window.location.origin,
-		fetch: (path: string, init: RequestInit) => fetch(path, init),
-	};
-	if (__ANISHELF_DESKTOP_DEV__)
-		return createCookieConnection({ ...options, onAuthRequired });
-	const config = await fetch("/desktop-config.json", { cache: "no-store" });
-	if (!config.ok) throw new Error("Could not load desktop configuration.");
-	const { deviceAuthentication } = await config.json();
-	if (!deviceAuthentication)
-		return createCookieConnection({ ...options, onAuthRequired });
-	const connection = createServerConnection({
-		...options,
-		sameOrigin: true,
-		policy: { onUnauthorized: onAuthRequired },
-	});
-	const api = createApiClient({
-		fetch: options.fetch,
-		signal: connection.signal,
-	});
-	const path = "/api/desktop/session";
-	return {
-		connection,
-		authentication: {
-			getSession: () => api.request<ClientSession>(path, "GET"),
-			signIn: (password: string) =>
-				api.request<void>(path, "POST", {}, { password }),
-			signOut: () => api.request<void>(path, "DELETE"),
-		},
-	};
+if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+	document.documentElement.classList.add("dark");
+	document.documentElement.style.colorScheme = "dark";
+	document
+		.querySelector('meta[name="theme-color"]')
+		?.setAttribute("content", "#0f0f10");
 }
 
 async function start() {
+	const { desktop } = window;
+	const { origin, deviceName } = await desktop.configuration();
 	let redirectingToLogin = false;
+
 	function onAuthRequired() {
-		if (window.location.pathname === "/login") {
+		const { pathname, search, hash } = router.state.location;
+		if (pathname === "/login") {
 			runtime.queryClient.clear();
 			return;
 		}
@@ -62,17 +41,32 @@ async function start() {
 		redirectingToLogin = true;
 		console.debug("auth.session_required", { host: "desktop" });
 		restartSession(
-			`/login?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`,
+			`/login?returnTo=${encodeURIComponent(`${pathname}${search}${hash}`)}`,
 		);
 	}
 
 	function restartSession(path: string) {
 		runtime.dispose();
-		window.location.replace(path);
+		window.history.replaceState(null, "", `#${path}`);
+		window.location.reload();
 	}
 
+	const connection = createServerConnection({
+		origin,
+		fetch: (url, init) => fetch(url, { ...init, redirect: "error" }),
+		policy: {
+			onUnauthorized(path) {
+				if (!isSessionCommand(path)) onAuthRequired();
+			},
+		},
+	});
 	const runtime = await initializeClient({
-		...(await desktopConnection(onAuthRequired)),
+		connection,
+		authentication: createDesktopAuthentication(
+			connection.api,
+			desktop,
+			deviceName,
+		),
 		buildInfo: __ANISHELF_BUILD__,
 		changelog,
 		onAuthRequired,
@@ -83,8 +77,8 @@ async function start() {
 
 	const root = document.getElementById("root");
 	if (!root) throw new Error("Missing root element.");
-	const router = createBrowserRouter(createClientRoutes());
-	console.debug("client.started", { host: "desktop" });
+	const router = createHashRouter(createClientRoutes());
+	console.debug("client.started", { host: "desktop", server: origin });
 	createRoot(root).render(
 		<StrictMode>
 			<ClientApp router={router} />

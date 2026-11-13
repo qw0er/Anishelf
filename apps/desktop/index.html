@@ -6,15 +6,6 @@
     <meta name="theme-color" content="#fafafa" />
     <meta name="description" content="Anishelf, your local media shelf." />
     <title>Anishelf</title>
-    <script>
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        document.documentElement.classList.add("dark");
-        document.documentElement.style.colorScheme = "dark";
-        document
-          .querySelector('meta[name="theme-color"]')
-          ?.setAttribute("content", "#0f0f10");
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>

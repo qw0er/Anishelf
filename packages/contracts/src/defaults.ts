@@ -1,5 +1,7 @@
 export const defaultLanguage = "en";
 
+export const desktopOrigin = "anishelf://desktop";
+
 /** Default address shared by the server and the Web development proxy. */
 export const serverDefaults = Object.freeze({
 	host: "127.0.0.1",

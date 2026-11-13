@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { join } from "node:path";
+import { desktopOrigin } from "@anishelf/contracts/defaults";
 import Database from "better-sqlite3";
 import { expect, test, vi } from "vitest";
 import {
@@ -13,6 +14,11 @@ setupTestLifecycle();
 
 const endpoint = "/api/auth/device-sessions";
 const httpsHeaders = { ...headers, "x-forwarded-proto": "https" };
+const desktopHeaders = {
+	...headers,
+	origin: desktopOrigin,
+	"sec-fetch-site": "cross-site",
+};
 const bearer = (token: string) => ({
 	...httpsHeaders,
 	authorization: `Bearer ${token}`,
@@ -38,6 +44,62 @@ async function signIn(
 		session: { id: string; name: string; expiresAt: number };
 	}>();
 }
+
+test("the Electron renderer can preflight, sign in and read protected media without cookies", async () => {
+	const { app, password } = await application();
+	const preflight = await app.inject({
+		method: "OPTIONS",
+		url: endpoint,
+		headers: {
+			...desktopHeaders,
+			"access-control-request-method": "POST",
+			"access-control-request-headers": "content-type",
+		},
+	});
+	expect(preflight.statusCode, preflight.body).toBe(204);
+	expect(preflight.headers["access-control-allow-origin"]).toBe(desktopOrigin);
+	expect(preflight.headers["access-control-allow-credentials"]).toBeUndefined();
+	expect(preflight.headers["set-cookie"]).toBeUndefined();
+	const { token } = await signIn(app, password, "Electron", desktopHeaders);
+	const authorization = `Bearer ${token}`;
+	const write = await app.inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { ...desktopHeaders, authorization },
+	});
+	expect(write.statusCode, write.body).toBe(200);
+	expect(write.headers["access-control-allow-origin"]).toBe(desktopOrigin);
+	const media = await app.inject({
+		url: "/api/media/file",
+		headers: { ...desktopHeaders, authorization, range: "bytes=0-3" },
+	});
+	expect(media.statusCode, media.body).toBe(206);
+	expect(media.headers["access-control-expose-headers"]).toContain(
+		"Content-Range",
+	);
+	expect(media.headers["content-range"]).toBe("bytes 0-3/10");
+
+	const { cookie, csrf } = await browser(app, password ?? "");
+	const cookieWrite = await app.inject({
+		method: "POST",
+		url: "/api/test",
+		headers: { ...desktopHeaders, cookie, "x-csrf-token": csrf },
+	});
+	expect(cookieWrite.statusCode).toBe(401);
+	const unrelated = await app.inject({
+		method: "OPTIONS",
+		url: endpoint,
+		headers: {
+			...desktopHeaders,
+			origin: "https://unrelated.example",
+			"access-control-request-method": "POST",
+			"access-control-request-headers": "content-type",
+		},
+	});
+	expect(unrelated.headers["access-control-allow-origin"]).toBeUndefined();
+	const page = await app.inject({ url: "/", headers: desktopHeaders });
+	expect(page.headers["access-control-allow-origin"]).toBeUndefined();
+});
 
 test("device sign-in persists only a digest and authorizes API writes and media range reads", async () => {
 	const { app, dataDir, password } = await application();

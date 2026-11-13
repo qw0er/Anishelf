@@ -1,4 +1,7 @@
-import { developmentDefaults } from "@anishelf/contracts/defaults";
+import {
+	desktopOrigin,
+	developmentDefaults,
+} from "@anishelf/contracts/defaults";
 import type { FastifyRequest } from "fastify";
 import ipaddr from "ipaddr.js";
 import type { DeploymentConfig } from "../modules/system/public.js";
@@ -58,6 +61,14 @@ export function isDirectLoopbackRequest(request: FastifyRequest): boolean {
 	);
 }
 
+export function isDesktopApiRequest(request: FastifyRequest): boolean {
+	const path = request.url.split("?", 1)[0];
+	return (
+		request.headers.origin === desktopOrigin &&
+		(path === "/api" || path?.startsWith("/api/") === true)
+	);
+}
+
 function isSafeMethod(method: string): boolean {
 	return safeMethods.has(method);
 }
@@ -98,7 +109,7 @@ export function checkRequestOrigin(
 	development: boolean,
 ): void {
 	const expectedOrigin = checkRequestHost(request, config);
-	if (isSafeMethod(request.method)) return;
+	if (isSafeMethod(request.method) || isDesktopApiRequest(request)) return;
 	checkOrigin(request, expectedOrigin, development);
 	checkFetchMetadata(request);
 }
