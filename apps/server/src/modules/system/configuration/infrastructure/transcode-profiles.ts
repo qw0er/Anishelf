@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { TranscodeProfilesFileSchema } from "@anishelf/contracts/schemas/transcode-profiles";
 import { Check, Errors } from "typebox/value";
 import { parseDocument } from "yaml";
-import { TranscodeProfilesFileSchema } from "../../../../contracts/schemas/transcode-profiles.js";
 import {
 	validateEncodingOptions,
 	validEncodingOptions,

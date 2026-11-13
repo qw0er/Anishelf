@@ -2,8 +2,10 @@
 
 [Architecture](architecture.md) · [Future clients](clients.md) · [Playback assets](playback.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
 
-The npm workspaces live in `apps/server/` (Fastify backend) and `apps/web/`
-(React web app).
+The npm workspaces live in `apps/server/` (Fastify backend), `apps/web/`
+(React web app), and `packages/contracts/` (shared HTTP protocol). The contracts
+package exports browser-safe TypeScript directly. Node.js 24 loads it at runtime
+and Vite bundles the exports used by the Web app.
 
 ## Local development
 
@@ -23,10 +25,10 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | `npm run dev` | Backend watcher plus Vite; Ctrl+C stops both |
 | `npm run dev:host` | Expose Vite on `0.0.0.0:5173` for trusted LAN development |
 | `npm run dev:backend` / `npm run dev:web` | Run one workspace |
-| `npm start` | Build both workspaces and serve `apps/web/dist` through Backend |
+| `npm start` | Build both apps and serve `apps/web/dist` through Backend |
 | `npm run start:backend` | Run built Backend; frontend hosting requires `ANISHELF_FRONTEND_DIR` |
 | `npm run check` | Biome, lint, architecture, type checks and tests |
-| `npm run build` | Build both workspaces |
+| `npm run build` | Build the server and Web apps |
 | `node --import tsx scripts/manual-tests/anime-corpus.mts summary` / `generate <new-directory>` | Inspect integration fixtures or generate an exclusive placeholder directory |
 | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test` | Audit the complete offline path-to-admission pipeline; unsafe admissions, comparable episode errors and reported regressions return nonzero |
 | `node --import tsx scripts/manual-tests/anime-parsing-corpus.mts summary` / `test` | Inspect or evaluate the offline [filename/directory parsing corpus](../../apps/server/test/fixtures/anime-parsing/README.md); strict benchmark failures return nonzero |
@@ -71,7 +73,8 @@ Add structured lifecycle/failure logs when changing business behavior.
 3. Review and commit generated SQL and migration metadata with the change.
 4. Verify upgrade preservation and restart behavior using a disk-backed fixture.
 
-Ship `apps/server/migrations/` with `apps/server/dist`. Startup applies committed migrations;
+Ship `apps/server/migrations/` and the `packages/contracts/` workspace with
+`apps/server/dist`. Startup applies committed migrations;
 do not use destructive schema push at runtime. Back up before upgrades; rollback
 requires a matching database backup. See [database design](database-design.md).
 
@@ -193,7 +196,7 @@ is in [History](../history.md). Correlate HTTP failures using `x-request-id`.
 ## Deployment installer maintenance
 
 `scripts/installer/` is a standard-library-only Python implementation that renders
-canonical `package/deploy/` templates bundled at build time into a fresh private
+canonical `deployment/templates/` templates bundled at build time into a fresh private
 bundle. Configuration is rendered in memory and written directly to the deployment
 directory. `scripts/install.pyz` is a zipapp of that source and is the distributable
 used by operators. Keep credential/bootstrap ownership in the
@@ -205,7 +208,7 @@ python3 -m unittest discover -s scripts/installer_tests -v
 npm run test:deployment
 ```
 
-Rebuild the `.pyz` after changing the installer source or `package/deploy/` templates. The suite rebuilds the
+Rebuild the `.pyz` after changing the installer source or `deployment/templates/` templates. The suite rebuilds the
 archive and compares its contents with the committed artifact, so an out-of-date
 package fails the tests. Fixtures use fake engines/systemd commands and inspect
 rendered Quadlet templates directly, including media paths with spaces, Unicode
@@ -237,7 +240,7 @@ not install a root CA. It is skipped unless the binary path is supplied.
 
 Version tags on commits in main publish release images. Manual runs from any branch
 publish test tags.
-See [packaging](../../package/README.md#publication-flow). CI does not establish browser
+See [image publication](../../deployment/README.md#publication-flow). CI does not establish browser
 codec support or production deployment acceptance.
 
 Automatic background copies: [configuration and behavior](../guide/manual-preparation.md).

@@ -25,7 +25,7 @@ export interface LibraryCard {
 	nextPlayback: LibraryPlaybackTarget | null;
 	id: string;
 	localWorkId: string | null;
-	reference: import("../../../../shared/external-reference.js").ExternalWorkReference;
+	reference: import("@anishelf/contracts/references").ExternalWorkReference;
 	displayTitle: string;
 	format: string | null;
 	year: number | null;

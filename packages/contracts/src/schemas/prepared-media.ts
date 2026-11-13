@@ -1,7 +1,7 @@
 import { Type } from "typebox";
-import { errorCodes } from "../errors.js";
-import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
-import { SourceVersionSchema } from "./playback.js";
+import { errorCodes } from "../errors.ts";
+import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.ts";
+import { SourceVersionSchema } from "./playback.ts";
 
 const ArtifactId = Type.String({ pattern: "^[a-f0-9]{64}$" });
 const PreparedMediaStatusSchema = Type.Union([

@@ -1,10 +1,10 @@
-import { Type } from "typebox";
 import {
 	QbittorrentConnectionCommandSchema,
 	QbittorrentConnectionProbeSchema,
 	QbittorrentConnectionSettingsSchema,
 	QbittorrentConnectionUpdateSchema,
-} from "../../../../contracts/schemas/acquisition.js";
+} from "@anishelf/contracts/schemas/acquisition";
+import { Type } from "typebox";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { QbittorrentConnectionApi } from "./public.js";
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the self-contained Anishelf installer zipapp at scripts/install.pyz.
 
-The archive embeds the Python sources and the canonical ``package/deploy``
+The archive embeds the Python sources and the canonical ``deployment/templates``
 templates. Deployment hosts only need the system Python interpreter.
 """
 
@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 REPOSITORY = ROOT.parent
 SOURCE = ROOT / "installer"
-TEMPLATES = REPOSITORY / "package" / "deploy"
+TEMPLATES = REPOSITORY / "deployment" / "templates"
 DEFAULT_TARGET = ROOT / "install.pyz"
 
 

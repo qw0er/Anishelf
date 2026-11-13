@@ -50,7 +50,6 @@ AniList supplies metadata and tracking; Bangumi supplies metadata only.
 | --- | --- |
 | `app/` | Composition, HTTP setup, staged shutdown |
 | `modules/` | Six business modules and their private implementations |
-| `contracts/` | Browser-safe protocol types, schemas and shared limits |
 | `platform/` | SQLite, filesystem/process mechanisms, media tools, logging |
 | `transport/` | HTTP security, streaming, errors, shared projections |
 | `shared/` | Small internal concepts without business dependencies |
@@ -100,7 +99,11 @@ an application-wide policy object. Debug logs record which sections were overrid
 Persistence accepts only the playback policy it uses; media tools own their process
 limits. App composes capabilities rather than aggregating all policy values.
 
-Browser/server limits belong in `contracts/` and consumers import them directly.
+Server and Web both depend on `@anishelf/contracts` in `packages/contracts/`.
+It owns the HTTP types, schemas, shared limits and work references. Consumers
+import the package subpaths directly. The package uses TypeBox and has no app or
+Node.js dependencies. Deployment and process defaults used only by the server
+live in the server's platform layer.
 Avoid aliases or forwarding files that only rename a contract constant. Frontend
 presentation timings shared within a feature live in its `defaults.ts`.
 
@@ -670,7 +673,7 @@ source access, provider scheduling and persistence outlive their consumers.
 | Tables, constraints, migrations | [Database design](database-design.md), `apps/server/migrations/`, module persistence entries |
 | App assembly and shutdown | `apps/server/src/app/bootstrap/server.ts`, `apps/server/src/app/lifecycle.ts` |
 | Acquisition assembly | `apps/server/src/modules/acquisition/create.ts` |
-| Installer | `scripts/install.pyz` (zipapp), `scripts/installer/`, canonical `package/deploy/` templates |
+| Installer | `scripts/install.pyz` (zipapp), `scripts/installer/`, canonical `deployment/templates/` templates |
 | Historical design and acceptance | [History](../history.md) |
 
 The installer generates a fresh deployment bundle and delegates to the container

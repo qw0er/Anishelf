@@ -109,7 +109,7 @@ export interface AnimeApi {
 }
 
 export interface AnimeDetail {
-	reference: import("../../shared/external-reference.js").ExternalWorkReference;
+	reference: import("@anishelf/contracts/references").ExternalWorkReference;
 	displayTitle: string;
 	metadata:
 		| import("./external-works/metadata/public.js").CachedMetadata<

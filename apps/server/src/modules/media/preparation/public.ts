@@ -1,7 +1,7 @@
 export type { PreparationCreation } from "./domain/model.js";
 
 import type { FileHandle } from "node:fs/promises";
-import type { PreparationRequest } from "../../../contracts/http.js";
+import type { PreparationRequest } from "@anishelf/contracts/http";
 import type { PreparationCreation, PreparationView } from "./domain/model.js";
 export interface PreparationApi {
 	catalog(fileId: string): Promise<PreparedMediaInventory>;

@@ -1,4 +1,4 @@
-import { workKey } from "@anishelf/backend/contracts/references";
+import { workKey } from "@anishelf/contracts/references";
 import { queryOptions } from "@tanstack/react-query";
 import {
 	boundedSignal,

@@ -1,6 +1,6 @@
 import { Type } from "typebox";
-import { NonnegativeIntegerSchema, PositiveIntegerSchema } from "./common.js";
-import { SourceVersionSchema } from "./playback.js";
+import { NonnegativeIntegerSchema, PositiveIntegerSchema } from "./common.ts";
+import { SourceVersionSchema } from "./playback.ts";
 
 export const ChapterQuerySchema = Type.Object(
 	{ sourceVersion: SourceVersionSchema },

@@ -1,8 +1,5 @@
-import type { EmbeddedSubtitleResponse } from "@anishelf/backend/contracts/http";
-import {
-	type MediaTimeline,
-	sourceTimeMs,
-} from "@anishelf/backend/contracts/media";
+import type { EmbeddedSubtitleResponse } from "@anishelf/contracts/http";
+import { type MediaTimeline, sourceTimeMs } from "@anishelf/contracts/media";
 import type JASSUB from "jassub";
 import type { MoviElement } from "movi-player/element";
 import type { ExternalSubtitles } from "./subtitles.js";

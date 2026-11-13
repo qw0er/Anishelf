@@ -1,6 +1,6 @@
 import type { Static } from "typebox";
-import type { PlaybackPlanDto } from "./http.js";
-import type { MediaTimelineSchema } from "./schemas/media.js";
+import type { PlaybackPlanDto } from "./http.ts";
+import type { MediaTimelineSchema } from "./schemas/media.ts";
 
 export type MediaTimeline = Static<typeof MediaTimelineSchema>;
 

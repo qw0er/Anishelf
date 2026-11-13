@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { workKey, workReference } from "@anishelf/contracts/references";
 import Database from "better-sqlite3";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
@@ -12,10 +13,6 @@ import type { WorkDetails } from "../../../../src/modules/anime/external-works/m
 import type { MetadataProvider } from "../../../../src/modules/anime/external-works/metadata/ports.js";
 import { MetadataError } from "../../../../src/modules/anime/external-works/metadata/public.js";
 import { aniListTracking } from "../../../../src/modules/anime/external-works/tracking/infrastructure/provider-mapping.js";
-import {
-	workKey,
-	workReference,
-} from "../../../../src/shared/external-reference.js";
 import { createHttpApp } from "../../../support/http.js";
 
 const logger = pino({ enabled: false });

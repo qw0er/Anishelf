@@ -6,7 +6,8 @@
 	"private": true,
 	"workspaces": [
 		"apps/server",
-		"apps/web"
+		"apps/web",
+		"packages/contracts"
 	],
 	"devDependencies": {
 		"@biomejs/biome": "^2.6.2",
@@ -26,9 +27,9 @@
 		"lint": "biome lint . && npm run architecture:check && npm run unused:check",
 		"check": "npm run biome:check && npm run lint && npm run typecheck && npm test",
 		"test:installer": "python3 -m unittest discover -s scripts/installer_tests -v",
-		"test:deployment": "npm run test:installer && node --test package/qbittorrent-init.test.mjs package/jackett-init.test.mjs",
+		"test:deployment": "npm run test:installer && node --test deployment/qbittorrent-init.test.mjs deployment/jackett-init.test.mjs",
 		"test": "npm run architecture:test && npm run test:deployment && npm run test --workspace @anishelf/backend && npm run test --workspace @anishelf/web",
-		"build": "npm run build --workspaces",
+		"build": "npm run build --workspaces --if-present",
 		"start": "npm run build && ANISHELF_FRONTEND_DIR=\"$PWD/apps/web/dist\" npm run start --workspace @anishelf/backend",
 		"start:backend": "npm run start --workspace @anishelf/backend",
 		"dev:backend": "ANISHELF_LOG_LEVEL=debug npm run dev --workspace @anishelf/backend",

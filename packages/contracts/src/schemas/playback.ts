@@ -3,9 +3,9 @@ import {
 	NonnegativeIntegerSchema,
 	PositiveIntegerSchema,
 	ResourceIdSchema,
-} from "./common.js";
-import { FileDtoSchema } from "./library.js";
-import { FilePlaybackResourceSchema } from "./media.js";
+} from "./common.ts";
+import { FileDtoSchema } from "./library.ts";
+import { FilePlaybackResourceSchema } from "./media.ts";
 
 export const PlaybackTokenSchema = Type.String({
 	minLength: 36,

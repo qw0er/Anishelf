@@ -3,7 +3,7 @@ import { constants, type Dirent, type Stats } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import { access, lstat, open, readdir, realpath, stat } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
-import { subtitleMimeTypes } from "../../../../contracts/subtitles.js";
+import { subtitleMimeTypes } from "@anishelf/contracts/subtitles";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";

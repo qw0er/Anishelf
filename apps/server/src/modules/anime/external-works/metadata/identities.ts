@@ -1,4 +1,4 @@
-import type { ExternalWorkReference } from "../../../../shared/external-reference.js";
+import type { ExternalWorkReference } from "@anishelf/contracts/references";
 import type { WorkReference } from "./public.js";
 /** One source entry per project identity. Shared inside External Works. */
 export interface MetadataIdentitiesApi {

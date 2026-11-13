@@ -15,7 +15,7 @@ export { MetadataError, workTitle } from "./model.js";
 
 import type { CachedMetadata, Page } from "./model.js";
 export type ProviderReference =
-	import("../../../../../shared/external-reference.js").ExternalWorkReference;
+	import("@anishelf/contracts/references").ExternalWorkReference;
 
 /** Private source evidence; never returned by MetadataApi. */
 export interface WorkSummary

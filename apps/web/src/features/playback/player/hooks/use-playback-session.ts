@@ -1,7 +1,7 @@
 import {
 	type MediaTimeline,
 	originalTimeline,
-} from "@anishelf/backend/contracts/media";
+} from "@anishelf/contracts/media";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

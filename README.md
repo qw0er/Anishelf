@@ -61,7 +61,7 @@ on app-only restarts. Use the target only for a full-stack stop. See
 | Configure paths, logs and preparation | [Configuration](docs/guide/operations.md) |
 | Contribute and run checks | [Development](docs/development/README.md) |
 | Understand modules and data flow | [Architecture](docs/development/architecture.md) |
-| Change UI / storage / images | [UI design](docs/development/design-system.md) · [Database](docs/development/database-design.md) · [Packaging](package/README.md) |
+| Change UI / storage / images | [UI design](docs/development/design-system.md) · [Database](docs/development/database-design.md) · [Deployment assets](deployment/README.md) |
 | Review scope and completed work | [Requirements](docs/requirements.md) · [History](docs/history.md) |
 
 ## License

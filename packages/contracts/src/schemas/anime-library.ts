@@ -1,10 +1,10 @@
 import { Type } from "typebox";
-import { CatalogListQuerySchema } from "./anime-catalog.js";
+import { CatalogListQuerySchema } from "./anime-catalog.ts";
 import {
 	TrackingListEnvelopeSchema,
 	ViewingStateSchema,
 	ViewingStatusSchema,
-} from "./tracking-list.js";
+} from "./tracking-list.ts";
 
 const text = Type.Union([Type.String(), Type.Null()]);
 const integer = Type.Union([Type.Integer(), Type.Null()]);

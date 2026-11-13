@@ -1,4 +1,4 @@
-import type { SettingsResponse } from "../../../../contracts/http.js";
+import type { SettingsResponse } from "@anishelf/contracts/http";
 import type { PersistentSettings } from "../../public.js";
 
 export function settingsResponse(

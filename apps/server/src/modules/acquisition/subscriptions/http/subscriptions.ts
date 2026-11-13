@@ -1,11 +1,11 @@
-import { Type } from "typebox";
 import {
 	AcquisitionProfileCatalogSchema,
 	SubscriptionCommandSchema,
 	SubscriptionSaveSchema,
 	SubscriptionToggleSchema,
 	SubscriptionViewSchema,
-} from "../../../../contracts/schemas/subscriptions.js";
+} from "@anishelf/contracts/schemas/subscriptions";
+import { Type } from "typebox";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { SubscriptionApi } from "../../public.js";
 

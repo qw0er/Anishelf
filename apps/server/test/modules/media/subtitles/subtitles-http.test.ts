@@ -9,9 +9,9 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { SubtitleDiscoveryResponse } from "@anishelf/contracts/http";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import type { SubtitleDiscoveryResponse } from "../../../../src/contracts/http.js";
 import { MediaAssetsApplication } from "../../../../src/modules/media/catalog.js";
 import { MediaInspectionApplication } from "../../../../src/modules/media/inspection/application.js";
 import type { PreparationApi } from "../../../../src/modules/media/preparation/public.js";

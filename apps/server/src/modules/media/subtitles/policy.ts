@@ -1,5 +1,5 @@
-import { subtitleConstraints } from "../../../contracts/defaults.js";
-import { subtitleExtensionFormats } from "../../../contracts/subtitles.js";
+import { subtitleConstraints } from "@anishelf/contracts/defaults";
+import { subtitleExtensionFormats } from "@anishelf/contracts/subtitles";
 import {
 	type DeepReadonly,
 	freeze,

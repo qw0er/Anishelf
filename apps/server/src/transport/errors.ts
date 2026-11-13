@@ -1,4 +1,4 @@
-import type { ApiErrorResponse } from "../contracts/http.js";
+import type { ApiErrorResponse } from "@anishelf/contracts/http";
 import { MetadataError } from "../modules/anime/public.js";
 import { DomainError, type ErrorCode } from "../shared/errors.js";
 

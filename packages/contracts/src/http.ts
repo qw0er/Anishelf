@@ -1,5 +1,5 @@
 import type { Static } from "typebox";
-import type * as schemas from "./schemas/index.js";
+import type * as schemas from "./schemas/index.ts";
 
 // Public JSON types are derived from the same schemas used by Fastify.
 export type SubscriptionView = Static<typeof schemas.SubscriptionViewSchema>;

@@ -1,4 +1,4 @@
-import { defaultLanguage } from "../../../contracts/defaults.js";
+import { defaultLanguage } from "@anishelf/contracts/defaults";
 import { DomainError } from "../../../shared/errors.js";
 import {
 	type DeepReadonly,

@@ -1,4 +1,4 @@
-import type { AuthSessionResponse } from "@anishelf/backend/contracts/http";
+import type { AuthSessionResponse } from "@anishelf/contracts/http";
 import type { ApiErrorResponse } from "./contracts.js";
 
 export type ApiClientErrorKind = "http" | "network" | "invalid_response";

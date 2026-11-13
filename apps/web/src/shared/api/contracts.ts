@@ -86,4 +86,4 @@ export type {
 	WatchingAutomationOverride,
 	WatchingAutomationPreview,
 	WatchingAutomationStatus,
-} from "@anishelf/backend/contracts/http";
+} from "@anishelf/contracts/http";

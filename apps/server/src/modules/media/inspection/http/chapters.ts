@@ -2,7 +2,7 @@ import {
 	ChapterQuerySchema,
 	ChaptersResponseSchema,
 	ResourceParamsSchema,
-} from "../../../../contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { MediaInspectionApplication } from "../application.js";
 

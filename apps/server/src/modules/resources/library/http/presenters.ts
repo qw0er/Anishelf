@@ -5,7 +5,7 @@ import type {
 	LibraryResponse,
 	ResourceDto,
 	ScanStateDto,
-} from "../../../../contracts/http.js";
+} from "@anishelf/contracts/http";
 import { fileDto } from "../../../../transport/presenters/file.js";
 import type {
 	DirectoryInfo,

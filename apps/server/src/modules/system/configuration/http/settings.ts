@@ -1,4 +1,4 @@
-import { createSettingsSchemas } from "../../../../contracts/schemas/index.js";
+import { createSettingsSchemas } from "@anishelf/contracts/schemas";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { SettingsApplication } from "../application/settings.js";
 import { settingsResponse } from "./settings-presenter.js";

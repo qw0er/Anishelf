@@ -10,8 +10,8 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
+import { TranscodeProfileIdSchema } from "@anishelf/contracts/schemas/transcode-profiles";
 import { Check } from "typebox/value";
-import { TranscodeProfileIdSchema } from "../../../../contracts/schemas/transcode-profiles.js";
 import { canonicalPath } from "../../../../platform/canonical-path.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";

@@ -1,13 +1,13 @@
 import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import pino from "pino";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type {
 	DirectoryResponse,
 	LibraryResponse,
 	ScanResponse,
-} from "../../../../src/contracts/http.js";
+} from "@anishelf/contracts/http";
+import pino from "pino";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { LibraryApplication } from "../../../../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../../../../src/modules/resources/resource-access/infrastructure/access.js";

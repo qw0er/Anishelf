@@ -7,7 +7,7 @@ import { userDataDir, userLogDir } from "platformdirs";
 import {
 	deploymentDefaults,
 	logLevels,
-} from "../../../../contracts/defaults.js";
+} from "../../../../platform/deployment-defaults.js";
 import type {
 	LoggingConfig,
 	LogLevel,

@@ -6,6 +6,11 @@ import { cruise } from "dependency-cruiser";
 
 const require = createRequire(import.meta.url);
 const rules = require("../.dependency-cruiser.cjs");
+const sourceRoots = [
+	"apps/server/src",
+	"apps/web/src",
+	"packages/contracts/src",
+];
 
 export async function checkArchitecture(baseDir = process.cwd()) {
 	for (const relative of [
@@ -41,7 +46,7 @@ export async function checkArchitecture(baseDir = process.cwd()) {
 	}
 
 	const result = await cruise(
-		["apps/server/src", "apps/web/src"],
+		sourceRoots,
 		{
 			...rules.options,
 			baseDir,
@@ -54,15 +59,11 @@ export async function checkArchitecture(baseDir = process.cwd()) {
 	const graph = JSON.parse(result.output);
 	if ((graph.summary.environment.issues ?? []).length > 0)
 		throw new Error(JSON.stringify(graph.summary.environment.issues));
-	if (
-		!graph.modules.some((module) =>
-			module.source.startsWith("apps/server/src/"),
-		) ||
-		!graph.modules.some((module) => module.source.startsWith("apps/web/src/"))
-	)
-		throw new Error(
-			"Architecture scan must include both TypeScript workspaces.",
-		);
+	for (const root of sourceRoots) {
+		if (!graph.modules.some((module) => module.source.startsWith(`${root}/`))) {
+			throw new Error(`Architecture scan did not include ${root}.`);
+		}
+	}
 	return graph;
 }
 

@@ -1,9 +1,6 @@
+import { workKey, workReference } from "@anishelf/contracts/references";
 import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
-import {
-	workKey,
-	workReference,
-} from "../../../../shared/external-reference.js";
 import type {
 	AnimeCatalogApi,
 	EpisodePlaybackTarget,

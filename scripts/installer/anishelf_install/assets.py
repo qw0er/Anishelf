@@ -32,14 +32,14 @@ class AssetSource:
 
         # Source layout: scripts/installer/anishelf_install/assets.py
         repository = Path(__file__).resolve().parents[3]
-        root = repository / "package" / "deploy"
+        root = repository / "deployment" / "templates"
         if not root.is_dir():
             raise InstallerError(
                 "Deployment templates are unavailable. Rebuild the installer "
                 "or run it from a complete source checkout."
             )
         self._root = root
-        log("Using deployment templates from package/deploy.")
+        log("Using deployment templates from deployment/templates.")
 
     def resolve(self) -> str:
         """Return a stable template revision label for the deployment log."""

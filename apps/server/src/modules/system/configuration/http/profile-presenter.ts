@@ -1,4 +1,4 @@
-import type { TranscodeProfileCatalog } from "../../../../contracts/http.js";
+import type { TranscodeProfileCatalog } from "@anishelf/contracts/http";
 import type { SystemApi } from "../../public.js";
 export function transcodeProfileCatalog(
 	configuration: Pick<

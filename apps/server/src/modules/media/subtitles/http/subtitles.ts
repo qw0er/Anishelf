@@ -1,4 +1,3 @@
-import { Type } from "typebox";
 import {
 	EmbeddedSubtitleParamsSchema,
 	EmbeddedSubtitleQuerySchema,
@@ -7,7 +6,8 @@ import {
 	SubtitleContentParamsSchema,
 	SubtitleContentQuerySchema,
 	SubtitleDiscoveryResponseSchema,
-} from "../../../../contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
+import { Type } from "typebox";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { EmbeddedSubtitles } from "../application/embedded.js";
 import type { SubtitleApplication } from "../application/subtitles.js";

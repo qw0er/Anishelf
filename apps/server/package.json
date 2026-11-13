@@ -31,6 +31,7 @@
 		"vitest": "^5.0.4"
 	},
 	"dependencies": {
+		"@anishelf/contracts": "1.0.0",
 		"@api-wrappers/anilist-wrapper": "^4.0.1",
 		"@api-wrappers/api-core": "^1.1.1",
 		"@ctrl/qbittorrent": "10.0.1",
@@ -64,25 +65,6 @@
 		"yaml": "^2.9.1"
 	},
 	"exports": {
-		".": "./dist/index.js",
-		"./contracts/http": {
-			"types": "./src/contracts/http.ts"
-		},
-		"./contracts/subtitles": {
-			"types": "./src/contracts/subtitles.ts",
-			"default": "./src/contracts/subtitles.ts"
-		},
-		"./contracts/defaults": {
-			"types": "./src/contracts/defaults.ts",
-			"default": "./src/contracts/defaults.ts"
-		},
-		"./contracts/media": {
-			"types": "./src/contracts/media.ts",
-			"default": "./src/contracts/media.ts"
-		},
-		"./contracts/references": {
-			"types": "./src/contracts/references.ts",
-			"default": "./src/contracts/references.ts"
-		}
+		".": "./dist/index.js"
 	}
 }

@@ -1,4 +1,4 @@
-import { workReference } from "@anishelf/backend/contracts/references";
+import { workReference } from "@anishelf/contracts/references";
 import { useQuery } from "@tanstack/react-query";
 import type { TrackingEntryResponse } from "../../../shared/api/contracts.js";
 import { accountQuery, entryQuery, trackingIdentity } from "./queries.js";

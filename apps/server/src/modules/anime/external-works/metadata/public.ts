@@ -1,4 +1,4 @@
-import type { ExternalWorkReference } from "../../../../shared/external-reference.js";
+import type { ExternalWorkReference } from "@anishelf/contracts/references";
 import type {
 	AiringEpisode,
 	ArtworkAsset,

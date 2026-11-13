@@ -1,6 +1,6 @@
+import type { BuildInfo } from "@anishelf/contracts/http";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
-import type { BuildInfo } from "../../../src/contracts/http.js";
 import { UpdateChecker } from "../../../src/modules/system/updates/application.js";
 
 const current: BuildInfo = {

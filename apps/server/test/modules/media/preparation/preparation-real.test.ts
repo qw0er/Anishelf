@@ -3,13 +3,13 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import pino from "pino";
-import { expect, test, vi } from "vitest";
-import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import type {
 	PlaybackSelectionResponse,
 	PlaybackSessionResponse,
-} from "../../../../src/contracts/http.js";
+} from "@anishelf/contracts/http";
+import pino from "pino";
+import { expect, test, vi } from "vitest";
+import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { MediaAssetsApplication } from "../../../../src/modules/media/catalog.js";
 import { MediaInspectionApplication } from "../../../../src/modules/media/inspection/application.js";
 import type { PreparationApplication } from "../../../../src/modules/media/preparation/application/preparation.js";

@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { workKey } from "@anishelf/contracts/references";
 import pino from "pino";
 import type {
 	AniListMediaDetails,
@@ -14,7 +15,6 @@ import type { WorkDetails } from "../../src/modules/anime/external-works/metadat
 import { AniListProvider } from "../../src/modules/anime/external-works/metadata/infrastructure/anilist.js";
 import { BangumiProvider } from "../../src/modules/anime/external-works/metadata/infrastructure/bangumi.js";
 import type { SourceMetadataApi } from "../../src/modules/anime/external-works/metadata/ports.js";
-import { workKey } from "../../src/shared/external-reference.js";
 
 const directory = new URL("../fixtures/title-enrichment/", import.meta.url);
 type Verdict = "same-work" | "different-work" | "unresolved";

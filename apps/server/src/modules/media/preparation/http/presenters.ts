@@ -1,10 +1,10 @@
-import { originalTimeline } from "../../../../contracts/media.js";
+import { originalTimeline } from "@anishelf/contracts/media";
 import type { PreparationCreation } from "../public.js";
 
 /** Transport owns URLs and the small user-visible progress projection. */
 export function preparationTaskResponse(
 	view: import("../domain/model.js").PreparationView,
-): import("../../../../contracts/http.js").PreparationTaskResponse {
+): import("@anishelf/contracts/http").PreparationTaskResponse {
 	const { task, artifact, availability } = view;
 	const progress = task.state.progress;
 	return {
@@ -46,7 +46,7 @@ export function preparationTaskResponse(
 
 export function preparationStartResponse(
 	result: PreparationCreation,
-): import("../../../../contracts/http.js").PreparationStartResponse {
+): import("@anishelf/contracts/http").PreparationStartResponse {
 	switch (result.kind) {
 		case "blocked":
 			return { kind: "blocked", reason: result.reason };

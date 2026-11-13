@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { TrackingProviderSchema } from "./tracking-provider.js";
+import { TrackingProviderSchema } from "./tracking-provider.ts";
 export const ViewingStatusSchema = Type.Union([
 	Type.Literal("watching"),
 	Type.Literal("planned"),

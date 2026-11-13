@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { ViewingStatusSchema } from "./tracking-list.js";
+import { ViewingStatusSchema } from "./tracking-list.ts";
 
 const TrackingRemoteSchema = Type.Union([
 	Type.Object(

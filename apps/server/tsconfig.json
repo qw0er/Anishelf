@@ -5,6 +5,7 @@
 		"module": "nodenext",
 		"target": "esnext",
 		"moduleResolution": "nodenext",
+		"rewriteRelativeImportExtensions": true,
 		"lib": ["ESNext"],
 		"types": ["node"],
 		"sourceMap": true,

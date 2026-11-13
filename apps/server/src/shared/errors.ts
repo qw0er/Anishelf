@@ -1,6 +1,6 @@
-import type { ErrorCode } from "../contracts/errors.js";
+import type { ErrorCode } from "@anishelf/contracts/errors";
 
-export type { ErrorCode } from "../contracts/errors.js";
+export type { ErrorCode } from "@anishelf/contracts/errors";
 
 /** Internal details/cause must never be serialized directly into API responses. */
 export class DomainError extends Error {

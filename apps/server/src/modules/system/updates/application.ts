@@ -1,6 +1,6 @@
+import type { BuildInfo, UpdateCheck } from "@anishelf/contracts/http";
 import type { Logger } from "pino";
 import { compare, valid } from "semver";
-import type { BuildInfo, UpdateCheck } from "../../../contracts/http.js";
 
 const repository = "https://github.com/qw0er/Anishelf";
 const cacheMs = 5 * 60 * 1000;

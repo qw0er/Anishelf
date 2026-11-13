@@ -1,7 +1,7 @@
 import {
 	type SubtitleFormat,
 	subtitleExtensionFormats,
-} from "../../../contracts/subtitles.js";
+} from "@anishelf/contracts/subtitles";
 import {
 	type DeepReadonly,
 	freeze,

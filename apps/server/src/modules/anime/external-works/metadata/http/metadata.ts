@@ -1,5 +1,3 @@
-import type { FastifyReply, FastifyRequest } from "fastify";
-import { Type as SchemaType, Type } from "typebox";
 import {
 	MetadataAiringResponseSchema,
 	MetadataDetailsResponseSchema,
@@ -10,7 +8,9 @@ import {
 	MetadataRelationsResponseSchema,
 	MetadataSearchQuerySchema,
 	MetadataSearchResponseSchema,
-} from "../../../../../contracts/schemas/metadata.js";
+} from "@anishelf/contracts/schemas/metadata";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { Type as SchemaType, Type } from "typebox";
 import { sendCachedAsset } from "../../../../../transport/cache.js";
 import type { HttpInstance } from "../../../../../transport/instance.js";
 import {

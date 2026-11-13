@@ -77,7 +77,7 @@ test.skipIf(!process.env.ANISHELF_TEST_CADDY_BIN).each([
 			const backendUrl = await app.listen({ port: 0, host: "127.0.0.1" });
 			const web = (
 				await readFile(
-					new URL("../../../../package/Caddyfile", import.meta.url),
+					new URL("../../../../deployment/Caddyfile", import.meta.url),
 					"utf8",
 				)
 			)

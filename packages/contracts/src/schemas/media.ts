@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { NonnegativeIntegerSchema, PositiveIntegerSchema } from "./common.js";
+import { NonnegativeIntegerSchema, PositiveIntegerSchema } from "./common.ts";
 
 /** An affine mapping between media-element time and durable source-file time. */
 export const MediaTimelineSchema = Type.Object(

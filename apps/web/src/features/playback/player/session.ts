@@ -3,7 +3,7 @@ import {
 	mediaTimeMs,
 	originalTimeline,
 	sourceTimeMs,
-} from "@anishelf/backend/contracts/media";
+} from "@anishelf/contracts/media";
 import {
 	ApiClientError,
 	isRequestCancelled,

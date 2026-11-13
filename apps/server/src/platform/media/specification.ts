@@ -1,4 +1,4 @@
-import type { AutoPreparationPreset } from "../../contracts/auto-preparation.js";
+import type { AutoPreparationPreset } from "@anishelf/contracts/auto-preparation";
 import type {
 	AudioEncoding,
 	EncodingOptions,

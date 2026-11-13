@@ -1,8 +1,7 @@
+import { workKey, workReference } from "@anishelf/contracts/references";
 import {
 	externalId,
 	externalIdParts,
-	workKey,
-	workReference,
 } from "../../../../../shared/external-reference.js";
 import type {
 	AniListListEntry,

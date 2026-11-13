@@ -1,4 +1,4 @@
-import { workKey } from "../../../../../shared/external-reference.js";
+import { workKey } from "@anishelf/contracts/references";
 import type { TrackingTargetResolver } from "../ports.js";
 /** Only exact provider identities establish a target; cross-provider mappings need evidence. */
 export class ExactTrackingTargets implements TrackingTargetResolver {

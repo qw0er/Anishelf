@@ -8,7 +8,7 @@ import {
 	SourceTestInputSchema,
 	SourceTestSchema,
 	SourceUpdateSchema,
-} from "../../../../contracts/schemas/sources.js";
+} from "@anishelf/contracts/schemas/sources";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { SourcesApi } from "../public.js";
 

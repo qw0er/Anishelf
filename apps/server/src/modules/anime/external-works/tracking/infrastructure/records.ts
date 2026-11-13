@@ -1,6 +1,6 @@
+import { workReference } from "@anishelf/contracts/references";
 import { asc, eq } from "drizzle-orm";
 import type { Store } from "../../../../../platform/database/store.js";
-import { workReference } from "../../../../../shared/external-reference.js";
 import { metadataWorks, saveWorkSummary } from "../../metadata/persistence.js";
 import type { TrackingListCache } from "../domain/list.js";
 import type { TrackingOperation } from "../domain/operation.js";

@@ -1,12 +1,12 @@
 # Development stack: build from the current checkout.
-# For published images, use package/deploy/compose.yaml or the README example.
+# For published images, use deployment/templates/compose.yaml or the README example.
 services:
   backend:
     image: localhost/anishelf-backend:dev
     pull_policy: build
     build:
       context: .
-      dockerfile: package/Dockerfile
+      dockerfile: deployment/Dockerfile
       target: backend
     restart: unless-stopped
     stop_grace_period: 15s
@@ -42,7 +42,7 @@ services:
     pull_policy: build
     build:
       context: .
-      dockerfile: package/Dockerfile
+      dockerfile: deployment/Dockerfile
       target: web
     restart: unless-stopped
     stop_grace_period: 15s
@@ -61,7 +61,7 @@ services:
     pull_policy: build
     build:
       context: .
-      dockerfile: package/Dockerfile
+      dockerfile: deployment/Dockerfile
       target: backend
     user: "0:0"
     restart: "no"
@@ -109,7 +109,7 @@ services:
     pull_policy: build
     build:
       context: .
-      dockerfile: package/Dockerfile
+      dockerfile: deployment/Dockerfile
       target: backend
     user: "0:0"
     restart: "no"

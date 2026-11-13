@@ -1,9 +1,9 @@
-import { Type } from "typebox";
 import {
 	TrackingEntrySchema,
 	TrackingGenerationSchema,
 	TrackingListSchema,
-} from "../../../../../contracts/schemas/tracking-list.js";
+} from "@anishelf/contracts/schemas/tracking-list";
+import { Type } from "typebox";
 import type { HttpInstance } from "../../../../../transport/instance.js";
 import type { TrackingListsApi } from "../public.js";
 export function registerTrackingListRoutes(

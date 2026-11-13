@@ -1,4 +1,3 @@
-import { Type } from "typebox";
 import {
 	CatalogConfirmationRequestSchema,
 	CatalogConfirmationSchema,
@@ -16,7 +15,8 @@ import {
 	CatalogSourceSchema,
 	IdentificationStatusSchema,
 	LocalWorkDetailSchema,
-} from "../../../../contracts/schemas/anime-catalog.js";
+} from "@anishelf/contracts/schemas/anime-catalog";
+import { Type } from "typebox";
 import { DomainError } from "../../../../shared/errors.js";
 import { sendCachedAsset } from "../../../../transport/cache.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
@@ -30,7 +30,7 @@ export function registerCatalogRoutes(
 	identification?: {
 		reidentify(fileId: string): Promise<void>;
 		reidentifyPending(): void;
-		getStatus(): import("../../../../contracts/http.js").IdentificationStatusResponse;
+		getStatus(): import("@anishelf/contracts/http").IdentificationStatusResponse;
 	},
 ): void {
 	app.addHook("onSend", async (request, reply) => {

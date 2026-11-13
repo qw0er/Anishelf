@@ -110,12 +110,12 @@ module.exports = {
 			from: {
 				path: "^apps/server/src/modules/system/configuration/application/",
 			},
-			to: { path: "^apps/server/src/contracts/(?:http\\.ts$|schemas/)" },
+			to: { path: "^packages/contracts/src/(?:http\\.ts$|schemas/)" },
 		},
 		{
 			name: "no-unresolved-source-imports",
 			severity: "error",
-			from: { path: "^apps/(?:server|web)/src" },
+			from: { path: "^(?:apps/(?:server|web)|packages/contracts)/src" },
 			to: {
 				couldNotResolve: true,
 				// Vite resolves this exported npm asset; its query is not a JS module specifier.
@@ -125,7 +125,7 @@ module.exports = {
 		{
 			name: "no-runtime-cycles",
 			severity: "error",
-			from: { path: "^apps/(?:server|web)/src" },
+			from: { path: "^(?:apps/(?:server|web)|packages/contracts)/src" },
 			to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
 		},
 		{
@@ -134,7 +134,7 @@ module.exports = {
 			from: {
 				path: `^${modulePath}(?:domain/|ports\\.ts$|settings\\.ts$|profile\\.ts$|snapshot\\.ts$|negotiation\\.ts$|result\\.ts$)|^apps/server/src/shared/`,
 			},
-			to: { path: "^apps/server/src/contracts/(?:http\\.ts$|schemas/)" },
+			to: { path: "^packages/contracts/src/(?:http\\.ts$|schemas/)" },
 		},
 		{
 			name: "platform-does-not-import-business",
@@ -273,10 +273,22 @@ module.exports = {
 		},
 
 		{
-			name: "web-only-imports-browser-contracts",
+			name: "web-does-not-import-server",
 			severity: "error",
 			from: { path: "^apps/web/src/" },
-			to: { path: "^apps/server/src/", pathNot: "^apps/server/src/contracts/" },
+			to: { path: "^apps/server/" },
+		},
+		{
+			name: "contracts-do-not-import-apps",
+			severity: "error",
+			from: { path: "^packages/contracts/src/" },
+			to: { path: "^apps/" },
+		},
+		{
+			name: "contracts-do-not-import-node-builtins",
+			severity: "error",
+			from: { path: "^packages/contracts/src/" },
+			to: { dependencyTypes: ["core"] },
 		},
 		{
 			name: "web-feature-entry-points",

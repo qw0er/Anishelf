@@ -1,7 +1,7 @@
 import { Type } from "typebox";
-import { subtitleFormats } from "../subtitles.js";
-import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
-import { SourceVersionSchema } from "./playback.js";
+import { subtitleFormats } from "../subtitles.ts";
+import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.ts";
+import { SourceVersionSchema } from "./playback.ts";
 
 const SubtitleFormatSchema = Type.Enum(subtitleFormats);
 const subtitleFields = {

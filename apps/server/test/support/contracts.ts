@@ -1,4 +1,4 @@
-import type { DirectoryDto, FileDto } from "../../src/contracts/http.js";
+import type { DirectoryDto, FileDto } from "@anishelf/contracts/http";
 import type { ScanState } from "../../src/modules/resources/library/domain/scan-state.js";
 import type { LoggingConfig } from "../../src/platform/logging/config.js";
 
@@ -21,11 +21,11 @@ export type FailedScanRequiresError = Assert<
 		: false
 >;
 
-import type { ApiErrorResponse } from "../../src/contracts/http.js";
+import type { ApiErrorResponse } from "@anishelf/contracts/http";
 import {
 	SavePlaybackProgressRequestSchema,
 	SavePlaybackProgressResponseSchema,
-} from "../../src/contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
 import type { ErrorCode } from "../../src/shared/errors.js";
 import type { HttpInstance } from "../../src/transport/instance.js";
 
@@ -71,7 +71,7 @@ export function assertHttpSchemaInference(app: HttpInstance): void {
 	);
 }
 
-import type * as Http from "../../src/contracts/http.js";
+import type * as Http from "@anishelf/contracts/http";
 import type * as Selection from "../../src/modules/playback/playback-selection/public.js";
 
 // Bidirectional checks make drift between business vocabulary and wire schemas a build failure.

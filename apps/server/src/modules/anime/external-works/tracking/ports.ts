@@ -92,7 +92,7 @@ type TrackingTargetResolution =
 	| { state: "unmapped" | "ambiguous" | "unsupported" };
 export interface TrackingTargetResolver {
 	resolve(
-		reference: import("../../../../shared/external-reference.js").ExternalWorkReference,
+		reference: import("@anishelf/contracts/references").ExternalWorkReference,
 		episode: number,
 		provider: import("./domain/model.js").TrackingProviderDescriptor,
 	): TrackingTargetResolution;

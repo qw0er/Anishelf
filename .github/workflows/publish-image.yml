@@ -115,7 +115,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: package/Dockerfile
+          file: deployment/Dockerfile
           target: ${{ matrix.component }}
           platforms: linux/${{ matrix.architecture }}
           outputs: type=image,name=ghcr.io/qw0er/anishelf-${{ matrix.component }},push-by-digest=true,name-canonical=true,push=true

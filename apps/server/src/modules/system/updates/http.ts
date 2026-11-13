@@ -1,7 +1,7 @@
 import {
 	BuildInfoSchema,
 	UpdateCheckSchema,
-} from "../../../contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
 import { buildInfo } from "../../../platform/build-info.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { HttpInstance } from "../../../transport/instance.js";

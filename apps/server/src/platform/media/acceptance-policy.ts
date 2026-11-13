@@ -1,7 +1,7 @@
 import type {
 	AudioAcceptance,
 	VideoAcceptance,
-} from "../../contracts/auto-preparation.js";
+} from "@anishelf/contracts/auto-preparation";
 import type { DeepReadonly } from "../../shared/policy.js";
 import type { MediaStream } from "./model.js";
 

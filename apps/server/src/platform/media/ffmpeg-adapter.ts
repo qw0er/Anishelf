@@ -1,11 +1,11 @@
 import { stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
-import type { Logger } from "pino";
-import { Check } from "typebox/value";
 import {
 	TranscodeAudioSchema,
 	TranscodeVideoSchema,
-} from "../../contracts/schemas/transcode-profiles.js";
+} from "@anishelf/contracts/schemas/transcode-profiles";
+import type { Logger } from "pino";
+import { Check } from "typebox/value";
 import type { DeepReadonly } from "../../shared/policy.js";
 import type { EncodingOptions } from "./encoding.js";
 import {

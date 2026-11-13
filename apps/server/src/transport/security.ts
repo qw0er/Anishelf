@@ -1,5 +1,5 @@
+import { developmentDefaults } from "@anishelf/contracts/defaults";
 import type { FastifyRequest } from "fastify";
-import { developmentDefaults } from "../contracts/defaults.js";
 import type { DeploymentConfig } from "../modules/system/public.js";
 import { DomainError } from "../shared/errors.js";
 

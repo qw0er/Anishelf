@@ -1,4 +1,4 @@
-import type { logLevels } from "../../contracts/defaults.js";
+import type { logLevels } from "../deployment-defaults.js";
 export type LogLevel = (typeof logLevels)[number];
 export type LoggingConfig =
 	| { level: LogLevel; destination: "stdout" }

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
+import { workReference } from "@anishelf/contracts/references";
 import { DomainError } from "../../../shared/errors.js";
-import { workReference } from "../../../shared/external-reference.js";
 import type {
 	ResourceAccessApi,
 	SourceIdentity,

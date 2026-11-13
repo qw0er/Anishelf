@@ -5,7 +5,7 @@ import {
 	WatchingPreviewInputSchema,
 	WatchingPreviewSchema,
 	WatchingStatusSchema,
-} from "../../../../contracts/schemas/watching.js";
+} from "@anishelf/contracts/schemas/watching";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { WatchingApi } from "../public.js";
 export function registerWatchingRoutes(app: HttpInstance, api: WatchingApi) {

@@ -4,7 +4,7 @@ import {
 	TrackingPreviewRequestSchema,
 	TrackingPreviewSchema,
 	TrackingStatusSchema,
-} from "../../../../../contracts/schemas/tracking.js";
+} from "@anishelf/contracts/schemas/tracking";
 import type { HttpInstance } from "../../../../../transport/instance.js";
 import type { TrackingAccountsApi } from "../public.js";
 export function registerTrackingRoutes(

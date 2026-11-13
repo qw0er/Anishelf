@@ -9,9 +9,9 @@ import {
 import { get } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { FileResponse } from "@anishelf/contracts/http";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import type { FileResponse } from "../../src/contracts/http.js";
 import { LibraryIndex } from "../../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../../src/modules/resources/resource-access/infrastructure/access.js";
 import { DomainError } from "../../src/shared/errors.js";

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
-import { workReference } from "../../../../shared/external-reference.js";
+import { workReference } from "@anishelf/contracts/references";
 import { DownloadError } from "./model.js";
 export function absoluteDownloadPath(value: string) {
 	if (

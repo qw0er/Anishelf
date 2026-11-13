@@ -1,4 +1,3 @@
-import { Type } from "typebox";
 import {
 	DownloadActivitySchema,
 	DownloadDestinationSchema,
@@ -8,7 +7,8 @@ import {
 	DownloadValidationSchema,
 	EpisodeDownloadRequestSchema,
 	EpisodeDownloadResultSchema,
-} from "../../../../contracts/schemas/downloads.js";
+} from "@anishelf/contracts/schemas/downloads";
+import { Type } from "typebox";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AcquisitionDownloadsApi } from "../../public.js";
 export function registerDownloadRoutes(

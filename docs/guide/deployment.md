@@ -162,8 +162,8 @@ additionally accept `--force`.
 
 ### Manual installation
 
-Save [compose.yaml](../../package/deploy/compose.yaml) and
-[.env.example](../../package/deploy/.env.example) as `compose.yaml` and `.env`
+Save [compose.yaml](../../deployment/templates/compose.yaml) and
+[.env.example](../../deployment/templates/.env.example) as `compose.yaml` and `.env`
 in a new deployment folder. The repository-root Compose file builds source instead.
 These generic templates retain profiles for optional services; installer-generated
 Compose files already contain the selected services and do not need profiles.
@@ -233,15 +233,15 @@ The account needs at least 65,536 subordinate UIDs/GIDs in `/etc/subuid` and
 ### Installation
 
 Run the installer in this account; selecting Podman uses Quadlet automatically.
-For manual deployment, copy the [canonical units](../../package/deploy/quadlet/):
+For manual deployment, copy the [canonical units](../../deployment/templates/quadlet/):
 
 ```sh
 mkdir -p ~/.config/containers/systemd ~/.config/systemd/user
-cp package/deploy/quadlet/anishelf.network ~/.config/containers/systemd/
-cp package/deploy/quadlet/*.volume ~/.config/containers/systemd/
-cp package/deploy/quadlet/anishelf-backend.container ~/.config/containers/systemd/
-cp package/deploy/quadlet/anishelf-web.container ~/.config/containers/systemd/
-cp package/deploy/quadlet/anishelf.target ~/.config/systemd/user/
+cp deployment/templates/quadlet/anishelf.network ~/.config/containers/systemd/
+cp deployment/templates/quadlet/*.volume ~/.config/containers/systemd/
+cp deployment/templates/quadlet/anishelf-backend.container ~/.config/containers/systemd/
+cp deployment/templates/quadlet/anishelf-web.container ~/.config/containers/systemd/
+cp deployment/templates/quadlet/anishelf.target ~/.config/systemd/user/
 ```
 
 These commands use a source checkout. Review image tags, `PublishPort`, environment

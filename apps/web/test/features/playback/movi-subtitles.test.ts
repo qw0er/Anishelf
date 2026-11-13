@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { originalTimeline } from "@anishelf/backend/contracts/media";
+import { originalTimeline } from "@anishelf/contracts/media";
 import type { MoviElement } from "movi-player/element";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as media from "../../../src/features/media/subtitles/api.js";

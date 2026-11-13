@@ -1,16 +1,16 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import cookie from "@fastify/cookie";
-import rateLimit from "@fastify/rate-limit";
-import session from "@fastify/session";
-import type { FastifyReply, FastifyRequest, Session } from "fastify";
-import type { Logger } from "pino";
 import {
 	AuthSessionResponseSchema,
 	ChangePasswordRequestSchema,
 	LoginRequestSchema,
 	MediaAccessLinkResponseSchema,
-} from "../../../../contracts/schemas/authentication.js";
-import { ResourceParamsSchema } from "../../../../contracts/schemas/common.js";
+} from "@anishelf/contracts/schemas/authentication";
+import { ResourceParamsSchema } from "@anishelf/contracts/schemas/common";
+import cookie from "@fastify/cookie";
+import rateLimit from "@fastify/rate-limit";
+import session from "@fastify/session";
+import type { FastifyReply, FastifyRequest, Session } from "fastify";
+import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AuthenticationService } from "../application.js";

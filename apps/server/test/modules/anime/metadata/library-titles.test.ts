@@ -1,3 +1,4 @@
+import { workKey } from "@anishelf/contracts/references";
 import { afterEach, expect, test, vi } from "vitest";
 import { MetadataLibraryTitles } from "../../../../src/modules/anime/external-works/metadata/application/library-titles.js";
 import { metadataDefaults } from "../../../../src/modules/anime/external-works/metadata/defaults.js";
@@ -7,7 +8,6 @@ import type {
 	WorkDetails,
 } from "../../../../src/modules/anime/external-works/metadata/domain/model.js";
 import type { ProviderReference } from "../../../../src/modules/anime/external-works/metadata/domain/source-model.js";
-import { workKey } from "../../../../src/shared/external-reference.js";
 
 const native: MetadataTitle = {
 	value: "Original",

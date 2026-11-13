@@ -8,7 +8,7 @@ import {
 	ResourceCommandSchema,
 	ResourceParamsSchema,
 	ScanResponseSchema,
-} from "../../../../contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { LibraryApplication } from "../application/library.js";
 import {

@@ -3,7 +3,7 @@ import {
 	PlaybackOptionsResponseSchema,
 	PlaybackSelectionRequestSchema,
 	PlaybackSelectionResponseSchema,
-} from "../../../../contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { PlaybackSelectionApi } from "../public.js";
 import { playbackSelectionResponse } from "./presenters.js";

@@ -1,10 +1,10 @@
 import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { PlaybackSessionResponse } from "@anishelf/contracts/http";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../src/app/bootstrap/database.js";
-import type { PlaybackSessionResponse } from "../../../src/contracts/http.js";
 import { PlaybackApplication } from "../../../src/modules/playback/progress/application/playback.js";
 import { playbackPolicy } from "../../../src/modules/playback/progress/policy.js";
 import type { LibraryApplication } from "../../../src/modules/resources/library/application/library.js";

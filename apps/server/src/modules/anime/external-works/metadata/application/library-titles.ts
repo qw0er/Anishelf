@@ -1,6 +1,6 @@
+import { workKey } from "@anishelf/contracts/references";
 import PQueue from "p-queue";
 import type { Logger } from "pino";
-import { workKey } from "../../../../../shared/external-reference.js";
 import { metadataDefaults } from "../defaults.js";
 import {
 	type CachedMetadata,

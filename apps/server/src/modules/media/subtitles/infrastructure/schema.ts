@@ -1,3 +1,4 @@
+import { preparedSubtitleFormats } from "@anishelf/contracts/subtitles";
 import { sql } from "drizzle-orm";
 import {
 	check,
@@ -7,7 +8,6 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { preparedSubtitleFormats } from "../../../../contracts/subtitles.js";
 import { mediaSources } from "../../../resources/persistence.js";
 
 export const subtitleAssets = sqliteTable(

@@ -1,6 +1,6 @@
 import type { FileHandle } from "node:fs/promises";
+import type { PreparedMediaItem } from "@anishelf/contracts/http";
 import type { Logger } from "pino";
-import type { PreparedMediaItem } from "../../../contracts/http.js";
 import type { MediaExecutionProgress } from "../../../platform/media/events.js";
 import type { MediaInfo } from "../../../platform/media/model.js";
 import type {

@@ -1,4 +1,4 @@
-import type { FileDto } from "../../contracts/http.js";
+import type { FileDto } from "@anishelf/contracts/http";
 import type { FileInfo } from "../../modules/resources/public.js";
 export function fileDto(file: FileInfo): FileDto {
 	return {

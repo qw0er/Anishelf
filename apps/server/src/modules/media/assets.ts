@@ -1,4 +1,4 @@
-import type { MediaTimeline } from "../../contracts/media.js";
+import type { MediaTimeline } from "@anishelf/contracts/media";
 import type {
 	MediaAudioDescription,
 	MediaVideoDescription,

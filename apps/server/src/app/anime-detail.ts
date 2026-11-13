@@ -1,13 +1,13 @@
-import type { Logger } from "pino";
-import { Type } from "typebox";
+import { workKey, workReference } from "@anishelf/contracts/references";
 import {
 	AnimeDetailSchema,
 	AnimeStatusSchema,
-} from "../contracts/schemas/anime-detail.js";
+} from "@anishelf/contracts/schemas/anime-detail";
+import type { Logger } from "pino";
+import { Type } from "typebox";
 import type { AcquisitionApi } from "../modules/acquisition/public.js";
 import type { AnimeApi } from "../modules/anime/public.js";
 import { DomainError } from "../shared/errors.js";
-import { workKey, workReference } from "../shared/external-reference.js";
 import type { HttpInstance } from "../transport/instance.js";
 
 /** The application is the only read owner that combines Anime and Acquisition. */

@@ -1,4 +1,4 @@
-import { IdentificationStatusSchema } from "../../contracts/schemas/anime-catalog.js";
+import { IdentificationStatusSchema } from "@anishelf/contracts/schemas/anime-catalog";
 import type { HttpInstance } from "../../transport/instance.js";
 import { registerCatalogRoutes } from "./anime-catalog/http/catalog.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
@@ -22,7 +22,7 @@ export function registerAnimeHttp(
 		identification?: {
 			reidentify(fileId: string): Promise<void>;
 			reidentifyPending(): void;
-			getStatus(): import("../../contracts/http.js").IdentificationStatusResponse;
+			getStatus(): import("@anishelf/contracts/http").IdentificationStatusResponse;
 		};
 		metadata: MetadataModule | undefined;
 		catalog: AnimeCatalogApi | undefined;

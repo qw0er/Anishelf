@@ -1,4 +1,4 @@
-import { workKey } from "@anishelf/backend/contracts/references";
+import { workKey } from "@anishelf/contracts/references";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { type ReactNode, useEffect, useRef } from "react";

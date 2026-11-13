@@ -39,6 +39,7 @@ async function scan(files) {
 		const sources = {
 			"apps/server/src/shared/empty.ts": "export {};",
 			"apps/web/src/empty.ts": "export {};",
+			"packages/contracts/src/empty.ts": "export {};",
 			...files,
 		};
 		for (const [name, source] of Object.entries(sources)) {
@@ -170,19 +171,18 @@ for (const [name, files] of [
 		"configuration-application-does-not-project-http",
 		{
 			"apps/server/src/modules/system/configuration/application/service.ts":
-				"import type { Dto } from '../../../../contracts/http.js'; export type View = Dto;",
-			"apps/server/src/contracts/http.ts": "export interface Dto {id: string}",
+				"import type { Dto } from '../../../../../../../packages/contracts/src/http.js'; export type View = Dto;",
+			"packages/contracts/src/http.ts": "export interface Dto {id: string}",
 		},
 	],
 	[
 		"domain-and-ports-do-not-import-http-dtos",
 		{
 			"apps/server/src/modules/test/a/ports.ts":
-				"import type { Dto } from '../../../contracts/http.js'; export interface Port { read(): Dto }",
+				"import type { Dto } from '../../../../../../packages/contracts/src/http.js'; export interface Port { read(): Dto }",
 			"apps/server/src/modules/test/a/domain/model.ts":
-				"import type { Dto } from '../../../../contracts/http.js'; export type Model = Dto;",
-			"apps/server/src/contracts/http.ts":
-				"export interface Dto { id: string }",
+				"import type { Dto } from '../../../../../../../packages/contracts/src/http.js'; export type Model = Dto;",
+			"packages/contracts/src/http.ts": "export interface Dto { id: string }",
 		},
 	],
 	[
@@ -238,7 +238,22 @@ for (const [name, files] of [
 		},
 	],
 	[
-		"web-only-imports-browser-contracts",
+		"contracts-do-not-import-apps",
+		{
+			"packages/contracts/src/example.ts":
+				"export { value } from '../../../apps/server/src/shared/value.js';",
+			"apps/server/src/shared/value.ts": "export const value = 1;",
+		},
+	],
+	[
+		"contracts-do-not-import-node-builtins",
+		{
+			"packages/contracts/src/example.ts":
+				"export { readFile } from 'node:fs';",
+		},
+	],
+	[
+		"web-does-not-import-server",
 		{
 			"apps/web/src/leak.ts":
 				"export { value } from '../../server/src/shared/value.js';",
@@ -403,8 +418,8 @@ test("domain rejects schema-derived types even when imported directly", async ()
 		(
 			await scan({
 				"apps/server/src/modules/test/a/domain/model.ts":
-					"import type { Dto } from '../../../../contracts/schemas/example.js'; export type Model = Dto;",
-				"apps/server/src/contracts/schemas/example.ts":
+					"import type { Dto } from '../../../../../../../packages/contracts/src/schemas/example.js'; export type Model = Dto;",
+				"packages/contracts/src/schemas/example.ts":
 					"export interface Dto { id: string }",
 			})
 		).includes("domain-and-ports-do-not-import-http-dtos"),

@@ -2,11 +2,11 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { workKey } from "@anishelf/contracts/references";
 import Database from "better-sqlite3";
 import { expect, test } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import type { WorkDetails } from "../../../../src/modules/anime/external-works/metadata/domain/source-model.js";
-import { workKey } from "../../../../src/shared/external-reference.js";
 
 const reference = {
 	provider: "fixture/:provider",

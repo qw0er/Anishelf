@@ -1,4 +1,3 @@
-import { Type } from "typebox";
 import {
 	TrackingEpisodeCommandSchema,
 	TrackingEpisodeResolutionSchema,
@@ -7,7 +6,8 @@ import {
 	TrackingOperationsSchema,
 	TrackingResolveSchema,
 	TrackingUpdateSchema,
-} from "../../../../../contracts/schemas/tracking-update.js";
+} from "@anishelf/contracts/schemas/tracking-update";
+import { Type } from "typebox";
 import type { HttpInstance } from "../../../../../transport/instance.js";
 import type { TrackingUpdatesApi, TrackingViewingApi } from "../public.js";
 export function registerTrackingUpdateRoutes(

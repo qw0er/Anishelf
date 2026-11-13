@@ -1,13 +1,13 @@
 import { Type } from "typebox";
-import { playbackSelectionConstraints } from "../defaults.js";
-import { ResourceIdSchema } from "./common.js";
-import { FilePlaybackResourceSchema, MediaTimelineSchema } from "./media.js";
+import { playbackSelectionConstraints } from "../defaults.ts";
+import { ResourceIdSchema } from "./common.ts";
+import { FilePlaybackResourceSchema, MediaTimelineSchema } from "./media.ts";
 import {
 	AudioStreamDescriptionSchema,
 	VideoStreamDescriptionSchema,
-} from "./media-description.js";
-import { SourceVersionSchema } from "./playback.js";
-import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
+} from "./media-description.ts";
+import { SourceVersionSchema } from "./playback.ts";
+import { TranscodeProfileIdSchema } from "./transcode-profiles.ts";
 
 const object = { additionalProperties: false } as const;
 const index = Type.Integer({ minimum: 0 });

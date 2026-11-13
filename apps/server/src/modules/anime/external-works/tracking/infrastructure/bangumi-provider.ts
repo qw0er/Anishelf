@@ -1,10 +1,7 @@
 import { createHash } from "node:crypto";
+import { workKey, workReference } from "@anishelf/contracts/references";
 import { DomainError } from "../../../../../shared/errors.js";
-import {
-	externalId,
-	workKey,
-	workReference,
-} from "../../../../../shared/external-reference.js";
+import { externalId } from "../../../../../shared/external-reference.js";
 import { type BangumiClient, BangumiError } from "../../bangumi/public.js";
 import {
 	type TrackingLease,

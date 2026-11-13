@@ -1,4 +1,4 @@
-import type { MediaTimeline } from "@anishelf/backend/contracts/media";
+import type { MediaTimeline } from "@anishelf/contracts/media";
 import type { MoviElement } from "movi-player/element";
 import wasmUrl from "movi-player/movi.wasm?url";
 import { type CSSProperties, useEffect, useRef } from "react";

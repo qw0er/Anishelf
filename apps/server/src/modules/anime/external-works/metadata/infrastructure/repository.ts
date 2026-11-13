@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
+import type { ExternalWorkReference } from "@anishelf/contracts/references";
+import { workKey } from "@anishelf/contracts/references";
 import { and, asc, desc, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import type { Store } from "../../../../../platform/database/store.js";
-import type { ExternalWorkReference } from "../../../../../shared/external-reference.js";
-import { workKey } from "../../../../../shared/external-reference.js";
 import { metadataDefaults } from "../defaults.js";
 import type { MetadataTitle } from "../domain/model.js";
 import type { NameEvidence } from "../domain/project-document.js";

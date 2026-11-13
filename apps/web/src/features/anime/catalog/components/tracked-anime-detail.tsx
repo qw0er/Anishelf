@@ -1,4 +1,4 @@
-import { workKey } from "@anishelf/backend/contracts/references";
+import { workKey } from "@anishelf/contracts/references";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";

@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { errorCodes } from "../errors.js";
+import { errorCodes } from "../errors.ts";
 
 export const EmptyObjectSchema = Type.Object(
 	{},

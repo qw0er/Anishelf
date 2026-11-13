@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
+import type { PreparationStartResponse } from "@anishelf/contracts/http";
 import { expect, test, vi } from "vitest";
-import type { PreparationStartResponse } from "../../../../src/contracts/http.js";
 
 import {
 	completed,

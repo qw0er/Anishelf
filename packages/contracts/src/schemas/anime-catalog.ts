@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { MetadataDetailsResponseSchema } from "./metadata.js";
+import { MetadataDetailsResponseSchema } from "./metadata.ts";
 
 const id = Type.String({ minLength: 1, maxLength: 200 });
 const text = Type.String({ minLength: 1, maxLength: 500 });

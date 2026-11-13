@@ -1,4 +1,4 @@
-import type { SubtitleDiscoveryResponse } from "../../../../contracts/http.js";
+import type { SubtitleDiscoveryResponse } from "@anishelf/contracts/http";
 import type { SubtitleDiscovery } from "../public.js";
 
 export function subtitleDiscoveryResponse(

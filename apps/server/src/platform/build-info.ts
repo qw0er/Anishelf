@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import type { BuildInfo } from "../contracts/http.js";
+import type { BuildInfo } from "@anishelf/contracts/http";
 
 function loadBuildInfo(): BuildInfo {
 	try {

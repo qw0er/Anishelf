@@ -1,8 +1,8 @@
 import { Type } from "typebox";
-import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
-import { FilePlaybackResourceSchema } from "./media.js";
-import { AudioStreamSelectionSchema } from "./media-description.js";
-import { PlaybackTokenSchema, SourceVersionSchema } from "./playback.js";
+import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.ts";
+import { FilePlaybackResourceSchema } from "./media.ts";
+import { AudioStreamSelectionSchema } from "./media-description.ts";
+import { PlaybackTokenSchema, SourceVersionSchema } from "./playback.ts";
 
 const statuses = {
 	queued: "queued",

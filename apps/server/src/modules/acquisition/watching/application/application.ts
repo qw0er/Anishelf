@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
+import { workReference } from "@anishelf/contracts/references";
 import type { Logger } from "pino";
 import { abortable } from "../../../../shared/abortable.js";
 import { DomainError } from "../../../../shared/errors.js";
-import { workReference } from "../../../../shared/external-reference.js";
 import { isActiveViewing } from "../../../anime/public.js";
 import type { SourcesApi } from "../../sources/public.js";
 import type {

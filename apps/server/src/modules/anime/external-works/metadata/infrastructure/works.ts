@@ -1,6 +1,6 @@
+import { workKey } from "@anishelf/contracts/references";
 import { and, eq } from "drizzle-orm";
 import type { Store } from "../../../../../platform/database/store.js";
-import { workKey } from "../../../../../shared/external-reference.js";
 import { type WorkSummary, workTitle } from "../domain/source-model.js";
 import { metadataReferences, metadataWorks } from "./schema.js";
 

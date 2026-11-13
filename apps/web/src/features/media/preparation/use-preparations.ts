@@ -1,4 +1,4 @@
-import { preparationConstraints } from "@anishelf/backend/contracts/defaults";
+import { preparationConstraints } from "@anishelf/contracts/defaults";
 import {
 	keepPreviousData,
 	useMutation,

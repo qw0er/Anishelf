@@ -1,7 +1,7 @@
 import {
 	FileResponseSchema,
 	ResourceParamsSchema,
-} from "../../../../contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import { sendMediaResponse } from "../../../../transport/media.js";
 import { fileDto } from "../../../../transport/presenters/file.js";

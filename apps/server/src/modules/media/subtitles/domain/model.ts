@@ -2,9 +2,9 @@ import { extname } from "node:path";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 import { type SubtitlePolicy, subtitlePolicy } from "../policy.js";
 
-export type { SubtitleFormat as ExternalSubtitleFormat } from "../../../../contracts/subtitles.js";
+export type { SubtitleFormat as ExternalSubtitleFormat } from "@anishelf/contracts/subtitles";
 
-import type { SubtitleFormat as ExternalSubtitleFormat } from "../../../../contracts/subtitles.js";
+import type { SubtitleFormat as ExternalSubtitleFormat } from "@anishelf/contracts/subtitles";
 export function externalSubtitleFormat(
 	name: string,
 	formats: DeepReadonly<SubtitlePolicy>["formats"] = subtitlePolicy.formats,

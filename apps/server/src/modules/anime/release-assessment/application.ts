@@ -1,6 +1,6 @@
+import { workReference } from "@anishelf/contracts/references";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
-import { workReference } from "../../../shared/external-reference.js";
 import type {
 	AnimeCatalogApi,
 	CatalogMetadata,

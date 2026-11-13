@@ -1,9 +1,9 @@
-import PQueue from "p-queue";
 import type {
 	PreparedMediaItem,
 	PreparedMediaList,
 	PreparedMediaQuery,
-} from "../../../../contracts/http.js";
+} from "@anishelf/contracts/http";
+import PQueue from "p-queue";
 import type { PreparationArtifacts } from "../../artifacts/public.js";
 import type { PreparationView } from "../domain/model.js";
 import type { PreparedMediaInventory } from "../public.js";

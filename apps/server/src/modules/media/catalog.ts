@@ -1,5 +1,5 @@
+import { originalTimeline } from "@anishelf/contracts/media";
 import type { Logger } from "pino";
-import { originalTimeline } from "../../contracts/media.js";
 import { MediaToolError } from "../../platform/media/errors.js";
 import type { MediaInfo } from "../../platform/media/model.js";
 import { DomainError } from "../../shared/errors.js";

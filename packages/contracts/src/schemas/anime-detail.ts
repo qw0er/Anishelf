@@ -1,9 +1,9 @@
 import { Type } from "typebox";
-import { LocalWorkDetailSchema } from "./anime-catalog.js";
-import { DownloadActivitySchema } from "./downloads.js";
-import { MetadataDetailsResponseSchema } from "./metadata.js";
-import { SubscriptionViewSchema } from "./subscriptions.js";
-import { TrackingEntrySchema } from "./tracking-list.js";
+import { LocalWorkDetailSchema } from "./anime-catalog.ts";
+import { DownloadActivitySchema } from "./downloads.ts";
+import { MetadataDetailsResponseSchema } from "./metadata.ts";
+import { SubscriptionViewSchema } from "./subscriptions.ts";
+import { TrackingEntrySchema } from "./tracking-list.ts";
 export const AnimeDetailSchema = Type.Object({
 	reference: Type.Object({
 		provider: Type.String(),

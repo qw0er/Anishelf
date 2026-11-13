@@ -2,7 +2,7 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { deploymentDefaults } from "../../src/contracts/defaults.js";
+import { deploymentDefaults } from "../../src/platform/deployment-defaults.js";
 import { ApplicationLogging } from "../../src/platform/logging/index.js";
 
 let fixture: string;

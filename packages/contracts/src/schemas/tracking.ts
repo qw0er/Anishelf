@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { TrackingProviderSchema } from "./tracking-provider.js";
+import { TrackingProviderSchema } from "./tracking-provider.ts";
 
 const TrackingAccountSchema = Type.Object({
 	id: Type.String({ minLength: 1 }),

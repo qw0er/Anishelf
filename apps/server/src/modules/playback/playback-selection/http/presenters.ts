@@ -1,7 +1,7 @@
 /** HTTP owns delivery URLs; the business selection contains only actual asset facts. */
 export function playbackSelectionResponse(
 	result: import("../public.js").PlaybackSelection,
-): import("../../../../contracts/http.js").PlaybackSelectionResponse {
+): import("@anishelf/contracts/http").PlaybackSelectionResponse {
 	const active = result.active;
 	return {
 		...result,

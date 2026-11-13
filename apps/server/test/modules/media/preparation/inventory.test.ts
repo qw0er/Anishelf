@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { expect, test, vi } from "vitest";
 import type {
 	PreparedMediaDeleteResponse,
 	PreparedMediaList,
-} from "../../../../src/contracts/http.js";
+} from "@anishelf/contracts/http";
+import { expect, test, vi } from "vitest";
 import { PreparedMediaFiles } from "../../../../src/modules/media/artifacts/files.js";
 import {
 	completed,

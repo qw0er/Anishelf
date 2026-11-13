@@ -1,3 +1,4 @@
+import { workKey } from "@anishelf/contracts/references";
 import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { registerAnimeDetailRoutes } from "../../src/app/anime-detail.js";
@@ -6,7 +7,6 @@ import { MetadataError } from "../../src/modules/anime/external-works/metadata/p
 import type { TrackingListSnapshot } from "../../src/modules/anime/external-works/tracking/public.js";
 import { AnimeQueries } from "../../src/modules/anime/queries.js";
 import { DomainError } from "../../src/shared/errors.js";
-import { workKey } from "../../src/shared/external-reference.js";
 import { fixtureIdentities } from "../support/metadata-identities.js";
 
 const logger = pino({ enabled: false });

@@ -1,4 +1,4 @@
-import { workKey } from "@anishelf/backend/contracts/references";
+import { workKey } from "@anishelf/contracts/references";
 import { Play } from "lucide-react";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";

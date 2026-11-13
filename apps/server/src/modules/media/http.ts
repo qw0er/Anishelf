@@ -1,9 +1,9 @@
-import { Type } from "typebox";
 import {
 	PlaybackSourceSchema,
 	ResourceParamsSchema,
-} from "../../contracts/schemas/index.js";
-import { SourceVersionSchema } from "../../contracts/schemas/playback.js";
+} from "@anishelf/contracts/schemas";
+import { SourceVersionSchema } from "@anishelf/contracts/schemas/playback";
+import { Type } from "typebox";
 import type { HttpInstance } from "../../transport/instance.js";
 import type { MediaInspectionApplication } from "./inspection/application.js";
 import { registerChapterRoutes } from "./inspection/http/chapters.js";

@@ -1,7 +1,4 @@
-import {
-	type MediaTimeline,
-	mediaTimeMs,
-} from "@anishelf/backend/contracts/media";
+import { type MediaTimeline, mediaTimeMs } from "@anishelf/contracts/media";
 import { parse } from "ass-compiler";
 import type { MoviElement, SubtitleCue } from "movi-player/element";
 import { discoverSubtitles } from "../../media/public.js";

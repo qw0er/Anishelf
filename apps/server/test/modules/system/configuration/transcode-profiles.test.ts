@@ -1,11 +1,11 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { TranscodeProfileSchema } from "@anishelf/contracts/schemas/transcode-profiles";
 import pino from "pino";
 import { Check } from "typebox/value";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { stringify } from "yaml";
-import { TranscodeProfileSchema } from "../../../../src/contracts/schemas/transcode-profiles.js";
 import { ConfigurationService } from "../../../../src/modules/system/configuration/application/service.js";
 import { builtinTranscodeProfiles } from "../../../../src/modules/system/configuration/domain/transcode-profiles.js";
 import { transcodeProfileCatalog } from "../../../../src/modules/system/configuration/http/profile-presenter.js";

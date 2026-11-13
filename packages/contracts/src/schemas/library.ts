@@ -1,6 +1,6 @@
 import { Type } from "typebox";
-import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.js";
-import { TranscodeProfileIdSchema } from "./transcode-profiles.js";
+import { NonnegativeIntegerSchema, ResourceIdSchema } from "./common.ts";
+import { TranscodeProfileIdSchema } from "./transcode-profiles.ts";
 
 export const ScanWarningSummaryDtoSchema = Type.Object(
 	{ count: NonnegativeIntegerSchema, messages: Type.Array(Type.String()) },

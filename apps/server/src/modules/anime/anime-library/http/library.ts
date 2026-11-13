@@ -1,7 +1,7 @@
 import {
 	AnimeLibraryQuerySchema,
 	AnimeLibrarySchema,
-} from "../../../../contracts/schemas/anime-library.js";
+} from "@anishelf/contracts/schemas/anime-library";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { LibraryCard } from "../domain/model.js";
 import type { AnimeLibraryApi } from "../public.js";

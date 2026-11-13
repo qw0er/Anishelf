@@ -1,4 +1,4 @@
-import { deploymentDefaults } from "../contracts/defaults.js";
+import { deploymentDefaults } from "./deployment-defaults.js";
 
 export type Environment = Readonly<Record<string, string | undefined>>;
 export interface ExecutableSearch {

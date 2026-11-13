@@ -9,6 +9,7 @@ RUN apt-get update \
 COPY package.json package-lock.json ./
 COPY apps/server/package.json ./apps/server/package.json
 COPY apps/web/package.json ./apps/web/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY scripts/build-info.mjs ./scripts/build-info.mjs
 ARG ANISHELF_BUILD_TAG=""
 ARG ANISHELF_BUILD_COMMIT=""
@@ -21,6 +22,7 @@ ENV ANISHELF_BUILD_TAG=$ANISHELF_BUILD_TAG \
 RUN npm ci && npm rebuild better-sqlite3
 
 FROM dependencies AS backend-build
+COPY packages/contracts/src/ ./packages/contracts/src/
 COPY apps/server/ ./apps/server/
 RUN npm run build --workspace @anishelf/backend \
     && rm -rf node_modules apps/server/node_modules apps/web/node_modules \
@@ -29,8 +31,7 @@ RUN npm run build --workspace @anishelf/backend \
     && mkdir -p apps/server/node_modules
 
 FROM dependencies AS web-build
-# Web imports shared contracts and build defaults from the backend workspace.
-COPY apps/server/ ./apps/server/
+COPY packages/contracts/src/ ./packages/contracts/src/
 COPY apps/web/ ./apps/web/
 COPY CHANGELOG.md ./CHANGELOG.md
 RUN npm run build --workspace @anishelf/web
@@ -49,13 +50,14 @@ RUN apt-get update \
     && mkdir -p /var/lib/anishelf /data/media \
     && chown -R node:node /var/lib/anishelf /data
 COPY --from=backend-build /app/node_modules ./node_modules
+COPY --from=backend-build /app/packages/contracts ./packages/contracts
 COPY --from=backend-build /app/apps/server/package.json ./apps/server/package.json
 COPY --from=backend-build /app/apps/server/build-info.json ./apps/server/build-info.json
 COPY --from=backend-build /app/apps/server/node_modules ./apps/server/node_modules
 COPY --from=backend-build /app/apps/server/dist ./apps/server/dist
 COPY --from=backend-build /app/apps/server/migrations ./apps/server/migrations
-COPY package/qbittorrent-init.mjs ./package/qbittorrent-init.mjs
-COPY package/jackett-init.mjs ./package/jackett-init.mjs
+COPY deployment/qbittorrent-init.mjs ./package/qbittorrent-init.mjs
+COPY deployment/jackett-init.mjs ./package/jackett-init.mjs
 EXPOSE 3000
 USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
@@ -65,7 +67,7 @@ CMD ["node", "apps/server/dist/index.js"]
 FROM caddy:2-alpine AS web
 ENV XDG_CONFIG_HOME=/tmp/caddy/config \
     XDG_DATA_HOME=/tmp/caddy/data
-COPY package/Caddyfile /etc/caddy/Caddyfile
+COPY deployment/Caddyfile /etc/caddy/Caddyfile
 COPY --from=web-build /app/apps/web/dist /srv
 EXPOSE 8080
 USER 1000:1000

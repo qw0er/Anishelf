@@ -20,7 +20,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts"
 SOURCE = SCRIPTS / "installer"
-TEMPLATES = ROOT / "package" / "deploy"
+TEMPLATES = ROOT / "deployment" / "templates"
 ARTIFACT = SCRIPTS / "install.pyz"
 
 sys.path.insert(0, str(SOURCE))
@@ -218,7 +218,7 @@ class ValidationTests(unittest.TestCase):
 
 
 class AssetTests(unittest.TestCase):
-    def test_checkout_templates_are_read_from_package_deploy(self) -> None:
+    def test_checkout_templates_are_read_from_deployment_templates(self) -> None:
         source = AssetSource()
         try:
             self.assertEqual(source.resolve(), "bundled")

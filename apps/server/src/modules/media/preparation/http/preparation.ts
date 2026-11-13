@@ -1,5 +1,3 @@
-import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Type } from "typebox";
 import {
 	EmptyObjectSchema,
 	PreparationListResponseSchema,
@@ -16,7 +14,9 @@ import {
 	PreparedMediaQuerySchema,
 	ResourceIdSchema,
 	ResourceParamsSchema,
-} from "../../../../contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type } from "typebox";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import { sendMediaResponse } from "../../../../transport/media.js";
 import type { PreparationApplication } from "../application/preparation.js";

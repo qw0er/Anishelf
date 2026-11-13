@@ -1,4 +1,3 @@
-import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
 	HistoryQuerySchema,
 	HistoryResponseSchema,
@@ -7,7 +6,8 @@ import {
 	PlaybackTokenParamsSchema,
 	SavePlaybackProgressRequestSchema,
 	SavePlaybackProgressResponseSchema,
-} from "../../../../contracts/schemas/index.js";
+} from "@anishelf/contracts/schemas";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { DomainError } from "../../../../shared/errors.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { PlaybackApplication } from "../application/playback.js";

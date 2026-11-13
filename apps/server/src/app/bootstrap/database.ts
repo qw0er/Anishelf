@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { workKey, workReference } from "@anishelf/contracts/references";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
@@ -29,7 +30,6 @@ import { createAuthenticationPersistence } from "../../modules/system/persistenc
 import type { AuthenticationStore } from "../../modules/system/public.js";
 import type { Store } from "../../platform/database/store.js";
 import { storageRules } from "../../platform/storage.js";
-import { workKey, workReference } from "../../shared/external-reference.js";
 import type { DeepReadonly } from "../../shared/policy.js";
 
 import * as schema from "../schema.js";

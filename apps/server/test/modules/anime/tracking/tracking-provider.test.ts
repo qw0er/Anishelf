@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { workKey, workReference } from "@anishelf/contracts/references";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
@@ -18,8 +19,6 @@ import type { TrackingUpdateProvider } from "../../../../src/modules/anime/exter
 import {
 	externalId,
 	externalIdParts,
-	workKey,
-	workReference,
 } from "../../../../src/shared/external-reference.js";
 import { fixtureIdentities } from "../../../support/metadata-identities.js";
 

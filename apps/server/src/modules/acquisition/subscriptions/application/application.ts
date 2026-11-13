@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { workReference } from "@anishelf/contracts/references";
 import { DomainError } from "../../../../shared/errors.js";
-import { workReference } from "../../../../shared/external-reference.js";
 import type { AcquisitionTarget } from "../../../anime/public.js";
 import type { SourceSnapshot } from "../../sources/public.js";
 import { coveredEpisodeCount } from "../domain/completion.js";

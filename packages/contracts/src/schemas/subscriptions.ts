@@ -1,6 +1,6 @@
 import { Type } from "typebox";
-import { ProfileCatalogIssueSchema } from "./profile-issues.js";
-import { SourceInputSchema } from "./sources.js";
+import { ProfileCatalogIssueSchema } from "./profile-issues.ts";
+import { SourceInputSchema } from "./sources.ts";
 
 const workKey = Type.String({ minLength: 1, maxLength: 1024 });
 const revision = Type.String({ minLength: 1, maxLength: 64 });

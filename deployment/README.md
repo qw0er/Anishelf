@@ -1,4 +1,4 @@
-# Container Packaging
+# Deployment Assets
 
 For installation, maintenance, updates and removal, use the
 [deployment guide](../docs/guide/deployment.md). This reference covers image and
@@ -9,24 +9,26 @@ installer maintenance.
 | Dockerfile target | Release image | Contents |
 | --- | --- | --- |
 | `backend` | `ghcr.io/qw0er/anishelf-backend` | Node.js 24, backend, production dependencies, migrations, FFmpeg/FFprobe |
-| `web` | `ghcr.io/qw0er/anishelf-web` | Caddy 2, built SPA and `package/Caddyfile` |
+| `web` | `ghcr.io/qw0er/anishelf-web` | Caddy 2, built SPA and `deployment/Caddyfile` |
 
 Both images support Linux AMD64/ARM64 and run as UID/GID 1000. Web listens on 8080
 and proxies `/api` to private Backend:3000. Only Backend mounts app/media state;
 its image does not enable Node frontend hosting. Both have health checks.
+Deployment bundles run the initialization scripts at `/app/package/` inside the
+backend image.
 
 ```sh
 # From the repository root
-docker build -f package/Dockerfile --target backend -t anishelf-backend:local .
-docker build -f package/Dockerfile --target web -t anishelf-web:local .
+docker build -f deployment/Dockerfile --target backend -t anishelf-backend:local .
+docker build -f deployment/Dockerfile --target web -t anishelf-web:local .
 ```
 
 | Asset | Purpose |
 | --- | --- |
 | [Root Compose](../compose.yaml) | Build and run the checkout |
-| [Deployment Compose](deploy/compose.yaml) | Pull published images; matching app tags via `ANISHELF_TAG` |
-| [Environment example](deploy/.env.example) | Host paths, ports, profiles and origin |
-| [Quadlet units](deploy/quadlet/) | Rootless systemd stack, managed through `anishelf.target` |
+| [Deployment Compose](templates/compose.yaml) | Pull published images; matching app tags via `ANISHELF_TAG` |
+| [Environment example](templates/.env.example) | Host paths, ports, profiles and origin |
+| [Quadlet units](templates/quadlet/) | Rootless systemd stack, managed through `anishelf.target` |
 | [Installer](../scripts/install.pyz) | Self-contained Python CLI; renders canonical assets into a fresh deployment directory |
 | [Installer sources](../scripts/installer/) | Standard-library Python implementation and tests |
 
@@ -66,7 +68,7 @@ npm run test:deployment
 ```
 
 Rebuild `scripts/install.pyz` after changing `scripts/installer/` or
-`package/deploy/`; the test suite also verifies that the packaged archive matches
+`deployment/templates/`; the test suite also verifies that the packaged archive matches
 the sources and templates. Fixtures use fake
 engine/systemd commands; live runtime and SELinux validation remain separate.
 Keep service/bootstrap logic in canonical templates and containers.

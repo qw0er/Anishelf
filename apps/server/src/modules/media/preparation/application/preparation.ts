@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type {
 	PreparedMediaDeleteResponse,
 	PreparedMediaQuery,
-} from "../../../../contracts/http.js";
+} from "@anishelf/contracts/http";
 import type { MediaProcessingPlan } from "../../../../platform/media/specification.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";

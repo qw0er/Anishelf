@@ -1,6 +1,6 @@
+import type { ExternalWorkReference } from "@anishelf/contracts/references";
+import { workReference } from "@anishelf/contracts/references";
 import type { Logger } from "pino";
-import type { ExternalWorkReference } from "../../../../../shared/external-reference.js";
-import { workReference } from "../../../../../shared/external-reference.js";
 import { MetadataError, type WorkReference } from "../domain/model.js";
 import type { MetadataIdentitiesApi } from "../identities.js";
 import type { MetadataStore, SourceMetadataApi } from "../ports.js";

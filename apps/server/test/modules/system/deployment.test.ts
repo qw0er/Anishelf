@@ -394,7 +394,7 @@ test("validates the optional bundled source credential file path without requiri
 test("development and published Jackett profiles use the latest image and keep backend startup independent", async () => {
 	for (const relative of [
 		"../../../../../compose.yaml",
-		"../../../../../package/deploy/compose.yaml",
+		"../../../../../deployment/templates/compose.yaml",
 	]) {
 		const config = parse(
 			await readFile(new URL(relative, import.meta.url), "utf8"),
@@ -439,10 +439,10 @@ test("development and published Jackett profiles use the latest image and keep b
 		expect(backend.volumes).toContain("jackett-config:/run/jackett-config:ro");
 	}
 	const dockerfile = await readFile(
-		new URL("../../../../../package/Dockerfile", import.meta.url),
+		new URL("../../../../../deployment/Dockerfile", import.meta.url),
 		"utf8",
 	);
-	expect(dockerfile).toContain("COPY package/jackett-init.mjs");
+	expect(dockerfile).toContain("COPY deployment/jackett-init.mjs");
 });
 
 test("explicit proxy networks parse without expanding the source-install default", () => {
@@ -466,7 +466,7 @@ test.each(["", "true", "*", "proxy.example.com", "10.0.0.1/99", "loopback,"])(
 test("Compose uses optional Backend origin and explicit proxy trust at each hop", async () => {
 	for (const relative of [
 		"../../../../../compose.yaml",
-		"../../../../../package/deploy/compose.yaml",
+		"../../../../../deployment/templates/compose.yaml",
 	]) {
 		const { services } = parse(
 			await readFile(new URL(relative, import.meta.url), "utf8"),

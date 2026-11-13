@@ -1,11 +1,11 @@
-import { Check } from "typebox/value";
-import { expect, test } from "vitest";
 import {
 	mediaTimeMs,
 	originalTimeline,
 	sourceTimeMs,
-} from "../../src/contracts/media.js";
-import { PlaybackPlanSchema } from "../../src/contracts/schemas/playback.js";
+} from "@anishelf/contracts/media";
+import { PlaybackPlanSchema } from "@anishelf/contracts/schemas/playback";
+import { Check } from "typebox/value";
+import { expect, test } from "vitest";
 
 test("source mapping survives an offset restart and nonzero media origin", () => {
 	const timeline = {

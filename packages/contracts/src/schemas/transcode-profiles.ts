@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { ProfileCatalogIssueSchema } from "./profile-issues.js";
+import { ProfileCatalogIssueSchema } from "./profile-issues.ts";
 export const TranscodeProfileIdSchema = Type.String({
 	pattern: "^(builtin|custom):[a-z][a-z0-9-]{0,63}$",
 });

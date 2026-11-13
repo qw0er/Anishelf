@@ -36,7 +36,7 @@
 			}
 		},
 		{
-			"includes": ["apps/web/src/**"],
+			"includes": ["apps/web/**"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -45,11 +45,8 @@
 							"options": {
 								"patterns": [
 									{
-										"group": [
-											"@anishelf/backend/**",
-											"!@anishelf/backend/contracts/**"
-										],
-										"message": "Web may import only browser-safe contracts."
+										"group": ["@anishelf/backend", "@anishelf/backend/**"],
+										"message": "Use @anishelf/contracts for the shared protocol."
 									}
 								]
 							}

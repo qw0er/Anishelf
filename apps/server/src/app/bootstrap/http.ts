@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { HealthResponseSchema } from "@anishelf/contracts/schemas";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, {
 	type FastifyPluginAsync,
@@ -6,7 +7,6 @@ import Fastify, {
 	type RawServerDefault,
 } from "fastify";
 import type { Logger } from "pino";
-import { HealthResponseSchema } from "../../contracts/schemas/index.js";
 import type { DeploymentConfig } from "../../modules/system/public.js";
 import { apiError, classifyHttpError } from "../../transport/errors.js";
 import type { HttpInstance } from "../../transport/instance.js";

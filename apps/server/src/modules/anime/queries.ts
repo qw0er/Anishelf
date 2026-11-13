@@ -1,6 +1,6 @@
+import { workKey, workReference } from "@anishelf/contracts/references";
 import type { Logger } from "pino";
 import { DomainError } from "../../shared/errors.js";
-import { workKey, workReference } from "../../shared/external-reference.js";
 import type { CatalogMetadata as MetadataApi } from "./anime-catalog/ports.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
 import type { MetadataIdentitiesApi } from "./external-works/metadata/public.js";
@@ -101,7 +101,7 @@ export class AnimeQueries implements Queries {
 		};
 	}
 	private projectReference(
-		reference: import("../../shared/external-reference.js").ExternalWorkReference,
+		reference: import("@anishelf/contracts/references").ExternalWorkReference,
 	) {
 		if (!this.identities)
 			throw new MetadataError({
