@@ -3,6 +3,8 @@ import { test } from "node:test";
 import { isRequestCancelled } from "@anishelf/client-core";
 import { createServerConnection } from "@anishelf/client-core/connection";
 
+import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
+
 test("JSON requests and resource addresses use the same configured server", async () => {
 	const urls = [];
 	const connection = createServerConnection({
@@ -49,7 +51,7 @@ test("JSON requests and resource addresses use the same configured server", asyn
 
 test("disposal cancels outstanding session and media reads without notifying expiry", async () => {
 	const pending = [];
-	const connection = createServerConnection({
+	const { connection } = createCookieConnection({
 		origin: "https://old.test",
 		fetch(url, init) {
 			const result = Promise.withResolvers();

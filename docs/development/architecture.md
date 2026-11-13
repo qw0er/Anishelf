@@ -151,9 +151,12 @@ Known airtimes invalidate the detail and broadcast queries, and metadata detail
 freshness expires at the next scheduled airing. These views do not create Catalog
 records or query release sites merely to build episode rows.
 
-`@anishelf/client-core` owns JSON requests, request cancellation, API errors and
-cookie-session bootstrap and CSRF handling. A client instance receives a
-Fetch-compatible transport and an optional callback for expired authentication.
+`@anishelf/client-core` owns JSON requests, cancellation and API errors.
+A connection receives a Fetch-compatible transport and an optional request
+policy for credentials, headers and unauthorized responses. The Web host
+chooses the cookie adapter, which owns session bootstrap and CSRF handling.
+Shared pages use `ClientAuthentication` for sign-in, session status and sign-out.
+Password changes are shown when the host supplies that capability.
 The server connection owns the configured HTTP(S) origin, API client, and
 cancellation signal. Resolve server artwork, media, subtitles, fonts, and
 download links against this origin. Use absolute addresses for media players

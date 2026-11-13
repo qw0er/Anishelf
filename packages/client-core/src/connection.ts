@@ -1,4 +1,8 @@
-import { createApiClient, throwIfCancelled } from "./api-client.ts";
+import {
+	type ApiRequestPolicy,
+	createApiClient,
+	throwIfCancelled,
+} from "./api-client.ts";
 
 function httpUrl(value: string, base?: string): URL | null {
 	try {
@@ -17,12 +21,12 @@ function httpUrl(value: string, base?: string): URL | null {
 export function createServerConnection({
 	origin,
 	fetch: transport,
-	onAuthRequired,
+	policy,
 	sameOrigin = false,
 }: {
 	origin: string;
 	fetch: (url: string, init: RequestInit) => Promise<Response>;
-	onAuthRequired?: () => void;
+	policy?: ApiRequestPolicy;
 	sameOrigin?: boolean;
 }) {
 	const server = httpUrl(origin);
@@ -56,7 +60,7 @@ export function createServerConnection({
 	const api = createApiClient({
 		fetch: send,
 		signal,
-		...(onAuthRequired ? { onAuthRequired } : {}),
+		...(policy ? { policy } : {}),
 	});
 
 	async function fetchResource(path: string, init: RequestInit = {}) {
@@ -65,7 +69,7 @@ export function createServerConnection({
 			: signal;
 		throwIfCancelled(requestSignal);
 		const response = await send(path, {
-			credentials: "same-origin",
+			credentials: policy?.credentials ?? "omit",
 			...init,
 			signal: requestSignal,
 		});
@@ -81,7 +85,6 @@ export function createServerConnection({
 		fetchResource,
 		dispose() {
 			lifetime.abort();
-			api.clearAuthToken();
 		},
 	};
 }

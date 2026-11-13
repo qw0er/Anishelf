@@ -6,7 +6,9 @@
 	"license": "AGPL-3.0-only",
 	"exports": {
 		".": "./src/api-client.ts",
-		"./connection": "./src/connection.ts"
+		"./connection": "./src/connection.ts",
+		"./authentication": "./src/authentication.ts",
+		"./cookie-authentication": "./src/cookie-authentication.ts"
 	},
 	"scripts": {
 		"test": "node --test test/*.test.mjs",

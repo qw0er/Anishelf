@@ -1,4 +1,4 @@
-import { createServerConnection } from "@anishelf/client-core/connection";
+import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
 import { afterEach, expect, vi } from "vitest";
 import changelog from "../../../CHANGELOG.md?raw";
 import { configureClientRuntime } from "../src/shared/api/connection.js";
@@ -86,16 +86,16 @@ export const testPlatform: ClientPlatform = {
 	},
 };
 
+const cookieSession = createCookieConnection({
+	origin:
+		typeof window === "undefined" ? "http://localhost" : window.location.origin,
+	fetch: (path, init) => fetch(path, init),
+	onAuthRequired,
+});
+export const { clearCsrfToken } = cookieSession;
+
 export const testRuntime = configureClientRuntime({
-	connection: createServerConnection({
-		origin:
-			typeof window === "undefined"
-				? "http://localhost"
-				: window.location.origin,
-		sameOrigin: true,
-		fetch: (path, init) => fetch(path, init),
-		onAuthRequired,
-	}),
+	...cookieSession,
 	buildInfo: {
 		version: "1.0.2",
 		commit: "test",

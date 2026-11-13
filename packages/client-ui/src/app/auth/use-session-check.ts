@@ -7,7 +7,7 @@ const minimumCheckGapMs = 30_000;
 /** Revalidate visible sessions on return, with a slow fallback for idle pages. */
 export function useSessionCheck() {
 	useEffect(() => {
-		const { platform, connection, onAuthRequired } = getClientRuntime();
+		const { platform, authentication, onAuthRequired } = getClientRuntime();
 		let active = true;
 		let checking = false;
 		let lastCheck = Date.now();
@@ -26,8 +26,8 @@ export function useSessionCheck() {
 			}
 			checking = true;
 			lastCheck = Date.now();
-			void connection.api
-				.loadAuthSession()
+			void authentication
+				.getSession()
 				.then((session) => {
 					if (active && !session.authenticated) onAuthRequired();
 				})

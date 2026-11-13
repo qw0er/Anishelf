@@ -1,7 +1,4 @@
-import type {
-	ApiErrorResponse,
-	AuthSessionResponse,
-} from "@anishelf/contracts/http";
+import type { ApiErrorResponse } from "@anishelf/contracts/http";
 
 type ApiClientErrorKind = "http" | "network" | "invalid_response";
 
@@ -66,35 +63,24 @@ function isApiError(value: unknown): value is PublicApiError {
 	);
 }
 
-/** Creates a JSON API client with its own cookie-session and CSRF bookkeeping. */
+export interface ApiRequestPolicy {
+	credentials?: RequestCredentials;
+	headers?: (
+		method: string,
+	) => Promise<Record<string, string>> | Record<string, string> | undefined;
+	onUnauthorized?: (path: string) => void;
+}
+
+/** Sends JSON requests using the transport and credential policy supplied by the host. */
 export function createApiClient({
 	fetch: fetcher,
-	onAuthRequired,
+	policy,
 	signal: lifetime,
 }: {
 	fetch: (path: string, init: RequestInit) => Promise<Response>;
-	onAuthRequired?: () => void;
+	policy?: ApiRequestPolicy;
 	signal?: AbortSignal;
 }) {
-	let csrfToken: string | undefined;
-	let bootstrap: Promise<AuthSessionResponse> | undefined;
-	function loadAuthSession(): Promise<AuthSessionResponse> {
-		if (!bootstrap)
-			bootstrap = request<AuthSessionResponse>("/api/auth/session", "GET")
-				.then((value) => {
-					throwIfCancelled(lifetime);
-					csrfToken = value.csrfToken;
-					return value;
-				})
-				.finally(() => {
-					bootstrap = undefined;
-				});
-		return bootstrap;
-	}
-	function clearAuthToken() {
-		csrfToken = undefined;
-	}
-
 	async function request<T>(
 		path: string,
 		method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
@@ -106,7 +92,8 @@ export function createApiClient({
 				? AbortSignal.any([lifetime, callerSignal])
 				: (lifetime ?? callerSignal);
 		throwIfCancelled(signal);
-		if (method !== "GET" && !csrfToken) await loadAuthSession();
+		const headers = policy?.headers?.(method);
+		const authHeaders = headers instanceof Promise ? await headers : headers;
 		throwIfCancelled(signal);
 		let response: Response;
 		try {
@@ -114,13 +101,11 @@ export function createApiClient({
 				method,
 				headers: {
 					Accept: "application/json",
-					...(method !== "GET" && csrfToken
-						? { "x-csrf-token": csrfToken }
-						: {}),
+					...authHeaders,
 					...(payload ? { "Content-Type": "application/json" } : {}),
 				},
 				...(payload ? { body: JSON.stringify(payload) } : {}),
-				credentials: "same-origin",
+				credentials: policy?.credentials ?? "omit",
 				cache: "no-store",
 				...(signal ? { signal } : {}),
 				...(keepalive ? { keepalive: true } : {}),
@@ -136,14 +121,7 @@ export function createApiClient({
 			});
 		}
 		throwIfCancelled(signal);
-		if (
-			response.status === 401 &&
-			path !== "/api/auth/login" &&
-			path !== "/api/auth/password"
-		) {
-			csrfToken = undefined;
-			onAuthRequired?.();
-		}
+		if (response.status === 401) policy?.onUnauthorized?.(path);
 		if (response.ok && response.status === 204) return undefined as T;
 		const requestId = response.headers.get("x-request-id");
 		let body: unknown;
@@ -179,16 +157,8 @@ export function createApiClient({
 				requestId,
 			});
 		}
-		if (
-			path === "/api/auth/login" &&
-			typeof body === "object" &&
-			body &&
-			"csrfToken" in body &&
-			typeof body.csrfToken === "string"
-		)
-			csrfToken = body.csrfToken;
 		return body as T;
 	}
 
-	return { request, loadAuthSession, clearAuthToken };
+	return { request };
 }

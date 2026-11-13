@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ApiClientError, createApiClient } from "@anishelf/client-core";
+import { ApiClientError } from "@anishelf/client-core";
+import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
 
 test("API clients keep session bootstrap, CSRF tokens and expiry notifications separate", async () => {
 	function client(token) {
 		const requests = [];
 		const authEvents = [];
-		const api = createApiClient({
+		const {
+			connection: { api },
+		} = createCookieConnection({
+			origin: "https://example.test",
 			async fetch(path, init) {
 				requests.push({ path, headers: init.headers });
 				switch (path) {

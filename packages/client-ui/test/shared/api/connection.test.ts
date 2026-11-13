@@ -1,12 +1,13 @@
 import { createServerConnection } from "@anishelf/client-core/connection";
 import { expect, test, vi } from "vitest";
 import { createClientRuntime } from "../../../src/shared/api/connection.js";
-import { testPlatform } from "../../setup.js";
+import { testPlatform, testRuntime } from "../../setup.js";
 
 test("disposing one Web connection clears its cache and leaves the other connection usable", async () => {
 	const fetcher = vi.fn(async () => Response.json({ ok: true }));
 	const createRuntime = (origin: string) =>
 		createClientRuntime({
+			authentication: testRuntime.authentication,
 			connection: createServerConnection({
 				origin,
 				sameOrigin: true,
@@ -46,7 +47,7 @@ test("disposing one Web connection clears its cache and leaves the other connect
 	});
 	expect(fetcher).toHaveBeenCalledExactlyOnceWith(
 		"/api/health",
-		expect.objectContaining({ credentials: "same-origin" }),
+		expect.objectContaining({ credentials: "omit" }),
 	);
 	second.dispose();
 });

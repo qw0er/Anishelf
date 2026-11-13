@@ -16,6 +16,15 @@ completes, the host creates a router from `createClientRoutes()` and mounts
 the host's build pipeline. The public entry and stylesheet are the supported
 imports for application hosts.
 
+Supply a `ClientAuthentication` from `@anishelf/client-core/authentication`
+alongside the connection. Its `signIn`, `getSession` and `signOut` methods
+drive the shared login page, route guard, foreground session checks and logout.
+The session result exposes authentication status without credentials. The
+optional `changePassword` method controls whether the settings page offers
+password changes. Web uses `createCookieConnection` to supply both the
+connection and this adapter. A device host can implement the same interface
+through its own authentication bridge.
+
 There is one active client runtime per renderer. Dispose it before initializing
 another connection and recreate the router with the new runtime. Disposal
 cancels requests and playback and clears the session and query cache. The host

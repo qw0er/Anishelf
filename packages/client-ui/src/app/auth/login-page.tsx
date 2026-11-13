@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
-import {
-	ApiClientError,
-	isRequestCancelled,
-	request,
-} from "../../shared/api/client.js";
+import { ApiClientError, isRequestCancelled } from "../../shared/api/client.js";
 import { getClientRuntime } from "../../shared/api/connection.js";
 import { Button } from "../../shared/components/ui/button.js";
 import { FieldError } from "../../shared/components/ui/field.js";
@@ -27,14 +23,8 @@ export function LoginPage() {
 					setPending(true);
 					setError("");
 					try {
-						const normalizedPassword = password.trim();
-						await request(
-							"/api/auth/login",
-							"POST",
-							{},
-							{ password: normalizedPassword },
-						);
 						const runtime = getClientRuntime();
+						await runtime.authentication.signIn(password.trim());
 						runtime.restartSession(
 							loginReturnPath(
 								params.get("returnTo"),

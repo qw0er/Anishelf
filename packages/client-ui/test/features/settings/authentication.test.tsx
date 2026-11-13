@@ -9,7 +9,7 @@ import { SecuritySettings } from "../../../src/app/auth/security-settings.js";
 import { ClientApp, createClientRoutes } from "../../../src/app/client-app.js";
 import { request } from "../../../src/shared/api/client.js";
 import "../../../src/shared/i18n.js";
-import { testRuntime } from "../../setup.js";
+import { clearCsrfToken, testRuntime } from "../../setup.js";
 import {
 	cleanup,
 	fireEvent,
@@ -21,7 +21,7 @@ import {
 const fetcher = vi.fn<typeof fetch>();
 const routers: ReturnType<typeof createMemoryRouter>[] = [];
 beforeEach(() => {
-	testRuntime.connection.api.clearAuthToken();
+	clearCsrfToken();
 	fetcher.mockReset();
 	vi.stubGlobal("fetch", fetcher);
 });
@@ -202,7 +202,7 @@ test("business 401 signals session loss while wrong login passwords do not", asy
 		});
 		expect(expired).toHaveBeenCalledOnce();
 		await expect(
-			request("/api/auth/login", "POST", {}, { password: "wrong" }),
+			testRuntime.authentication.signIn("wrong"),
 		).rejects.toMatchObject({ status: 401 });
 		await waitFor(() => expect(expired).toHaveBeenCalledOnce());
 	} finally {

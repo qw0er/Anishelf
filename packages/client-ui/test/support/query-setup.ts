@@ -3,7 +3,7 @@ import { notifyManager } from "@tanstack/react-query";
 notifyManager.setScheduler(queueMicrotask);
 
 import { afterEach, beforeEach, vi } from "vitest";
-import { queryClient, testRuntime } from "../setup.js";
+import { clearCsrfToken, queryClient, testRuntime } from "../setup.js";
 
 beforeEach(() => queryClient.clear());
 afterEach(() => queryClient.clear());
@@ -11,10 +11,7 @@ afterEach(() => queryClient.clear());
 // Business tests start with a bootstrapped browser CSRF token, like the app guard.
 beforeEach(async () => {
 	const original = globalThis.fetch;
-	const { loadAuthSession } = await vi.importActual<
-		typeof import("../../src/shared/api/client.js")
-	>("../../src/shared/api/client.js");
-	testRuntime.connection.api.clearAuthToken();
+	clearCsrfToken();
 	globalThis.fetch = vi
 		.fn()
 		.mockResolvedValue(
@@ -24,7 +21,7 @@ beforeEach(async () => {
 			),
 		);
 	try {
-		await loadAuthSession();
+		await testRuntime.authentication.getSession();
 	} finally {
 		globalThis.fetch = original;
 	}

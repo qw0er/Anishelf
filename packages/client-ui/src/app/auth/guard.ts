@@ -3,10 +3,10 @@ import {
 	type RouteObject,
 	redirect,
 } from "react-router";
-import { loadAuthSession } from "../../shared/api/client.js";
+import { getClientRuntime } from "../../shared/api/connection.js";
 
 async function requireAuthentication(request: Request) {
-	const session = await loadAuthSession();
+	const session = await getClientRuntime().authentication.getSession();
 	if (!session.authenticated) {
 		const url = new URL(request.url);
 		throw redirect(

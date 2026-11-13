@@ -1,3 +1,4 @@
+import type { ClientAuthentication } from "@anishelf/client-core/authentication";
 import type { createServerConnection } from "@anishelf/client-core/connection";
 import type { BuildInfo } from "@anishelf/contracts/http";
 import { QueryClient } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ export function createQueryClient() {
 }
 
 interface ClientHost {
+	authentication: ClientAuthentication;
 	connection: ReturnType<typeof createServerConnection>;
 	buildInfo: BuildInfo;
 	changelog: string;

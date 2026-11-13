@@ -1,4 +1,4 @@
-import { createServerConnection } from "@anishelf/client-core/connection";
+import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
 import {
 	ClientApp,
 	createClientRoutes,
@@ -38,9 +38,8 @@ async function start() {
 	}
 
 	const runtime = await initializeClient({
-		connection: createServerConnection({
+		...createCookieConnection({
 			origin: window.location.origin,
-			sameOrigin: true,
 			fetch: (path, init) => fetch(path, init),
 			onAuthRequired,
 		}),

@@ -1,7 +1,6 @@
 import { KeyRound, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { request } from "../../shared/api/client.js";
 import { getClientRuntime } from "../../shared/api/connection.js";
 import { ActionButton } from "../../shared/components/ui/action-button.js";
 import {
@@ -16,6 +15,8 @@ import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 export function SecuritySettings() {
 	const { t } = useTranslation();
+	const { authentication } = getClientRuntime();
+	const changePassword = authentication.changePassword;
 	const [currentPassword, setCurrent] = useState("");
 	const [password, setPassword] = useState("");
 	const [confirmation, setConfirmation] = useState("");
@@ -37,110 +38,107 @@ export function SecuritySettings() {
 				<CardDescription>{t("auth.security.description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
-				<form
-					id="security-password-form"
-					className="grid gap-3 sm:grid-cols-2"
-					onSubmit={async (event) => {
-						event.preventDefault();
-						setError("");
-						const nextPassword = password.trim();
-						if (nextPassword !== confirmation.trim()) {
-							setError(t("auth.security.passwordsDoNotMatch"));
-							return;
-						}
-						if ([...nextPassword].length < 8) {
-							setError(t("auth.security.passwordTooShort"));
-							return;
-						}
-						setPending(true);
-						try {
-							await request(
-								"/api/auth/password",
-								"PUT",
-								{},
-								{
-									currentPassword: currentPassword.trim(),
-									password: nextPassword,
-								},
-							);
-							await leave();
-						} catch (error) {
-							setError(
-								error instanceof Error
-									? error.message
-									: t("auth.security.changeFailed"),
-							);
-							setPending(false);
-						}
-					}}
-				>
-					<label
-						htmlFor="current-password"
-						className="block space-y-2 sm:col-span-2"
+				{changePassword && (
+					<form
+						id="security-password-form"
+						className="grid gap-3 sm:grid-cols-2"
+						onSubmit={async (event) => {
+							event.preventDefault();
+							if (!changePassword) return;
+							setError("");
+							const nextPassword = password.trim();
+							if (nextPassword !== confirmation.trim()) {
+								setError(t("auth.security.passwordsDoNotMatch"));
+								return;
+							}
+							if ([...nextPassword].length < 8) {
+								setError(t("auth.security.passwordTooShort"));
+								return;
+							}
+							setPending(true);
+							try {
+								await changePassword(currentPassword.trim(), nextPassword);
+								await leave();
+							} catch (error) {
+								setError(
+									error instanceof Error
+										? error.message
+										: t("auth.security.changeFailed"),
+								);
+								setPending(false);
+							}
+						}}
 					>
-						<span>{t("auth.security.currentPassword")}</span>
-						<Input
-							id="current-password"
-							type="password"
-							autoComplete="current-password"
-							required
-							value={currentPassword}
-							onChange={(event) => setCurrent(event.target.value)}
-							disabled={pending}
-						/>
-					</label>
-					<div className="space-y-2">
-						<div className="field-heading">
-							<label htmlFor="new-password" className="field-label">
-								{t("auth.security.newPassword")}
-							</label>
-							<FieldHelp
-								label={t("auth.security.passwordHelpLabel")}
-								help={t("auth.security.passwordHelp")}
+						<label
+							htmlFor="current-password"
+							className="block space-y-2 sm:col-span-2"
+						>
+							<span>{t("auth.security.currentPassword")}</span>
+							<Input
+								id="current-password"
+								type="password"
+								autoComplete="current-password"
+								required
+								value={currentPassword}
+								onChange={(event) => setCurrent(event.target.value)}
+								disabled={pending}
+							/>
+						</label>
+						<div className="space-y-2">
+							<div className="field-heading">
+								<label htmlFor="new-password" className="field-label">
+									{t("auth.security.newPassword")}
+								</label>
+								<FieldHelp
+									label={t("auth.security.passwordHelpLabel")}
+									help={t("auth.security.passwordHelp")}
+								/>
+							</div>
+							<Input
+								id="new-password"
+								type="password"
+								autoComplete="new-password"
+								required
+								value={password}
+								onChange={(event) => setPassword(event.target.value)}
+								disabled={pending}
 							/>
 						</div>
-						<Input
-							id="new-password"
-							type="password"
-							autoComplete="new-password"
-							required
-							value={password}
-							onChange={(event) => setPassword(event.target.value)}
-							disabled={pending}
-						/>
-					</div>
-					<div className="space-y-2">
-						<div className="field-heading">
-							<label htmlFor="confirm-password" className="field-label">
-								{t("auth.security.confirmPassword")}
-							</label>
+						<div className="space-y-2">
+							<div className="field-heading">
+								<label htmlFor="confirm-password" className="field-label">
+									{t("auth.security.confirmPassword")}
+								</label>
+							</div>
+							<Input
+								id="confirm-password"
+								aria-invalid={Boolean(error) || undefined}
+								aria-describedby={error ? "security-password-error" : undefined}
+								type="password"
+								autoComplete="new-password"
+								required
+								value={confirmation}
+								onChange={(event) => setConfirmation(event.target.value)}
+								disabled={pending}
+							/>
 						</div>
-						<Input
-							id="confirm-password"
-							aria-invalid={Boolean(error) || undefined}
-							aria-describedby={error ? "security-password-error" : undefined}
-							type="password"
-							autoComplete="new-password"
-							required
-							value={confirmation}
-							onChange={(event) => setConfirmation(event.target.value)}
+						<FieldError id="security-password-error" className="sm:col-span-2">
+							{error}
+						</FieldError>
+					</form>
+				)}
+				<div className="action-row">
+					{changePassword && (
+						<ActionButton
+							icon={KeyRound}
+							label={t("auth.security.changePassword")}
+							shortLabel={t("auth.security.changePassword")}
+							type="submit"
+							form="security-password-form"
+							aria-busy={pending}
 							disabled={pending}
 						/>
-					</div>
-					<FieldError id="security-password-error" className="sm:col-span-2">
-						{error}
-					</FieldError>
-				</form>
-				<div className="action-row">
-					<ActionButton
-						icon={KeyRound}
-						label={t("auth.security.changePassword")}
-						shortLabel={t("auth.security.changePassword")}
-						type="submit"
-						form="security-password-form"
-						aria-busy={pending}
-						disabled={pending}
-					/>
+					)}
 					<ActionButton
 						icon={LogOut}
 						label={t("auth.security.signOut")}
@@ -150,7 +148,7 @@ export function SecuritySettings() {
 						onClick={async () => {
 							setPending(true);
 							try {
-								await request("/api/auth/logout", "POST");
+								await authentication.signOut();
 								await leave();
 							} catch (error) {
 								setError(
@@ -163,6 +161,7 @@ export function SecuritySettings() {
 						}}
 					/>
 				</div>
+				{!changePassword && <FieldError>{error}</FieldError>}
 			</CardContent>
 		</Card>
 	);
