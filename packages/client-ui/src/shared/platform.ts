@@ -4,10 +4,48 @@ export interface ClientStorage {
 	removeItem(key: string): void;
 }
 
-export interface OpenPlayerRequest {
-	playerId: string;
-	mediaUrl: string;
+export interface PlayerMedia {
+	url: string;
 	mimeType: string;
+}
+
+/** Web players hand a custom-scheme URL to the browser; desktop command players come later. */
+type ExternalPlayerMode = "url-template";
+
+export interface ExternalPlayer {
+	readonly kind: "url-template";
+	readonly id: string;
+	readonly name: string;
+	readonly template: string;
+}
+
+export interface ExternalPlayerDraft {
+	name: string;
+	template: string;
+}
+
+export interface ExternalPlayerCatalog {
+	readonly presets: readonly ExternalPlayer[];
+	readonly custom: readonly ExternalPlayer[];
+	readonly error: boolean;
+}
+
+/**
+ * Host boundary for external-player settings and handoff.
+ *
+ * Web stores URL templates in browser storage and opens a custom-scheme URL.
+ * Desktop will provide a command-based implementation without changing consumers.
+ */
+export interface ExternalPlayerHost {
+	readonly mode: ExternalPlayerMode;
+	list(): ExternalPlayerCatalog;
+	validate(draft: ExternalPlayerDraft): string | null;
+	add(draft: ExternalPlayerDraft): void;
+	remove(id: string): void;
+	describe(player: ExternalPlayer): string;
+	link(player: ExternalPlayer, media: PlayerMedia): string;
+	launch(player: ExternalPlayer, media: PlayerMedia): void;
+	subscribe(listener: () => void): () => void;
 }
 
 export interface ClientPlatform {
@@ -21,8 +59,8 @@ export interface ClientPlatform {
 		userAgentData?: { platform: string };
 	};
 	onPreferenceChange(key: string, callback: () => void): () => void;
+	externalPlayers: ExternalPlayerHost;
 	openExternal(url: string): void;
-	openPlayer(request: OpenPlayerRequest): void;
 	copyText(text: string): Promise<void>;
 	downloadFile(url: string, filename: string): void;
 	downloadText(content: string, filename: string, mediaType: string): void;

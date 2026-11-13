@@ -9,13 +9,13 @@ import {
 	externalPlayerPolicy,
 	presetsForPlatform,
 } from "../../../src/features/settings/external-player-policy.js";
+import { useExternalPlayers } from "../../../src/features/settings/hooks/use-external-players.js";
 import {
 	buildPlayerUrl,
 	readCustomPlayers,
 	validPlayerTemplate,
-} from "../../../src/features/settings/external-players.js";
-import { useExternalPlayers } from "../../../src/features/settings/hooks/use-external-players.js";
-import { testPlatform } from "../../setup.js";
+} from "../../../src/features/settings/web-external-players.js";
+import { openPlayer } from "../../setup.js";
 import "../../../src/shared/i18n.js";
 import {
 	act,
@@ -54,6 +54,7 @@ beforeEach(() => {
 		),
 	);
 	localStorage.clear();
+	openPlayer.mockClear();
 	vi.spyOn(resourceApi, "getFile").mockResolvedValue(file);
 	vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Macintosh");
 	vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
@@ -175,13 +176,13 @@ test("Settings adds and deletes persistent custom players, updating mounted cons
 	});
 	fireEvent.click(screen.getByRole("button", { name: "Add player" }));
 	await screen.findByText("My player");
-	expect(consumer.result.current.players).toHaveLength(1);
+	expect(consumer.result.current.custom).toHaveLength(1);
 	expect(readCustomPlayers(localStorage)[0]?.name).toBe("My player");
 	view.unmount();
 	render(<ExternalPlayerSettings />);
 	expect(screen.getByText("My player")).toBeTruthy();
 	fireEvent.click(screen.getByRole("button", { name: "Delete My player" }));
-	await waitFor(() => expect(consumer.result.current.players).toHaveLength(0));
+	await waitFor(() => expect(consumer.result.current.custom).toHaveLength(0));
 	expect(readCustomPlayers(localStorage)).toEqual([]);
 });
 
@@ -197,7 +198,9 @@ test("storage events refresh consumers and failed writes keep the existing data"
 			new StorageEvent("storage", { key: externalPlayerPolicy.storageKey }),
 		),
 	);
-	expect(consumer.result.current.players).toEqual([entry]);
+	expect(consumer.result.current.custom).toEqual([
+		{ ...entry, kind: "url-template" },
+	]);
 	const storage = window.localStorage;
 	vi.spyOn(window, "localStorage", "get").mockReturnValue({
 		getItem: storage.getItem.bind(storage),
@@ -210,7 +213,9 @@ test("storage events refresh consumers and failed writes keep the existing data"
 		},
 	} as Storage);
 	expect(() => consumer.result.current.remove(entry.id)).toThrow();
-	expect(consumer.result.current.players).toEqual([entry]);
+	expect(consumer.result.current.custom).toEqual([
+		{ ...entry, kind: "url-template" },
+	]);
 });
 
 test("every playback menu item carries a leading icon", async () => {
@@ -264,11 +269,9 @@ test("menu prepares native anchors for detected presets and custom players witho
 	);
 	expect(screen.queryByRole("menuitem", { name: "MX Player" })).toBeNull();
 	fireEvent.click(item);
-	expect(testPlatform.openPlayer).toHaveBeenCalledWith({
-		playerId: "iina",
-		mediaUrl: `${window.location.origin}/api/media/file_123?access_token=test-token`,
-		mimeType: "video/mp4",
-	});
+	expect(openPlayer).toHaveBeenCalledWith(
+		`iina://open?url=${encodeURIComponent(`${window.location.origin}/api/media/file_123?access_token=test-token`)}`,
+	);
 	expect(open).not.toHaveBeenCalled();
 	expect(save).not.toHaveBeenCalled();
 });

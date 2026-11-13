@@ -1,64 +1,24 @@
 import { useEffect, useState } from "react";
 import { getClientRuntime } from "../../../shared/api/connection.js";
-import { externalPlayerPolicy } from "../external-player-policy.js";
-import {
-	type CustomExternalPlayer,
-	readCustomPlayers,
-	validPlayerTemplate,
-} from "../external-players.js";
-
-function load() {
-	try {
-		return {
-			players: readCustomPlayers(getClientRuntime().platform.preferences),
-			error: false,
-		};
-	} catch {
-		return { players: [] as CustomExternalPlayer[], error: true };
-	}
-}
+import type { ExternalPlayerCatalog } from "../../../shared/platform.js";
 
 export function useExternalPlayers() {
-	const [state, setState] = useState(load);
 	const { platform } = getClientRuntime();
-	useEffect(
-		() =>
-			platform.onPreferenceChange(externalPlayerPolicy.storageKey, () =>
-				setState(load()),
-			),
-		[platform],
+	const host = platform.externalPlayers;
+	const [catalog, setCatalog] = useState<ExternalPlayerCatalog>(() =>
+		host.list(),
 	);
-	function save(players: CustomExternalPlayer[]) {
-		getClientRuntime().platform.preferences.setItem(
-			externalPlayerPolicy.storageKey,
-			JSON.stringify(players),
-		);
-	}
+	useEffect(() => host.subscribe(() => setCatalog(host.list())), [host]);
 	return {
-		...state,
-		add(name: string, template: string) {
-			if (
-				!name.trim() ||
-				name.length > externalPlayerPolicy.maximumNameLength ||
-				!validPlayerTemplate(template)
-			)
-				throw new Error("Invalid player");
-			const current = readCustomPlayers(
-				getClientRuntime().platform.preferences,
-			);
-			if (current.length >= externalPlayerPolicy.maximumCustomPlayers)
-				throw new Error("Too many players");
-			save([
-				...current,
-				{ id: `custom:${crypto.randomUUID()}`, name, template },
-			]);
-		},
-		remove(id: string) {
-			save(
-				readCustomPlayers(getClientRuntime().platform.preferences).filter(
-					(player) => player.id !== id,
-				),
-			);
-		},
+		mode: host.mode,
+		presets: catalog.presets,
+		custom: catalog.custom,
+		error: catalog.error,
+		validate: host.validate,
+		add: host.add,
+		remove: host.remove,
+		describe: host.describe,
+		link: host.link,
+		launch: host.launch,
 	};
 }

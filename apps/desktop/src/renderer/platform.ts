@@ -1,7 +1,7 @@
 import {
 	browserPlatform,
 	type ClientPlatform,
-	resolveBrowserPlayerUrl,
+	createBrowserExternalPlayers,
 } from "@anishelf/client-ui/browser-platform";
 import type { DesktopBridge } from "../ipc/desktop.js";
 
@@ -11,16 +11,15 @@ export function createDesktopPlatform(desktop: DesktopBridge): ClientPlatform {
 		get device() {
 			return browserPlatform.device;
 		},
+		externalPlayers: createBrowserExternalPlayers(browserPlatform, (url) => {
+			void desktop.openPlayer(url).catch(() => {
+				console.warn("platform.external_player_failed");
+			});
+		}),
 		copyText: (text) => desktop.copyText(text),
 		openExternal(url) {
 			void desktop.openExternal(url).catch(() => {
 				console.warn("platform.external_link_failed");
-			});
-		},
-		openPlayer(request) {
-			const url = resolveBrowserPlayerUrl(browserPlatform, request);
-			void desktop.openPlayer(url).catch(() => {
-				console.warn("platform.external_player_failed");
 			});
 		},
 		downloadFile(url, filename) {

@@ -1,7 +1,6 @@
 import type { ComponentPropsWithRef, MouseEvent } from "react";
 import { getClientRuntime } from "../../api/connection.js";
 import { isHttpUrl } from "../../lib/url.js";
-import type { OpenPlayerRequest } from "../../platform.js";
 
 function isPlainClick(event: MouseEvent<HTMLAnchorElement>) {
 	return (
@@ -36,14 +35,14 @@ export function ExternalLink({
 	);
 }
 
-/** The caller supplies a URL from a validated external player template. */
+/** The caller supplies a URL from the active external-player host. */
 export function ExternalPlayerLink({
 	href,
-	request,
+	onLaunch,
 	onClick,
 	...props
 }: ComponentPropsWithRef<"a"> & {
-	request: OpenPlayerRequest | undefined;
+	onLaunch?: (() => void) | undefined;
 }) {
 	return (
 		<a
@@ -51,9 +50,9 @@ export function ExternalPlayerLink({
 			href={href}
 			onClick={(event) => {
 				onClick?.(event);
-				if (!href || !request || !isPlainClick(event)) return;
+				if (!href || !onLaunch || !isPlainClick(event)) return;
 				event.preventDefault();
-				getClientRuntime().platform.openPlayer(request);
+				onLaunch();
 			}}
 		/>
 	);

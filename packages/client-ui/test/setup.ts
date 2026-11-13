@@ -1,9 +1,13 @@
 import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
 import { afterEach, expect, vi } from "vitest";
 import changelog from "../../../CHANGELOG.md?raw";
+import { createBrowserExternalPlayers } from "../src/features/settings/web-external-players.js";
 import { configureClientRuntime } from "../src/shared/api/connection.js";
 import { initializeLanguage } from "../src/shared/i18n.js";
-import type { ClientPlatform } from "../src/shared/platform.js";
+import type {
+	ClientPlatform,
+	ExternalPlayerHost,
+} from "../src/shared/platform.js";
 
 // Happy DOM does not implement the font readiness promise used by navigation measurements.
 if (typeof document !== "undefined" && !document.fonts) {
@@ -25,6 +29,10 @@ function downloadFile(url: string, filename: string) {
 	anchor.click();
 }
 
+export const openPlayer = vi.fn();
+
+let testExternalPlayers: ExternalPlayerHost | undefined;
+
 export const testPlatform: ClientPlatform = {
 	preferences: {
 		getItem: (key) =>
@@ -45,6 +53,14 @@ export const testPlatform: ClientPlatform = {
 	get device() {
 		return navigator;
 	},
+	get externalPlayers() {
+		if (!testExternalPlayers)
+			testExternalPlayers = createBrowserExternalPlayers(
+				testPlatform,
+				openPlayer,
+			);
+		return testExternalPlayers;
+	},
 	onPreferenceChange(key, callback) {
 		const onStorage = (event: StorageEvent) => {
 			if (event.key === key || event.key === null) callback();
@@ -53,7 +69,6 @@ export const testPlatform: ClientPlatform = {
 		return () => window.removeEventListener("storage", onStorage);
 	},
 	openExternal: vi.fn(),
-	openPlayer: vi.fn(),
 	copyText: (text) => navigator.clipboard.writeText(text),
 	downloadFile,
 	downloadText: (content, filename, mediaType) =>

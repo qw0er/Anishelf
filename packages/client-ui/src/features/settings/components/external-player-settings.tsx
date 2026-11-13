@@ -15,17 +15,16 @@ import { Input } from "../../../shared/components/ui/input.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import { externalPlayerPolicy } from "../external-player-policy.js";
-import { validPlayerTemplate } from "../external-players.js";
 import { useExternalPlayers } from "../hooks/use-external-players.js";
 
 export function ExternalPlayerSettings() {
 	const { t } = useTranslation();
-	const custom = useExternalPlayers();
+	const players = useExternalPlayers();
 	const [name, setName] = useState("");
 	const [template, setTemplate] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const full =
-		custom.players.length >= externalPlayerPolicy.maximumCustomPlayers;
+		players.custom.length >= externalPlayerPolicy.maximumCustomPlayers;
 	return (
 		<Card className="settings-section lg:grid">
 			<CardHeader>
@@ -33,20 +32,20 @@ export function ExternalPlayerSettings() {
 				<CardDescription>{t("externalPlayers.description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
-				{custom.error && (
+				{players.error && (
 					<p role="alert" className="field-error sm:col-span-2">
 						{t("externalPlayers.storageError")}
 					</p>
 				)}
-				{custom.players.length > 0 && (
+				{players.custom.length > 0 && (
 					<ul className="max-h-64 divide-y overflow-auto">
-						{custom.players.map((player) => (
+						{players.custom.map((player) => (
 							<li
 								key={player.id}
 								className="action-row flex-nowrap min-w-0 items-center gap-3 py-2"
 							>
 								<div className="min-w-0 flex-1 basis-40">
-									<Tooltip content={player.template} openOnClick>
+									<Tooltip content={players.describe(player)} openOnClick>
 										<button
 											type="button"
 											className="max-w-full truncate rounded text-left text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -64,9 +63,9 @@ export function ExternalPlayerSettings() {
 									})}
 									onClick={() => {
 										try {
-											custom.remove(player.id);
+											players.remove(player.id);
 											console.debug("[Settings] Custom player removed.", {
-												count: custom.players.length - 1,
+												count: players.custom.length - 1,
 											});
 											toast.add({
 												id: "external-players-save",
@@ -94,14 +93,16 @@ export function ExternalPlayerSettings() {
 					className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
 					onSubmit={(event) => {
 						event.preventDefault();
-						if (!name.trim() || !validPlayerTemplate(template.trim())) {
-							setError("externalPlayers.invalidTemplate");
+						const draft = { name: name.trim(), template: template.trim() };
+						const validationError = players.validate(draft);
+						if (validationError) {
+							setError(validationError);
 							return;
 						}
 						try {
-							custom.add(name.trim(), template.trim());
+							players.add(draft);
 							console.debug("[Settings] Custom player added.", {
-								count: custom.players.length + 1,
+								count: players.custom.length + 1,
 							});
 							toast.add({
 								id: "external-players-save",
@@ -161,7 +162,7 @@ export function ExternalPlayerSettings() {
 							label={t("externalPlayers.add")}
 							shortLabel={t("actions.add")}
 							type="submit"
-							disabled={custom.error || full}
+							disabled={players.error || full}
 						/>
 					</div>
 					{full && (

@@ -1,8 +1,8 @@
-import { resolveBrowserPlayerUrl } from "../features/settings/public.js";
-import type { ClientPlatform } from "../shared/platform.js";
+import { createBrowserExternalPlayers } from "../features/settings/public.js";
+import type { ClientPlatform, ExternalPlayerHost } from "../shared/platform.js";
 
 export type { ClientPlatform };
-export { resolveBrowserPlayerUrl };
+export { createBrowserExternalPlayers };
 
 function downloadFile(url: string, filename: string) {
 	const anchor = document.createElement("a");
@@ -18,6 +18,8 @@ function downloadFile(url: string, filename: string) {
 }
 
 const preferencesChanged = "anishelf:preference-changed";
+
+let browserExternalPlayers: ExternalPlayerHost | undefined;
 
 export const browserPlatform: ClientPlatform = {
 	preferences: {
@@ -45,6 +47,14 @@ export const browserPlatform: ClientPlatform = {
 	get device() {
 		return navigator;
 	},
+	get externalPlayers() {
+		if (!browserExternalPlayers)
+			browserExternalPlayers = createBrowserExternalPlayers(
+				browserPlatform,
+				(url) => window.location.assign(url),
+			);
+		return browserExternalPlayers;
+	},
 	onPreferenceChange(key, callback) {
 		const local = (event: Event) => {
 			if ((event as CustomEvent<unknown>).detail === key) callback();
@@ -62,10 +72,6 @@ export const browserPlatform: ClientPlatform = {
 	openExternal(url) {
 		window.open(url, "_blank", "noopener,noreferrer");
 		console.debug("platform.external_link_requested");
-	},
-	openPlayer(request) {
-		window.location.assign(resolveBrowserPlayerUrl(browserPlatform, request));
-		console.debug("platform.external_player_requested");
 	},
 	async copyText(text) {
 		try {

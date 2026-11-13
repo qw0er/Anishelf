@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getClientRuntime } from "../../../../shared/api/connection.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import {
@@ -24,12 +23,7 @@ import { ExternalPlayerLink } from "../../../../shared/components/ui/external-li
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
-import {
-	buildPlayerUrl,
-	detectClientPlatform,
-	presetsForPlatform,
-	useExternalPlayers,
-} from "../../../settings/public.js";
+import { useExternalPlayers } from "../../../settings/public.js";
 import { resolveMediaLink } from "../media-link.js";
 import MediaLink from "./media-link.js";
 
@@ -38,13 +32,8 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 	const [open, setOpen] = useState(false);
 	const client = useQueryClient();
 	const scope = useQueryScope();
-	const custom = useExternalPlayers();
-	const players = [
-		...presetsForPlatform(
-			detectClientPlatform(getClientRuntime().platform.device),
-		),
-		...custom.players,
-	];
+	const catalog = useExternalPlayers();
+	const players = [...catalog.presets, ...catalog.custom];
 	const media = useQuery({
 		queryKey: ["external-player-media", scope, fileId],
 		queryFn: ({ signal }) =>
@@ -54,6 +43,10 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 		retry: false,
 	});
 	const available = media.data && !media.isFetching && !media.error;
+	const target =
+		available && media.data
+			? { url: media.data.url, mimeType: media.data.mimeType }
+			: null;
 	useEffect(() => {
 		if (open && media.error)
 			toast.add({
@@ -81,23 +74,9 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 						label={player.name}
 						render={
 							<ExternalPlayerLink
-								request={
-									available && media.data
-										? {
-												playerId: player.id,
-												mediaUrl: media.data.url,
-												mimeType: media.data.mimeType,
-											}
-										: undefined
-								}
-								href={
-									available && media.data
-										? buildPlayerUrl(
-												player.template,
-												media.data.url,
-												media.data.mimeType,
-											)
-										: undefined
+								href={target ? catalog.link(player, target) : undefined}
+								onLaunch={
+									target ? () => catalog.launch(player, target) : undefined
 								}
 							/>
 						}

@@ -1,6 +1,10 @@
 import type {
 	ClientPlatform,
-	OpenPlayerRequest,
+	ExternalPlayer,
+	ExternalPlayerCatalog,
+	ExternalPlayerDraft,
+	ExternalPlayerHost,
+	PlayerMedia,
 } from "../../shared/platform.js";
 import {
 	detectClientPlatform,
@@ -8,26 +12,115 @@ import {
 	presetsForPlatform,
 } from "./external-player-policy.js";
 
-export function resolveBrowserPlayerUrl(
-	platform: Pick<ClientPlatform, "preferences" | "device">,
-	{ playerId, mediaUrl, mimeType }: OpenPlayerRequest,
-): string {
-	const preset = presetsForPlatform(detectClientPlatform(platform.device)).find(
-		(player) => player.id === playerId,
-	);
-	const player =
-		preset ??
-		readCustomPlayers(platform.preferences).find(
-			(item) => item.id === playerId,
-		);
-	if (!player) throw new Error("Unknown external player");
-	return buildPlayerUrl(player.template, mediaUrl, mimeType);
-}
-
 export interface CustomExternalPlayer {
 	id: string;
 	name: string;
 	template: string;
+}
+
+function toPlayer(player: {
+	id: string;
+	name: string;
+	template: string;
+}): ExternalPlayer {
+	return {
+		kind: "url-template",
+		id: player.id,
+		name: player.name,
+		template: player.template,
+	};
+}
+
+/**
+ * Browser-backed external players: presets filtered by the client platform plus
+ * custom URL templates stored in this origin's preferences.
+ */
+export function createBrowserExternalPlayers(
+	platform: Pick<
+		ClientPlatform,
+		"preferences" | "device" | "onPreferenceChange"
+	>,
+	open: (url: string) => void,
+): ExternalPlayerHost {
+	function list(): ExternalPlayerCatalog {
+		const presets = presetsForPlatform(
+			detectClientPlatform(platform.device),
+		).map(toPlayer);
+		try {
+			return {
+				presets,
+				custom: readCustomPlayers(platform.preferences).map(toPlayer),
+				error: false,
+			};
+		} catch {
+			return { presets, custom: [], error: true };
+		}
+	}
+
+	function validate(draft: ExternalPlayerDraft): string | null {
+		const name = draft.name.trim();
+		const template = draft.template.trim();
+		if (
+			!name ||
+			name.length > externalPlayerPolicy.maximumNameLength ||
+			!validPlayerTemplate(template)
+		)
+			return "externalPlayers.invalidTemplate";
+		return null;
+	}
+
+	function add(draft: ExternalPlayerDraft) {
+		if (validate(draft)) throw new Error("Invalid player");
+		const current = readCustomPlayers(platform.preferences);
+		if (current.length >= externalPlayerPolicy.maximumCustomPlayers)
+			throw new Error("Too many players");
+		platform.preferences.setItem(
+			externalPlayerPolicy.storageKey,
+			JSON.stringify([
+				...current,
+				{
+					id: `custom:${crypto.randomUUID()}`,
+					name: draft.name.trim(),
+					template: draft.template.trim(),
+				},
+			]),
+		);
+	}
+
+	function remove(id: string) {
+		platform.preferences.setItem(
+			externalPlayerPolicy.storageKey,
+			JSON.stringify(
+				readCustomPlayers(platform.preferences).filter(
+					(player) => player.id !== id,
+				),
+			),
+		);
+	}
+
+	return {
+		mode: "url-template",
+		list,
+		validate,
+		add,
+		remove,
+		describe: (player) => player.template,
+		link(player: ExternalPlayer, media: PlayerMedia) {
+			return buildPlayerUrl(player.template, media.url, media.mimeType);
+		},
+		launch(player: ExternalPlayer, media: PlayerMedia) {
+			console.debug("platform.external_player_requested", {
+				playerId: player.id,
+			});
+			open(buildPlayerUrl(player.template, media.url, media.mimeType));
+		},
+		subscribe(listener) {
+			return platform.onPreferenceChange(
+				externalPlayerPolicy.storageKey,
+				listener,
+			);
+		},
+	};
 }
 
 export function validPlayerTemplate(template: string): boolean {
