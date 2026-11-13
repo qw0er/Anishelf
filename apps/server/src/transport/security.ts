@@ -1,10 +1,12 @@
 import { developmentDefaults } from "@anishelf/contracts/defaults";
 import type { FastifyRequest } from "fastify";
+import ipaddr from "ipaddr.js";
 import type { DeploymentConfig } from "../modules/system/public.js";
 import { DomainError } from "../shared/errors.js";
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const devOrigins = new Set<string>(developmentDefaults.origins);
+const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 type RequestOriginConfig = Pick<DeploymentConfig, "allowedHosts">;
 
@@ -39,6 +41,21 @@ function checkRequestHost(
 		throw new DomainError("NETWORK_HOST_REJECTED", "Hostname is not allowed.");
 	}
 	return host.origin;
+}
+
+export function isDirectLoopbackRequest(request: FastifyRequest): boolean {
+	const peer = request.raw.socket.remoteAddress;
+	return (
+		request.protocol === "http" &&
+		peer !== undefined &&
+		ipaddr.isValid(peer) &&
+		ipaddr.process(peer).range() === "loopback" &&
+		request.headers.forwarded === undefined &&
+		request.headers["x-forwarded-for"] === undefined &&
+		request.headers["x-forwarded-host"] === undefined &&
+		request.headers["x-forwarded-proto"] === undefined &&
+		loopbackHosts.has(parseRequestHost(request).hostname)
+	);
 }
 
 function isSafeMethod(method: string): boolean {

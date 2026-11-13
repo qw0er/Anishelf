@@ -1,6 +1,7 @@
 import type { FastifyRequest } from "fastify";
 import { DomainError } from "../../../../shared/errors.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
+import { isDirectLoopbackRequest } from "../../../../transport/security.js";
 import type { AuthenticationService } from "../application.js";
 import type { createDeviceSessions } from "../device-sessions.js";
 import type { DeviceSession } from "../ports.js";
@@ -13,18 +14,17 @@ const webSessionPaths = new Set([
 	"/api/auth/session",
 	"/api/auth/login",
 	"/api/auth/logout",
-	"/api/auth/password",
 ]);
 
 function requireDeviceTransport(request: FastifyRequest) {
-	if (request.protocol === "https") return;
+	if (request.protocol === "https" || isDirectLoopbackRequest(request)) return;
 	request.log.warn(
 		{ event: "auth.device_insecure_transport" },
-		"Device authentication requires HTTPS.",
+		"Device authentication requires HTTPS or direct loopback HTTP.",
 	);
 	throw new DomainError(
 		"REQUEST_FORBIDDEN",
-		"Device authentication requires HTTPS.",
+		"Device authentication requires HTTPS or direct loopback HTTP.",
 	);
 }
 

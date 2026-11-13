@@ -33,7 +33,7 @@
 		"test:deployment": "npm run test:installer && node --test deployment/qbittorrent-init.test.mjs deployment/jackett-init.test.mjs",
 		"test": "npm run architecture:test && npm run test:deployment && npm run test --workspace @anishelf/client-core && npm run test --workspace @anishelf/backend && npm run test --workspace @anishelf/client-ui",
 		"build": "npm run build --workspaces --if-present",
-		"start": "npm run build && ANISHELF_FRONTEND_DIR=\"$PWD/apps/web/dist\" npm run start --workspace @anishelf/backend",
+		"start": "npm run build --workspace @anishelf/backend && npm run start:backend",
 		"start:backend": "npm run start --workspace @anishelf/backend",
 		"start:desktop": "npm run start --workspace @anishelf/desktop --",
 		"start:desktop:local": "npm run start --workspace @anishelf/desktop -- --managed-backend",

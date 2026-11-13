@@ -124,7 +124,7 @@ async function main(): Promise<void> {
 				host: config.host,
 				port: config.port,
 			},
-			"HTTP application started.",
+			"Anishelf API is listening.",
 		);
 		registerShutdown(app, logging, shutdownTimeoutMs);
 	} catch (error) {

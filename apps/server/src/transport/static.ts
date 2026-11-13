@@ -1,6 +1,7 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import fastifyStatic from "@fastify/static";
+import { DomainError } from "../shared/errors.js";
 import { apiError } from "./errors.js";
 import type { HttpInstance } from "./instance.js";
 
@@ -8,9 +9,11 @@ import type { HttpInstance } from "./instance.js";
 export async function registerFrontend(app: HttpInstance, root: string) {
 	try {
 		await access(join(root, "index.html"));
-	} catch {
-		throw new Error(
-			"Frontend build is missing. Run npm run build and set ANISHELF_FRONTEND_DIR to the directory containing index.html.",
+	} catch (cause) {
+		throw new DomainError(
+			"CONFIG_INVALID",
+			"Web build is missing. Run npm run build --workspace @anishelf/web and set ANISHELF_FRONTEND_DIR to the absolute directory containing index.html.",
+			{ cause },
 		);
 	}
 	await app.register(fastifyStatic, {
@@ -37,4 +40,8 @@ export async function registerFrontend(app: HttpInstance, root: string) {
 		}
 		return reply.sendFile(decodeURIComponent(pathname.slice(1)));
 	});
+	app.log.info(
+		{ event: "http.frontend_hosting_enabled", root },
+		"Web hosting enabled.",
+	);
 }

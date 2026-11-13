@@ -12,8 +12,10 @@ installer maintenance.
 | `web` | `ghcr.io/qw0er/anishelf-web` | Caddy 2, built SPA and `deployment/Caddyfile` |
 
 Both images support Linux AMD64/ARM64 and run as UID/GID 1000. Web listens on 8080
-and proxies `/api` to private Backend:3000. Only Backend mounts app/media state;
-its image does not enable Node frontend hosting. Both have health checks.
+and proxies `/api` to private Backend:3000. Backend mounts the app/media state and
+can run on its own for API and media clients. To enable Backend Web hosting, mount
+a Web build and set `ANISHELF_FRONTEND_DIR` to its container path. Both images have
+health checks.
 Deployment bundles run the initialization scripts at `/app/package/` inside the
 backend image.
 

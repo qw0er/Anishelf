@@ -22,11 +22,12 @@ async function signIn(
 	app: Awaited<ReturnType<typeof application>>["app"],
 	password: string | undefined,
 	name: string,
+	transportHeaders: Record<string, string> = httpsHeaders,
 ) {
 	const response = await app.inject({
 		method: "POST",
 		url: endpoint,
-		headers: httpsHeaders,
+		headers: transportHeaders,
 		payload: { name, password },
 	});
 	expect(response.statusCode, response.body).toBe(201);
@@ -150,13 +151,82 @@ test("browser or device can revoke a device and an expired token stops authorizi
 	).toBe(401);
 });
 
+test.each([
+	["127.0.0.1:3000", "127.0.0.1"],
+	["localhost:3000", "::ffff:127.0.0.1"],
+	["[::1]:3000", "::1"],
+])(
+	"supports a full device session on loopback HTTP at %s",
+	async (host, remoteAddress) => {
+		const { app, password } = await application();
+		const login = await app.inject({
+			method: "POST",
+			url: endpoint,
+			headers: { host },
+			remoteAddress,
+			payload: { name: "Local desktop", password },
+		});
+		expect(login.statusCode, login.body).toBe(201);
+		expect(login.headers["set-cookie"]).toBeUndefined();
+		const authorization = `Bearer ${login.json<{ token: string }>().token}`;
+		for (const [method, url, status] of [
+			["GET", `${endpoint}/current`, 200],
+			["POST", "/api/test", 200],
+			["GET", "/api/media/file", 206],
+			["DELETE", `${endpoint}/current`, 204],
+			["GET", "/api/settings", 401],
+		] as const) {
+			const response = await app.inject({
+				method,
+				url,
+				headers: { host, authorization, range: "bytes=0-3" },
+				remoteAddress,
+			});
+			expect(response.statusCode, response.body).toBe(status);
+			expect(response.headers["set-cookie"]).toBeUndefined();
+		}
+	},
+);
+
+test.each([
+	{ headers, remoteAddress: "192.0.2.25" },
+	{
+		headers: { ...headers, "x-forwarded-proto": "https" },
+		remoteAddress: "192.0.2.25",
+	},
+	{ headers: { host: "anime.example.com" }, remoteAddress: "127.0.0.1" },
+	{
+		headers: { ...headers, "x-forwarded-for": "192.0.2.25" },
+		remoteAddress: "127.0.0.1",
+	},
+	{
+		headers: { ...headers, forwarded: "for=192.0.2.25" },
+		remoteAddress: "127.0.0.1",
+	},
+])("rejects insecure device authentication over %j", async (transport) => {
+	const { app, password } = await application();
+	const { token } = await signIn(app, password, "Desktop");
+	const login = await app.inject({
+		...transport,
+		method: "POST",
+		url: endpoint,
+		payload: { name: "Other device", password },
+	});
+	expect(login.statusCode).toBe(403);
+	const read = await app.inject({
+		...transport,
+		url: "/api/settings",
+		headers: { ...transport.headers, authorization: `Bearer ${token}` },
+	});
+	expect(read.statusCode).toBe(403);
+});
+
 test("device authentication does not bypass Origin, CSRF or HTTPS checks", async () => {
 	const { app, password } = await application();
 	const { cookie, csrf } = await browser(app, password ?? "");
 	const { token, session } = await signIn(app, password, "Desktop");
 	const payload = { name: "Another device", password };
 	const rejected = await Promise.all([
-		app.inject({ method: "POST", url: endpoint, headers, payload }),
 		app.inject({
 			method: "POST",
 			url: endpoint,
@@ -191,10 +261,6 @@ test("device authentication does not bypass Origin, CSRF or HTTPS checks", async
 			headers: { ...bearer(token), cookie },
 		}),
 		app.inject({
-			url: "/api/settings",
-			headers: { ...headers, authorization: `Bearer ${token}` },
-		}),
-		app.inject({
 			method: "DELETE",
 			url: `${endpoint}/${session.id}`,
 			headers: { ...headers, cookie },
@@ -206,7 +272,7 @@ test("device authentication does not bypass Origin, CSRF or HTTPS checks", async
 		}),
 	]);
 	expect(rejected.map(({ statusCode }) => statusCode)).toEqual(
-		Array(10).fill(403),
+		Array(8).fill(403),
 	);
 
 	const wrong = await app.inject({
@@ -247,4 +313,31 @@ test("changing the server password revokes device sessions", async () => {
 		(await app.inject({ url: "/api/settings", headers: bearer(token) }))
 			.statusCode,
 	).toBe(401);
+});
+
+test("a device can change the password and revoke existing credentials without a browser session", async () => {
+	const { app, password } = await application();
+	const { cookie } = await browser(app, password ?? "");
+	const { token } = await signIn(app, password, "Local desktop", headers);
+	const other = await signIn(app, password, "Remote phone");
+	const change = await app.inject({
+		url: "/api/auth/password",
+		method: "PUT",
+		headers: { ...headers, authorization: `Bearer ${token}` },
+		payload: { currentPassword: password, password: "replacement password" },
+	});
+	expect(change.statusCode, change.body).toBe(204);
+	expect(change.headers["set-cookie"]).toBeUndefined();
+	for (const credentials of [
+		{ ...headers, cookie },
+		{ ...headers, authorization: `Bearer ${token}` },
+		bearer(other.token),
+	]) {
+		const response = await app.inject({
+			url: "/api/settings",
+			headers: credentials,
+		});
+		expect(response.statusCode).toBe(401);
+	}
+	await signIn(app, "replacement password", "Local desktop", headers);
 });

@@ -85,7 +85,10 @@ test("does not expose dotfiles or files outside the frontend directory", async (
 
 test("fails startup with an actionable message when the frontend was not built", async () => {
 	await rm(join(fixture, "web", "index.html"));
-	await expect(app.ready()).rejects.toThrow("Run npm run build");
+	await expect(app.ready()).rejects.toMatchObject({
+		code: "CONFIG_INVALID",
+		message: expect.stringContaining("npm run build --workspace @anishelf/web"),
+	});
 });
 
 test.each([false, undefined])(

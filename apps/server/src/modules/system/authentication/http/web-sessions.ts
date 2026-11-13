@@ -1,13 +1,11 @@
 import {
 	AuthSessionResponseSchema,
-	ChangePasswordRequestSchema,
 	LoginRequestSchema,
 } from "@anishelf/contracts/schemas/authentication";
 import cookie from "@fastify/cookie";
 import session from "@fastify/session";
 import type { FastifyReply, FastifyRequest, Session } from "fastify";
 import type { Logger } from "pino";
-import { DomainError } from "../../../../shared/errors.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AuthenticationService } from "../application.js";
 import { authenticationFailure } from "../diagnostics.js";
@@ -105,7 +103,10 @@ export function isWebAuthenticated(
 	);
 }
 
-async function clearWebSession(request: FastifyRequest, reply: FastifyReply) {
+export async function clearWebSession(
+	request: FastifyRequest,
+	reply: FastifyReply,
+) {
 	await request.session.destroy();
 	reply.clearCookie(sessionCookieName, sessionCookie);
 }
@@ -113,7 +114,6 @@ async function clearWebSession(request: FastifyRequest, reply: FastifyReply) {
 export function registerWebSessionRoutes(
 	app: HttpInstance,
 	service: AuthenticationService,
-	store: AuthenticationStore,
 	loginLimits: Awaited<ReturnType<typeof createLoginLimits>>,
 ) {
 	app.get(
@@ -168,37 +168,4 @@ export function registerWebSessionRoutes(
 		);
 		return reply.code(204).send();
 	});
-	app.put(
-		"/api/auth/password",
-		{
-			schema: { body: ChangePasswordRequestSchema },
-			preHandler: loginLimits,
-		},
-		async function changePassword(request, reply) {
-			try {
-				await service.change(
-					request.body.currentPassword,
-					request.body.password,
-				);
-			} catch (error) {
-				if (error instanceof DomainError && error.code === "AUTH_REQUIRED")
-					request.log.warn(
-						{
-							event: "auth.password_change_rejected",
-							reason: "invalid_current_password",
-							source: request.ip,
-						},
-						"Password change rejected.",
-					);
-				throw error;
-			}
-			store.clear();
-			await clearWebSession(request, reply);
-			request.log.info(
-				{ event: "auth.password_changed" },
-				"Authentication password changed; browser sessions, device sessions and media links revoked.",
-			);
-			return reply.code(204).send();
-		},
-	);
 }

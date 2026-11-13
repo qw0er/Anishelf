@@ -18,15 +18,16 @@ when the feature is scoped, not inferred from delivered implementation details.
 
 ![Anishelf system architecture: browser, Web proxy, six backend modules and infrastructure](architecture.svg)
 
-Container deployments use Caddy Web to serve the SPA and proxy `/api` to the private
-Backend on one browser origin. A host proxy provides HTTPS. Source installations
-can enable Node frontend hosting with `ANISHELF_FRONTEND_DIR`.
+Backend serves the API and media by default. Set `ANISHELF_FRONTEND_DIR` to
+an existing Web build to serve the SPA from Backend as well. The packaged
+Web service uses Caddy to serve the SPA and proxy `/api` to Backend on one
+browser origin. A host proxy provides HTTPS for Web or direct API access.
 
 The Web service worker fetches SPA navigations from the network first and uses
 cached pages or the precached entry only when offline. It checks for a new worker
 when the page loads or returns to the foreground; an updated worker takes control
-and reloads open pages. Both frontend hosts revalidate the SPA entry and worker
-script, while fingerprinted assets can remain cached.
+and reloads open pages. Both Web hosting modes revalidate the SPA entry and
+worker script. The packaged Web service caches fingerprinted assets.
 
 ## Internal ownership
 
@@ -647,16 +648,16 @@ receives ordinary identification rather than an identity-preserving source relin
 ## Authentication boundary
 
 The authentication HTTP entry registers the session store and login limits, then
-assembles the request authorization hook and routes. Browser session handling,
-device routes, and scoped media links each have their own HTTP module. Device
-token creation, lookup, and revocation run in the authentication application
-through its persistence port.
+assembles the request authorization hook and routes. Browser sessions, device
+sessions, password changes and scoped media links each have their own HTTP
+module. Device token creation, lookup and revocation run in the authentication
+application through its persistence port.
 
 | Surface | Protection |
 | --- | --- |
-| Business APIs | Single-user login with a browser session or an HTTPS device bearer credential |
+| Business APIs | Single-user login with a browser session or a device bearer credential |
 | Browser sessions | Cookie authentication with CSRF on mutations |
-| Device sessions | Expiring, individually revocable tokens; only token hashes are stored |
+| Device sessions | Expiring, individually revocable tokens over HTTPS or direct loopback HTTP; only token hashes are stored |
 | HTTP access | Valid domain/IP Hosts at any published port; an optional exact hostname allowlist is independent of the public URL |
 | HTTPS proxy | A configured external origin declares its scheme to Web; automatic deployments use trusted proxy headers; Backend trusts the private Web hop |
 | Original-media external links | Expiring, source-bound scoped tokens |
@@ -677,6 +678,12 @@ Metadata checks still apply, and an invalid Authorization header does not fall
 back to a cookie session. Default deployments do
 not claim DNS rebinding protection through a hostname allowlist; explicit Host
 restriction is available when required.
+
+Direct HTTP device requests require a loopback socket peer and a Host of
+`localhost`, `127.0.0.1` or `[::1]`, without proxy forwarding headers. Remote
+device requests use HTTPS, including through a trusted TLS proxy. Password
+changes accept either authenticated session type and revoke all sessions and
+media links.
 
 `ANISHELF_PUBLIC_ORIGIN` is an optional fixed external address, not a Host
 allowlist or a Backend login gate. Standard Compose passes it to both Web and

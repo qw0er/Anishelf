@@ -7,6 +7,7 @@ import { registerAuthorization } from "./authorize.js";
 import { registerDeviceRoutes } from "./device-routes.js";
 import { createLoginLimits } from "./login.js";
 import { createMediaLinks, type MediaLinkSources } from "./media-links.js";
+import { registerPasswordRoute } from "./password.js";
 import {
 	registerWebSessionRoutes,
 	registerWebSessionStore,
@@ -32,6 +33,7 @@ export async function registerAuthentication(
 	const mediaLinks = createMediaLinks(service, store, sources);
 	const getDevice = registerAuthorization(app, service, devices, mediaLinks);
 	registerDeviceRoutes(app, service, devices, getDevice, loginLimits);
-	registerWebSessionRoutes(app, service, store, loginLimits);
+	registerWebSessionRoutes(app, service, loginLimits);
+	registerPasswordRoute(app, service, store, getDevice, loginLimits);
 	mediaLinks.registerRoute(app);
 }

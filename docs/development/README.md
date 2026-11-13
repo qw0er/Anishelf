@@ -29,8 +29,8 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | `npm run dev:desktop` | Launch Electron against the desktop renderer address or `ANISHELF_DESKTOP_URL` |
 | `npm run dev:host` | Expose Vite on `0.0.0.0:5173` for trusted LAN development |
 | `npm run dev:backend` / `npm run dev:web` | Run one workspace |
-| `npm start` | Build both apps and serve `apps/web/dist` through Backend |
-| `npm run start:backend` | Run built Backend; frontend hosting requires `ANISHELF_FRONTEND_DIR` |
+| `npm start` | Build and run Backend. Web hosting is opt-in |
+| `npm run start:backend` | Run the built Backend |
 | `npm run start:desktop` | Launch the built desktop renderer through Electron's local gateway against a running backend |
 | `npm run start:desktop:local` | Launch the built desktop renderer and manage a built backend from the checkout |
 | `npm run check` | Biome, lint, architecture, type checks and tests |
@@ -49,12 +49,13 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | Setting | Use |
 | --- | --- |
 | `ANISHELF_API_TARGET` | Override Vite's Backend target when its port changes |
-| `ANISHELF_FRONTEND_DIR` | Enable Node SPA hosting; must point to a build containing `index.html` |
+| `ANISHELF_FRONTEND_DIR` | Enable Backend Web hosting from an absolute directory containing a prebuilt `index.html` |
 | `ANISHELF_PUBLIC_ORIGIN` | Set the browser-facing origin for domain access |
 | `ANISHELF_TRUSTED_PROXIES` | Trust only the actual proxy chain; packaged containers include their private Web proxy |
 
-Development retains password authentication and CSRF protection. Production serves
-Web and API on one origin. See [HTTPS deployment](../guide/deployment.md#network-and-qbittorrent).
+Development retains password authentication and CSRF protection. The packaged
+Web service serves the SPA and proxies the API on one origin. See
+[HTTPS deployment](../guide/deployment.md#network).
 Startup variables and saved settings are listed in [Configuration](../guide/operations.md).
 
 ## Source maintenance

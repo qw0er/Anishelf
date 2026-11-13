@@ -174,7 +174,7 @@ export function CandidateSelection({
 						retry={() => void providersQuery.refetch()}
 					/>
 				)}
-				<div className="grid min-w-0 gap-4 xl:grid-cols-2">
+				<div className="grid min-w-0 items-start gap-4 xl:grid-cols-2">
 					<form
 						className="flex min-w-0 items-end gap-2"
 						onSubmit={(event) => {

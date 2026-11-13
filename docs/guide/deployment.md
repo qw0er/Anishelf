@@ -437,15 +437,34 @@ unless intentionally deleting it. Use script removal for installer-managed folde
 
 ## Source installation
 
-With Node.js 24, npm and FFmpeg/FFprobe installed:
+With Node.js 24, npm and FFmpeg/FFprobe installed, start the standalone API and
+media server:
 
 ```sh
 npm ci
 npm start
 ```
 
+Backend listens on `127.0.0.1:3000` by default. Check `/api/health` and use the
+first-start password to sign in. A local client can use the loopback address.
+For remote clients, point a TLS reverse proxy directly at Backend and trust
+the proxy's actual source address with `ANISHELF_TRUSTED_PROXIES`. Preserve
+the Host header and have the proxy set `X-Forwarded-Proto` from the connection.
+See the [device session API](../development/clients.md#device-session-api).
+
+To serve the browser interface from Backend, build Web and explicitly enable
+hosting from the repository root:
+
+```sh
+npm run build --workspace @anishelf/web
+ANISHELF_FRONTEND_DIR="$PWD/apps/web/dist" npm start
+```
+
+The Web interface and API share the Backend address. For development, use
+`npm run dev`. The [Compose deployment](#docker-compose) uses a separate Web
+service with an `/api` proxy.
+
 To update, stop, back up, check out the chosen release and repeat these commands.
-For development containers, use `npm run compose:up` or `npm run compose:up:full`.
 See [Development](../development/README.md).
 
 ## Writable media for file management

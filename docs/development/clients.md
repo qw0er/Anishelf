@@ -40,9 +40,10 @@ registration and browser build configuration.
 
 ## Device session API
 
-Device sign-in and bearer requests require HTTPS through the deployment's
-trusted proxy. Use the native HTTP transport without browser session cookies.
-Web login and its CSRF flow remain available separately.
+Use a native HTTP transport with HTTPS for remote requests. Local clients can
+connect directly using HTTP at `127.0.0.1`, `localhost` or `[::1]`. Send only
+the device credential on authenticated requests. Web uses its same-origin
+proxy for cookie login and CSRF.
 The server applies the same login limits across both entry points.
 
 | Method and path | Behavior |
@@ -52,6 +53,7 @@ The server applies the same login limits across both entry points.
 | `DELETE /api/auth/device-sessions/current` | Revoke the calling device. |
 | `GET /api/auth/device-sessions` | List active devices. Accepts a browser session or a bearer token. |
 | `DELETE /api/auth/device-sessions/:id` | Revoke one device. Browser callers must supply CSRF. |
+| `PUT /api/auth/password` | Send `{ currentPassword, password }` with an authenticated session. Revokes all sessions and media links. Browser callers must supply CSRF. |
 
 Send `Authorization: Bearer <token>` on device API requests. A token lasts 30
 days and is bound to the current server password. Changing or resetting the
