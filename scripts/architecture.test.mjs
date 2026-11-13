@@ -280,6 +280,22 @@ for (const [name, files] of [
 		},
 	],
 	[
+		"server-does-not-import-clients",
+		{
+			"apps/server/src/shared/leak.ts":
+				"export type { Value } from '../../../../packages/client-core/src/value.js';",
+			"packages/client-core/src/value.ts": "export type Value = string;",
+		},
+	],
+	[
+		"host-uses-client-ui-entry",
+		{
+			"apps/web/src/leak.ts":
+				"export type { Value } from '../../../packages/client-ui/src/shared/value.js';",
+			"packages/client-ui/src/shared/value.ts": "export type Value = string;",
+		},
+	],
+	[
 		"no-runtime-cycles",
 		{
 			"apps/server/src/shared/a.ts":

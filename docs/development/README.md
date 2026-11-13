@@ -157,6 +157,11 @@ Construction/redaction live in `apps/server/src/platform/logging/`; owners creat
 loggers. Avoid secrets in message strings or unrecognized fields. File output and
 rotation settings are in [Operations](../guide/operations.md#operational-log-levels).
 
+The Web console records connection and client startup, session loss and failed
+sign-in, and requests to open links, launch external players or download files.
+An action marked `requested` records the handoff attempt. Keep media URLs,
+access tokens, passwords, clipboard contents, and filenames out of these logs.
+
 ### AniList account and request logging
 
 Tracking and AniList use the shared logger with their module context. Log account
@@ -177,6 +182,19 @@ Normal status reads do not emit business events.
 | One backend file | `npm run test --workspace @anishelf/backend -- test/app/anime-detail.test.ts` |
 | Deployment fixtures | `npm run test:deployment` |
 | Complete identification audit | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`; [corpus usage](../../apps/server/test/fixtures/anime-identification/README.md) |
+
+After changing a client workspace or host, run `npm run check` and
+`npm run build`. Start the production Web build with a temporary data
+directory and a small, playable media library. In a clean browser profile:
+
+1. Open a protected deep link while signed out. Sign in and confirm the
+   destination is restored.
+2. Browse a directory, open a file, play and seek, and confirm the saved
+   position after leaving the player.
+3. Open settings and verify the client and server build details. Change the
+   interface language and reload to verify it is retained.
+4. Confirm that the production service worker registers and controls the page
+   after reload. Check the browser console for unexpected errors.
 
 Both Vitest workspaces use up to eight workers based on available CPU parallelism.
 Use `--maxWorkers` to override the count.

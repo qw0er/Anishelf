@@ -36,7 +36,12 @@
 			}
 		},
 		{
-			"includes": ["apps/web/**", "packages/client-ui/**"],
+			"includes": [
+				"apps/web/**",
+				"packages/client-core/**",
+				"packages/client-ui/**",
+				"packages/contracts/**"
+			],
 			"linter": {
 				"rules": {
 					"style": {
@@ -49,6 +54,27 @@
 										"message": "Use @anishelf/contracts for the shared protocol."
 									}
 								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/client-core/src/**", "packages/contracts/src/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedGlobals": {
+							"level": "error",
+							"options": {
+								"deniedGlobals": {
+									"window": "Use the client host for browser APIs.",
+									"document": "DOM access belongs in the renderer.",
+									"navigator": "Use the client host for device capabilities.",
+									"localStorage": "Use host-provided storage.",
+									"sessionStorage": "Use host-provided storage."
+								}
 							}
 						}
 					}

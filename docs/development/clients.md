@@ -6,6 +6,29 @@ implemented functionality or a committed release schedule. Desktop and mobile ha
 separate hosts and playback integrations while sharing business behavior and the
 existing React interface where practical. A TV application is out of scope.
 
+## Shared application available today
+
+Use [the Web entry](../../apps/web/src/main.tsx) as the reference host. It calls
+`initializeClient` with a server connection, build information, changelog,
+`ClientPlatform` implementation and navigation callbacks. Once initialization
+completes, the host creates a router from `createClientRoutes()` and mounts
+`ClientApp` with that router. Import `@anishelf/client-ui/styles.css` through
+the host's build pipeline. The public entry and stylesheet are the supported
+imports for application hosts.
+
+There is one active client runtime per renderer. Dispose it before initializing
+another connection and recreate the router with the new runtime. Disposal
+cancels requests and playback and clears the session and query cache. The host
+owns the authentication transition. Web keeps same-origin cookies and CSRF,
+and reloads the page on login, logout or session loss. Connecting a native host
+to a remote server still requires a transport and authenticated media strategy
+that work in that host.
+
+Implement clipboard access, downloads, external links, preference storage and
+lifecycle events at the host boundary. React DOM layout and the current Movi
+player remain in the shared renderer. The Web host also owns service worker
+registration and browser build configuration.
+
 ## Responsibilities
 
 | Component | Proposed responsibility |

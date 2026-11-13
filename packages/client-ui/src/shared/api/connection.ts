@@ -47,6 +47,7 @@ export function configureClientRuntime(host: ClientHost) {
 	if (runtime && !runtime.connection.signal.aborted)
 		throw new Error("A client connection is already active.");
 	runtime = createClientRuntime(host);
+	console.debug("connection.started");
 	return runtime;
 }
 

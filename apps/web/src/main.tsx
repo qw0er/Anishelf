@@ -26,7 +26,7 @@ async function start() {
 		}
 		if (redirectingToLogin) return;
 		redirectingToLogin = true;
-		console.debug("auth.session_required");
+		console.debug("auth.session_required", { host: "web" });
 		restartSession(
 			`/login?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`,
 		);
@@ -55,6 +55,7 @@ async function start() {
 	const root = document.getElementById("root");
 	if (!root) throw new Error("Missing root element.");
 	const router = createBrowserRouter(createClientRoutes());
+	console.debug("client.started", { host: "web" });
 	createRoot(root).render(
 		<StrictMode>
 			<ClientApp router={router} />
@@ -63,5 +64,8 @@ async function start() {
 }
 
 void start().catch((error: unknown) => {
-	console.error("client.start_failed", error);
+	console.error("client.start_failed", {
+		host: "web",
+		errorType: error instanceof Error ? error.name : "unknown",
+	});
 });

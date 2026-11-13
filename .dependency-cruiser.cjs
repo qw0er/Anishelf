@@ -283,6 +283,12 @@ module.exports = {
 			to: { path: "^apps/server/" },
 		},
 		{
+			name: "server-does-not-import-clients",
+			severity: "error",
+			from: { path: "^apps/server/src/" },
+			to: { path: "^apps/web/|^packages/client-(?:core|ui)/" },
+		},
+		{
 			name: "contracts-do-not-import-consumers",
 			severity: "error",
 			from: { path: "^packages/contracts/src/" },
@@ -307,6 +313,16 @@ module.exports = {
 			severity: "error",
 			from: { path: "^packages/client-ui/src/" },
 			to: { path: "^apps/" },
+		},
+		{
+			name: "host-uses-client-ui-entry",
+			severity: "error",
+			from: { path: "^apps/web/src/" },
+			to: {
+				path: "^packages/client-ui/",
+				pathNot:
+					"^packages/client-ui/src/(?:app/client-app\\.tsx|index\\.css)$",
+			},
 		},
 		{
 			name: "web-feature-entry-points",

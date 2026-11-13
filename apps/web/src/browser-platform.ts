@@ -7,6 +7,7 @@ function downloadFile(url: string, filename: string) {
 	document.body.append(anchor);
 	try {
 		anchor.click();
+		console.debug("platform.download_requested");
 	} finally {
 		anchor.remove();
 	}
@@ -56,11 +57,22 @@ export const browserPlatform: ClientPlatform = {
 	},
 	openExternal(url) {
 		window.open(url, "_blank", "noopener,noreferrer");
+		console.debug("platform.external_link_requested");
 	},
 	openPlayer(url) {
 		window.location.assign(url);
+		console.debug("platform.external_player_requested");
 	},
-	copyText: (text) => navigator.clipboard.writeText(text),
+	async copyText(text) {
+		try {
+			await navigator.clipboard.writeText(text);
+		} catch (error) {
+			console.debug("platform.clipboard_write_failed", {
+				errorType: error instanceof Error ? error.name : "unknown",
+			});
+			throw error;
+		}
+	},
 	downloadFile,
 	downloadText(content, filename, mediaType) {
 		const url = URL.createObjectURL(new Blob([content], { type: mediaType }));

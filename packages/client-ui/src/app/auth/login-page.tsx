@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
-import { request } from "../../shared/api/client.js";
+import {
+	ApiClientError,
+	isRequestCancelled,
+	request,
+} from "../../shared/api/client.js";
 import { getClientRuntime } from "../../shared/api/connection.js";
 import { Button } from "../../shared/components/ui/button.js";
 import { FieldError } from "../../shared/components/ui/field.js";
@@ -38,6 +42,11 @@ export function LoginPage() {
 							),
 						);
 					} catch (error) {
+						if (isRequestCancelled(error)) return;
+						console.debug("auth.sign_in_failed", {
+							kind: error instanceof ApiClientError ? error.kind : "unexpected",
+							status: error instanceof ApiClientError ? error.status : null,
+						});
 						setError(
 							error instanceof Error ? error.message : t("auth.login.failed"),
 						);

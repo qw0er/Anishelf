@@ -109,6 +109,19 @@ presentation timings shared within a feature live in its `defaults.ts`.
 
 ### Frontend ownership
 
+| Workspace | Internal workspace dependencies |
+| --- | --- |
+| `apps/server/` | `@anishelf/contracts` |
+| `apps/web/` | `@anishelf/client-ui`, `@anishelf/client-core`, `@anishelf/contracts` |
+| `packages/client-ui/` | `@anishelf/client-core`, `@anishelf/contracts` |
+| `packages/client-core/` | `@anishelf/contracts` |
+| `packages/contracts/` | None |
+
+Application hosts consume the public React entry and stylesheet. The
+dependency check rejects host imports of UI internals, server imports of
+client code, and shared package imports of application code or Node builtins.
+Biome rejects direct browser globals in the protocol and API client sources.
+
 The React application lives in `packages/client-ui/`. A host configures one
 client runtime with its connection, build information, changelog, platform
 capabilities and navigation callbacks before creating the router. The package exports the
