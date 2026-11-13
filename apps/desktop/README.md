@@ -23,6 +23,12 @@ The desktop client uses the server's device sessions. Electron keeps the token
 in the main process and uses the system credential store to encrypt it on disk.
 When secure storage is unavailable, the session lasts until the app exits.
 
+Electron stores its profile and device sessions in the `desktop` subdirectory
+of the platform user data directory for `anishelf`. On Linux this is
+`$XDG_DATA_HOME/anishelf/desktop`, with `~/.local/share/anishelf/desktop` as the
+default. The previous Electron profile is left in place. Sign in again and
+reapply any local preferences when using the new profile.
+
 The desktop platform adapter uses Electron for clipboard writes, media downloads,
 and opening links and external players. External player links support the IINA,
 Infuse, mpv, VLC, and PotPlayer URL schemes. The player and its URL handler must

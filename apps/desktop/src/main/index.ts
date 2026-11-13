@@ -1,3 +1,5 @@
+import { mkdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { desktopOrigin } from "@anishelf/contracts/defaults";
 import {
@@ -8,6 +10,7 @@ import {
 	session,
 	type WebContents,
 } from "electron";
+import { userDataDir } from "platformdirs";
 import { registerDesktopIpc } from "./ipc.js";
 import { downloadMedia } from "./native/download.js";
 import { openExternal, openPlayer } from "./native/links.js";
@@ -25,6 +28,15 @@ import { resolveServerOrigin } from "./server-address.js";
 const rendererUrl = `${desktopOrigin}/`;
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
 const windows = new Set<WebContents>();
+
+const profileOverride = app.commandLine.getSwitchValue("user-data-dir");
+const profileDir = profileOverride
+	? resolve(profileOverride)
+	: join(userDataDir("anishelf", false), "desktop");
+mkdirSync(profileDir, { recursive: true, mode: 0o700 });
+app.setPath("userData", profileDir);
+app.setPath("sessionData", profileDir);
+console.info("desktop.data_directory_configured", { path: profileDir });
 
 registerRendererScheme();
 
