@@ -1,7 +1,8 @@
-import {
-	type ClientPlatform,
-	resolveBrowserPlayerUrl,
-} from "@anishelf/client-ui";
+import { resolveBrowserPlayerUrl } from "../features/settings/public.js";
+import type { ClientPlatform } from "../shared/platform.js";
+
+export type { ClientPlatform };
+export { resolveBrowserPlayerUrl };
 
 function downloadFile(url: string, filename: string) {
 	const anchor = document.createElement("a");

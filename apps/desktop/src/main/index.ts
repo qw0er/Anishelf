@@ -3,11 +3,14 @@ import { desktopOrigin } from "@anishelf/contracts/defaults";
 import {
 	app,
 	BrowserWindow,
+	clipboard,
 	dialog,
 	session,
 	type WebContents,
 } from "electron";
 import { registerDesktopIpc } from "./ipc.js";
+import { downloadMedia } from "./native/download.js";
+import { openExternal, openPlayer } from "./native/links.js";
 import {
 	registerRendererProtocol,
 	registerRendererScheme,
@@ -72,6 +75,16 @@ app.whenReady().then(async () => {
 				getServerOrigin: async () => origin,
 				signIn: (password) => signInDevice(origin, password, tokens.set),
 				clearDeviceToken: () => tokens.set(null),
+				copyText: async (text) => {
+					if (typeof text !== "string")
+						throw new Error("Expected clipboard text.");
+					clipboard.writeText(text);
+				},
+				openExternal,
+				openPlayer,
+				downloadFile: async (sender, url, filename) => {
+					downloadMedia(sender, origin, url, filename);
+				},
 			},
 			windows,
 		);

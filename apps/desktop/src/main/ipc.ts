@@ -3,12 +3,18 @@ import { ipcMain, type WebContents } from "electron";
 import type { DesktopBridge } from "../ipc/desktop.js";
 
 export function registerDesktopIpc(
-	bridge: DesktopBridge,
+	bridge: Omit<DesktopBridge, "downloadFile"> & {
+		downloadFile(
+			sender: WebContents,
+			url: string,
+			filename: string,
+		): Promise<void>;
+	},
 	windows: ReadonlySet<WebContents>,
 ) {
 	function handle<Args extends unknown[], Result>(
 		channel: string,
-		action: (...args: Args) => Promise<Result>,
+		action: (sender: WebContents, ...args: Args) => Promise<Result>,
 	) {
 		ipcMain.handle(channel, (event, ...args: Args) => {
 			const frame = event.senderFrame;
@@ -21,11 +27,15 @@ export function registerDesktopIpc(
 				console.warn("desktop.ipc_sender_rejected", { channel });
 				throw new Error("Unexpected desktop IPC sender.");
 			}
-			return action(...args);
+			return action(event.sender, ...args);
 		});
 	}
 
 	handle("desktop:server-origin", bridge.getServerOrigin);
-	handle("desktop:sign-in", bridge.signIn);
+	handle("desktop:sign-in", (_, password: string) => bridge.signIn(password));
 	handle("desktop:clear-device-token", bridge.clearDeviceToken);
+	handle("desktop:copy-text", (_, text: string) => bridge.copyText(text));
+	handle("desktop:open-external", (_, url: string) => bridge.openExternal(url));
+	handle("desktop:open-player", (_, url: string) => bridge.openPlayer(url));
+	handle("desktop:download-file", bridge.downloadFile);
 }

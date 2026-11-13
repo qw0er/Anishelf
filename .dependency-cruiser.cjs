@@ -381,7 +381,7 @@ module.exports = {
 			to: {
 				path: "^packages/client-ui/",
 				pathNot:
-					"^packages/client-ui/src/(?:app/client-app\\.tsx|index\\.css)$",
+					"^packages/client-ui/src/(?:app/(?:client-app\\.tsx|browser-platform\\.ts)|index\\.css)$",
 			},
 		},
 		{

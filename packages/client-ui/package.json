@@ -6,6 +6,7 @@
 	"license": "AGPL-3.0-only",
 	"exports": {
 		".": "./src/app/client-app.tsx",
+		"./browser-platform": "./src/app/browser-platform.ts",
 		"./styles.css": "./src/index.css"
 	},
 	"scripts": {

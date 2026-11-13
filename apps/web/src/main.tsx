@@ -4,13 +4,13 @@ import {
 	createClientRoutes,
 	initializeClient,
 } from "@anishelf/client-ui";
+import { browserPlatform } from "@anishelf/client-ui/browser-platform";
 import type { BuildInfo } from "@anishelf/contracts/http";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
 import changelog from "../../../CHANGELOG.md?raw";
 import "@anishelf/client-ui/styles.css";
-import { browserPlatform } from "./browser-platform.js";
 import { registerPwa } from "./pwa.js";
 
 declare const __ANISHELF_BUILD__: BuildInfo;

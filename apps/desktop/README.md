@@ -19,5 +19,10 @@ The desktop client uses the server's device sessions. Electron keeps the token
 in the main process and uses the system credential store to encrypt it on disk.
 When secure storage is unavailable, the session lasts until the app exits.
 
+The desktop platform adapter uses Electron for clipboard writes, media downloads,
+and opening links and external players. External player links support the IINA,
+Infuse, mpv, VLC, and PotPlayer URL schemes. The player and its URL handler must
+be installed on the system.
+
 To edit the page with Vite's live reload in a browser, run
 `npm run dev:renderer --workspace @anishelf/desktop` and open the URL it prints.
