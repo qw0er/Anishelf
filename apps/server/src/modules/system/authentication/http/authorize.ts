@@ -14,7 +14,6 @@ const webSessionPaths = new Set([
 	"/api/auth/login",
 	"/api/auth/logout",
 	"/api/auth/password",
-	"/api/media/:id/access-link",
 ]);
 
 function requireDeviceTransport(request: FastifyRequest) {

@@ -25,14 +25,16 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Backend watcher plus Vite; Ctrl+C stops both |
-| `npm run dev:desktop:all` | Run `dev` and `dev:desktop` together |
-| `npm run dev:desktop` | Launch Electron against the Vite development address or `ANISHELF_DESKTOP_URL` |
+| `npm run dev:desktop:all` | Start the backend, desktop renderer Vite server, and Electron |
+| `npm run dev:desktop` | Launch Electron against the desktop renderer address or `ANISHELF_DESKTOP_URL` |
 | `npm run dev:host` | Expose Vite on `0.0.0.0:5173` for trusted LAN development |
 | `npm run dev:backend` / `npm run dev:web` | Run one workspace |
 | `npm start` | Build both apps and serve `apps/web/dist` through Backend |
 | `npm run start:backend` | Run built Backend; frontend hosting requires `ANISHELF_FRONTEND_DIR` |
+| `npm run start:desktop` | Launch the built desktop renderer through Electron's local gateway against a running backend |
+| `npm run start:desktop:local` | Launch the built desktop renderer and manage a built backend from the checkout |
 | `npm run check` | Biome, lint, architecture, type checks and tests |
-| `npm run build` | Build the server and Web apps |
+| `npm run build` | Build the server, Web, and desktop apps |
 | `node --import tsx scripts/manual-tests/anime-corpus.mts summary` / `generate <new-directory>` | Inspect integration fixtures or generate an exclusive placeholder directory |
 | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test` | Audit the complete offline path-to-admission pipeline; unsafe admissions, comparable episode errors and reported regressions return nonzero |
 | `node --import tsx scripts/manual-tests/anime-parsing-corpus.mts summary` / `test` | Inspect or evaluate the offline [filename/directory parsing corpus](../../apps/server/test/fixtures/anime-parsing/README.md); strict benchmark failures return nonzero |

@@ -44,7 +44,11 @@ const info = {
 	channel,
 	builtAt: process.env.ANISHELF_BUILD_TIME || new Date().toISOString(),
 };
-for (const workspace of ["apps/server", "apps/web"]) {
+const workspaces =
+	process.argv[2] === "apps/desktop"
+		? ["apps/desktop"]
+		: ["apps/server", "apps/web"];
+for (const workspace of workspaces) {
 	writeFileSync(
 		new URL(`${workspace}/build-info.json`, root),
 		`${JSON.stringify(info, null, 2)}\n`,

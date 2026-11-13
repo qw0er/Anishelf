@@ -9,6 +9,7 @@ const rules = require("../.dependency-cruiser.cjs");
 const sourceRoots = [
 	"apps/server/src",
 	"apps/web/src",
+	"apps/desktop/src",
 	"packages/client-ui/src",
 	"packages/contracts/src",
 	"packages/client-core/src",

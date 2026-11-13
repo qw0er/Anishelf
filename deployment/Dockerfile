@@ -9,6 +9,7 @@ RUN apt-get update \
 COPY package.json package-lock.json ./
 COPY apps/server/package.json ./apps/server/package.json
 COPY apps/web/package.json ./apps/web/package.json
+COPY apps/desktop/package.json ./apps/desktop/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/client-core/package.json ./packages/client-core/package.json
 COPY packages/client-ui/package.json ./packages/client-ui/package.json

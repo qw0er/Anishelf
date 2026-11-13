@@ -59,11 +59,9 @@ password invalidates all device sessions. Store the token per server in the
 host's credential storage. On expiry or revocation, discard it and sign in
 again. Never put it in a URL or a log.
 
-Bearer authentication also works for protected media requests when the caller
-can send the header, including byte range requests. The existing browser
-endpoint for issuing original-media links remains restricted to browser
-sessions. A renderer or native player that cannot attach a header still needs
-a separate media delivery strategy.
+Bearer authentication also works for protected media requests and byte ranges.
+Both authenticated browser and device sessions can issue an expiring link to
+original media. External players can use that link without a device token.
 
 ## Responsibilities
 
@@ -83,6 +81,9 @@ browser-oriented playback assumptions need review before they can support native
 clients; this document does not assume those interfaces already exist.
 
 ## Desktop
+
+See the [desktop workspace guide](../../apps/desktop/README.md) for the current
+gateway, device login, and local process management.
 
 The preferred starting point is Electron with the existing React UI and Fastify
 backend. Package the backend as a separately managed process for local operation,

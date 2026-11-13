@@ -39,6 +39,7 @@ async function scan(files) {
 		const sources = {
 			"apps/server/src/shared/empty.ts": "export {};",
 			"apps/web/src/empty.ts": "export {};",
+			"apps/desktop/src/empty.ts": "export {};",
 			"packages/client-ui/src/empty.ts": "export {};",
 			"packages/contracts/src/empty.ts": "export {};",
 			"packages/client-core/src/empty.ts": "export {};",

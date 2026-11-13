@@ -72,6 +72,17 @@ test("device sign-in persists only a digest and authorizes API writes and media 
 	});
 	expect(media.statusCode).toBe(206);
 	expect(media.headers["content-range"]).toBe("bytes 0-3/10");
+	const link = await app.inject({
+		method: "POST",
+		url: "/api/media/file/access-link",
+		headers: bearer(token),
+	});
+	expect(link.statusCode).toBe(200);
+	const external = await app.inject({
+		url: link.json<{ url: string }>().url,
+		headers: { ...httpsHeaders, range: "bytes=0-3" },
+	});
+	expect(external.statusCode).toBe(206);
 });
 
 test("browser or device can revoke a device and an expired token stops authorizing", async () => {
@@ -190,17 +201,12 @@ test("device authentication does not bypass Origin, CSRF or HTTPS checks", async
 		}),
 		app.inject({
 			method: "POST",
-			url: "/api/media/file/access-link",
-			headers: bearer(token),
-		}),
-		app.inject({
-			method: "POST",
 			url: "/api/auth/logout",
 			headers: bearer(token),
 		}),
 	]);
 	expect(rejected.map(({ statusCode }) => statusCode)).toEqual(
-		Array(11).fill(403),
+		Array(10).fill(403),
 	);
 
 	const wrong = await app.inject({

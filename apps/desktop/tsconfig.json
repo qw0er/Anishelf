@@ -5,7 +5,8 @@
 		"module": "nodenext",
 		"target": "esnext",
 		"moduleResolution": "nodenext",
-		"lib": ["ESNext"],
+		"lib": ["ESNext", "DOM"],
+		"rewriteRelativeImportExtensions": true,
 		"types": ["node"],
 		"sourceMap": true,
 		"strict": true,
@@ -15,5 +16,5 @@
 		"isolatedModules": true,
 		"skipLibCheck": true
 	},
-	"include": ["src"]
+	"include": ["src/main.ts"]
 }

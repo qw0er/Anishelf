@@ -116,7 +116,7 @@ module.exports = {
 			name: "no-unresolved-source-imports",
 			severity: "error",
 			from: {
-				path: "^(?:apps/(?:server|web)|packages/(?:contracts|client-core|client-ui))/src",
+				path: "^(?:apps/(?:server|web|desktop)|packages/(?:contracts|client-core|client-ui))/src",
 			},
 			to: {
 				couldNotResolve: true,
@@ -128,7 +128,7 @@ module.exports = {
 			name: "no-runtime-cycles",
 			severity: "error",
 			from: {
-				path: "^(?:apps/(?:server|web)|packages/(?:contracts|client-core|client-ui))/src",
+				path: "^(?:apps/(?:server|web|desktop)|packages/(?:contracts|client-core|client-ui))/src",
 			},
 			to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
 		},
@@ -279,14 +279,14 @@ module.exports = {
 		{
 			name: "client-does-not-import-server",
 			severity: "error",
-			from: { path: "^(?:apps/web|packages/client-ui)/src/" },
+			from: { path: "^(?:apps/(?:web|desktop)|packages/client-ui)/src/" },
 			to: { path: "^apps/server/" },
 		},
 		{
 			name: "server-does-not-import-clients",
 			severity: "error",
 			from: { path: "^apps/server/src/" },
-			to: { path: "^apps/web/|^packages/client-(?:core|ui)/" },
+			to: { path: "^apps/(?:web|desktop)/|^packages/client-(?:core|ui)/" },
 		},
 		{
 			name: "contracts-do-not-import-consumers",
@@ -315,9 +315,29 @@ module.exports = {
 			to: { path: "^apps/" },
 		},
 		{
+			name: "desktop-does-not-import-web",
+			severity: "error",
+			from: { path: "^apps/desktop/" },
+			to: { path: "^apps/web/" },
+		},
+		{
+			name: "desktop-renderer-does-not-import-main-or-electron",
+			severity: "error",
+			from: { path: "^apps/desktop/src/renderer/" },
+			to: {
+				path: "^apps/desktop/src/(?!renderer/)|(?:^|/)node_modules/electron(?:/|$)|^electron$",
+			},
+		},
+		{
+			name: "desktop-renderer-does-not-import-node-builtins",
+			severity: "error",
+			from: { path: "^apps/desktop/src/renderer/" },
+			to: { dependencyTypes: ["core"] },
+		},
+		{
 			name: "host-uses-client-ui-entry",
 			severity: "error",
-			from: { path: "^apps/web/src/" },
+			from: { path: "^apps/(?:web|desktop)/src/" },
 			to: {
 				path: "^packages/client-ui/",
 				pathNot:
