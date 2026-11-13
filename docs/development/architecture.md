@@ -131,9 +131,17 @@ records or query release sites merely to build episode rows.
 `@anishelf/client-core` owns JSON requests, request cancellation, API errors and
 cookie-session bootstrap and CSRF handling. A client instance receives a
 Fetch-compatible transport and an optional callback for expired authentication.
+The server connection owns the configured HTTP(S) origin, API client, and
+cancellation signal. Resolve server artwork, media, subtitles, fonts, and
+download links against this origin. Use absolute addresses for media players
+and copied links. External artwork can use an explicit HTTP(S) address and is
+loaded directly by the browser.
+
 The Web adapter uses relative URLs with same-origin cookies and translates the
-callback into the existing browser event. Routing, session checks tied to page
-visibility, and TanStack Query stay in the Web app.
+callback into the existing browser event. Each Web connection owns its QueryClient.
+Disposing a connection aborts its requests, stops the active player, and clears
+session and query state. Authentication transitions load a fresh page and connection.
+Routing and session checks tied to page visibility stay in the Web app.
 
 Server-state caching uses TanStack Query, shared query definitions and a QueryClient.
 Stable query keys, freshness/retention policies and app-coordinated invalidation

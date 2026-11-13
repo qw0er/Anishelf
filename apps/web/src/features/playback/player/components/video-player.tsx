@@ -3,6 +3,7 @@ import type { MoviElement } from "movi-player/element";
 import wasmUrl from "movi-player/movi.wasm?url";
 import { type CSSProperties, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { webConnection } from "../../../../shared/api/connection.js";
 import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import type { PlaybackClock } from "../engine.js";
@@ -63,7 +64,7 @@ export default function VideoPlayer({
 	const bindingKey = `${active.asset.id}:${active.asset.revision}:${active.resource.url}`;
 	useEffect(() => {
 		const host = container.current;
-		if (!host) return;
+		if (!host || webConnection.signal.aborted) return;
 		const binding = current.current.active;
 		if (
 			`${binding.asset.id}:${binding.asset.revision}:${binding.resource.url}` !==
@@ -226,6 +227,8 @@ export default function VideoPlayer({
 				callbacks.current.onAudioChange?.(track.sourceStreamIndex);
 		};
 		void (async () => {
+			const url = webConnection.resolveResourceUrl(binding.resource.url, true);
+			if (!url) throw new Error("Invalid playback resource.");
 			const module = await loadPlayer();
 			if (abort.signal.aborted) return;
 			subtitles = await prepareExternalSubtitles(
@@ -261,14 +264,13 @@ export default function VideoPlayer({
 			player.addEventListener("errordisplay", errorDisplay);
 			player.addEventListener("audiotrackchange", audioChanged);
 			player.append(...subtitles.tracks);
-			player.setAttribute(
-				"src",
-				new URL(binding.resource.url, location.origin).href,
-			);
+			player.setAttribute("src", url);
 			host.append(player);
 		})().catch(fail);
-		return () => {
+		const dispose = () => {
+			if (abort.signal.aborted) return;
 			abort.abort();
+			webConnection.signal.removeEventListener("abort", dispose);
 			detachClock();
 			subtitles?.dispose();
 			if (player) {
@@ -285,6 +287,8 @@ export default function VideoPlayer({
 			syncAudioRef.current = null;
 			silentVolume.current = null;
 		};
+		webConnection.signal.addEventListener("abort", dispose, { once: true });
+		return dispose;
 	}, [fileId, sourceVersion, bindingKey]);
 	useEffect(() => {
 		const player = playerRef.current;

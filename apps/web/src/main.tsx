@@ -5,6 +5,7 @@ import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { authenticatedRoute } from "./app/auth/guard.js";
 import { LoginPage } from "./app/auth/login-page.js";
+import { webConnection } from "./shared/api/connection.js";
 import { queryClient } from "./shared/api/query-client.js";
 import "./index.css";
 import { Toaster } from "./shared/components/ui/toast.js";
@@ -47,14 +48,17 @@ const router = createBrowserRouter([
 	authenticatedRoute(libraryRoute),
 ]);
 let redirectingToLogin = false;
-window.addEventListener("anishelf:auth-required", async () => {
-	queryClient.clear();
-	if (window.location.pathname !== "/login" && !redirectingToLogin) {
-		redirectingToLogin = true;
-		window.location.replace(
-			`/login?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`,
-		);
+window.addEventListener("anishelf:auth-required", () => {
+	if (window.location.pathname === "/login") {
+		queryClient.clear();
+		return;
 	}
+	if (redirectingToLogin) return;
+	redirectingToLogin = true;
+	webConnection.dispose();
+	window.location.replace(
+		`/login?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`,
+	);
 });
 
 createRoot(root).render(

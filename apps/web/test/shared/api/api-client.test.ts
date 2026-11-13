@@ -85,6 +85,7 @@ test("typed methods use the browsing endpoints and same-origin uncached requests
 			},
 			credentials: "same-origin",
 			cache: "no-store",
+			signal: expect.any(AbortSignal),
 		});
 	}
 });
@@ -218,7 +219,7 @@ test("aborting one request leaves a newer independent request usable", async () 
 	oldController.abort();
 	expect(isRequestCancelled(await old)).toBe(true);
 	expect(await current).toEqual(directory);
-	expect(fetcher.mock.calls[0]?.[1]?.signal).toBe(oldController.signal);
+	expect(fetcher.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
 });
 
 test("cancellation while consuming JSON remains cancellation", async () => {
@@ -302,7 +303,7 @@ test("media access links use the shared typed endpoint adapter and CSRF transpor
 		"/api/media/file%2F123/access-link",
 		expect.objectContaining({
 			method: "POST",
-			signal: controller.signal,
+			signal: expect.any(AbortSignal),
 			credentials: "same-origin",
 			headers: expect.objectContaining({ "x-csrf-token": "test-csrf" }),
 		}),

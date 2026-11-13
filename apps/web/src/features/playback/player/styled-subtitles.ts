@@ -2,6 +2,7 @@ import type { EmbeddedSubtitleResponse } from "@anishelf/contracts/http";
 import { type MediaTimeline, sourceTimeMs } from "@anishelf/contracts/media";
 import type JASSUB from "jassub";
 import type { MoviElement } from "movi-player/element";
+import { webConnection } from "../../../shared/api/connection.js";
 import type { ExternalSubtitles } from "./subtitles.js";
 
 interface StyledSubtitleBinding {
@@ -18,9 +19,12 @@ export function embeddedSubtitleReader(binding: StyledSubtitleBinding) {
 	const query = new URLSearchParams({ sourceVersion, assetId, assetRevision });
 	const root = `/api/files/${encodeURIComponent(fileId)}/subtitles`;
 	return async (index: number, signal: AbortSignal) => {
-		const response = await fetch(`${root}/embedded/${index}?${query}`, {
-			signal,
-		});
+		const response = await webConnection.fetchResource(
+			`${root}/embedded/${index}?${query}`,
+			{
+				signal,
+			},
+		);
 		if (!response.ok) throw new Error("Embedded subtitle unavailable.");
 		const { text, fonts: descriptors }: EmbeddedSubtitleResponse =
 			await response.json();
@@ -29,7 +33,7 @@ export function embeddedSubtitleReader(binding: StyledSubtitleBinding) {
 			try {
 				let font = fonts.get(fontIndex);
 				if (!font) {
-					const fontResponse = await fetch(
+					const fontResponse = await webConnection.fetchResource(
 						`${root}/fonts/${fontIndex}?${query}`,
 						{ signal },
 					);

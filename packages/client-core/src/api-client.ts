@@ -39,7 +39,7 @@ export function isRequestCancelled(error: unknown): boolean {
 	return error instanceof Error && error.name === "AbortError";
 }
 
-function throwIfCancelled(signal: AbortSignal | undefined): void {
+export function throwIfCancelled(signal: AbortSignal | undefined): void {
 	if (!signal?.aborted) return;
 	throw isRequestCancelled(signal.reason)
 		? signal.reason
@@ -70,9 +70,11 @@ function isApiError(value: unknown): value is PublicApiError {
 export function createApiClient({
 	fetch: fetcher,
 	onAuthRequired,
+	signal: lifetime,
 }: {
 	fetch: (path: string, init: RequestInit) => Promise<Response>;
 	onAuthRequired?: () => void;
+	signal?: AbortSignal;
 }) {
 	let csrfToken: string | undefined;
 	let bootstrap: Promise<AuthSessionResponse> | undefined;
@@ -80,6 +82,7 @@ export function createApiClient({
 		if (!bootstrap)
 			bootstrap = request<AuthSessionResponse>("/api/auth/session", "GET")
 				.then((value) => {
+					throwIfCancelled(lifetime);
 					csrfToken = value.csrfToken;
 					return value;
 				})
@@ -95,11 +98,16 @@ export function createApiClient({
 	async function request<T>(
 		path: string,
 		method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
-		{ signal, keepalive }: RequestOptions = {},
+		{ signal: callerSignal, keepalive }: RequestOptions = {},
 		payload?: object,
 	): Promise<T> {
+		const signal =
+			lifetime && callerSignal
+				? AbortSignal.any([lifetime, callerSignal])
+				: (lifetime ?? callerSignal);
 		throwIfCancelled(signal);
 		if (method !== "GET" && !csrfToken) await loadAuthSession();
+		throwIfCancelled(signal);
 		let response: Response;
 		try {
 			response = await fetcher(path, {

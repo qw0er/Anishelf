@@ -5,10 +5,11 @@
 	"type": "module",
 	"license": "AGPL-3.0-only",
 	"exports": {
-		".": "./src/api-client.ts"
+		".": "./src/api-client.ts",
+		"./connection": "./src/connection.ts"
 	},
 	"scripts": {
-		"test": "node --test test/api-client.test.mjs",
+		"test": "node --test test/*.test.mjs",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {

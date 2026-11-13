@@ -44,13 +44,7 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 	const media = useQuery({
 		queryKey: ["external-player-media", scope, fileId],
 		queryFn: ({ signal }) =>
-			resolveMediaLink(
-				fileId,
-				window.location.origin,
-				{ signal },
-				client,
-				scope,
-			),
+			resolveMediaLink(fileId, { signal }, client, scope),
 		enabled: open,
 		staleTime: 0,
 		retry: false,

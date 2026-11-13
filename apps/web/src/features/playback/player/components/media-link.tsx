@@ -49,13 +49,7 @@ export default function MediaLink({
 				? resolveMediaLink
 				: playlist
 					? createMediaPlaylist
-					: createMediaLink)(
-				fileId,
-				window.location.origin,
-				{ signal },
-				client,
-				scope,
-			),
+					: createMediaLink)(fileId, { signal }, client, scope),
 	});
 	const request = useRef<AbortController | null>(null);
 	const [pending, setPending] = useState(false);

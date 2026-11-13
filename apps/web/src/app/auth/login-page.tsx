@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
-import { clearAuthToken, request } from "../../shared/api/client.js";
-import { queryClient } from "../../shared/api/query-client.js";
+import { request } from "../../shared/api/client.js";
+import { webConnection } from "../../shared/api/connection.js";
 import { Button } from "../../shared/components/ui/button.js";
 import { FieldError } from "../../shared/components/ui/field.js";
 import { Input } from "../../shared/components/ui/input.js";
@@ -30,8 +30,7 @@ export function LoginPage() {
 							{},
 							{ password: normalizedPassword },
 						);
-						queryClient.clear();
-						clearAuthToken();
+						webConnection.dispose();
 						window.location.replace(
 							loginReturnPath(params.get("returnTo"), window.location.origin),
 						);

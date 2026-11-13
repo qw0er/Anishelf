@@ -3,6 +3,7 @@ import {
 	ApiClientError,
 	type RequestOptions,
 } from "../../../shared/api/client.js";
+import { webConnection } from "../../../shared/api/connection.js";
 import { loadQuery, queryClient } from "../../../shared/api/query-client.js";
 import { fileQuery } from "../../resources/public.js";
 import { createMediaAccessLink } from "./api.js";
@@ -10,7 +11,6 @@ import { createMediaAccessLink } from "./api.js";
 /** Recheck access and accept only the original-media route for the selected file. */
 export async function resolveMediaLink(
 	fileId: string,
-	origin: string,
 	options?: RequestOptions,
 	client: QueryClient = queryClient,
 	scope = "",
@@ -28,9 +28,10 @@ export async function resolveMediaLink(
 		});
 	}
 	const link = await createMediaAccessLink(fileId, options);
-	const resolved = new URL(link.url, origin);
+	const url = webConnection.resolveResourceUrl(link.url, true);
+	const resolved = url ? new URL(url) : null;
 	if (
-		resolved.origin !== new URL(origin).origin ||
+		!resolved ||
 		resolved.pathname !== expectedPath ||
 		!resolved.searchParams.get("access_token")
 	)
@@ -47,28 +48,20 @@ export async function resolveMediaLink(
 
 export async function createMediaLink(
 	fileId: string,
-	origin: string,
 	options?: RequestOptions,
 	client: QueryClient = queryClient,
 	scope = "",
 ): Promise<string> {
-	return (await resolveMediaLink(fileId, origin, options, client, scope)).url;
+	return (await resolveMediaLink(fileId, options, client, scope)).url;
 }
 
 export async function createMediaPlaylist(
 	fileId: string,
-	origin: string,
 	options?: RequestOptions,
 	client: QueryClient = queryClient,
 	scope = "",
 ) {
-	const { url, name } = await resolveMediaLink(
-		fileId,
-		origin,
-		options,
-		client,
-		scope,
-	);
+	const { url, name } = await resolveMediaLink(fileId, options, client, scope);
 	// Metadata must occupy one line, even when the source filename contains newlines.
 	const title = Array.from(name, (character) => {
 		const code = character.codePointAt(0) ?? 0;

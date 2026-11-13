@@ -1,24 +1,13 @@
 import {
 	type FetchQueryOptions,
 	hashKey,
-	QueryClient,
+	type QueryClient,
 	type QueryKey,
 } from "@tanstack/react-query";
+import { webConnection } from "./connection.js";
 
-export function createQueryClient() {
-	return new QueryClient({
-		defaultOptions: {
-			queries: {
-				staleTime: 30_000,
-				retry: false,
-				refetchOnWindowFocus: false,
-				refetchOnReconnect: false,
-			},
-			mutations: { retry: false },
-		},
-	});
-}
-export const queryClient = createQueryClient();
+export { createQueryClient } from "./connection.js";
+export const { queryClient } = webConnection;
 
 const consumers = new WeakMap<QueryClient, Map<string, number>>();
 /** A departing router consumer stops waiting without cancelling other observers/loaders. */

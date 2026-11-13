@@ -1,6 +1,7 @@
 import { type MediaTimeline, mediaTimeMs } from "@anishelf/contracts/media";
 import { parse } from "ass-compiler";
 import type { MoviElement, SubtitleCue } from "movi-player/element";
+import { webConnection } from "../../../shared/api/connection.js";
 import { discoverSubtitles } from "../../media/public.js";
 
 /** Movi's text renderer recognizes HTML-like formatting after decoding entities. */
@@ -125,9 +126,9 @@ export async function prepareExternalSubtitles(
 				.filter((track) => track.origin === "external" && track.format)
 				.map(async (track) => {
 					try {
-						const response = await fetch(
+						const response = await webConnection.fetchResource(
 							`/api/files/${encodeURIComponent(fileId)}/subtitles/${encodeURIComponent(track.id)}/content?${new URLSearchParams({ sourceVersion, subtitleVersion: track.sourceVersion })}`,
-							{ credentials: "same-origin", signal },
+							{ signal },
 						);
 						if (!response.ok) throw new Error("Subtitle unavailable.");
 						const contents = await response.text();

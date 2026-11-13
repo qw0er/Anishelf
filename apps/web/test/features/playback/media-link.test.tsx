@@ -109,18 +109,11 @@ test("does not start a download when the file access check fails", async () => {
 	expect(click).not.toHaveBeenCalled();
 });
 
-test.each([
-	"http://localhost:9000",
-	"http://127.0.0.1:3000",
-	"https://example.test",
-])(
-	"uses application origin %s without leaking the filename",
-	async (origin) => {
-		expect(await createMediaLink(fileId, origin)).toBe(
-			`${origin}/api/media/${fileId}?access_token=test-token`,
-		);
-	},
-);
+test("uses the configured application origin without leaking the filename", async () => {
+	expect(await createMediaLink(fileId)).toBe(
+		`${window.location.origin}/api/media/${fileId}?access_token=test-token`,
+	);
+});
 test.each([
 	"https://other.test/api/media/file_123",
 	"/api/media/another",
@@ -131,9 +124,9 @@ test.each([
 		...file,
 		originalMediaUrl,
 	});
-	await expect(
-		createMediaLink(fileId, "http://localhost:9000"),
-	).rejects.toMatchObject({ kind: "invalid_response" });
+	await expect(createMediaLink(fileId)).rejects.toMatchObject({
+		kind: "invalid_response",
+	});
 });
 test("rechecks the file, copies its link and does not touch playback state", async () => {
 	const open = vi.spyOn(playbackApi, "openPlaybackSession");
@@ -272,9 +265,9 @@ test("playlist keeps Unicode metadata and prevents filename line injection", asy
 		...file,
 		file: { ...file.file, name: "中文\n#EXTINF:1,injected\r\n/movie.mp4" },
 	});
-	const playlist = await createMediaPlaylist(fileId, "https://example.test");
+	const playlist = await createMediaPlaylist(fileId);
 	expect(playlist.content).toBe(
-		"#EXTM3U\n#EXTINF:-1,中文 #EXTINF:1,injected  /movie.mp4\nhttps://example.test/api/media/file_123?access_token=test-token\n",
+		`#EXTM3U\n#EXTINF:-1,中文 #EXTINF:1,injected  /movie.mp4\n${window.location.origin}/api/media/file_123?access_token=test-token\n`,
 	);
 	expect(playlist.filename).not.toMatch(/[\r\n/:]/);
 	expect(playlist.filename.endsWith(".m3u")).toBe(true);

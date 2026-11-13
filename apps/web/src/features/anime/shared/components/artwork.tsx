@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { webConnection } from "../../../../shared/api/connection.js";
+import { isHttpUrl } from "../../../../shared/lib/url.js";
 
 export function Artwork({
 	url,
@@ -10,17 +12,20 @@ export function Artwork({
 	banner?: boolean;
 }) {
 	const [failedUrl, setFailedUrl] = useState<string | null>(null);
+	const src =
+		url &&
+		(webConnection.resolveResourceUrl(url) ?? (isHttpUrl(url) ? url : null));
 	const style = banner
 		? "h-40 w-full object-cover sm:h-56"
 		: "aspect-[2/3] w-full object-cover";
-	return url && failedUrl !== url ? (
+	return src && failedUrl !== src ? (
 		<img
-			src={url}
+			src={src}
 			alt={banner ? "" : title}
 			loading="lazy"
 			decoding="async"
 			className={`${style} bg-muted`}
-			onError={() => setFailedUrl(url)}
+			onError={() => setFailedUrl(src)}
 		/>
 	) : banner ? null : (
 		<div

@@ -1,8 +1,8 @@
 import { KeyRound, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { clearAuthToken, request } from "../../shared/api/client.js";
-import { queryClient } from "../../shared/api/query-client.js";
+import { request } from "../../shared/api/client.js";
+import { webConnection } from "../../shared/api/connection.js";
 import { ActionButton } from "../../shared/components/ui/action-button.js";
 import {
 	Card,
@@ -22,8 +22,7 @@ export function SecuritySettings() {
 	const [error, setError] = useState("");
 	const [pending, setPending] = useState(false);
 	const leave = async () => {
-		clearAuthToken();
-		queryClient.clear();
+		webConnection.dispose();
 		window.location.replace("/login");
 	};
 	return (

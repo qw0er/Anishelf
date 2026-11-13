@@ -143,7 +143,7 @@ test("version-bound content becomes independent same-language tracks without sel
 	bundle.attach(element);
 	expect(fetchSubtitle).toHaveBeenCalledWith(
 		"/api/files/file%20%2Fid/subtitles/one/content?sourceVersion=video-v1&subtitleVersion=subtitle-one",
-		{ credentials: "same-origin", signal: abort.signal },
+		{ credentials: "same-origin", signal: expect.any(AbortSignal) },
 	);
 	expect(element.appendSubtitleCues.mock.calls.map((call) => call[1])).toEqual([
 		{ lang: "external:one", label: "English", select: false },
