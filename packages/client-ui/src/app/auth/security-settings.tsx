@@ -22,9 +22,7 @@ export function SecuritySettings() {
 	const [error, setError] = useState("");
 	const [pending, setPending] = useState(false);
 	const leave = async () => {
-		const runtime = getClientRuntime();
-		runtime.dispose();
-		runtime.replaceLocation("/login");
+		getClientRuntime().restartSession("/login");
 	};
 	return (
 		<Card className="settings-section lg:grid">

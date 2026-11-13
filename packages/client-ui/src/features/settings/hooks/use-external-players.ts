@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getClientRuntime } from "../../../shared/api/connection.js";
 import { externalPlayerPolicy } from "../external-player-policy.js";
 import {
 	type CustomExternalPlayer,
@@ -6,10 +7,12 @@ import {
 	validPlayerTemplate,
 } from "../external-players.js";
 
-const changeEvent = "anishelf:external-players-changed";
 function load() {
 	try {
-		return { players: readCustomPlayers(window.localStorage), error: false };
+		return {
+			players: readCustomPlayers(getClientRuntime().platform.preferences),
+			error: false,
+		};
 	} catch {
 		return { players: [] as CustomExternalPlayer[], error: true };
 	}
@@ -17,25 +20,19 @@ function load() {
 
 export function useExternalPlayers() {
 	const [state, setState] = useState(load);
-	useEffect(() => {
-		const refresh = () => setState(load());
-		const onStorage = (event: StorageEvent) => {
-			if (event.key === externalPlayerPolicy.storageKey || event.key === null)
-				refresh();
-		};
-		window.addEventListener(changeEvent, refresh);
-		window.addEventListener("storage", onStorage);
-		return () => {
-			window.removeEventListener(changeEvent, refresh);
-			window.removeEventListener("storage", onStorage);
-		};
-	}, []);
+	const { platform } = getClientRuntime();
+	useEffect(
+		() =>
+			platform.onPreferenceChange(externalPlayerPolicy.storageKey, () =>
+				setState(load()),
+			),
+		[platform],
+	);
 	function save(players: CustomExternalPlayer[]) {
-		window.localStorage.setItem(
+		getClientRuntime().platform.preferences.setItem(
 			externalPlayerPolicy.storageKey,
 			JSON.stringify(players),
 		);
-		window.dispatchEvent(new Event(changeEvent));
 	}
 	return {
 		...state,
@@ -46,7 +43,9 @@ export function useExternalPlayers() {
 				!validPlayerTemplate(template)
 			)
 				throw new Error("Invalid player");
-			const current = readCustomPlayers(window.localStorage);
+			const current = readCustomPlayers(
+				getClientRuntime().platform.preferences,
+			);
 			if (current.length >= externalPlayerPolicy.maximumCustomPlayers)
 				throw new Error("Too many players");
 			save([
@@ -56,7 +55,7 @@ export function useExternalPlayers() {
 		},
 		remove(id: string) {
 			save(
-				readCustomPlayers(window.localStorage).filter(
+				readCustomPlayers(getClientRuntime().platform.preferences).filter(
 					(player) => player.id !== id,
 				),
 			);

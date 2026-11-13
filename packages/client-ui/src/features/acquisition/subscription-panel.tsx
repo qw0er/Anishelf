@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getClientRuntime } from "../../shared/api/connection.js";
 import type { SubscriptionView } from "../../shared/api/contracts.js";
 import { useQueryScope } from "../../shared/api/queries.js";
 import { Button } from "../../shared/components/ui/button.js";
@@ -334,9 +335,9 @@ export function SubscriptionPanel({
 							<DropdownMenuContent>
 								{sub.management === "watching" && !inventory && (
 									<DropdownMenuItem
-										onClick={() => {
-											window.location.href = "/subscriptions";
-										}}
+										onClick={() =>
+											getClientRuntime().navigate("/subscriptions")
+										}
 									>
 										<Settings size={16} aria-hidden="true" />
 										{t("acquisition.subscription.manageAutomatic")}

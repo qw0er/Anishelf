@@ -110,11 +110,14 @@ presentation timings shared within a feature live in its `defaults.ts`.
 ### Frontend ownership
 
 The React application lives in `packages/client-ui/`. A host configures one
-client runtime with its connection, build information, changelog and
-authentication callbacks before creating the router. The package exports the
+client runtime with its connection, build information, changelog, platform
+capabilities and navigation callbacks before creating the router. The package exports the
 route definitions, the app with its providers, and the shared stylesheet.
 `apps/web/` mounts the app with a browser router and owns the HTML entry,
-Vite configuration, public assets and service worker registration.
+Vite configuration, public assets and service worker registration. Its platform
+adapter implements external links, player handoff, clipboard access, downloads,
+device preferences and page lifecycle events. The React app owns when to use
+each capability and retains DOM APIs for rendering, layout and media.
 
 | Layer | Responsibility |
 | --- | --- |
@@ -144,12 +147,13 @@ download links against this origin. Use absolute addresses for media players
 and copied links. External artwork can use an explicit HTTP(S) address and is
 loaded directly by the browser.
 
-The Web adapter uses relative URLs with same-origin cookies and translates the
-callback into the existing browser event. Each client runtime owns its QueryClient.
+The Web adapter uses relative URLs with same-origin cookies. It handles session
+loss through the host callback. Each client runtime owns its QueryClient.
 Disposing a connection aborts its requests, stops the active player, and clears
 session and query state. Authentication transitions load a fresh page and connection.
-The host selects the router. The React app checks sessions on page visibility
-and reports session loss to the host.
+The host selects the router and how to restart a session. The React app checks
+sessions when the host reports foreground activity and reports session loss to
+the host. Ordinary navigation uses the active router.
 
 Server-state caching uses TanStack Query, shared query definitions and a QueryClient.
 Stable query keys, freshness/retention policies and app-coordinated invalidation

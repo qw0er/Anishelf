@@ -11,6 +11,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../shared/components/ui/collapsible.js";
+import { ExternalLink as ExternalAnchor } from "../../shared/components/ui/external-link.js";
 import { Progress } from "../../shared/components/ui/progress.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
@@ -482,14 +483,12 @@ export function DownloadActivityPanel({
 				</Collapsible>
 			)}
 			{settings.data?.qbittorrentWebUiUrl && (
-				<a
+				<ExternalAnchor
 					className={buttonStyles("ghost")}
 					href={settings.data.qbittorrentWebUiUrl}
-					target="_blank"
-					rel="noopener noreferrer"
 				>
 					{t("acquisition.activity.openWebui")}
-				</a>
+				</ExternalAnchor>
 			)}
 		</div>
 	);

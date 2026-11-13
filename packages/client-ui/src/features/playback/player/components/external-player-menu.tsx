@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getClientRuntime } from "../../../../shared/api/connection.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import {
@@ -19,6 +20,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "../../../../shared/components/ui/dropdown-menu.js";
+import { ExternalPlayerLink } from "../../../../shared/components/ui/external-link.js";
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
@@ -38,7 +40,9 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 	const scope = useQueryScope();
 	const custom = useExternalPlayers();
 	const players = [
-		...presetsForPlatform(detectClientPlatform(navigator)),
+		...presetsForPlatform(
+			detectClientPlatform(getClientRuntime().platform.device),
+		),
 		...custom.players,
 	];
 	const media = useQuery({
@@ -76,7 +80,7 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 						disabled={!available}
 						label={player.name}
 						render={
-							<a
+							<ExternalPlayerLink
 								href={
 									available && media.data
 										? buildPlayerUrl(

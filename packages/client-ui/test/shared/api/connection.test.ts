@@ -1,6 +1,7 @@
 import { createServerConnection } from "@anishelf/client-core/connection";
 import { expect, test, vi } from "vitest";
 import { createClientRuntime } from "../../../src/shared/api/connection.js";
+import { testPlatform } from "../../setup.js";
 
 test("disposing one Web connection clears its cache and leaves the other connection usable", async () => {
 	const fetcher = vi.fn(async () => Response.json({ ok: true }));
@@ -19,7 +20,9 @@ test("disposing one Web connection clears its cache and leaves the other connect
 			},
 			changelog: "",
 			onAuthRequired: vi.fn(),
-			replaceLocation: vi.fn(),
+			platform: testPlatform,
+			navigate: vi.fn(),
+			restartSession: vi.fn(),
 		});
 	const first = createRuntime("https://first.test");
 	const second = createRuntime("https://second.test");

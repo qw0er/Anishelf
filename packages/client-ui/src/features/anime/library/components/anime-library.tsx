@@ -2,6 +2,7 @@ import { FolderPlus, Library, ScanLine, SearchX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useSearchParams } from "react-router";
+import { getClientRuntime } from "../../../../shared/api/connection.js";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
 import { Button } from "../../../../shared/components/ui/button.js";
@@ -19,7 +20,9 @@ const libraryFilterSessionKey = "anishelf:anime-library:filters";
 
 function readLibraryFilterSession() {
 	try {
-		return window.sessionStorage.getItem(libraryFilterSessionKey);
+		return getClientRuntime().platform.sessionStorage.getItem(
+			libraryFilterSessionKey,
+		);
 	} catch (error) {
 		console.warn("[AnimeLibrary] Could not read tab-session filters.", error);
 		return null;
@@ -28,8 +31,15 @@ function readLibraryFilterSession() {
 
 function writeLibraryFilterSession(search: string) {
 	try {
-		if (search) window.sessionStorage.setItem(libraryFilterSessionKey, search);
-		else window.sessionStorage.removeItem(libraryFilterSessionKey);
+		if (search)
+			getClientRuntime().platform.sessionStorage.setItem(
+				libraryFilterSessionKey,
+				search,
+			);
+		else
+			getClientRuntime().platform.sessionStorage.removeItem(
+				libraryFilterSessionKey,
+			);
 	} catch (error) {
 		console.warn("[AnimeLibrary] Could not save tab-session filters.", error);
 	}

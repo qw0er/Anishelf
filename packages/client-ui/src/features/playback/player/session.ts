@@ -9,6 +9,7 @@ import {
 	isRequestCancelled,
 	type RequestOptions,
 } from "../../../shared/api/client.js";
+import { getClientRuntime } from "../../../shared/api/connection.js";
 import type {
 	PlaybackSessionResponse,
 	SavePlaybackProgressRequest,
@@ -394,7 +395,7 @@ export class PlaybackSessionController {
 				const session = this.state.session;
 				if (!session) return false;
 				try {
-					if (typeof navigator !== "undefined" && !navigator.onLine)
+					if (!getClientRuntime().platform.isOnline())
 						throw new ApiClientError({
 							kind: "network",
 							message: "Browser is offline.",
@@ -455,7 +456,7 @@ export class PlaybackSessionController {
 	private async release(): Promise<void> {
 		const session = this.state.session;
 		if (!session) return;
-		if (typeof navigator !== "undefined" && !navigator.onLine) return;
+		if (!getClientRuntime().platform.isOnline()) return;
 		try {
 			await this.request((options) =>
 				releasePlaybackSession(session.token, options),

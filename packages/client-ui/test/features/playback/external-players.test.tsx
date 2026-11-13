@@ -15,6 +15,7 @@ import {
 	validPlayerTemplate,
 } from "../../../src/features/settings/external-players.js";
 import { useExternalPlayers } from "../../../src/features/settings/hooks/use-external-players.js";
+import { testPlatform } from "../../setup.js";
 import "../../../src/shared/i18n.js";
 import {
 	act,
@@ -262,6 +263,10 @@ test("menu prepares native anchors for detected presets and custom players witho
 		`custom://${encodeURIComponent(`${window.location.origin}/api/media/file_123?access_token=test-token`)}`,
 	);
 	expect(screen.queryByRole("menuitem", { name: "MX Player" })).toBeNull();
+	fireEvent.click(item);
+	expect(testPlatform.openPlayer).toHaveBeenCalledWith(
+		item.getAttribute("href"),
+	);
 	expect(open).not.toHaveBeenCalled();
 	expect(save).not.toHaveBeenCalled();
 });

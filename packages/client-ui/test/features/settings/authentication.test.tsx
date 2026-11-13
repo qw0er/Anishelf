@@ -98,6 +98,26 @@ test("login bootstraps anonymous CSRF and displays wrong-password errors", async
 		}),
 	);
 });
+test("successful login asks the host to restart at the requested route", async () => {
+	fetcher.mockImplementation(async (input) =>
+		json({ authenticated: input !== "/api/auth/session", csrfToken: "csrf" }),
+	);
+	const router = createMemoryRouter(createClientRoutes(), {
+		initialEntries: ["/login?returnTo=%2Ffiles%2Fexample%3Fdirectory%3Droot"],
+	});
+	routers.push(router);
+	render(<ClientApp router={router} />);
+	fireEvent.change(screen.getByLabelText("Password"), {
+		target: { value: "correct password" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+	await waitFor(() =>
+		expect(testRuntime.restartSession).toHaveBeenCalledExactlyOnceWith(
+			"/files/example?directory=root",
+		),
+	);
+});
+
 test("password form trims outer spaces before confirming and submitting", async () => {
 	fetcher.mockImplementation(async (input) =>
 		input === "/api/auth/session"
@@ -192,6 +212,7 @@ test("business 401 signals session loss while wrong login passwords do not", asy
 test.each([
 	"https://evil.test/path",
 	"//evil.test/path",
+	"https://example.com//evil.test/path",
 	"javascript:alert(1)",
 	"http://[",
 	"/login",

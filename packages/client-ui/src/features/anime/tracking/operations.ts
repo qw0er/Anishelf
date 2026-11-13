@@ -1,5 +1,6 @@
 import { type QueryClient, queryOptions } from "@tanstack/react-query";
 import { request } from "../../../shared/api/client.js";
+import { getClientRuntime } from "../../../shared/api/connection.js";
 import type {
 	TrackingEpisodeTargetResponse,
 	TrackingOperationResponse,
@@ -127,7 +128,10 @@ export function reportTrackingOperations(
 			timeout: 0,
 			actionProps: {
 				children: i18n.t("trackingUpdate.edit"),
-				onClick: () => window.location.assign(`/anime/tracked/${op.mediaId}`),
+				onClick: () =>
+					getClientRuntime().navigate(
+						`/anime/tracked/${encodeURIComponent(op.mediaId)}`,
+					),
 			},
 		};
 		toast.add(notice);

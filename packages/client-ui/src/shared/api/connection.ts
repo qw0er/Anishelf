@@ -1,6 +1,7 @@
 import type { createServerConnection } from "@anishelf/client-core/connection";
 import type { BuildInfo } from "@anishelf/contracts/http";
 import { QueryClient } from "@tanstack/react-query";
+import type { ClientPlatform } from "../platform.js";
 
 export function createQueryClient() {
 	return new QueryClient({
@@ -21,7 +22,9 @@ interface ClientHost {
 	buildInfo: BuildInfo;
 	changelog: string;
 	onAuthRequired: () => void;
-	replaceLocation: (path: string) => void;
+	platform: ClientPlatform;
+	navigate: (path: string) => void;
+	restartSession: (path: string) => void;
 }
 
 export function createClientRuntime(host: ClientHost) {

@@ -19,6 +19,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../../shared/components/ui/collapsible.js";
+import { ExternalLink as ExternalAnchor } from "../../../shared/components/ui/external-link.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 
 const repository = "https://github.com/qw0er/Anishelf";
@@ -111,15 +112,13 @@ export function AboutSettings() {
 							[t("about.docs"), `${repository}/tree/main/docs/guide`],
 							[t("about.issues"), `${repository}/issues`],
 						].map(([label, href]) => (
-							<a
+							<ExternalAnchor
 								key={label}
 								className="text-muted-foreground hover:text-foreground hover:underline"
 								href={href}
-								target="_blank"
-								rel="noreferrer"
 							>
 								{label}
-							</a>
+							</ExternalAnchor>
 						))}
 						<span className="text-xs text-muted-foreground">AGPL-3.0-only</span>
 					</div>
@@ -173,14 +172,12 @@ export function AboutSettings() {
 						>
 							<span>{t(`about.status.${updates.data.status}`)}</span>
 							{updates.data.latest && (
-								<a
+								<ExternalAnchor
 									className="underline underline-offset-4"
 									href={updates.data.latest.url}
-									target="_blank"
-									rel="noreferrer"
 								>
 									{updates.data.latest.version} · {t("about.releaseNotes")}
-								</a>
+								</ExternalAnchor>
 							)}
 							<span className="text-xs text-muted-foreground">
 								{t("about.checked", {
@@ -210,14 +207,12 @@ export function AboutSettings() {
 								</div>
 							</CollapsibleContent>
 						</Collapsible>
-						<a
+						<ExternalAnchor
 							className="hover:text-foreground hover:underline"
 							href={`${repository}/blob/main/docs/guide/deployment.md#updates`}
-							target="_blank"
-							rel="noreferrer"
 						>
 							{t("about.upgradeGuide")}
-						</a>
+						</ExternalAnchor>
 					</div>
 				</CardContent>
 			</Card>
@@ -253,14 +248,12 @@ export function AboutSettings() {
 											<ul className="list-disc space-y-1 pl-5">{children}</ul>
 										),
 										a: ({ href, children }) => (
-											<a
+											<ExternalAnchor
 												className="underline underline-offset-4"
 												href={href}
-												target="_blank"
-												rel="noreferrer"
 											>
 												{children}
-											</a>
+											</ExternalAnchor>
 										),
 									}}
 								>

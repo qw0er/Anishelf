@@ -11,6 +11,7 @@ import {
 } from "../../../src/features/playback/player/media-link.js";
 import { Toaster, toast } from "../../../src/shared/components/ui/toast.js";
 import "../../../src/shared/i18n.js";
+import { testPlatform } from "../../setup.js";
 import {
 	act,
 	cleanup,
@@ -274,30 +275,20 @@ test("playlist keeps Unicode metadata and prevents filename line injection", asy
 });
 
 test("downloads a playlist without starting a playback session", async () => {
-	const create = vi
-		.spyOn(URL, "createObjectURL")
-		.mockReturnValue("blob:playlist");
-	const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
-	const click = vi
-		.spyOn(HTMLAnchorElement.prototype, "click")
+	const download = vi
+		.spyOn(testPlatform, "downloadText")
 		.mockImplementation(() => {});
 	const open = vi.spyOn(playbackApi, "openPlaybackSession");
 	render(<MediaLink fileId={fileId} playlist />);
 	fireEvent.click(
 		screen.getByRole("button", { name: "Download playlist (.m3u)" }),
 	);
-	await waitFor(() => expect(click).toHaveBeenCalledOnce());
-	const anchor = click.mock.instances[0] as HTMLAnchorElement;
-	expect(anchor.download).toBe("中文 space % &.mp4.m3u");
-	expect(anchor.href).toBe("blob:playlist");
-	expect(anchor.isConnected).toBe(false);
-	const blob = create.mock.calls[0]?.[0];
-	expect(blob).toBeInstanceOf(Blob);
-	expect(await (blob as Blob).text()).toBe(
-		`#EXTM3U\n#EXTINF:-1,${file.file.name}\n${window.location.origin}${file.originalMediaUrl}?access_token=test-token\n`,
+	await waitFor(() =>
+		expect(download).toHaveBeenCalledExactlyOnceWith(
+			`#EXTM3U\n#EXTINF:-1,${file.file.name}\n${window.location.origin}${file.originalMediaUrl}?access_token=test-token\n`,
+			"中文 space % &.mp4.m3u",
+			"audio/x-mpegurl;charset=utf-8",
+		),
 	);
 	expect(open).not.toHaveBeenCalled();
-	await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:playlist"), {
-		timeout: 2000,
-	});
 });

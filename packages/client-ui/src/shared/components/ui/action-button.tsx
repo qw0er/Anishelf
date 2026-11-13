@@ -1,6 +1,7 @@
 import { type LucideIcon, RefreshCw } from "lucide-react";
 import type { ComponentProps } from "react";
 import { Button, buttonStyles } from "./button.js";
+import { ExternalLink } from "./external-link.js";
 import { Spinner } from "./spinner.js";
 import { Tooltip } from "./tooltip.js";
 
@@ -46,6 +47,7 @@ export function ActionLink({
 	label,
 	shortLabel = label,
 	href,
+	target,
 	...props
 }: Omit<ComponentProps<"a">, "children"> & {
 	icon: LucideIcon;
@@ -53,9 +55,11 @@ export function ActionLink({
 	shortLabel?: string;
 	href: string;
 }) {
+	const Anchor = target === "_blank" ? ExternalLink : "a";
 	return (
 		<Tooltip content={label}>
-			<a
+			<Anchor
+				target={target}
 				{...props}
 				href={href}
 				aria-label={label}
@@ -63,7 +67,7 @@ export function ActionLink({
 			>
 				<Icon size={16} className="shrink-0" aria-hidden="true" />
 				<span className="responsive-action-label">{shortLabel}</span>
-			</a>
+			</Anchor>
 		</Tooltip>
 	);
 }

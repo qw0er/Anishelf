@@ -1,3 +1,5 @@
+import type { ClientStorage } from "../platform.js";
+
 export const defaultLanguage = "en";
 
 export interface LanguageOption {
@@ -22,26 +24,13 @@ export function isSupportedLanguage(
 	return supportedLanguages.some((language) => language.code === value);
 }
 
-function browserStorage(): Storage | undefined {
-	if (typeof window === "undefined") return undefined;
-	try {
-		return window.localStorage;
-	} catch {
-		return undefined;
-	}
-}
-
 /** Use a saved preference first, then the browser's preferred languages. */
 export function readStoredLanguage(
-	storage: Pick<Storage, "getItem"> | undefined = browserStorage(),
-	preferredLanguages: readonly string[] = typeof navigator === "undefined"
-		? []
-		: navigator.languages?.length
-			? navigator.languages
-			: [navigator.language],
+	storage: Pick<ClientStorage, "getItem">,
+	preferredLanguages: readonly string[],
 ): LanguageCode {
 	try {
-		const value = storage?.getItem(languageStorageKey);
+		const value = storage.getItem(languageStorageKey);
 		if (isSupportedLanguage(value)) return value;
 	} catch (error) {
 		console.warn("[i18n] Could not read the saved interface language.", error);
@@ -56,9 +45,8 @@ export function readStoredLanguage(
 
 export function storeLanguage(
 	language: LanguageCode,
-	storage: Pick<Storage, "setItem"> | undefined = browserStorage(),
+	storage: Pick<ClientStorage, "setItem">,
 ): void {
-	if (!storage) return;
 	try {
 		storage.setItem(languageStorageKey, language);
 	} catch (error) {

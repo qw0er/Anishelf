@@ -2,7 +2,12 @@
 export function loginReturnPath(value: string | null, origin: string) {
 	try {
 		const url = new URL(value ?? "/", origin);
-		if (url.origin !== origin || /^\/login\/?$/.test(url.pathname)) return "/";
+		if (
+			url.origin !== origin ||
+			url.pathname.startsWith("//") ||
+			/^\/login\/?$/.test(url.pathname)
+		)
+			return "/";
 		return `${url.pathname}${url.search}${url.hash}`;
 	} catch {
 		return "/";

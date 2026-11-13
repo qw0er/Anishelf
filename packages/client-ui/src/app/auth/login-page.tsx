@@ -31,8 +31,7 @@ export function LoginPage() {
 							{ password: normalizedPassword },
 						);
 						const runtime = getClientRuntime();
-						runtime.dispose();
-						runtime.replaceLocation(
+						runtime.restartSession(
 							loginReturnPath(
 								params.get("returnTo"),
 								runtime.connection.origin,

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getClientRuntime } from "../../shared/api/connection.js";
 import type { QbittorrentConnectionSettings } from "../../shared/api/contracts.js";
 import { boundedSignal } from "../../shared/api/queries.js";
 import { ActionButton } from "../../shared/components/ui/action-button.js";
@@ -99,13 +100,13 @@ function ConnectionForm({
 	useEffect(() => {
 		if (revealed === null) return;
 		const timer = setTimeout(() => setRevealed(null), 30_000);
-		const hide = () => {
-			if (document.hidden) setRevealed(null);
-		};
-		document.addEventListener("visibilitychange", hide);
+		const { platform } = getClientRuntime();
+		const unsubscribe = platform.onForegroundChange(() => {
+			if (!platform.isVisible()) setRevealed(null);
+		});
 		return () => {
 			clearTimeout(timer);
-			document.removeEventListener("visibilitychange", hide);
+			unsubscribe();
 		};
 	}, [revealed]);
 	async function reveal() {
@@ -127,7 +128,7 @@ function ConnectionForm({
 	}
 	async function copy(value: string) {
 		try {
-			await navigator.clipboard.writeText(value);
+			await getClientRuntime().platform.copyText(value);
 			toast.add({ title: t("acquisition.api.copied"), type: "success" });
 		} catch {
 			toast.add({

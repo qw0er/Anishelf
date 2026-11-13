@@ -5,6 +5,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getClientRuntime } from "../../../../shared/api/connection.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { interactionDefaults } from "../../../../shared/config/interaction-defaults.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
@@ -104,20 +105,12 @@ export function usePlaybackSession(
 		controllerRef.current = controller;
 		controller.attach(videoRef.current, timelineRef.current);
 		void controller.open(departures.get(fileId));
-		const hide = () => {
-			void controller.flush(true);
-		};
-		const visibility = () => {
-			if (document.visibilityState === "hidden") hide();
-		};
-		const online = () => controller.reconnect();
-		window.addEventListener("pagehide", hide);
-		window.addEventListener("online", online);
-		document.addEventListener("visibilitychange", visibility);
+		const unsubscribe = getClientRuntime().platform.onPlaybackLifecycle({
+			onBackground: () => void controller.flush(true),
+			onOnline: () => controller.reconnect(),
+		});
 		return () => {
-			window.removeEventListener("pagehide", hide);
-			window.removeEventListener("online", online);
-			document.removeEventListener("visibilitychange", visibility);
+			unsubscribe();
 			toast.close(notificationId);
 			if (controllerRef.current === controller) controllerRef.current = null;
 			const departure = controller.dispose();

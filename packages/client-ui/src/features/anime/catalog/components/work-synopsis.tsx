@@ -5,6 +5,7 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import type { LocalWorkDetailResponse } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
+import { ExternalLink as ExternalAnchor } from "../../../../shared/components/ui/external-link.js";
 import { safeLink } from "../detail-format.js";
 export function WorkSynopsis({
 	data,
@@ -29,13 +30,9 @@ export function WorkSynopsis({
 							img: () => null,
 							a: ({ href, children }) =>
 								safeLink(href ?? null) ? (
-									<a
-										href={safeLink(href ?? null)}
-										target="_blank"
-										rel="noopener noreferrer"
-									>
+									<ExternalAnchor href={safeLink(href ?? null)}>
 										{children}
-									</a>
+									</ExternalAnchor>
 								) : (
 									<span>{children}</span>
 								),

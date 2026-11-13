@@ -3,6 +3,7 @@ import { Copy, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isRequestCancelled } from "../../../../shared/api/client.js";
+import { getClientRuntime } from "../../../../shared/api/connection.js";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import {
@@ -67,38 +68,20 @@ export default function MediaLink({
 		try {
 			const result = await mutation.mutateAsync(controller.signal);
 			if (controller.signal.aborted) return;
+			const { platform } = getClientRuntime();
 			if (typeof result !== "string") {
-				if ("url" in result) {
-					const anchor = document.createElement("a");
-					anchor.href = result.url;
-					anchor.download = result.name;
-					document.body.append(anchor);
-					try {
-						anchor.click();
-					} finally {
-						anchor.remove();
-					}
-					return;
-				}
-				const objectUrl = URL.createObjectURL(
-					new Blob([result.content], { type: "audio/x-mpegurl;charset=utf-8" }),
-				);
-				const anchor = document.createElement("a");
-				anchor.href = objectUrl;
-				anchor.download = result.filename;
-				document.body.append(anchor);
-				try {
-					anchor.click();
-				} finally {
-					anchor.remove();
-					// Allow the browser to start consuming the download before releasing it.
-					window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-				}
+				if ("url" in result) platform.downloadFile(result.url, result.name);
+				else
+					platform.downloadText(
+						result.content,
+						result.filename,
+						"audio/x-mpegurl;charset=utf-8",
+					);
 				return;
 			}
 			const url = result;
 			try {
-				await navigator.clipboard.writeText(url);
+				await platform.copyText(url);
 				if (!controller.signal.aborted)
 					toast.add({
 						type: "success",
