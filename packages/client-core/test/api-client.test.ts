@@ -1,18 +1,25 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
 import { ApiClientError } from "@anishelf/client-core";
 import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
+import { expect, test } from "vitest";
+
+interface CapturedRequest {
+	path: string;
+	headers: Record<string, string>;
+}
 
 test("API clients keep session bootstrap, CSRF tokens and expiry notifications separate", async () => {
-	function client(token) {
-		const requests = [];
-		const authEvents = [];
+	function client(token: string) {
+		const requests: CapturedRequest[] = [];
+		const authEvents: string[] = [];
 		const {
 			connection: { api },
 		} = createCookieConnection({
 			origin: "https://example.test",
 			async fetch(path, init) {
-				requests.push({ path, headers: init.headers });
+				requests.push({
+					path,
+					headers: init.headers as Record<string, string>,
+				});
 				switch (path) {
 					case "/api/auth/session":
 						return Response.json({ authenticated: true, csrfToken: token });
@@ -46,24 +53,25 @@ test("API clients keep session bootstrap, CSRF tokens and expiry notifications s
 	for (const [instance, token] of [
 		[first, "first"],
 		[second, "second"],
-	]) {
+	] as const) {
 		const [session, ...mutations] = instance.requests;
-		assert.equal(session.path, "/api/auth/session");
-		assert.equal(mutations.length, instance === first ? 2 : 1);
-		for (const request of mutations) {
-			assert.equal(request.headers["x-csrf-token"], token);
-		}
+		expect(session?.path).toBe("/api/auth/session");
+		expect(mutations.length).toBe(instance === first ? 2 : 1);
+		for (const request of mutations)
+			expect(request.headers["x-csrf-token"]).toBe(token);
 	}
 
-	await assert.rejects(
-		first.api.request("/api/private", "GET"),
-		(error) => error instanceof ApiClientError && error.status === 401,
-	);
+	const error = await first.api
+		.request("/api/private", "GET")
+		.catch((cause: unknown) => cause);
+	expect(error).toBeInstanceOf(ApiClientError);
+	expect((error as ApiClientError).status).toBe(401);
+
 	await first.api.request("/api/three", "POST");
 	await second.api.request("/api/two", "POST");
-	assert.deepEqual(first.authEvents, ["expired"]);
-	assert.deepEqual(second.authEvents, []);
-	assert.equal(first.requests.at(-2).path, "/api/auth/session");
-	assert.equal(second.requests.at(-2).path, "/api/one");
-	assert.equal(second.requests.at(-1).headers["x-csrf-token"], "second");
+	expect(first.authEvents).toEqual(["expired"]);
+	expect(second.authEvents).toEqual([]);
+	expect(first.requests.at(-2)?.path).toBe("/api/auth/session");
+	expect(second.requests.at(-2)?.path).toBe("/api/one");
+	expect(second.requests.at(-1)?.headers["x-csrf-token"]).toBe("second");
 });

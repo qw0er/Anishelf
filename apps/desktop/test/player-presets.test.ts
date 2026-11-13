@@ -1,6 +1,5 @@
-import assert from "node:assert/strict";
 import { delimiter, join } from "node:path";
-import test from "node:test";
+import { expect, test } from "vitest";
 import { detectPlayerPresets } from "../src/main/native/player-presets.js";
 
 test("resolves built-in commands from PATH and keeps the command name", async () => {
@@ -10,7 +9,7 @@ test("resolves built-in commands from PATH and keeps the command name", async ()
 		environment: { PATH: "/custom/bin" },
 		isExecutable: async (file) => file === iina,
 	});
-	assert.deepEqual(presets, [
+	expect(presets).toEqual([
 		{
 			preset: {
 				id: "preset:iina",
@@ -30,7 +29,7 @@ test("detects players from PATH and skips duplicates", async () => {
 		environment: { PATH: ["/custom/bin", "/usr/bin"].join(delimiter) },
 		isExecutable: async (file) => file === mpv,
 	});
-	assert.deepEqual(presets, [
+	expect(presets).toEqual([
 		{
 			preset: {
 				id: "preset:mpv",
@@ -44,12 +43,11 @@ test("detects players from PATH and skips duplicates", async () => {
 });
 
 test("returns no presets when nothing is installed", async () => {
-	assert.deepEqual(
+	expect(
 		await detectPlayerPresets({
 			platform: "linux",
 			environment: { PATH: join("/empty") },
 			isExecutable: async () => false,
 		}),
-		[],
-	);
+	).toEqual([]);
 });

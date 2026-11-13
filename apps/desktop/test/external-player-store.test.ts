@@ -1,8 +1,7 @@
-import assert from "node:assert/strict";
 import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import { expect, test } from "vitest";
 import { createExternalPlayerStore } from "../src/main/native/external-player-store.js";
 
 async function fixture() {
@@ -24,14 +23,14 @@ test("stores, lists and removes command players", async () => {
 			executable,
 			args: ["--", "{url}"],
 		});
-		assert.ok(player.id.startsWith("player:"));
-		assert.deepEqual(await store.read(), [player]);
+		expect(player.id.startsWith("player:")).toBe(true);
+		expect(await store.read()).toEqual([player]);
 		const stored = JSON.parse(
 			await readFile(join(directory, "external-players.json"), "utf8"),
 		);
-		assert.deepEqual(stored, [player]);
+		expect(stored).toEqual([player]);
 		await store.remove(player.id);
-		assert.deepEqual(await store.read(), []);
+		expect(await store.read()).toEqual([]);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
@@ -45,21 +44,21 @@ test("accepts a bare command name and rejects a missing path", async () => {
 			executable: "mpv",
 			args: ["{url}"],
 		});
-		assert.equal(player.executable, "mpv");
-		await assert.rejects(
+		expect(player.executable).toBe("mpv");
+		await expect(
 			store.add({
 				name: "missing",
 				executable: join(directory, "missing"),
 				args: ["{url}"],
 			}),
-		);
-		await assert.rejects(
+		).rejects.toThrow();
+		await expect(
 			store.add({
 				name: "no url",
 				executable,
 				args: ["--no-terminal"],
 			}),
-		);
+		).rejects.toThrow();
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
@@ -70,11 +69,11 @@ test("surfaces malformed configuration without overwriting it", async () => {
 	const file = join(directory, "external-players.json");
 	try {
 		await writeFile(file, "{not json");
-		await assert.rejects(store.read());
-		assert.equal(await readFile(file, "utf8"), "{not json");
-		await assert.rejects(
+		await expect(store.read()).rejects.toThrow();
+		expect(await readFile(file, "utf8")).toBe("{not json");
+		await expect(
 			store.add({ name: "mpv", executable: "mpv", args: ["{url}"] }),
-		);
+		).rejects.toThrow();
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

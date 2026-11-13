@@ -11,10 +11,13 @@
 		"./cookie-authentication": "./src/cookie-authentication.ts"
 	},
 	"scripts": {
-		"test": "node --test test/*.test.mjs",
+		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@anishelf/contracts": "1.0.0"
+	},
+	"devDependencies": {
+		"vitest": "^5.0.4"
 	}
 }

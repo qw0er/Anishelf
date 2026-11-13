@@ -11,6 +11,7 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
 import "@anishelf/client-ui/styles.css";
 import { registerPwa } from "./pwa.js";
+import { loginRedirectPath } from "./session.js";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
 
@@ -26,9 +27,7 @@ async function start() {
 		if (redirectingToLogin) return;
 		redirectingToLogin = true;
 		console.debug("auth.session_required", { host: "web" });
-		restartSession(
-			`/login?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`,
-		);
+		restartSession(loginRedirectPath(window.location));
 	}
 
 	function restartSession(path: string) {
