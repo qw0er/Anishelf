@@ -12,7 +12,7 @@
 				"src/modules/anime/external-works/bangumi/openapi.gen.ts": ["types"]
 			}
 		},
-		"apps/web": {
+		"packages/client-ui": {
 			"ignoreIssues": {
 				"src/shared/components/ui/**": ["exports", "types"]
 			}

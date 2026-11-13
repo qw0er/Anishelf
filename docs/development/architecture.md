@@ -109,11 +109,18 @@ presentation timings shared within a feature live in its `defaults.ts`.
 
 ### Frontend ownership
 
+The React application lives in `packages/client-ui/`. A host configures one
+client runtime with its connection, build information, changelog and
+authentication callbacks before creating the router. The package exports the
+route definitions, the app with its providers, and the shared stylesheet.
+`apps/web/` mounts the app with a browser router and owns the HTML entry,
+Vite configuration, public assets and service worker registration.
+
 | Layer | Responsibility |
 | --- | --- |
-| `app/` | Router, Providers, page composition, global feedback, cross-module invalidation and UI slots |
+| `app/` | Route definitions, providers, page composition, global feedback, cross-module invalidation and UI slots |
 | `features/` | Resources, Media, Playback, Settings, Anime and Acquisition |
-| `shared/` | Web API adapter, query mechanisms, UI primitives, navigation, translations |
+| `shared/` | Client runtime, query mechanisms, UI primitives, navigation, translations |
 
 Encapsulated features expose data through root `public.ts` and app-only UI through
 `ui.ts`; Acquisition also groups its API clients and subscription/settings UI.
@@ -138,10 +145,11 @@ and copied links. External artwork can use an explicit HTTP(S) address and is
 loaded directly by the browser.
 
 The Web adapter uses relative URLs with same-origin cookies and translates the
-callback into the existing browser event. Each Web connection owns its QueryClient.
+callback into the existing browser event. Each client runtime owns its QueryClient.
 Disposing a connection aborts its requests, stops the active player, and clears
 session and query state. Authentication transitions load a fresh page and connection.
-Routing and session checks tied to page visibility stay in the Web app.
+The host selects the router. The React app checks sessions on page visibility
+and reports session loss to the host.
 
 Server-state caching uses TanStack Query, shared query definitions and a QueryClient.
 Stable query keys, freshness/retention policies and app-coordinated invalidation

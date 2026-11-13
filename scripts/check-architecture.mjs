@@ -9,6 +9,7 @@ const rules = require("../.dependency-cruiser.cjs");
 const sourceRoots = [
 	"apps/server/src",
 	"apps/web/src",
+	"packages/client-ui/src",
 	"packages/contracts/src",
 	"packages/client-core/src",
 ];
@@ -16,7 +17,7 @@ const sourceRoots = [
 export async function checkArchitecture(baseDir = process.cwd()) {
 	for (const relative of [
 		"apps/server/src/modules/anime",
-		"apps/web/src/features/anime",
+		"packages/client-ui/src/features/anime",
 	]) {
 		const directory = join(baseDir, relative);
 		let files;

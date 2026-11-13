@@ -1,0 +1,134 @@
+// @vitest-environment happy-dom
+import { afterEach, expect, test, vi } from "vitest";
+import {
+	IdentificationIndicator,
+	IdentificationStatus,
+} from "../../../src/features/anime/identification-status.js";
+import { toast } from "../../../src/shared/components/ui/toast.js";
+import { queryClient } from "../../setup.js";
+import {
+	act,
+	cleanup,
+	render,
+	waitFor,
+} from "../../support/query-test-utils.js";
+
+vi.mock("react-i18next", async (importOriginal) => ({
+	...(await importOriginal<typeof import("react-i18next")>()),
+	useTranslation: () => ({ t: (key: string) => key }),
+}));
+vi.mock("../../../src/features/anime/metadata/api.js", () => ({
+	getIdentificationStatus: () => new Promise(() => {}),
+}));
+afterEach(() => {
+	cleanup();
+	vi.restoreAllMocks();
+});
+const key = ["identification", ""];
+
+test("background recognition uses the navigation status and one completion toast", async () => {
+	const add = vi
+		.spyOn(toast, "add")
+		.mockReturnValue("automatic-identification");
+
+	vi.spyOn(toast, "close").mockImplementation(() => {});
+	const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+	queryClient.setQueryData(key, { running: false, failed: false });
+	const view = render(
+		<>
+			<IdentificationStatus />
+			<IdentificationIndicator enabled />
+		</>,
+	);
+	expect(add).not.toHaveBeenCalled();
+	await act(async () => {
+		queryClient.setQueryData(key, { running: true, failed: false });
+	});
+	await waitFor(() =>
+		expect(view.getByRole("status").getAttribute("aria-label")).toBe(
+			"review.identifying",
+		),
+	);
+	expect(add).not.toHaveBeenCalled();
+	await act(async () => {
+		queryClient.setQueryData(key, { running: false, failed: false });
+	});
+	await waitFor(() =>
+		expect(add).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "success",
+				title: "review.identificationCompleted",
+			}),
+		),
+	);
+	expect(invalidate).toHaveBeenCalledWith({ queryKey: ["catalog"] });
+	expect(invalidate).toHaveBeenCalledWith({ queryKey: ["anime-library"] });
+});
+
+test("failed recognition emits one error notification and cleans it up on unmount", async () => {
+	const add = vi
+		.spyOn(toast, "add")
+		.mockReturnValue("automatic-identification");
+	const close = vi.spyOn(toast, "close").mockImplementation(() => {});
+	queryClient.setQueryData(key, { running: false, failed: true });
+	const view = render(<IdentificationStatus />);
+	await waitFor(() =>
+		expect(add).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "error",
+				title: "review.identificationFailed",
+			}),
+		),
+	);
+	view.rerender(<IdentificationStatus />);
+	expect(add).toHaveBeenCalledTimes(1);
+	view.unmount();
+	expect(close).toHaveBeenCalledWith("automatic-identification");
+});
+
+test("publication revisions refresh Catalog even when recognition finishes between polls", async () => {
+	vi.spyOn(toast, "add").mockReturnValue("automatic-identification");
+	vi.spyOn(toast, "close").mockImplementation(() => {});
+	const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+	queryClient.setQueryData(key, { running: false, failed: false, revision: 1 });
+	render(<IdentificationStatus />);
+	await act(async () => {
+		queryClient.setQueryData(key, {
+			running: false,
+			failed: false,
+			revision: 2,
+		});
+	});
+	await waitFor(() =>
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: ["catalog"] }),
+	);
+	expect(invalidate).toHaveBeenCalledWith({ queryKey: ["anime-library"] });
+});
+
+test("successful incremental recognition stays quiet while revisions refresh views", async () => {
+	const add = vi
+		.spyOn(toast, "add")
+		.mockReturnValue("automatic-identification");
+	vi.spyOn(toast, "close").mockImplementation(() => {});
+	const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+	queryClient.setQueryData(key, {
+		running: true,
+		failed: false,
+		revision: 1,
+		incremental: true,
+	});
+	render(<IdentificationStatus />);
+	expect(add).not.toHaveBeenCalled();
+	await act(async () => {
+		queryClient.setQueryData(key, {
+			running: false,
+			failed: false,
+			revision: 2,
+			incremental: true,
+		});
+	});
+	await waitFor(() =>
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: ["catalog"] }),
+	);
+	expect(add).not.toHaveBeenCalled();
+});

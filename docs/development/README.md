@@ -3,10 +3,11 @@
 [Architecture](architecture.md) · [Future clients](clients.md) · [Playback assets](playback.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
 
 The npm workspaces live in `apps/server/` (Fastify backend), `apps/web/`
-(React web app), `packages/contracts/` (shared HTTP protocol), and
-`packages/client-core/` (shared API client). The packages export TypeScript
-directly. Node.js 24 loads server-side contract exports at runtime and Vite
-bundles the shared code used by the Web app.
+(browser entry and PWA), `packages/client-ui/` (React app and tests),
+`packages/client-core/` (shared API client), and `packages/contracts/`
+(shared HTTP protocol). The packages export TypeScript directly. Node.js 24
+loads server-side contract exports at runtime and Vite bundles the shared code
+used by the Web app.
 
 ## Local development
 
@@ -172,7 +173,7 @@ Normal status reads do not emit business events.
 | Formatting | `npm run biome:check` |
 | Dependency boundaries | `npm run architecture:check` and `npm run architecture:test` |
 | Backend suite | `npm run test --workspace @anishelf/backend` |
-| Web suite | `npm run test --workspace @anishelf/web` |
+| React client suite | `npm run test --workspace @anishelf/client-ui` |
 | One backend file | `npm run test --workspace @anishelf/backend -- test/app/anime-detail.test.ts` |
 | Deployment fixtures | `npm run test:deployment` |
 | Complete identification audit | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`; [corpus usage](../../apps/server/test/fixtures/anime-identification/README.md) |

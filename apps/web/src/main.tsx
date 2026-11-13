@@ -1,61 +1,50 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { createServerConnection } from "@anishelf/client-core/connection";
+import {
+	ClientApp,
+	configureClientRuntime,
+	createClientRoutes,
+} from "@anishelf/client-ui";
+import type { BuildInfo } from "@anishelf/contracts/http";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
-import { RouterProvider } from "react-router/dom";
-import { authenticatedRoute } from "./app/auth/guard.js";
-import { LoginPage } from "./app/auth/login-page.js";
-import { webConnection } from "./shared/api/connection.js";
-import { queryClient } from "./shared/api/query-client.js";
-import "./index.css";
-import { Toaster } from "./shared/components/ui/toast.js";
-import "./shared/i18n.js";
-import { libraryRoute } from "./app/routes/library.js";
+import changelog from "../../../CHANGELOG.md?raw";
+import "@anishelf/client-ui/styles.css";
+import { registerPwa } from "./pwa.js";
 
-if (import.meta.env.PROD && "serviceWorker" in navigator) {
-	const wasControlled = Boolean(navigator.serviceWorker.controller);
-	if (wasControlled) {
-		navigator.serviceWorker.addEventListener("controllerchange", () => {
-			console.info("Updated service worker activated; reloading the page.");
-			window.location.reload();
-		});
-	}
-	window.addEventListener("load", () => {
-		navigator.serviceWorker.register("/sw.js").then(
-			(registration) => {
-				console.info("Service worker registered.");
-				const checkForUpdate = () => {
-					if (document.visibilityState === "visible") {
-						registration
-							.update()
-							.catch((error) =>
-								console.warn("Service worker update check failed:", error),
-							);
-					}
-				};
-				checkForUpdate();
-				document.addEventListener("visibilitychange", checkForUpdate);
-			},
-			(error) => console.error("Service worker registration failed:", error),
-		);
-	});
+declare const __ANISHELF_BUILD__: BuildInfo;
+
+function onAuthRequired() {
+	console.debug("auth.session_required");
+	window.dispatchEvent(new Event("anishelf:auth-required"));
 }
 
+const runtime = configureClientRuntime({
+	connection: createServerConnection({
+		origin: window.location.origin,
+		sameOrigin: true,
+		fetch: (path, init) => fetch(path, init),
+		onAuthRequired,
+	}),
+	buildInfo: __ANISHELF_BUILD__,
+	changelog,
+	onAuthRequired,
+	replaceLocation: (path) => window.location.replace(path),
+});
+
+registerPwa();
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing root element.");
-const router = createBrowserRouter([
-	{ path: "/login", element: <LoginPage /> },
-	authenticatedRoute(libraryRoute),
-]);
+const router = createBrowserRouter(createClientRoutes());
 let redirectingToLogin = false;
 window.addEventListener("anishelf:auth-required", () => {
 	if (window.location.pathname === "/login") {
-		queryClient.clear();
+		runtime.queryClient.clear();
 		return;
 	}
 	if (redirectingToLogin) return;
 	redirectingToLogin = true;
-	webConnection.dispose();
+	runtime.dispose();
 	window.location.replace(
 		`/login?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`,
 	);
@@ -63,9 +52,6 @@ window.addEventListener("anishelf:auth-required", () => {
 
 createRoot(root).render(
 	<StrictMode>
-		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
-		</QueryClientProvider>
-		<Toaster />
+		<ClientApp router={router} />
 	</StrictMode>,
 );

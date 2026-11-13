@@ -116,7 +116,7 @@ module.exports = {
 			name: "no-unresolved-source-imports",
 			severity: "error",
 			from: {
-				path: "^(?:apps/(?:server|web)|packages/(?:contracts|client-core))/src",
+				path: "^(?:apps/(?:server|web)|packages/(?:contracts|client-core|client-ui))/src",
 			},
 			to: {
 				couldNotResolve: true,
@@ -128,7 +128,7 @@ module.exports = {
 			name: "no-runtime-cycles",
 			severity: "error",
 			from: {
-				path: "^(?:apps/(?:server|web)|packages/(?:contracts|client-core))/src",
+				path: "^(?:apps/(?:server|web)|packages/(?:contracts|client-core|client-ui))/src",
 			},
 			to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
 		},
@@ -277,39 +277,45 @@ module.exports = {
 		},
 
 		{
-			name: "web-does-not-import-server",
+			name: "client-does-not-import-server",
 			severity: "error",
-			from: { path: "^apps/web/src/" },
+			from: { path: "^(?:apps/web|packages/client-ui)/src/" },
 			to: { path: "^apps/server/" },
 		},
 		{
 			name: "contracts-do-not-import-consumers",
 			severity: "error",
 			from: { path: "^packages/contracts/src/" },
-			to: { path: "^apps/|^packages/client-core/" },
+			to: { path: "^apps/|^packages/(?:client-core|client-ui)/" },
 		},
 		{
 			name: "client-core-does-not-import-apps-or-ui",
 			severity: "error",
 			from: { path: "^packages/client-core/src/" },
 			to: {
-				path: "^apps/|(?:^|/)node_modules/(?:react(?:-dom|-router|-i18next)?|@tanstack/react-query)(?:/|$)",
+				path: "^apps/|^packages/client-ui/|(?:^|/)node_modules/(?:react(?:-dom|-router|-i18next)?|@tanstack/react-query)(?:/|$)",
 			},
 		},
 		{
 			name: "shared-packages-do-not-import-node-builtins",
 			severity: "error",
-			from: { path: "^packages/(?:contracts|client-core)/src/" },
+			from: { path: "^packages/(?:contracts|client-core|client-ui)/src/" },
 			to: { dependencyTypes: ["core"] },
+		},
+		{
+			name: "client-ui-does-not-import-apps",
+			severity: "error",
+			from: { path: "^packages/client-ui/src/" },
+			to: { path: "^apps/" },
 		},
 		{
 			name: "web-feature-entry-points",
 			severity: "error",
 			from: {
-				path: "^apps/web/src/features/(resources|media|playback)/([^/]+)/",
+				path: "^packages/client-ui/src/features/(resources|media|playback)/([^/]+)/",
 			},
 			to: {
-				path: "^apps/web/src/features/$1/(?!$2/)[^/]+/",
+				path: "^packages/client-ui/src/features/$1/(?!$2/)[^/]+/",
 				pathNot: "public\\.ts$",
 			},
 		},
@@ -317,84 +323,84 @@ module.exports = {
 			name: "web-anime-feature-entry-points",
 			severity: "error",
 			from: {
-				path: "^apps/web/src/features/anime/(catalog|metadata|review|library|tracking)/",
+				path: "^packages/client-ui/src/features/anime/(catalog|metadata|review|library|tracking)/",
 			},
 			to: {
-				path: "^apps/web/src/features/anime/(?!$1/)(catalog|metadata|review|library|tracking)/",
+				path: "^packages/client-ui/src/features/anime/(?!$1/)(catalog|metadata|review|library|tracking)/",
 				pathNot: "public\\.ts$",
 			},
 		},
 		{
 			name: "web-anime-catalog-does-not-import-review",
 			severity: "error",
-			from: { path: "^apps/web/src/features/anime/catalog/" },
-			to: { path: "^apps/web/src/features/anime/review/" },
+			from: { path: "^packages/client-ui/src/features/anime/catalog/" },
+			to: { path: "^packages/client-ui/src/features/anime/review/" },
 		},
 		{
 			name: "web-anime-metadata-is-independent",
 			severity: "error",
-			from: { path: "^apps/web/src/features/anime/metadata/" },
+			from: { path: "^packages/client-ui/src/features/anime/metadata/" },
 			to: {
-				path: "^apps/web/src/features/anime/(catalog|review|library|tracking)/",
+				path: "^packages/client-ui/src/features/anime/(catalog|review|library|tracking)/",
 			},
 		},
 		{
 			name: "web-anime-shared-is-a-leaf",
 			severity: "error",
-			from: { path: "^apps/web/src/features/anime/shared/" },
+			from: { path: "^packages/client-ui/src/features/anime/shared/" },
 			to: {
-				path: "^apps/web/src/features/anime/",
-				pathNot: "^apps/web/src/features/anime/shared/",
+				path: "^packages/client-ui/src/features/anime/",
+				pathNot: "^packages/client-ui/src/features/anime/shared/",
 			},
 		},
 		{
 			name: "web-public-does-not-load-ui-barrels",
 			severity: "error",
-			from: { path: "^apps/web/src/features/[^/]+/public\\.ts$" },
+			from: { path: "^packages/client-ui/src/features/[^/]+/public\\.ts$" },
 			to: {
-				path: "^apps/web/src/features/.*/ui\\.ts$",
+				path: "^packages/client-ui/src/features/.*/ui\\.ts$",
 				reachable: true,
 			},
 		},
 		{
 			name: "web-large-module-boundary",
 			severity: "error",
-			from: { path: "^apps/web/src/features/([^/]+)/" },
+			from: { path: "^packages/client-ui/src/features/([^/]+)/" },
 			to: {
-				path: "^apps/web/src/features/(?!$1/)[^/]+/",
-				pathNot: "^apps/web/src/features/[^/]+/public\\.ts$",
+				path: "^packages/client-ui/src/features/(?!$1/)[^/]+/",
+				pathNot: "^packages/client-ui/src/features/[^/]+/public\\.ts$",
 			},
 		},
 		{
 			name: "web-app-uses-feature-public-api",
 			severity: "error",
-			from: { path: "^apps/web/src/app/|^apps/web/src/main\\.tsx$" },
+			from: { path: "^packages/client-ui/src/app/" },
 			to: {
-				path: "^apps/web/src/features/",
-				pathNot: "^apps/web/src/features/[^/]+/(?:public|ui)\\.ts$",
+				path: "^packages/client-ui/src/features/",
+				pathNot: "^packages/client-ui/src/features/[^/]+/(?:public|ui)\\.ts$",
 			},
 		},
 		{
 			name: "web-business-does-not-import-ui-entry",
 			severity: "error",
 			from: {
-				path: "^apps/web/src/features/",
-				pathNot: "^apps/web/src/features/[^/]+/ui\\.ts$",
+				path: "^packages/client-ui/src/features/",
+				pathNot: "^packages/client-ui/src/features/[^/]+/ui\\.ts$",
 			},
-			to: { path: "^apps/web/src/features/[^/]+/ui\\.ts$" },
+			to: { path: "^packages/client-ui/src/features/[^/]+/ui\\.ts$" },
 		},
 
 		{
 			name: "web-shared-does-not-import-features",
 			severity: "error",
-			from: { path: "^apps/web/src/shared/" },
-			to: { path: "^apps/web/src/(features|app)/" },
+			from: { path: "^packages/client-ui/src/shared/" },
+			to: { path: "^packages/client-ui/src/(features|app)/" },
 		},
 		{
 			name: "web-features-do-not-import-app",
 			severity: "error",
-			from: { path: "^apps/web/src/features/" },
-			to: { path: "^apps/web/src/app/" },
+			from: { path: "^packages/client-ui/src/features/" },
+			to: { path: "^packages/client-ui/src/app/" },
 		},
 	],
 	options: {

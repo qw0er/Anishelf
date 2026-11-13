@@ -39,6 +39,7 @@ async function scan(files) {
 		const sources = {
 			"apps/server/src/shared/empty.ts": "export {};",
 			"apps/web/src/empty.ts": "export {};",
+			"packages/client-ui/src/empty.ts": "export {};",
 			"packages/contracts/src/empty.ts": "export {};",
 			"packages/client-core/src/empty.ts": "export {};",
 			...files,
@@ -233,9 +234,10 @@ for (const [name, files] of [
 	[
 		"web-large-module-boundary",
 		{
-			"apps/web/src/features/a/view.ts":
+			"packages/client-ui/src/features/a/view.ts":
 				"export { value } from '../b/internal.js';",
-			"apps/web/src/features/b/internal.ts": "export const value = 1;",
+			"packages/client-ui/src/features/b/internal.ts":
+				"export const value = 1;",
 		},
 	],
 	[
@@ -257,15 +259,23 @@ for (const [name, files] of [
 		"client-core-does-not-import-apps-or-ui",
 		{
 			"packages/client-core/src/example.ts":
+				"export { value } from '../../../packages/client-ui/src/value.js';",
+			"packages/client-ui/src/value.ts": "export const value = 1;",
+		},
+	],
+	[
+		"client-ui-does-not-import-apps",
+		{
+			"packages/client-ui/src/leak.ts":
 				"export { value } from '../../../apps/web/src/value.js';",
 			"apps/web/src/value.ts": "export const value = 1;",
 		},
 	],
 	[
-		"web-does-not-import-server",
+		"client-does-not-import-server",
 		{
-			"apps/web/src/leak.ts":
-				"export { value } from '../../server/src/shared/value.js';",
+			"packages/client-ui/src/leak.ts":
+				"export { value } from '../../../apps/server/src/shared/value.js';",
 			"apps/server/src/shared/value.ts": "export const value = 1;",
 		},
 	],
@@ -387,17 +397,17 @@ for (const location of [
 for (const [rule, file, source] of [
 	[
 		"web-app-uses-feature-public-api",
-		"apps/web/src/app/route.ts",
+		"packages/client-ui/src/app/route.ts",
 		"export { value } from '../features/a/internal.js';",
 	],
 	[
 		"web-shared-does-not-import-features",
-		"apps/web/src/shared/helper.ts",
+		"packages/client-ui/src/shared/helper.ts",
 		"export { value } from '../features/a/public.js';",
 	],
 	[
 		"web-features-do-not-import-app",
-		"apps/web/src/features/a/view.ts",
+		"packages/client-ui/src/features/a/view.ts",
 		"export { app } from '../../app/main.js';",
 	],
 	[
@@ -411,10 +421,11 @@ for (const [rule, file, source] of [
 			(
 				await scan({
 					[file]: source,
-					"apps/web/src/features/a/internal.ts": "export const value = 1;",
-					"apps/web/src/features/a/public.ts":
+					"packages/client-ui/src/features/a/internal.ts":
+						"export const value = 1;",
+					"packages/client-ui/src/features/a/public.ts":
 						"export { value } from './internal.js';",
-					"apps/web/src/app/main.ts": "export const app = 1;",
+					"packages/client-ui/src/app/main.ts": "export const app = 1;",
 					"apps/server/src/app/main.ts": "export const app = 1;",
 				})
 			).includes(rule),
@@ -542,9 +553,10 @@ test("web business cannot import even another module's UI entry", async () =>
 	assert.ok(
 		(
 			await scan({
-				"apps/web/src/features/a/child/view.ts":
+				"packages/client-ui/src/features/a/child/view.ts":
 					"export {View} from '../../b/ui.js';",
-				"apps/web/src/features/b/ui.ts": "export const View=()=>null;",
+				"packages/client-ui/src/features/b/ui.ts":
+					"export const View=()=>null;",
 			})
 		).includes("web-business-does-not-import-ui-entry"),
 	));
@@ -552,9 +564,12 @@ test("web business cannot import even another module's UI entry", async () =>
 test("web app can compose root UI entries", async () =>
 	assert.deepEqual(
 		await scan({
-			"apps/web/src/app/view.ts": "export {View} from '../features/a/ui.js';",
-			"apps/web/src/features/a/ui.ts": "export {View} from './child/view.js';",
-			"apps/web/src/features/a/child/view.ts": "export const View=()=>null;",
+			"packages/client-ui/src/app/view.ts":
+				"export {View} from '../features/a/ui.js';",
+			"packages/client-ui/src/features/a/ui.ts":
+				"export {View} from './child/view.js';",
+			"packages/client-ui/src/features/a/child/view.ts":
+				"export const View=()=>null;",
 		}),
 		[],
 	));
@@ -575,9 +590,9 @@ test("web sibling features remain encapsulated inside the Media module", async (
 	assert.ok(
 		(
 			await scan({
-				"apps/web/src/features/media/preparation/view.ts":
+				"packages/client-ui/src/features/media/preparation/view.ts":
 					"export {run} from '../subtitles/controller.js';",
-				"apps/web/src/features/media/subtitles/controller.ts":
+				"packages/client-ui/src/features/media/subtitles/controller.ts":
 					"export const run=()=>{};",
 			})
 		).includes("web-feature-entry-points"),
@@ -594,8 +609,8 @@ for (const [label, source] of [
 ])
 	test(`Anime rejects private sibling ${label}`, async () => {
 		const violations = await scan({
-			"apps/web/src/features/anime/review/view.ts": source,
-			"apps/web/src/features/anime/metadata/queries.ts":
+			"packages/client-ui/src/features/anime/review/view.ts": source,
+			"packages/client-ui/src/features/anime/metadata/queries.ts":
 				"export const value=1;export interface Value {id:string}",
 		});
 		assert.ok(violations.includes("web-anime-feature-entry-points"));
@@ -607,8 +622,8 @@ for (const [consumer, target, rule] of [
 ])
 	test(`Anime ${consumer} cannot depend on ${target}`, async () => {
 		const violations = await scan({
-			[`apps/web/src/features/anime/${consumer}/view.ts`]: `export {value} from '../${target}/public.js';`,
-			[`apps/web/src/features/anime/${target}/public.ts`]:
+			[`packages/client-ui/src/features/anime/${consumer}/view.ts`]: `export {value} from '../${target}/public.js';`,
+			[`packages/client-ui/src/features/anime/${target}/public.ts`]:
 				"export const value=1;",
 		});
 		assert.ok(violations.includes(rule));
@@ -618,18 +633,18 @@ for (const consumer of ["library", "tracking"])
 		assert.ok(
 			(
 				await scan({
-					[`apps/web/src/features/anime/${consumer}/view.ts`]:
+					[`packages/client-ui/src/features/anime/${consumer}/view.ts`]:
 						"export {value} from '../metadata/queries.js';",
-					"apps/web/src/features/anime/metadata/queries.ts":
+					"packages/client-ui/src/features/anime/metadata/queries.ts":
 						"export const value=1;",
 				})
 			).includes("web-anime-feature-entry-points"),
 		);
 		assert.deepEqual(
 			await scan({
-				[`apps/web/src/features/anime/${consumer}/view.ts`]:
+				[`packages/client-ui/src/features/anime/${consumer}/view.ts`]:
 					"export {value} from '../metadata/public.js';",
-				"apps/web/src/features/anime/metadata/public.ts":
+				"packages/client-ui/src/features/anime/metadata/public.ts":
 					"export const value=1;",
 			}),
 			[],
@@ -638,21 +653,23 @@ for (const consumer of ["library", "tracking"])
 test("Anime Review can use selected Catalog and Metadata capabilities", async () =>
 	assert.deepEqual(
 		await scan({
-			"apps/web/src/features/anime/review/view.ts":
+			"packages/client-ui/src/features/anime/review/view.ts":
 				"export {title} from '../catalog/public.js';export {lookup} from '../metadata/public.js';",
-			"apps/web/src/features/anime/catalog/public.ts": "export const title=1;",
-			"apps/web/src/features/anime/metadata/public.ts":
+			"packages/client-ui/src/features/anime/catalog/public.ts":
+				"export const title=1;",
+			"packages/client-ui/src/features/anime/metadata/public.ts":
 				"export const lookup=1;",
 		}),
 		[],
 	));
 test("Web data public entries cannot load a UI barrel through an intermediate entry", async () => {
 	const violations = await scan({
-		"apps/web/src/features/anime/public.ts":
+		"packages/client-ui/src/features/anime/public.ts":
 			"export {View} from './catalog/public.js';",
-		"apps/web/src/features/anime/catalog/public.ts":
+		"packages/client-ui/src/features/anime/catalog/public.ts":
 			"export {View} from './ui.js';",
-		"apps/web/src/features/anime/catalog/ui.ts": "export const View=()=>null;",
+		"packages/client-ui/src/features/anime/catalog/ui.ts":
+			"export const View=()=>null;",
 	});
 	assert.ok(violations.includes("web-public-does-not-load-ui-barrels"));
 });
@@ -719,7 +736,7 @@ test("business code cannot hide provider-specific branches behind neutral import
 	);
 	await assert.rejects(
 		scan({
-			"apps/web/src/features/anime/tracking/example.ts":
+			"packages/client-ui/src/features/anime/tracking/example.ts":
 				"export const provider = 'anilist';",
 		}),
 		/provider-independent-business/,

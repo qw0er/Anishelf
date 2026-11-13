@@ -36,7 +36,7 @@
 			}
 		},
 		{
-			"includes": ["apps/web/**"],
+			"includes": ["apps/web/**", "packages/client-ui/**"],
 			"linter": {
 				"rules": {
 					"style": {
