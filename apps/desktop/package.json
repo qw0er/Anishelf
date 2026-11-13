@@ -10,7 +10,8 @@
 		"predev": "npm run build",
 		"dev": "electron .",
 		"start": "electron .",
-		"typecheck": "tsc --noEmit && tsc -p tsconfig.renderer.json"
+		"typecheck": "tsc --noEmit && tsc -p tsconfig.renderer.json",
+		"test": "tsx --test test/*.test.ts"
 	},
 	"dependencies": {
 		"@anishelf/client-core": "1.0.0",

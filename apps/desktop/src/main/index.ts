@@ -13,7 +13,8 @@ import {
 import { userDataDir } from "platformdirs";
 import { registerDesktopIpc } from "./ipc.js";
 import { downloadMedia } from "./native/download.js";
-import { openExternal, openPlayer } from "./native/links.js";
+import { createExternalPlayerService } from "./native/external-players.js";
+import { openExternal } from "./native/links.js";
 import {
 	registerRendererProtocol,
 	registerRendererScheme,
@@ -80,6 +81,9 @@ app.whenReady().then(async () => {
 
 	try {
 		const tokens = await openDeviceTokenStore(origin, app.getPath("userData"));
+		const externalPlayers = createExternalPlayerService(
+			app.getPath("userData"),
+		);
 		attachDeviceCredentials(
 			session.defaultSession,
 			origin,
@@ -97,10 +101,23 @@ app.whenReady().then(async () => {
 					clipboard.writeText(text);
 				},
 				openExternal,
-				openPlayer,
 				downloadFile: async (sender, url, filename) => {
 					downloadMedia(sender, origin, url, filename);
 				},
+				listExternalPlayers: () => externalPlayers.list(),
+				addExternalPlayer: (draft) => externalPlayers.add(draft),
+				removeExternalPlayer: (id) => externalPlayers.remove(id),
+				choosePlayerExecutable: (sender) =>
+					externalPlayers.chooseExecutable(
+						BrowserWindow.fromWebContents(sender),
+					),
+				launchExternalPlayer: (sender, id, mediaUrl, mimeType) =>
+					externalPlayers.launch(
+						BrowserWindow.fromWebContents(sender),
+						id,
+						mediaUrl,
+						mimeType,
+					),
 			},
 			windows,
 		);

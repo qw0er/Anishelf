@@ -31,6 +31,6 @@ export async function createDesktopClient(
 	return {
 		connection,
 		authentication: createDesktopAuthentication(connection, desktop),
-		platform: createDesktopPlatform(desktop),
+		platform: await createDesktopPlatform(desktop),
 	};
 }

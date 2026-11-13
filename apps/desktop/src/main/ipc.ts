@@ -1,15 +1,36 @@
 import { desktopOrigin } from "@anishelf/contracts/defaults";
 import { ipcMain, type WebContents } from "electron";
-import type { DesktopBridge } from "../ipc/desktop.js";
+import type { ExternalPlayerListResponse } from "../ipc/desktop.js";
+
+/**
+ * Main-process handlers. Unlike the preload-facing DesktopBridge, these receive
+ * the sender for native dialogs and treat IPC arguments as untrusted.
+ */
+export interface DesktopIpcHandlers {
+	getServerOrigin(): Promise<string>;
+	signIn(password: string): Promise<{ status: number }>;
+	clearDeviceToken(): Promise<void>;
+	copyText(text: string): Promise<void>;
+	openExternal(url: string): Promise<void>;
+	downloadFile(
+		sender: WebContents,
+		url: string,
+		filename: string,
+	): Promise<void>;
+	listExternalPlayers(): Promise<ExternalPlayerListResponse>;
+	addExternalPlayer(draft: unknown): Promise<void>;
+	removeExternalPlayer(id: unknown): Promise<void>;
+	choosePlayerExecutable(sender: WebContents): Promise<string | null>;
+	launchExternalPlayer(
+		sender: WebContents,
+		id: unknown,
+		mediaUrl: unknown,
+		mimeType: unknown,
+	): Promise<void>;
+}
 
 export function registerDesktopIpc(
-	bridge: Omit<DesktopBridge, "downloadFile"> & {
-		downloadFile(
-			sender: WebContents,
-			url: string,
-			filename: string,
-		): Promise<void>;
-	},
+	handlers: DesktopIpcHandlers,
 	windows: ReadonlySet<WebContents>,
 ) {
 	function handle<Args extends unknown[], Result>(
@@ -31,11 +52,25 @@ export function registerDesktopIpc(
 		});
 	}
 
-	handle("desktop:server-origin", bridge.getServerOrigin);
-	handle("desktop:sign-in", (_, password: string) => bridge.signIn(password));
-	handle("desktop:clear-device-token", bridge.clearDeviceToken);
-	handle("desktop:copy-text", (_, text: string) => bridge.copyText(text));
-	handle("desktop:open-external", (_, url: string) => bridge.openExternal(url));
-	handle("desktop:open-player", (_, url: string) => bridge.openPlayer(url));
-	handle("desktop:download-file", bridge.downloadFile);
+	handle("desktop:server-origin", handlers.getServerOrigin);
+	handle("desktop:sign-in", (_, password: string) => handlers.signIn(password));
+	handle("desktop:clear-device-token", handlers.clearDeviceToken);
+	handle("desktop:copy-text", (_, text: string) => handlers.copyText(text));
+	handle("desktop:open-external", (_, url: string) =>
+		handlers.openExternal(url),
+	);
+	handle("desktop:download-file", handlers.downloadFile);
+	handle("desktop:external-players:list", () => handlers.listExternalPlayers());
+	handle("desktop:external-players:add", (_, draft) =>
+		handlers.addExternalPlayer(draft),
+	);
+	handle("desktop:external-players:remove", (_, id) =>
+		handlers.removeExternalPlayer(id),
+	);
+	handle("desktop:external-players:choose-executable", (sender) =>
+		handlers.choosePlayerExecutable(sender),
+	);
+	handle("desktop:external-players:launch", (sender, id, mediaUrl, mimeType) =>
+		handlers.launchExternalPlayer(sender, id, mediaUrl, mimeType),
+	);
 }

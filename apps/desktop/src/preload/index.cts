@@ -9,9 +9,23 @@ const desktop: DesktopBridge = {
 	clearDeviceToken: () => ipcRenderer.invoke("desktop:clear-device-token"),
 	copyText: (text) => ipcRenderer.invoke("desktop:copy-text", text),
 	openExternal: (url) => ipcRenderer.invoke("desktop:open-external", url),
-	openPlayer: (url) => ipcRenderer.invoke("desktop:open-player", url),
 	downloadFile: (url, filename) =>
 		ipcRenderer.invoke("desktop:download-file", url, filename),
+	listExternalPlayers: () =>
+		ipcRenderer.invoke("desktop:external-players:list"),
+	addExternalPlayer: (draft) =>
+		ipcRenderer.invoke("desktop:external-players:add", draft),
+	removeExternalPlayer: (id) =>
+		ipcRenderer.invoke("desktop:external-players:remove", id),
+	choosePlayerExecutable: () =>
+		ipcRenderer.invoke("desktop:external-players:choose-executable"),
+	launchExternalPlayer: (id, mediaUrl, mimeType) =>
+		ipcRenderer.invoke(
+			"desktop:external-players:launch",
+			id,
+			mediaUrl,
+			mimeType,
+		),
 };
 
 contextBridge.exposeInMainWorld("desktop", desktop);

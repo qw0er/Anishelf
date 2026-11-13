@@ -23,6 +23,7 @@ import { ExternalPlayerLink } from "../../../../shared/components/ui/external-li
 import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
+import type { ExternalPlayer } from "../../../../shared/platform.js";
 import { useExternalPlayers } from "../../../settings/public.js";
 import { resolveMediaLink } from "../media-link.js";
 import MediaLink from "./media-link.js";
@@ -34,6 +35,7 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 	const scope = useQueryScope();
 	const catalog = useExternalPlayers();
 	const players = [...catalog.presets, ...catalog.custom];
+	const [launchingId, setLaunchingId] = useState<string | null>(null);
 	const media = useQuery({
 		queryKey: ["external-player-media", scope, fileId],
 		queryFn: ({ signal }) =>
@@ -47,6 +49,26 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 		available && media.data
 			? { url: media.data.url, mimeType: media.data.mimeType }
 			: null;
+
+	async function launch(player: ExternalPlayer) {
+		if (!target || launchingId) return;
+		setLaunchingId(player.id);
+		try {
+			await catalog.launch(player, target);
+		} catch {
+			console.warn("[Playback] External player could not be started.", {
+				playerId: player.id,
+				mode: catalog.mode,
+			});
+			toast.add({
+				id: `external-player-launch:${fileId}`,
+				type: "error",
+				title: t("externalPlayers.launchFailed"),
+			});
+		} finally {
+			setLaunchingId(null);
+		}
+	}
 	useEffect(() => {
 		if (open && media.error)
 			toast.add({
@@ -67,24 +89,44 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 				<ChevronRight className="ml-auto size-4" aria-hidden="true" />
 			</DropdownMenuSubTrigger>
 			<DropdownMenuContent submenu>
-				{players.map((player) => (
-					<DropdownMenuItem
-						key={player.id}
-						disabled={!available}
-						label={player.name}
-						render={
-							<ExternalPlayerLink
-								href={target ? catalog.link(player, target) : undefined}
-								onLaunch={
-									target ? () => catalog.launch(player, target) : undefined
-								}
-							/>
-						}
-					>
-						<ExternalLink size={16} aria-hidden="true" />
-						<span className="min-w-0 break-all">{player.name}</span>
-					</DropdownMenuItem>
-				))}
+				{players.map((player) => {
+					const launching = launchingId === player.id;
+					const disabled = !target || launchingId !== null;
+					const content = (
+						<>
+							{launching ? (
+								<Spinner />
+							) : (
+								<ExternalLink size={16} aria-hidden="true" />
+							)}
+							<span className="min-w-0 break-all">{player.name}</span>
+						</>
+					);
+					return catalog.mode === "command" ? (
+						<DropdownMenuItem
+							key={player.id}
+							disabled={disabled}
+							label={player.name}
+							onClick={() => void launch(player)}
+						>
+							{content}
+						</DropdownMenuItem>
+					) : (
+						<DropdownMenuItem
+							key={player.id}
+							disabled={disabled}
+							label={player.name}
+							render={
+								<ExternalPlayerLink
+									href={target ? catalog.link?.(player, target) : undefined}
+									onLaunch={target ? () => void launch(player) : undefined}
+								/>
+							}
+						>
+							{content}
+						</DropdownMenuItem>
+					);
+				})}
 				{open && media.error && (
 					<DropdownMenuItem
 						closeOnClick={false}

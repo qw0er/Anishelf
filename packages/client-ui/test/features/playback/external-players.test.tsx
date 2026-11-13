@@ -15,7 +15,11 @@ import {
 	readCustomPlayers,
 	validPlayerTemplate,
 } from "../../../src/features/settings/web-external-players.js";
-import { openPlayer } from "../../setup.js";
+import type {
+	CommandPlayer,
+	ExternalPlayerHost,
+} from "../../../src/shared/platform.js";
+import { openPlayer, testPlatform } from "../../setup.js";
 import "../../../src/shared/i18n.js";
 import {
 	act,
@@ -186,7 +190,7 @@ test("Settings adds and deletes persistent custom players, updating mounted cons
 	expect(readCustomPlayers(localStorage)).toEqual([]);
 });
 
-test("storage events refresh consumers and failed writes keep the existing data", () => {
+test("storage events refresh consumers and failed writes keep the existing data", async () => {
 	const consumer = renderHook(useExternalPlayers);
 	const entry = { id: "custom:1", name: "Test", template: "test://{url}" };
 	localStorage.setItem(
@@ -212,10 +216,100 @@ test("storage events refresh consumers and failed writes keep the existing data"
 			throw new Error("Quota");
 		},
 	} as Storage);
-	expect(() => consumer.result.current.remove(entry.id)).toThrow();
+	await expect(consumer.result.current.remove(entry.id)).rejects.toThrow();
 	expect(consumer.result.current.custom).toEqual([
 		{ ...entry, kind: "url-template" },
 	]);
+});
+
+const commandPlayer: CommandPlayer = {
+	kind: "command",
+	id: "player:1",
+	name: "mpv",
+	executable: "/usr/bin/mpv",
+	args: ["--", "{url}"],
+};
+
+function commandHost(
+	player: CommandPlayer = commandPlayer,
+): ExternalPlayerHost {
+	return {
+		mode: "command",
+		list: () => ({
+			presets: player.id.startsWith("preset:") ? [player] : [],
+			custom: player.id.startsWith("preset:") ? [] : [player],
+			error: false,
+		}),
+		validate: () => null,
+		add: vi.fn(async () => {}),
+		remove: vi.fn(async () => {}),
+		describe: (entry) =>
+			entry.kind === "command" ? entry.executable : entry.template,
+		launch: vi.fn(async () => {}),
+		subscribe: () => () => {},
+		chooseExecutable: vi.fn(async () => "/usr/bin/mpv"),
+	};
+}
+
+test("command settings edits an executable and one argument per line", async () => {
+	const host = commandHost();
+	const add = vi.mocked(host.add);
+	vi.spyOn(testPlatform, "externalPlayers", "get").mockReturnValue(host);
+	render(<ExternalPlayerSettings />);
+	fireEvent.change(screen.getByLabelText("Player name"), {
+		target: { value: "My mpv" },
+	});
+	fireEvent.change(screen.getByLabelText("Executable"), {
+		target: { value: "mpv" },
+	});
+	fireEvent.change(screen.getByLabelText("Arguments"), {
+		target: { value: "--no-terminal\n{url}\n" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Add player" }));
+	await waitFor(() =>
+		expect(add).toHaveBeenCalledWith({
+			kind: "command",
+			name: "My mpv",
+			executable: "mpv",
+			args: ["--no-terminal", "{url}"],
+		}),
+	);
+});
+
+test("command settings fills the executable from the native picker", async () => {
+	const host = commandHost();
+	vi.spyOn(testPlatform, "externalPlayers", "get").mockReturnValue(host);
+	render(<ExternalPlayerSettings />);
+	fireEvent.click(screen.getByRole("button", { name: "Choose executable" }));
+	await waitFor(() =>
+		expect(
+			(screen.getByLabelText("Executable") as HTMLInputElement).value,
+		).toBe("/usr/bin/mpv"),
+	);
+});
+
+test("command menu launches a detected preset without a scheme anchor", async () => {
+	const preset: CommandPlayer = { ...commandPlayer, id: "preset:mpv" };
+	const host = commandHost(preset);
+	const launch = vi.mocked(host.launch);
+	vi.spyOn(testPlatform, "externalPlayers", "get").mockReturnValue(host);
+	render(<PlaybackActionsMenu fileId="file_123" />);
+	fireEvent.click(
+		screen.getByRole("button", { name: "More playback options" }),
+	);
+	fireEvent.click(await screen.findByRole("menuitem", { name: "Media link" }));
+	fireEvent.click(
+		await screen.findByRole("menuitem", { name: "Open in external player" }),
+	);
+	const item = await screen.findByRole("menuitem", { name: "mpv" });
+	expect(item.getAttribute("href")).toBeNull();
+	fireEvent.click(item);
+	await waitFor(() =>
+		expect(launch).toHaveBeenCalledWith(preset, {
+			url: `${window.location.origin}/api/media/file_123?access_token=test-token`,
+			mimeType: "video/mp4",
+		}),
+	);
 });
 
 test("every playback menu item carries a leading icon", async () => {

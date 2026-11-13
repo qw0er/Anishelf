@@ -325,7 +325,7 @@ module.exports = {
 			severity: "error",
 			from: { path: "^apps/desktop/src/renderer/" },
 			to: {
-				path: "^apps/desktop/src/(?!renderer/|ipc/)|(?:^|/)node_modules/electron(?:/|$)|^electron$",
+				path: "^apps/desktop/src/(?!renderer/|ipc/|shared/)|(?:^|/)node_modules/electron(?:/|$)|^electron$",
 			},
 		},
 		{

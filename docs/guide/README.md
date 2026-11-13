@@ -8,7 +8,7 @@
 | Subscribe, enable Watching or recover downloads | [Subscriptions and Watching](watching-automation.md) |
 | Set release preferences | [Acquisition profiles](acquisition-profiles.md) |
 | Customize preparation output | [Transcode profiles](transcode-profiles.md) |
-| Configure external players and custom URL handlers | [External players](external-players.md) |
+| Configure Web URL templates and desktop command players | [External players](external-players.md) |
 
 ## First use
 

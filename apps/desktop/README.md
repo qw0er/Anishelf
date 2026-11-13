@@ -30,8 +30,12 @@ default. The previous Electron profile is left in place. Sign in again and
 reapply any local preferences when using the new profile.
 
 The desktop platform adapter uses Electron for clipboard writes, media downloads,
-and opening links and external players. External player links support the IINA,
-Infuse, mpv, VLC, and PotPlayer URL schemes. The player and its URL handler must
-be installed on the system.
+and opening links and external players. External players are configured as command
+players: enter a command name available on PATH or choose an executable, then one
+argument per line. Detected players whose commands are on PATH appear directly in
+the playback menu.
+Anishelf asks for confirmation before every launch and starts the process detached
+without a shell. No URL protocol handler is needed. Custom player settings are
+stored on this computer.
 
 Enter the server password on the shared sign-in page.

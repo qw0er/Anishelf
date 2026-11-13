@@ -1,7 +1,15 @@
 import { createBrowserExternalPlayers } from "../features/settings/public.js";
 import type { ClientPlatform, ExternalPlayerHost } from "../shared/platform.js";
 
-export type { ClientPlatform };
+export type {
+	ClientPlatform,
+	CommandPlayer,
+	ExternalPlayer,
+	ExternalPlayerCatalog,
+	ExternalPlayerDraft,
+	ExternalPlayerHost,
+	PlayerMedia,
+} from "../shared/platform.js";
 export { createBrowserExternalPlayers };
 
 function downloadFile(url: string, filename: string) {

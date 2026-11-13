@@ -1,21 +1,20 @@
 import {
 	browserPlatform,
 	type ClientPlatform,
-	createBrowserExternalPlayers,
 } from "@anishelf/client-ui/browser-platform";
 import type { DesktopBridge } from "../ipc/desktop.js";
+import { createDesktopExternalPlayers } from "./external-players.js";
 
-export function createDesktopPlatform(desktop: DesktopBridge): ClientPlatform {
+export async function createDesktopPlatform(
+	desktop: DesktopBridge,
+): Promise<ClientPlatform> {
+	const externalPlayers = await createDesktopExternalPlayers(desktop);
 	return {
 		...browserPlatform,
 		get device() {
 			return browserPlatform.device;
 		},
-		externalPlayers: createBrowserExternalPlayers(browserPlatform, (url) => {
-			void desktop.openPlayer(url).catch(() => {
-				console.warn("platform.external_player_failed");
-			});
-		}),
+		externalPlayers,
 		copyText: (text) => desktop.copyText(text),
 		openExternal(url) {
 			void desktop.openExternal(url).catch(() => {

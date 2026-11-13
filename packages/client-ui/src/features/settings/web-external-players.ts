@@ -1,10 +1,10 @@
 import type {
 	ClientPlatform,
-	ExternalPlayer,
 	ExternalPlayerCatalog,
 	ExternalPlayerDraft,
 	ExternalPlayerHost,
 	PlayerMedia,
+	UrlTemplatePlayer,
 } from "../../shared/platform.js";
 import {
 	detectClientPlatform,
@@ -22,7 +22,7 @@ function toPlayer(player: {
 	id: string;
 	name: string;
 	template: string;
-}): ExternalPlayer {
+}): UrlTemplatePlayer {
 	return {
 		kind: "url-template",
 		id: player.id,
@@ -58,6 +58,7 @@ export function createBrowserExternalPlayers(
 	}
 
 	function validate(draft: ExternalPlayerDraft): string | null {
+		if (draft.kind !== "url-template") return "externalPlayers.invalidTemplate";
 		const name = draft.name.trim();
 		const template = draft.template.trim();
 		if (
@@ -69,8 +70,9 @@ export function createBrowserExternalPlayers(
 		return null;
 	}
 
-	function add(draft: ExternalPlayerDraft) {
-		if (validate(draft)) throw new Error("Invalid player");
+	async function add(draft: ExternalPlayerDraft) {
+		if (draft.kind !== "url-template" || validate(draft))
+			throw new Error("Invalid player");
 		const current = readCustomPlayers(platform.preferences);
 		if (current.length >= externalPlayerPolicy.maximumCustomPlayers)
 			throw new Error("Too many players");
@@ -87,7 +89,7 @@ export function createBrowserExternalPlayers(
 		);
 	}
 
-	function remove(id: string) {
+	async function remove(id: string) {
 		platform.preferences.setItem(
 			externalPlayerPolicy.storageKey,
 			JSON.stringify(
@@ -104,11 +106,15 @@ export function createBrowserExternalPlayers(
 		validate,
 		add,
 		remove,
-		describe: (player) => player.template,
-		link(player: ExternalPlayer, media: PlayerMedia) {
-			return buildPlayerUrl(player.template, media.url, media.mimeType);
+		describe: (player) =>
+			player.kind === "url-template" ? player.template : "",
+		link(player, media: PlayerMedia) {
+			return player.kind === "url-template"
+				? buildPlayerUrl(player.template, media.url, media.mimeType)
+				: undefined;
 		},
-		launch(player: ExternalPlayer, media: PlayerMedia) {
+		async launch(player, media: PlayerMedia) {
+			if (player.kind !== "url-template") return;
 			console.debug("platform.external_player_requested", {
 				playerId: player.id,
 			});

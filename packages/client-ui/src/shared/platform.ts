@@ -9,20 +9,28 @@ export interface PlayerMedia {
 	mimeType: string;
 }
 
-/** Web players hand a custom-scheme URL to the browser; desktop command players come later. */
-type ExternalPlayerMode = "url-template";
+type ExternalPlayerMode = "url-template" | "command";
 
-export interface ExternalPlayer {
+export interface UrlTemplatePlayer {
 	readonly kind: "url-template";
 	readonly id: string;
 	readonly name: string;
 	readonly template: string;
 }
 
-export interface ExternalPlayerDraft {
-	name: string;
-	template: string;
+export interface CommandPlayer {
+	readonly kind: "command";
+	readonly id: string;
+	readonly name: string;
+	readonly executable: string;
+	readonly args: readonly string[];
 }
+
+export type ExternalPlayer = UrlTemplatePlayer | CommandPlayer;
+
+export type ExternalPlayerDraft =
+	| { kind: "url-template"; name: string; template: string }
+	| { kind: "command"; name: string; executable: string; args: string[] };
 
 export interface ExternalPlayerCatalog {
 	readonly presets: readonly ExternalPlayer[];
@@ -34,18 +42,19 @@ export interface ExternalPlayerCatalog {
  * Host boundary for external-player settings and handoff.
  *
  * Web stores URL templates in browser storage and opens a custom-scheme URL.
- * Desktop will provide a command-based implementation without changing consumers.
+ * Desktop stores command players in the main process and spawns the executable.
  */
 export interface ExternalPlayerHost {
 	readonly mode: ExternalPlayerMode;
 	list(): ExternalPlayerCatalog;
 	validate(draft: ExternalPlayerDraft): string | null;
-	add(draft: ExternalPlayerDraft): void;
-	remove(id: string): void;
+	add(draft: ExternalPlayerDraft): Promise<void>;
+	remove(id: string): Promise<void>;
 	describe(player: ExternalPlayer): string;
-	link(player: ExternalPlayer, media: PlayerMedia): string;
-	launch(player: ExternalPlayer, media: PlayerMedia): void;
+	link?(player: ExternalPlayer, media: PlayerMedia): string | undefined;
+	launch(player: ExternalPlayer, media: PlayerMedia): Promise<void>;
 	subscribe(listener: () => void): () => void;
+	chooseExecutable?(): Promise<string | null>;
 }
 
 export interface ClientPlatform {
