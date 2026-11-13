@@ -15,5 +15,9 @@ query, fragment, or credentials.
 ANISHELF_API_TARGET=https://anishelf.example.com npm run dev:desktop
 ```
 
+The desktop client uses the server's device sessions. Electron keeps the token
+in the main process and uses the system credential store to encrypt it on disk.
+When secure storage is unavailable, the session lasts until the app exits.
+
 To edit the page with Vite's live reload in a browser, run
 `npm run dev:renderer --workspace @anishelf/desktop` and open the URL it prints.

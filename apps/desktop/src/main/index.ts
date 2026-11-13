@@ -1,15 +1,27 @@
 import { fileURLToPath } from "node:url";
 import { desktopOrigin } from "@anishelf/contracts/defaults";
-import { app, BrowserWindow, dialog } from "electron";
+import {
+	app,
+	BrowserWindow,
+	dialog,
+	session,
+	type WebContents,
+} from "electron";
 import { registerDesktopIpc } from "./ipc.js";
 import {
 	registerRendererProtocol,
 	registerRendererScheme,
 } from "./protocol.js";
+import {
+	attachDeviceCredentials,
+	signInDevice,
+} from "./server/device-authentication.js";
+import { openDeviceTokenStore } from "./server/device-tokens.js";
 import { resolveServerOrigin } from "./server-address.js";
 
 const rendererUrl = `${desktopOrigin}/`;
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
+const windows = new Set<WebContents>();
 
 registerRendererScheme();
 
@@ -24,6 +36,11 @@ async function createWindow() {
 			sandbox: true,
 		},
 	});
+	const contents = window.webContents;
+	windows.add(contents);
+	contents.once("destroyed", () => windows.delete(contents));
+	contents.on("will-navigate", (event) => event.preventDefault());
+	contents.setWindowOpenHandler(() => ({ action: "deny" }));
 	await window.loadURL(rendererUrl);
 	console.info("desktop.window_opened");
 }
@@ -43,7 +60,21 @@ app.whenReady().then(async () => {
 	}
 
 	try {
-		registerDesktopIpc(origin);
+		const tokens = await openDeviceTokenStore(origin, app.getPath("userData"));
+		attachDeviceCredentials(
+			session.defaultSession,
+			origin,
+			tokens.authorization,
+			windows,
+		);
+		registerDesktopIpc(
+			{
+				getServerOrigin: async () => origin,
+				signIn: (password) => signInDevice(origin, password, tokens.set),
+				clearDeviceToken: () => tokens.set(null),
+			},
+			windows,
+		);
 		registerRendererProtocol(origin);
 		await createWindow();
 		app.on("activate", () => {

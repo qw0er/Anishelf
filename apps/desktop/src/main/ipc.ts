@@ -1,17 +1,31 @@
 import { desktopOrigin } from "@anishelf/contracts/defaults";
-import { ipcMain } from "electron";
+import { ipcMain, type WebContents } from "electron";
+import type { DesktopBridge } from "../ipc/desktop.js";
 
-export function registerDesktopIpc(serverOrigin: string) {
-	ipcMain.handle("desktop:server-origin", (event) => {
-		const frame = event.senderFrame;
-		if (
-			!frame ||
-			frame !== event.sender.mainFrame ||
-			frame.origin !== desktopOrigin
-		) {
-			console.warn("desktop.server_origin_request_rejected");
-			throw new Error("Unexpected sender for desktop server configuration.");
-		}
-		return serverOrigin;
-	});
+export function registerDesktopIpc(
+	bridge: DesktopBridge,
+	windows: ReadonlySet<WebContents>,
+) {
+	function handle<Args extends unknown[], Result>(
+		channel: string,
+		action: (...args: Args) => Promise<Result>,
+	) {
+		ipcMain.handle(channel, (event, ...args: Args) => {
+			const frame = event.senderFrame;
+			if (
+				!windows.has(event.sender) ||
+				!frame ||
+				frame !== event.sender.mainFrame ||
+				frame.origin !== desktopOrigin
+			) {
+				console.warn("desktop.ipc_sender_rejected", { channel });
+				throw new Error("Unexpected desktop IPC sender.");
+			}
+			return action(...args);
+		});
+	}
+
+	handle("desktop:server-origin", bridge.getServerOrigin);
+	handle("desktop:sign-in", bridge.signIn);
+	handle("desktop:clear-device-token", bridge.clearDeviceToken);
 }

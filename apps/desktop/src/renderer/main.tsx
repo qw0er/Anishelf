@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-import { createDesktopConnection } from "./connection.js";
+import { createDesktopClient } from "./connection.js";
 
 function App() {
 	return (
@@ -22,8 +22,8 @@ createRoot(root).render(
 console.info("desktop.renderer_started");
 
 if (window.desktop) {
-	void createDesktopConnection(window.desktop)
-		.then((connection) => {
+	void createDesktopClient(window.desktop)
+		.then(({ connection }) => {
 			window.addEventListener("pagehide", () => connection.dispose(), {
 				once: true,
 			});
