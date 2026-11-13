@@ -1,10 +1,10 @@
 # Desktop workspace
 
 This workspace uses TypeScript for the Electron main process and Vite with
-React and TypeScript for the standalone welcome page.
+React and TypeScript for the shared Anishelf interface.
 
 From the repository root, run `npm run dev:desktop` to build both parts and open
-the page in Electron. Run `npm run start:desktop` to launch an existing build.
+the app in Electron. Run `npm run start:desktop` to launch an existing build.
 
 Set `ANISHELF_API_TARGET` to select the desktop server origin. It defaults to
 `http://127.0.0.1:3000`. Use HTTPS for remote servers. HTTP is supported for
@@ -24,5 +24,4 @@ and opening links and external players. External player links support the IINA,
 Infuse, mpv, VLC, and PotPlayer URL schemes. The player and its URL handler must
 be installed on the system.
 
-To edit the page with Vite's live reload in a browser, run
-`npm run dev:renderer --workspace @anishelf/desktop` and open the URL it prints.
+Start the server separately, then enter its password on the shared sign-in page.

@@ -84,10 +84,10 @@ clients; this document does not assume those interfaces already exist.
 
 ## Desktop
 
-The [desktop workspace guide](../../apps/desktop/README.md) describes the current
-minimal Electron shell, which is not connected to the shared application or server.
+The [desktop workspace guide](../../apps/desktop/README.md) describes how to run
+the shared interface in Electron and connect it to a server.
 
-The proposed desktop client uses Electron with the shared React UI. It connects to a
+The desktop client uses Electron with the shared React UI. It connects to a
 separately running Anishelf server on the same machine or over HTTPS. Test
 packaging on Windows, macOS and Linux before claiming platform support.
 

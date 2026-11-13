@@ -39,10 +39,14 @@ async function createWindow() {
 			sandbox: true,
 		},
 	});
+	if (process.platform !== "darwin") window.removeMenu();
 	const contents = window.webContents;
 	windows.add(contents);
 	contents.once("destroyed", () => windows.delete(contents));
-	contents.on("will-navigate", (event) => event.preventDefault());
+	contents.on("will-navigate", (event, url) => {
+		// Session changes reload the same local document with a new hash route.
+		if (url.split("#", 1)[0] !== rendererUrl) event.preventDefault();
+	});
 	contents.setWindowOpenHandler(() => ({ action: "deny" }));
 	await window.loadURL(rendererUrl);
 	console.info("desktop.window_opened");

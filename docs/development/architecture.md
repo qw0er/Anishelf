@@ -686,9 +686,10 @@ device requests use HTTPS, including through a trusted TLS proxy. Password
 changes accept either authenticated session type and revoke all sessions and
 media links.
 
-The desktop shell is not yet connected to Backend. The desktop CORS policy grants
-access to the exact app origin and leaves cookie authentication and CSRF under the
-browser session policy.
+Electron loads the shared interface locally and sends API requests directly to
+Backend. Its main process adds the device credential to requests from the desktop
+window. The desktop CORS policy grants access to the exact app origin. Web continues
+to use cookie authentication and CSRF protection.
 
 `ANISHELF_PUBLIC_ORIGIN` is an optional fixed external address, not a Host
 allowlist or a Backend login gate. Standard Compose passes it to both Web and

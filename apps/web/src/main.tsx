@@ -9,11 +9,10 @@ import type { BuildInfo } from "@anishelf/contracts/http";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
-import changelog from "../../../CHANGELOG.md?raw";
 import "@anishelf/client-ui/styles.css";
 import { registerPwa } from "./pwa.js";
 
-declare const __ANISHELF_BUILD__: BuildInfo;
+declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
 
 registerPwa();
 
@@ -43,8 +42,7 @@ async function start() {
 			fetch: (path, init) => fetch(path, init),
 			onAuthRequired,
 		}),
-		buildInfo: __ANISHELF_BUILD__,
-		changelog,
+		...__ANISHELF_BUILD__,
 		onAuthRequired,
 		platform: browserPlatform,
 		navigate: (path) => void router.navigate(path),

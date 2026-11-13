@@ -9,12 +9,24 @@ declare global {
 	}
 }
 
-export async function createDesktopClient(desktop: DesktopBridge) {
+export async function createDesktopClient(
+	desktop: DesktopBridge,
+	onAuthRequired: () => void,
+) {
 	const origin = await desktop.getServerOrigin();
 	const connection = createServerConnection({
 		origin,
 		fetch: (url, init) =>
 			fetch(url, { ...init, credentials: "omit", redirect: "error" }),
+		policy: {
+			onUnauthorized(path) {
+				if (
+					path !== "/api/auth/device-sessions/current" &&
+					path !== "/api/auth/password"
+				)
+					onAuthRequired();
+			},
+		},
 	});
 	return {
 		connection,

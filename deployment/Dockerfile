@@ -38,6 +38,7 @@ COPY packages/client-ui/ ./packages/client-ui/
 COPY packages/client-core/src/ ./packages/client-core/src/
 COPY packages/contracts/src/ ./packages/contracts/src/
 COPY apps/web/ ./apps/web/
+COPY scripts/client-build.mts ./scripts/client-build.mts
 COPY CHANGELOG.md ./CHANGELOG.md
 RUN npm run build --workspace @anishelf/web
 

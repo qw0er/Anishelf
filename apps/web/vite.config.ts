@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
 import {
 	developmentDefaults,
 	serverDefaults,
@@ -8,27 +7,15 @@ import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { loadClientBuild } from "../../scripts/client-build.mts";
 
 // https://vite.dev/config/
 const apiTarget =
 	process.env.ANISHELF_API_TARGET ??
 	`http://${serverDefaults.host}:${serverDefaults.port}`;
-const buildInfoPath = new URL("./build-info.json", import.meta.url);
-// Static analysis loads this config before npm's prebuild generates the manifest.
-const buildInfo = existsSync(buildInfoPath)
-	? readFileSync(buildInfoPath, "utf8")
-	: JSON.stringify({
-			version: JSON.parse(
-				readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
-			).version,
-			commit: null,
-			channel: "development",
-			builtAt: null,
-		});
-
 export default defineConfig({
 	define: {
-		__ANISHELF_BUILD__: buildInfo,
+		__ANISHELF_BUILD__: JSON.stringify(loadClientBuild(import.meta.url)),
 	},
 	resolve: { tsconfigPaths: true },
 	worker: {
