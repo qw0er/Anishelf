@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, net, protocol } from "electron";
+import { resolveServerOrigin } from "./server-address.js";
 
 const rendererUrl = "anishelf://desktop/";
 const rendererRoot = new URL("../renderer/", import.meta.url);
@@ -48,6 +49,18 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
+	try {
+		const origin = resolveServerOrigin();
+		console.info("desktop.server_configured", { origin });
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Invalid server configuration.";
+		console.error("desktop.server_configuration_invalid", { message });
+		dialog.showErrorBox("Invalid Anishelf server address", message);
+		app.exit(1);
+		return;
+	}
+
 	try {
 		registerRenderer();
 		await createWindow();

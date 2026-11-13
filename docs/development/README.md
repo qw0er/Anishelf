@@ -46,7 +46,7 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 
 | Setting | Use |
 | --- | --- |
-| `ANISHELF_API_TARGET` | Override Vite's Backend target when its port changes |
+| `ANISHELF_API_TARGET` | Override the Backend origin for Vite's Web proxy and the Electron desktop app |
 | `ANISHELF_FRONTEND_DIR` | Enable Backend Web hosting from an absolute directory containing a prebuilt `index.html` |
 | `ANISHELF_PUBLIC_ORIGIN` | Set the browser-facing origin for domain access |
 | `ANISHELF_TRUSTED_PROXIES` | Trust only the actual proxy chain; packaged containers include their private Web proxy |
