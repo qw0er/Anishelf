@@ -39,7 +39,7 @@ function presetDefinitions(platform: NodeJS.Platform): PresetDefinition[] {
 				id: "preset:iina",
 				name: "IINA",
 				command: "iina",
-				args: ["{url}"],
+				args: ["--no-stdin", "{url}"],
 			},
 			{
 				id: "preset:mpv",

@@ -1,5 +1,6 @@
 import { MediaAccessLinkResponseSchema } from "@anishelf/contracts/schemas/authentication";
 import { ResourceParamsSchema } from "@anishelf/contracts/schemas/common";
+import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { HttpInstance } from "../../../../transport/instance.js";
 import type { AuthenticationService } from "../application.js";
@@ -15,19 +16,51 @@ export function createMediaLinks(
 	service: AuthenticationService,
 	store: AuthenticationStore,
 	sources: MediaLinkSources,
+	logger: Logger,
 ) {
 	async function permits(method: string, url: URL) {
-		if (method !== "GET" && method !== "HEAD") return false;
 		const fileId = /^\/api\/media\/([A-Za-z0-9_-]+)$/.exec(url.pathname)?.[1];
+		if (!fileId) {
+			if (url.pathname.startsWith("/api/media/"))
+				logger.debug(
+					{
+						event: "auth.media_link_rejected",
+						reason: "path",
+						path: url.pathname,
+						hasToken: url.searchParams.has("access_token"),
+					},
+					"Media access link rejected.",
+				);
+			return false;
+		}
+		const reject = (reason: string) => {
+			logger.debug(
+				{
+					event: "auth.media_link_rejected",
+					reason,
+					fileId,
+					path: url.pathname,
+					hasToken: url.searchParams.has("access_token"),
+				},
+				"Media access link rejected.",
+			);
+			return false;
+		};
+		if (method !== "GET" && method !== "HEAD") return reject("method");
 		const token = url.searchParams.get("access_token");
-		if (!fileId || !token || !opaqueTokenPattern.test(token)) return false;
+		if (!token || !opaqueTokenPattern.test(token)) return reject("token");
 		const link = store.readLink(digest(token), Date.now());
-		return Boolean(
-			link &&
-				link.fileId === fileId &&
-				link.fingerprint === service.fingerprint &&
-				link.sourceVersion === (await sources.version(fileId)),
-		);
+		if (!link) return reject("link_missing");
+		if (link.fileId !== fileId) return reject("file_mismatch");
+		if (link.fingerprint !== service.fingerprint) return reject("fingerprint");
+		let sourceVersion: string;
+		try {
+			sourceVersion = await sources.version(fileId);
+		} catch {
+			return reject("source_unavailable");
+		}
+		if (link.sourceVersion !== sourceVersion) return reject("source_version");
+		return true;
 	}
 	return { permits, registerRoute };
 

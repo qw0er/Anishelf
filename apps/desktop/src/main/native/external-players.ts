@@ -205,6 +205,10 @@ export function createExternalPlayerService(
 			url: media.href,
 			mimeType: typeof mimeType === "string" ? mimeType : "video/*",
 		};
+		console.debug("desktop.external_player_target", {
+			path: new URL(target.url).pathname,
+			hasToken: new URL(target.url).searchParams.has("access_token"),
+		});
 		const args = substituteCommandArgs(player.args, target);
 		const previewArgs = substituteCommandArgs(player.args, {
 			...target,

@@ -30,7 +30,7 @@ export async function registerAuthentication(
 	await registerWebSessionStore(app, options);
 	const loginLimits = await createLoginLimits(app);
 	const devices = createDeviceSessions(service, store, logger);
-	const mediaLinks = createMediaLinks(service, store, sources);
+	const mediaLinks = createMediaLinks(service, store, sources, logger);
 	const getDevice = registerAuthorization(app, service, devices, mediaLinks);
 	registerDeviceRoutes(app, service, devices, getDevice, loginLimits);
 	registerWebSessionRoutes(app, service, loginLimits);

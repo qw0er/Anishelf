@@ -91,3 +91,17 @@ and re-add the entry.
 available on file pages and in the playback menu. They recheck file access and
 reference the original media. The playlist does not include selected subtitles,
 audio tracks or resume positions, and downloading it does not start playback.
+
+### Pasting a media link into a shell
+
+A copied media link contains `?` and `=` characters. Do not let the terminal add
+backslashes before them: `iina 'http://.../file\?access_token\=...'` sends a path
+with literal backslashes and no query string, so the server rejects it as
+unauthenticated. Quote the URL without escaping those characters:
+
+```sh
+iina --no-stdin "http://127.0.0.1:3000/api/media/<id>?access_token=<token>"
+```
+
+Pasting the link into an external player's Open URL field avoids shell quoting
+entirely. Treat the token as a credential; it expires after 24 hours.

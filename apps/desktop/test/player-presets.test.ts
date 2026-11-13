@@ -15,7 +15,7 @@ test("resolves built-in commands from PATH and keeps the command name", async ()
 				id: "preset:iina",
 				name: "IINA",
 				executable: "iina",
-				args: ["{url}"],
+				args: ["--no-stdin", "{url}"],
 			},
 			resolvedExecutable: iina,
 		},
