@@ -1,0 +1,17 @@
+{
+	"name": "@anishelf/client-core",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"license": "AGPL-3.0-only",
+	"exports": {
+		".": "./src/api-client.ts"
+	},
+	"scripts": {
+		"test": "node --test test/api-client.test.mjs",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@anishelf/contracts": "1.0.0"
+	}
+}

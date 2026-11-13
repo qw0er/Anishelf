@@ -115,7 +115,9 @@ module.exports = {
 		{
 			name: "no-unresolved-source-imports",
 			severity: "error",
-			from: { path: "^(?:apps/(?:server|web)|packages/contracts)/src" },
+			from: {
+				path: "^(?:apps/(?:server|web)|packages/(?:contracts|client-core))/src",
+			},
 			to: {
 				couldNotResolve: true,
 				// Vite resolves this exported npm asset; its query is not a JS module specifier.
@@ -125,7 +127,9 @@ module.exports = {
 		{
 			name: "no-runtime-cycles",
 			severity: "error",
-			from: { path: "^(?:apps/(?:server|web)|packages/contracts)/src" },
+			from: {
+				path: "^(?:apps/(?:server|web)|packages/(?:contracts|client-core))/src",
+			},
 			to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
 		},
 		{
@@ -279,15 +283,23 @@ module.exports = {
 			to: { path: "^apps/server/" },
 		},
 		{
-			name: "contracts-do-not-import-apps",
+			name: "contracts-do-not-import-consumers",
 			severity: "error",
 			from: { path: "^packages/contracts/src/" },
-			to: { path: "^apps/" },
+			to: { path: "^apps/|^packages/client-core/" },
 		},
 		{
-			name: "contracts-do-not-import-node-builtins",
+			name: "client-core-does-not-import-apps-or-ui",
 			severity: "error",
-			from: { path: "^packages/contracts/src/" },
+			from: { path: "^packages/client-core/src/" },
+			to: {
+				path: "^apps/|(?:^|/)node_modules/(?:react(?:-dom|-router|-i18next)?|@tanstack/react-query)(?:/|$)",
+			},
+		},
+		{
+			name: "shared-packages-do-not-import-node-builtins",
+			severity: "error",
+			from: { path: "^packages/(?:contracts|client-core)/src/" },
 			to: { dependencyTypes: ["core"] },
 		},
 		{

@@ -40,6 +40,7 @@ async function scan(files) {
 			"apps/server/src/shared/empty.ts": "export {};",
 			"apps/web/src/empty.ts": "export {};",
 			"packages/contracts/src/empty.ts": "export {};",
+			"packages/client-core/src/empty.ts": "export {};",
 			...files,
 		};
 		for (const [name, source] of Object.entries(sources)) {
@@ -238,7 +239,7 @@ for (const [name, files] of [
 		},
 	],
 	[
-		"contracts-do-not-import-apps",
+		"contracts-do-not-import-consumers",
 		{
 			"packages/contracts/src/example.ts":
 				"export { value } from '../../../apps/server/src/shared/value.js';",
@@ -246,10 +247,18 @@ for (const [name, files] of [
 		},
 	],
 	[
-		"contracts-do-not-import-node-builtins",
+		"shared-packages-do-not-import-node-builtins",
 		{
 			"packages/contracts/src/example.ts":
 				"export { readFile } from 'node:fs';",
+		},
+	],
+	[
+		"client-core-does-not-import-apps-or-ui",
+		{
+			"packages/client-core/src/example.ts":
+				"export { value } from '../../../apps/web/src/value.js';",
+			"apps/web/src/value.ts": "export const value = 1;",
 		},
 	],
 	[

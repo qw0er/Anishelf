@@ -15,6 +15,7 @@
 		"predev": "node ../../scripts/build-info.mjs"
 	},
 	"dependencies": {
+		"@anishelf/client-core": "1.0.0",
 		"@anishelf/contracts": "1.0.0",
 		"@base-ui/react": "^1.9.0",
 		"@tailwindcss/vite": "^4.3.3",

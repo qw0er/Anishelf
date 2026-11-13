@@ -5,7 +5,6 @@ export type {
 	AnimeDetailResponse,
 	AnimeLibraryResponse,
 	AnimeStatusResponse,
-	ApiErrorResponse,
 	BuildInfo,
 	CatalogConfirmationRequest,
 	CatalogConfirmationResponse,

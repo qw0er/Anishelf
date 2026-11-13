@@ -10,6 +10,7 @@ const sourceRoots = [
 	"apps/server/src",
 	"apps/web/src",
 	"packages/contracts/src",
+	"packages/client-core/src",
 ];
 
 export async function checkArchitecture(baseDir = process.cwd()) {

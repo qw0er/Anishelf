@@ -113,7 +113,7 @@ presentation timings shared within a feature live in its `defaults.ts`.
 | --- | --- |
 | `app/` | Router, Providers, page composition, global feedback, cross-module invalidation and UI slots |
 | `features/` | Resources, Media, Playback, Settings, Anime and Acquisition |
-| `shared/` | HTTP/query mechanisms, UI primitives, navigation, translations |
+| `shared/` | Web API adapter, query mechanisms, UI primitives, navigation, translations |
 
 Encapsulated features expose data through root `public.ts` and app-only UI through
 `ui.ts`; Acquisition also groups its API clients and subscription/settings UI.
@@ -127,6 +127,13 @@ Cached evidence does not advance with wall-clock time after it becomes stale.
 Known airtimes invalidate the detail and broadcast queries, and metadata detail
 freshness expires at the next scheduled airing. These views do not create Catalog
 records or query release sites merely to build episode rows.
+
+`@anishelf/client-core` owns JSON requests, request cancellation, API errors and
+cookie-session bootstrap and CSRF handling. A client instance receives a
+Fetch-compatible transport and an optional callback for expired authentication.
+The Web adapter uses relative URLs with same-origin cookies and translates the
+callback into the existing browser event. Routing, session checks tied to page
+visibility, and TanStack Query stay in the Web app.
 
 Server-state caching uses TanStack Query, shared query definitions and a QueryClient.
 Stable query keys, freshness/retention policies and app-coordinated invalidation

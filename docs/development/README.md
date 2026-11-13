@@ -3,9 +3,10 @@
 [Architecture](architecture.md) · [Future clients](clients.md) · [Playback assets](playback.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
 
 The npm workspaces live in `apps/server/` (Fastify backend), `apps/web/`
-(React web app), and `packages/contracts/` (shared HTTP protocol). The contracts
-package exports browser-safe TypeScript directly. Node.js 24 loads it at runtime
-and Vite bundles the exports used by the Web app.
+(React web app), `packages/contracts/` (shared HTTP protocol), and
+`packages/client-core/` (shared API client). The packages export TypeScript
+directly. Node.js 24 loads server-side contract exports at runtime and Vite
+bundles the shared code used by the Web app.
 
 ## Local development
 
