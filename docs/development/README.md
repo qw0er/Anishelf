@@ -25,6 +25,8 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Backend watcher plus Vite; Ctrl+C stops both |
+| `npm run dev:desktop:all` | Run `dev` and `dev:desktop` together |
+| `npm run dev:desktop` | Launch Electron against the Vite development address or `ANISHELF_DESKTOP_URL` |
 | `npm run dev:host` | Expose Vite on `0.0.0.0:5173` for trusted LAN development |
 | `npm run dev:backend` / `npm run dev:web` | Run one workspace |
 | `npm start` | Build both apps and serve `apps/web/dist` through Backend |

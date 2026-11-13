@@ -5,6 +5,7 @@
 	"version": "1.7.0",
 	"private": true,
 	"workspaces": [
+		"apps/desktop",
 		"apps/server",
 		"apps/web",
 		"packages/contracts",
@@ -36,6 +37,8 @@
 		"start:backend": "npm run start --workspace @anishelf/backend",
 		"dev:backend": "ANISHELF_LOG_LEVEL=debug npm run dev --workspace @anishelf/backend",
 		"dev:web": "ANISHELF_LOG_LEVEL=debug npm run dev --workspace @anishelf/web",
+		"dev:desktop": "npm run dev --workspace @anishelf/desktop",
+		"dev:desktop:all": "concurrently --kill-others --success first --names dev,desktop \"npm run dev\" \"npm run dev:desktop\"",
 		"dev": "ANISHELF_LOG_LEVEL=debug concurrently \"npm run dev:backend\" \"npm run dev:web\"",
 		"dev:host": "ANISHELF_LOG_LEVEL=debug concurrently \"npm run dev:backend\" \"npm run dev --workspace @anishelf/web -- --host 0.0.0.0\"",
 		"architecture:check": "node scripts/check-architecture.mjs",

@@ -1,0 +1,20 @@
+{
+	"name": "@anishelf/desktop",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"main": "dist/main.js",
+	"scripts": {
+		"build": "tsc",
+		"predev": "npm run build",
+		"dev": "electron .",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@anishelf/contracts": "1.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.5",
+		"electron": "^45.3.1"
+	}
+}
