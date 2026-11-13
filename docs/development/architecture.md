@@ -643,13 +643,21 @@ receives ordinary identification rather than an identity-preserving source relin
 
 ## Authentication boundary
 
+The authentication HTTP entry registers the session store and login limits, then
+assembles the request authorization hook and routes. Browser session handling,
+device routes, and scoped media links each have their own HTTP module. Device
+token creation, lookup, and revocation run in the authentication application
+through its persistence port.
+
 | Surface | Protection |
 | --- | --- |
-| Business APIs | Single-user login, persistent sessions; mutations require CSRF and allowed Origin |
+| Business APIs | Single-user login with a browser session or an HTTPS device bearer credential |
+| Browser sessions | Cookie authentication with CSRF on mutations |
+| Device sessions | Expiring, individually revocable tokens; only token hashes are stored |
 | HTTP access | Valid domain/IP Hosts at any published port; an optional exact hostname allowlist is independent of the public URL |
 | HTTPS proxy | A configured external origin declares its scheme to Web; automatic deployments use trusted proxy headers; Backend trusts the private Web hop |
 | Original-media external links | Expiring, source-bound scoped tokens |
-| Credentials | Private files; responses/logs omit passwords, tokens and raw private download locators |
+| Credentials | Private files and device token hashes; logs omit credentials. Device sign-in returns the bearer token once. |
 
 Host admission is independent of socket bind address, container port and the public
 URL. Any syntactically valid HTTP(S) hostname is accepted by default.
@@ -660,7 +668,10 @@ all routes, including health, so restricted container deployments must include
 implicit localhost or configured-origin exception bypasses an enabled allowlist.
 Mutation Origin is compared with the actual Host and recognized protocol;
 forwarded Host is never used to bypass the allowlist. CSRF tokens, browser Fetch
-Metadata, authentication and login limits remain enabled. Default deployments do
+Metadata, authentication and login limits remain enabled. A verified device bearer
+credential does not use a CSRF token. Host admission, mutation Origin and Fetch
+Metadata checks still apply, and an invalid Authorization header does not fall
+back to a cookie session. Default deployments do
 not claim DNS rebinding protection through a hostname allowlist; explicit Host
 restriction is available when required.
 

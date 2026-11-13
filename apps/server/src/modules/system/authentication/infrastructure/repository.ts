@@ -1,9 +1,17 @@
-import { and, eq, gt, lte } from "drizzle-orm";
+import { and, desc, eq, gt, lte, ne, or } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { AuthenticationStore } from "../ports.js";
 import { readAuthSessions, writeAuthSessions } from "./records.js";
-import { authSessions, mediaAccessLinks } from "./schema.js";
+import { authSessions, deviceSessions, mediaAccessLinks } from "./schema.js";
 import type { SessionRecord } from "./session-record.js";
+
+const deviceFields = {
+	id: deviceSessions.id,
+	name: deviceSessions.name,
+	createdAt: deviceSessions.createdAt,
+	expiresAt: deviceSessions.expiresAt,
+};
+
 export class AuthenticationRepository implements AuthenticationStore {
 	constructor(private readonly store: Store) {}
 
@@ -36,8 +44,56 @@ export class AuthenticationRepository implements AuthenticationStore {
 	clear() {
 		this.store.transaction((tx) => {
 			tx.delete(authSessions).run();
+			tx.delete(deviceSessions).run();
 			tx.delete(mediaAccessLinks).run();
 		});
+	}
+	saveDeviceSession(
+		session: Parameters<AuthenticationStore["saveDeviceSession"]>[0],
+	) {
+		this.store.transaction((tx) => {
+			tx.delete(deviceSessions)
+				.where(
+					or(
+						lte(deviceSessions.expiresAt, session.createdAt),
+						ne(deviceSessions.fingerprint, session.fingerprint),
+					),
+				)
+				.run();
+			tx.insert(deviceSessions).values(session).run();
+		});
+	}
+	readDeviceSession(tokenHash: string, fingerprint: string, now: number) {
+		return this.store
+			.select(deviceFields)
+			.from(deviceSessions)
+			.where(
+				and(
+					eq(deviceSessions.tokenHash, tokenHash),
+					eq(deviceSessions.fingerprint, fingerprint),
+					gt(deviceSessions.expiresAt, now),
+				),
+			)
+			.get();
+	}
+	listDeviceSessions(fingerprint: string, now: number) {
+		return this.store
+			.select(deviceFields)
+			.from(deviceSessions)
+			.where(
+				and(
+					eq(deviceSessions.fingerprint, fingerprint),
+					gt(deviceSessions.expiresAt, now),
+				),
+			)
+			.orderBy(desc(deviceSessions.createdAt), deviceSessions.id)
+			.all();
+	}
+	deleteDeviceSession(id: string) {
+		return (
+			this.store.delete(deviceSessions).where(eq(deviceSessions.id, id)).run()
+				.changes > 0
+		);
 	}
 	saveLink(link: Parameters<AuthenticationStore["saveLink"]>[0]) {
 		this.store

@@ -21,13 +21,40 @@ another connection and recreate the router with the new runtime. Disposal
 cancels requests and playback and clears the session and query cache. The host
 owns the authentication transition. Web keeps same-origin cookies and CSRF,
 and reloads the page on login, logout or session loss. Connecting a native host
-to a remote server still requires a transport and authenticated media strategy
-that work in that host.
+to a remote server still requires a client authentication adapter, a native
+transport, and authenticated media delivery.
 
 Implement clipboard access, downloads, external links, preference storage and
 lifecycle events at the host boundary. React DOM layout and the current Movi
 player remain in the shared renderer. The Web host also owns service worker
 registration and browser build configuration.
+
+## Device session API
+
+Device sign-in and bearer requests require HTTPS through the deployment's
+trusted proxy. Use the native HTTP transport without browser session cookies.
+Web login and its CSRF flow remain available separately.
+The server applies the same login limits across both entry points.
+
+| Method and path | Behavior |
+| --- | --- |
+| `POST /api/auth/device-sessions` | Send `{ name, password }`. Returns `201` with the bearer token and device metadata. |
+| `GET /api/auth/device-sessions/current` | Return the authenticated device's metadata. |
+| `DELETE /api/auth/device-sessions/current` | Revoke the calling device. |
+| `GET /api/auth/device-sessions` | List active devices. Accepts a browser session or a bearer token. |
+| `DELETE /api/auth/device-sessions/:id` | Revoke one device. Browser callers must supply CSRF. |
+
+Send `Authorization: Bearer <token>` on device API requests. A token lasts 30
+days and is bound to the current server password. Changing or resetting the
+password invalidates all device sessions. Store the token per server in the
+host's credential storage. On expiry or revocation, discard it and sign in
+again. Never put it in a URL or a log.
+
+Bearer authentication also works for protected media requests when the caller
+can send the header, including byte range requests. The existing browser
+endpoint for issuing original-media links remains restricted to browser
+sessions. A renderer or native player that cannot attach a header still needs
+a separate media delivery strategy.
 
 ## Responsibilities
 

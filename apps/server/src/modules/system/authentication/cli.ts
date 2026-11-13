@@ -38,7 +38,7 @@ export async function authenticationCommand(command: string, dataDir: string) {
 		const password = randomPassword();
 		await replaceCredential(dataDir, await hashPassword(password));
 		process.stdout.write(
-			`Password reset in ${dataDir}/auth.json.\nNew password: ${password}\nRestart Anishelf to invalidate existing sessions and media links.\n`,
+			`Password reset in ${dataDir}/auth.json.\nNew password: ${password}\nRestart Anishelf to invalidate existing browser sessions, device sessions and media links.\n`,
 		);
 	} else
 		throw new Error(

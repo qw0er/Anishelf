@@ -161,6 +161,13 @@ export type CatalogFileReviewsResponse = Static<
 export type AuthSessionResponse = Static<
 	typeof schemas.AuthSessionResponseSchema
 >;
+export type DeviceLoginRequest = Static<
+	typeof schemas.DeviceLoginRequestSchema
+>;
+export type DeviceLoginResponse = Static<
+	typeof schemas.DeviceLoginResponseSchema
+>;
+export type DeviceSession = Static<typeof schemas.DeviceSessionSchema>;
 export type MediaAccessLinkResponse = Static<
 	typeof schemas.MediaAccessLinkResponseSchema
 >;

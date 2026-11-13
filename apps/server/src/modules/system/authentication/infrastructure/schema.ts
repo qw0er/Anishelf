@@ -19,6 +19,19 @@ export const mediaAccessLinks = sqliteTable(
 	(table) => [index("media_access_links_expiry").on(table.expiresAt)],
 );
 
+export const deviceSessions = sqliteTable(
+	"auth_device_sessions",
+	{
+		id: text("id").primaryKey().notNull(),
+		name: text("name").notNull(),
+		tokenHash: text("token_hash").notNull().unique(),
+		fingerprint: text("fingerprint").notNull(),
+		createdAt: integer("created_at").notNull(),
+		expiresAt: integer("expires_at").notNull(),
+	},
+	(table) => [index("auth_device_sessions_expiry").on(table.expiresAt)],
+);
+
 export const authSessions = sqliteTable(
 	"auth_sessions",
 	{
