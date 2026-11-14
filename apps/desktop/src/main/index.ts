@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { app, dialog } from "electron";
 import { userDataDir } from "platformdirs";
 import { DesktopApplication } from "./application.js";
+import { LAUNCH_AT_LOGIN_FLAG } from "./native/login-item.js";
 import { registerRendererScheme } from "./protocol.js";
 import { LocalBackend } from "./server/local-backend.js";
 import { readServerOrigin } from "./server-connection.js";
@@ -22,6 +23,17 @@ if (!hasSingleInstanceLock) {
 	app.quit();
 } else {
 	startApplication();
+}
+
+function launchedAtLogin(): boolean {
+	if (process.platform !== "darwin")
+		return process.argv.includes(LAUNCH_AT_LOGIN_FLAG);
+	try {
+		return app.getLoginItemSettings().wasOpenedAtLogin;
+	} catch (error) {
+		console.warn("desktop.login_item_launch_detection_failed", { error });
+		return false;
+	}
 }
 
 function startApplication() {
@@ -116,7 +128,9 @@ function startApplication() {
 				startLocalBackend,
 				stopLocalBackend,
 			);
-			await desktop.start(connection);
+			const startHidden = launchedAtLogin();
+			if (startHidden) console.info("desktop.launched_at_login");
+			await desktop.start(connection, { startHidden });
 		})
 		.catch(recover);
 }

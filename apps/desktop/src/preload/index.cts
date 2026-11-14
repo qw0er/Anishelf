@@ -4,6 +4,9 @@ const { contextBridge, ipcRenderer } =
 	require("electron") as typeof import("electron");
 
 const desktop: DesktopBridge = {
+	getLaunchAtLogin: () => ipcRenderer.invoke("desktop:login-item:get"),
+	setLaunchAtLogin: (enabled) =>
+		ipcRenderer.invoke("desktop:login-item:set", enabled),
 	getCloseToTray: () => ipcRenderer.invoke("desktop:tray:get"),
 	setCloseToTray: (enabled) => ipcRenderer.invoke("desktop:tray:set", enabled),
 	checkForUpdates: () => ipcRenderer.invoke("desktop:check-for-updates"),

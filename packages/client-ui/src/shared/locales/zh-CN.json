@@ -829,6 +829,13 @@
 		"unsupported": "此剧集映射不支持观看记录。",
 		"unavailable": "观看记录不可用，本地播放不受影响。"
 	},
+	"startupSettings": {
+		"title": "启动",
+		"launchAtLogin": "登录电脑时启动 Anishelf",
+		"launchAtLoginHelp": "Anishelf 会在后台启动并保持本机后端运行。启用托盘后，窗口会保持隐藏，直到您从托盘打开。",
+		"unavailable": "仅打包后的应用支持开机启动。",
+		"saveFailed": "无法保存启动设置，请重试。"
+	},
 	"desktopSettings": {
 		"title": "窗口与托盘",
 		"closeToTray": "关闭窗口时保留在托盘",

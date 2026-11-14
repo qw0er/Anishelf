@@ -85,9 +85,15 @@ export class WindowStateStore {
 		return { width: bounds.width, height: bounds.height };
 	}
 
-	manage(window: BrowserWindow, state: WindowState | null): void {
-		if (state?.maximized) window.maximize();
-		if (state?.fullscreen) window.setFullScreen(true);
+	manage(
+		window: BrowserWindow,
+		state: WindowState | null,
+		options: { applyMode?: boolean } = {},
+	): void {
+		if (options.applyMode !== false) {
+			if (state?.maximized) window.maximize();
+			if (state?.fullscreen) window.setFullScreen(true);
+		}
 		window.on("close", () => {
 			const next: WindowState = {
 				bounds: window.getNormalBounds(),

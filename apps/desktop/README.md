@@ -35,6 +35,14 @@ in the tray menu to show the window and **Quit Anishelf** to exit and stop the
 bundled backend. On Linux, tray visibility depends on the desktop environment.
 Launching Anishelf again brings the existing window back.
 
+In **Settings → Desktop → Startup**, enable **Launch Anishelf when you sign in
+to your computer** to start the desktop app when you sign in. The bundled
+backend starts with it. When the tray is enabled, the window stays hidden in
+the tray; otherwise it opens normally. Windows and macOS use the system login
+item. Linux writes an XDG autostart entry to
+`$XDG_CONFIG_HOME/autostart/app.anishelf.desktop.desktop` and uses the AppImage
+path for AppImage builds. Launch at login is available in packaged builds.
+
 The desktop platform adapter uses Electron for clipboard writes, media downloads,
 and opening links and external players. External players are configured as command
 players: enter a command name available on PATH or choose an executable, then one

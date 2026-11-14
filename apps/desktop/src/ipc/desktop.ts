@@ -31,6 +31,11 @@ export type ServerSignInResult =
 				| "localStartFailed";
 	  };
 
+export interface DesktopLoginItemState {
+	supported: boolean;
+	enabled: boolean;
+}
+
 export interface DesktopUpdateCheck {
 	status:
 		| "available"
@@ -46,6 +51,8 @@ export interface DesktopUpdateCheck {
 
 export interface DesktopBridge {
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
+	getLaunchAtLogin(): Promise<DesktopLoginItemState>;
+	setLaunchAtLogin(enabled: boolean): Promise<void>;
 	getCloseToTray(): Promise<boolean>;
 	setCloseToTray(enabled: boolean): Promise<void>;
 	getServerConnection(): Promise<{

@@ -56,6 +56,25 @@ test("saves and restores normal bounds and window modes", () => {
 	expect(window.maximize).toHaveBeenCalledOnce();
 });
 
+test("defers window mode while the window starts hidden", () => {
+	const { store } = setup();
+	const window = Object.assign(new EventEmitter(), {
+		maximize: vi.fn(),
+		setFullScreen: vi.fn(),
+	});
+	store.manage(
+		window as unknown as BrowserWindow,
+		{
+			bounds: { x: 0, y: 0, width: 1000, height: 600 },
+			maximized: true,
+			fullscreen: true,
+		},
+		{ applyMode: false },
+	);
+	expect(window.maximize).not.toHaveBeenCalled();
+	expect(window.setFullScreen).not.toHaveBeenCalled();
+});
+
 test("centers an offscreen window and ignores malformed state", () => {
 	const { store, path } = setup();
 	writeFileSync(

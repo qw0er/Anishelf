@@ -13,6 +13,7 @@ import { createDesktopPlatform } from "./platform/platform.js";
 import { createDesktopServerClient } from "./server/connection.js";
 import { DesktopExternalPlayerSettings } from "./settings/external-player-settings.js";
 import { ServerConnectionSettings } from "./settings/server-connection-settings.js";
+import { StartupSettings } from "./settings/startup-settings.js";
 import { TraySettings } from "./settings/tray-settings.js";
 import "./styles.css";
 
@@ -40,7 +41,10 @@ async function start() {
 	const onAuthRequired = () => session.onAuthRequired();
 	const client = await createDesktopServerClient(desktop, onAuthRequired);
 	const platform = await createDesktopPlatform(desktop);
-	const closeToTray = await desktop.getCloseToTray();
+	const [closeToTray, launchAtLogin] = await Promise.all([
+		desktop.getCloseToTray(),
+		desktop.getLaunchAtLogin(),
+	]);
 	const { origin } = client.connection;
 	const runtime = await initializeClient({
 		...client,
@@ -68,6 +72,10 @@ async function start() {
 							}
 							switchToLocal={desktop.useLocalBackend}
 							restart={() => session.restart("/settings?section=desktop")}
+						/>
+						<StartupSettings
+							status={launchAtLogin}
+							save={desktop.setLaunchAtLogin}
 						/>
 						<TraySettings
 							closeToTray={closeToTray}

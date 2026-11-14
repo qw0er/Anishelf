@@ -14,6 +14,10 @@ import { registerDesktopIpc } from "./ipc.js";
 import { downloadMedia } from "./native/download.js";
 import { createExternalPlayerService } from "./native/external-players.js";
 import { openExternal } from "./native/links.js";
+import {
+	createDesktopLoginItem,
+	LAUNCH_AT_LOGIN_FLAG,
+} from "./native/login-item.js";
 import { DesktopTray } from "./native/tray.js";
 import { DesktopUpdateChecker } from "./native/updates.js";
 import { registerRendererProtocol } from "./protocol.js";
@@ -40,6 +44,33 @@ const iconPath = () =>
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
 
 type DeviceTokenStore = Awaited<ReturnType<typeof openDeviceTokenStore>>;
+
+function createLoginItem() {
+	return createDesktopLoginItem({
+		platform: process.platform,
+		packaged: app.isPackaged,
+		appDataDir: app.getPath("appData"),
+		executablePath: process.execPath,
+		appImagePath: process.env.APPIMAGE,
+		native:
+			process.platform === "darwin"
+				? {
+						getOpenAtLogin: () => app.getLoginItemSettings().openAtLogin,
+						setOpenAtLogin: (openAtLogin) =>
+							app.setLoginItemSettings({ openAtLogin }),
+					}
+				: {
+						getOpenAtLogin: () =>
+							app.getLoginItemSettings({ args: [LAUNCH_AT_LOGIN_FLAG] })
+								.openAtLogin,
+						setOpenAtLogin: (openAtLogin) =>
+							app.setLoginItemSettings({
+								openAtLogin,
+								args: [LAUNCH_AT_LOGIN_FLAG],
+							}),
+					},
+	});
+}
 
 async function createUpdateChecker() {
 	const version = app.getVersion();
@@ -98,6 +129,10 @@ export class DesktopApplication {
 	private openingWindow = false;
 	private switching = false;
 	private disposed = false;
+	private startHidden = false;
+	private hiddenWindowMode:
+		| { maximized: boolean; fullscreen: boolean }
+		| undefined;
 	private server!: ConnectedServer;
 	private readonly tokenStores = new Map<string, DeviceTokenStore>();
 	private detachCredentials?: () => void;
@@ -113,7 +148,9 @@ export class DesktopApplication {
 
 	async start(
 		connection: string | { origin: string; deviceToken: string },
+		options: { startHidden?: boolean } = {},
 	): Promise<void> {
+		this.startHidden = options.startHidden ?? false;
 		const server =
 			typeof connection === "string"
 				? await this.openExternalServer(connection)
@@ -126,10 +163,34 @@ export class DesktopApplication {
 			app.getPath("userData"),
 		);
 		const updates = await createUpdateChecker();
+		const loginItem = createLoginItem();
+		try {
+			console.info("desktop.login_item_loaded", loginItem.state());
+		} catch (error) {
+			console.warn("desktop.login_item_state_failed", { error });
+		}
 		this.cleanup.push(
 			registerDesktopIpc(
 				{
 					checkForUpdates: () => updates.check(),
+					getLaunchAtLogin: async () => {
+						try {
+							return loginItem.state();
+						} catch (error) {
+							console.warn("desktop.login_item_state_failed", { error });
+							return { supported: false, enabled: false };
+						}
+					},
+					setLaunchAtLogin: async (enabled) => {
+						if (this.disposed)
+							throw new Error("Desktop application is shutting down.");
+						try {
+							loginItem.setEnabled(enabled);
+						} catch (error) {
+							console.warn("desktop.login_item_save_failed", { error });
+							throw error;
+						}
+					},
 					getCloseToTray: async () => this.tray?.enabled ?? false,
 					setCloseToTray: async (enabled) => {
 						if (this.disposed || !this.tray)
@@ -191,6 +252,10 @@ export class DesktopApplication {
 		const window = contents && BrowserWindow.fromWebContents(contents);
 		if (window) {
 			if (window.isMinimized()) window.restore();
+			const mode = this.hiddenWindowMode;
+			this.hiddenWindowMode = undefined;
+			if (mode?.maximized) window.maximize();
+			if (mode?.fullscreen) window.setFullScreen(true);
 			window.show();
 			window.focus();
 			return;
@@ -306,10 +371,19 @@ export class DesktopApplication {
 	}
 
 	private async createWindow() {
+		const startHidden = this.startHidden && this.tray?.enabled === true;
+		if (this.startHidden) {
+			console.info("desktop.window_start_mode", {
+				launchedAtLogin: true,
+				hidden: startHidden,
+			});
+			this.startHidden = false;
+		}
 		const windowState = new WindowStateStore(app.getPath("userData"));
 		const savedState = windowState.read();
 		const window = new BrowserWindow({
 			...windowState.windowOptions(savedState),
+			show: !startHidden,
 			...(process.platform === "linux"
 				? {
 						icon: iconPath(),
@@ -322,7 +396,12 @@ export class DesktopApplication {
 				sandbox: true,
 			},
 		});
-		windowState.manage(window, savedState);
+		windowState.manage(window, savedState, { applyMode: !startHidden });
+		if (startHidden && savedState)
+			this.hiddenWindowMode = {
+				maximized: savedState.maximized,
+				fullscreen: savedState.fullscreen,
+			};
 		window.on("close", (event) => {
 			if (this.disposed || !this.tray?.enabled) return;
 			event.preventDefault();
@@ -332,7 +411,10 @@ export class DesktopApplication {
 		if (process.platform !== "darwin") window.removeMenu();
 		const contents = window.webContents;
 		this.windows.add(contents);
-		contents.once("destroyed", () => this.windows.delete(contents));
+		contents.once("destroyed", () => {
+			this.windows.delete(contents);
+			this.hiddenWindowMode = undefined;
+		});
 		contents.on("will-navigate", (event, url) => {
 			// Session changes reload the same local document with a new hash route.
 			if (url.split("#", 1)[0] !== rendererUrl) event.preventDefault();
@@ -344,6 +426,6 @@ export class DesktopApplication {
 			if (!window.isDestroyed()) window.destroy();
 			throw error;
 		}
-		console.info("desktop.window_opened");
+		console.info("desktop.window_opened", { hidden: startHidden });
 	}
 }

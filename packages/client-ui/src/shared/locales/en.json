@@ -846,6 +846,13 @@
 		"unsupported": "This episode mapping is not supported for tracking.",
 		"unavailable": "Tracking is unavailable. Local playback is unaffected."
 	},
+	"startupSettings": {
+		"title": "Startup",
+		"launchAtLogin": "Launch Anishelf when you sign in to your computer",
+		"launchAtLoginHelp": "Anishelf starts in the background and keeps the bundled backend running. When the tray is enabled, the window stays hidden until you open it from the tray.",
+		"unavailable": "Launch at login is available in the packaged application.",
+		"saveFailed": "Could not save the startup setting. Try again."
+	},
 	"desktopSettings": {
 		"title": "Window and tray",
 		"closeToTray": "Keep running in the tray when closing the window",

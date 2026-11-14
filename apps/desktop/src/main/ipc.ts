@@ -2,6 +2,7 @@ import { desktopOrigin } from "@anishelf/contracts/defaults";
 import { ipcMain, type WebContents } from "electron";
 import type {
 	DesktopBridge,
+	DesktopLoginItemState,
 	DesktopUpdateCheck,
 	ExternalPlayerListResponse,
 	ServerSignInResult,
@@ -13,6 +14,8 @@ import type {
  */
 export interface DesktopIpcHandlers {
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
+	getLaunchAtLogin(): Promise<DesktopLoginItemState>;
+	setLaunchAtLogin(enabled: unknown): Promise<void>;
 	getCloseToTray(): Promise<boolean>;
 	setCloseToTray(enabled: unknown): Promise<void>;
 	getServerConnection: DesktopBridge["getServerConnection"];
@@ -69,6 +72,10 @@ export function registerDesktopIpc(
 
 	try {
 		handle("desktop:check-for-updates", () => handlers.checkForUpdates());
+		handle("desktop:login-item:get", () => handlers.getLaunchAtLogin());
+		handle("desktop:login-item:set", (_, enabled) =>
+			handlers.setLaunchAtLogin(enabled),
+		);
 		handle("desktop:tray:get", handlers.getCloseToTray);
 		handle("desktop:tray:set", (_, enabled) =>
 			handlers.setCloseToTray(enabled),
