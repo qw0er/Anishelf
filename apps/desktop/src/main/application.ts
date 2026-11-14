@@ -23,6 +23,7 @@ import {
 	checkServerConnection,
 	writeServerOrigin,
 } from "./server-connection.js";
+import { WindowStateStore } from "./window-state.js";
 
 const rendererUrl = `${desktopOrigin}/`;
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
@@ -176,9 +177,10 @@ export class DesktopApplication {
 	}
 
 	private async createWindow() {
+		const windowState = new WindowStateStore(app.getPath("userData"));
+		const savedState = windowState.read();
 		const window = new BrowserWindow({
-			width: 1280,
-			height: 800,
+			...windowState.windowOptions(savedState),
 			webPreferences: {
 				preload,
 				contextIsolation: true,
@@ -186,6 +188,7 @@ export class DesktopApplication {
 				sandbox: true,
 			},
 		});
+		windowState.manage(window, savedState);
 		if (process.platform !== "darwin") window.removeMenu();
 		const contents = window.webContents;
 		this.windows.add(contents);

@@ -32,6 +32,11 @@ of the platform user data directory for `anishelf`. On Linux this is
 default. The previous Electron profile is left in place. Sign in again and
 reapply any local preferences when using the new profile.
 
+The window's normal size and position, maximized state, and fullscreen state are
+saved in `window-state.json` in the desktop profile. If the saved position is no
+longer visible on a connected display, the window opens at a default position.
+On Wayland, the compositor controls window positioning.
+
 The desktop platform adapter uses Electron for clipboard writes, media downloads,
 and opening links and external players. External players are configured as command
 players: enter a command name available on PATH or choose an executable, then one
