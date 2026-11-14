@@ -33,6 +33,19 @@ Podman uses rootless Quadlet. Defaults are `~/anishelf` (or `~/anishelf-test` wi
 `--test`), loopback binding, port `3000`, the `latest` image tag and a managed media
 volume. Backend logging defaults to `info`, or `debug` with `--test`; use
 `--log-level` to override it. Backend logs go to standard output by default.
+
+Pass `--no-web` to omit the Web service and publish Backend on the configured
+bind address and port instead. This provides the API, not the browser UI. Use
+`--web` to restore Web during reconfiguration. Other selected services remain
+available. For a remote desktop client, put a TLS reverse proxy in front of the
+published Backend and configure `ANISHELF_TRUSTED_PROXIES` for the actual proxy
+source address; alternatively use SSH forwarding. Remote desktop connections
+require HTTPS, while loopback HTTP is supported.
+Configure the proxy to preserve `Host` and set `X-Forwarded-Proto` from the
+client connection. For Docker, set `ANISHELF_TRUSTED_PROXIES` in `.env`; for
+Quadlet, set it in the Backend unit. The commands below assume Web is enabled;
+with `--no-web`, omit `web` and `anishelf-web.service` from them. The installer
+also prints commands matching the generated services.
 Use `--log-destination file` or `--log-destination both` to enable file output,
 which defaults to `logs/anishelf.log` under the deployment directory, with the
 Backend's normal file rotation. The container account (UID/GID 1000 for Docker, mapped to
@@ -141,6 +154,7 @@ additionally accept `--force`.
 | --- | --- |
 | `--deploy-dir DIRECTORY` | New deployment directory; default `~/anishelf` |
 | `--engine docker` / `--engine podman` | Select an engine; required when both are installed |
+| `--web` / `--no-web` | Include Web (default) or publish Backend directly |
 | `--image-tag TAG` | Matching Web/Backend image tag; default `latest` |
 | `--log-level LEVEL` | Backend log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` or `silent`; default `info` (`debug` with `--test`) |
 | `--log-destination MODE` | Backend output: `stdout`, `file` or `both`; default `stdout` |

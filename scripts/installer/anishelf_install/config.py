@@ -26,6 +26,7 @@ class Settings:
     public_origin: str
     qbit: bool
     jackett: bool
+    web: bool = True
     log_level: str = "info"
     log_path: str = ""
     log_destination: str = "stdout"
@@ -86,6 +87,7 @@ class Settings:
             f"qBittorrent={'yes' if self.qbit else 'no'}; "
             f"Jackett={'yes' if self.jackett else 'no'}"
         )
+        log(f"Web service: {'yes' if self.web else 'no; Backend is published directly'}")
 
 
 def deployment_profile(test_mode: bool) -> str:
@@ -105,7 +107,7 @@ _SAVED_OPTIONS = {
     "image_tag": "image_tag", "log_level": "log_level", "log_path": "log_path",
     "log_destination": "log_destination", "bind": "bind_address",
     "port": "app_port", "public_origin": "public_origin", "qbit": "qbit",
-    "jackett": "jackett", "qbit_port": "qbit_port", "peer_port": "peer_port",
+    "jackett": "jackett", "web": "web", "qbit_port": "qbit_port", "peer_port": "peer_port",
     "jackett_port": "jackett_port", "media": "media_path", "extra_media": "extra_paths",
     "selinux_relabel": "selinux_relabel",
 }

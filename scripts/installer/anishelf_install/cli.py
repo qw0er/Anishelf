@@ -112,6 +112,10 @@ def _add_settings_options(parser: argparse.ArgumentParser) -> None:
 
     services = parser.add_argument_group("optional services")
     services.add_argument(
+        "--web", action=argparse.BooleanOptionalAction, default=None,
+        help="include Web frontend (default: enabled); --no-web publishes Backend directly",
+    )
+    services.add_argument(
         "--qbit",
         action=argparse.BooleanOptionalAction,
         default=None,

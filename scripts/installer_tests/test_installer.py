@@ -513,6 +513,36 @@ class InstallerTests(unittest.TestCase):
             "--volumes" not in call["args"] and "-v" not in call["args"] for call in downs
         ))
 
+    def test_no_web_compose_reconfiguration(self) -> None:
+        fixture = Fixture(self)
+        port = self.health_server()
+        result = self.generate(fixture, "--engine", "docker", "--deploy-dir", str(fixture.target),
+                               "--port", str(port), "--no-web", "--qbit")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        compose = (fixture.target / "compose.yaml").read_text()
+        self.assertNotIn("  web:", compose)
+        self.assertIn('${ANISHELF_PORT:-3000}:3000', compose)
+        self.assertIn("  qbittorrent:", compose)
+        self.assertFalse(json.loads((fixture.target / "deployment.json").read_text())["settings"]["web"])
+        self.assertIn("docker compose pull backend &&", result.stderr)
+        result = fixture.run(["reconfigure", str(fixture.target)])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("  web:", (fixture.target / "compose.yaml").read_text())
+        result = fixture.run(["reconfigure", str(fixture.target), "--web"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("  web:", (fixture.target / "compose.yaml").read_text())
+
+    def test_no_web_quadlet_generation(self) -> None:
+        fixture = Fixture(self)
+        result = self.generate(fixture, "--engine", "podman", "--deploy-dir", str(fixture.target),
+                               "--no-web", "--test", "--jackett")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        units = fixture.target / "quadlet"
+        self.assertFalse((units / "anishelf-test-web.container").exists())
+        self.assertIn("PublishPort=127.0.0.1:3001:3000", (units / "anishelf-test-backend.container").read_text())
+        self.assertNotIn("anishelf-test-web.service", (units / "anishelf-test.target").read_text())
+        self.assertIn("anishelf-test-jackett.service", result.stderr)
+
     def test_compose_generation_includes_only_selected_service_settings(self) -> None:
         for qbit in (False, True):
             for jackett in (False, True):

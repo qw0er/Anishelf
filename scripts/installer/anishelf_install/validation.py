@@ -132,15 +132,16 @@ def known_unit(name: str, stack: str) -> bool:
     return candidate in _KNOWN_UNITS
 
 
-def unit_order(qbit: bool, jackett: bool) -> list[str]:
+def unit_order(qbit: bool, jackett: bool, web: bool = True) -> list[str]:
     units = [
         "anishelf.network",
         "anishelf-app.volume",
         "anishelf-media.volume",
         "anishelf-backend.container",
-        "anishelf-web.container",
         "anishelf.target",
     ]
+    if web:
+        units.append("anishelf-web.container")
     if qbit:
         units.extend(
             [

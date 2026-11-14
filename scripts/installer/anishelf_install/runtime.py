@@ -383,6 +383,9 @@ def health_check(settings: Settings) -> None:
             with opener.open(request, timeout=3) as response:
                 status = getattr(response, "status", 200)
                 if status < 400:
+                    if not settings.web:
+                        log("Backend is healthy; Web service is disabled.")
+                        return
                     log(
                         "Deployment is healthy. Open "
                         f"{settings.public_origin or f'http://localhost:{settings.app_port}'}; "

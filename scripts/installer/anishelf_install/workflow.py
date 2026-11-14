@@ -320,6 +320,7 @@ class Installer:
             public_origin=public_origin,
             qbit=qbit,
             jackett=jackett,
+            web=args.web if args.web is not None else True,
             media_path=media_path,
             extra_paths=extra_paths,
             qbit_port=qbit_port,
@@ -468,7 +469,7 @@ class Installer:
             raise InstallerError(str(error)) from error
         self.bundle["compose.yaml"] = rendered
         self.bundle[".env"] = self._render_env(self.settings)
-        services = ["backend", "web"]
+        services = ["backend"] + (["web"] if self.settings.web else [])
         if self.settings.qbit:
             services.extend(["qbittorrent-init", "qbittorrent"])
         if self.settings.jackett:
@@ -477,7 +478,7 @@ class Installer:
 
     def _prepare_quadlet(self) -> None:
         assert self.settings is not None and self.assets is not None
-        units = unit_order(self.settings.qbit, self.settings.jackett)
+        units = unit_order(self.settings.qbit, self.settings.jackett, self.settings.web)
         for unit in units:
             rendered = render_quadlet(
                 unit,
@@ -646,7 +647,7 @@ class Installer:
                     "is-active",
                     "--quiet",
                     f"{settings.stack}-backend.service",
-                    f"{settings.stack}-web.service",
+                    *([f"{settings.stack}-web.service"] if settings.web else []),
                 ]
             )
             if settings.qbit:
@@ -687,10 +688,11 @@ class Installer:
             log(f"Manage with Docker Compose from: cd {shlex.quote(str(settings.deploy_dir))}")
             log("Start: docker compose up -d")
             log("Stop: docker compose down --remove-orphans")
-            log("Logs / initial password: docker compose logs -f --tail=100 backend web")
+            app_services = "backend web" if settings.web else "backend"
+            log(f"Logs / initial password: docker compose logs -f --tail=100 {app_services}")
             log(
-                "Update application: docker compose pull backend web && "
-                "docker compose up -d --no-deps backend web"
+                f"Update application: docker compose pull {app_services} && "
+                f"docker compose up -d --no-deps {app_services}"
             )
             log("Update all configured services: docker compose pull && docker compose up -d")
             return
@@ -709,15 +711,16 @@ class Installer:
         log(f"Disable boot startup: systemctl --user disable {settings.stack}.target")
         log(
             f"Logs / initial password: journalctl --user -u {settings.stack}-backend.service "
-            f"-u {settings.stack}-web.service -f"
+            + (f"-u {settings.stack}-web.service " if settings.web else "") + "-f"
         )
-        services = ["backend", "web"]
+        services = ["backend"] + (["web"] if settings.web else [])
         scopes = [("application", list(services))]
+        application_count = len(services)
         if settings.qbit:
             services.append("qbittorrent")
         if settings.jackett:
             services.append("jackett")
-        if len(services) > 2:
+        if len(services) > application_count:
             scopes.append(("all configured services", services))
         for scope, selected in scopes:
             images = []
@@ -793,7 +796,6 @@ class Installer:
             quadlet_dir.is_dir()
             and not quadlet_dir.is_symlink()
             and is_regular_file(quadlet_dir / f"{stack}-backend.container")
-            and is_regular_file(quadlet_dir / f"{stack}-web.container")
             and is_regular_file(quadlet_dir / f"{stack}.target")
         ):
             method = "quadlet"

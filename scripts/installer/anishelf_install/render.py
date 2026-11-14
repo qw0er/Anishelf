@@ -16,6 +16,7 @@ def render_compose(template: str, settings: Settings) -> str:
     # These are fixed, two-space-indented entries in our canonical template,
     # not arbitrary operator-provided YAML. Keep offline generation stdlib-only.
     optional_entries = {
+        "web": settings.web,
         "qbittorrent": settings.qbit,
         "qbittorrent-init": settings.qbit,
         "qbittorrent-config": settings.qbit,
@@ -33,6 +34,11 @@ def render_compose(template: str, settings: Settings) -> str:
                 text,
                 flags=re.MULTILINE | re.DOTALL,
             )
+    if not settings.web:
+        text = text.replace(
+            "    # Keep the Backend readiness dependency explicit in this deployment.\n",
+            '    ports:\n      - "${ANISHELF_BIND_ADDRESS:-127.0.0.1}:${ANISHELF_PORT:-3000}:3000"\n',
+        )
     text = "\n".join(
         line
         for line in text.splitlines()
@@ -149,6 +155,10 @@ def render_quadlet(name: str, template: str, settings: Settings) -> str:
                     f"Volume={extra}:/data/extra/{index}:rw{settings.selinux_suffix}"
                 )
     text = "\n".join(lines)
+    if not settings.web and name == "anishelf.target":
+        text = text.replace(" anishelf-web.service", "")
+    if not settings.web and name == "anishelf-backend.container":
+        text = text.replace("[Service]", f"PublishPort={settings.bind_address}:{settings.app_port}:3000\n\n[Service]")
     if template.endswith("\n"):
         text += "\n"
     if settings.test_mode:
