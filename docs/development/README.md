@@ -1,6 +1,6 @@
 # Anishelf Development
 
-[Architecture](architecture.md) · [Future clients](clients.md) · [Playback assets](playback.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
+[Architecture](architecture.md) · [Future clients](clients.md) · [Windows compatibility](windows-compatibility.md) · [Playback assets](playback.md) · [UI design](design-system.md) · [Database](database-design.md) · [Operations](../guide/operations.md)
 
 The npm workspaces live in `apps/desktop/` (Electron shell), `apps/server/` (Fastify backend), `apps/web/`
 (browser entry and PWA), `packages/client-ui/` (React app and tests),
