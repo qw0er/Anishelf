@@ -3,34 +3,25 @@
 This workspace uses TypeScript for the Electron main process and Vite with
 React and TypeScript for the shared Anishelf interface.
 
-From the repository root, run `npm run dev:desktop` to launch Electron with a local
-backend watcher. Renderer changes update through Vite; main process and preload
-changes rebuild and restart Electron. Vite listens on `127.0.0.1:5174`. Run
-`npm run start:desktop` to build and launch Electron with a
-local backend without watch mode. If Electron opens while the backend is still
-starting, retry from the app once the backend is ready.
+From the repository root, run `npm run dev:desktop` to build the backend and
+launch Electron. Renderer changes update through Vite at `127.0.0.1:5174`.
+Main process and preload changes rebuild and restart Electron. Restart the
+development command after changing server code to rebuild the backend. Run
+`npm run start:desktop` for a regular build and launch.
 
-Use `npm run dev:desktop:client` to run only Electron in development mode, or
-`npm run start:desktop:client` to launch an existing desktop build. Open
-the sign-in page to enter the server address and password together. The app
-checks the connection and signs in before saving the address in the desktop
-profile. Open **Server connection** from Settings or the page load error screen
-to return to the same form.
+The app starts the bundled backend by default and signs in automatically. In
+**Settings → Server connection**, choose **External server** to enter another
+Anishelf server's address and password. Use HTTPS for remote servers. HTTP is
+supported for `localhost`, `127.0.0.1`, and `[::1]`. Enter an origin without a
+path, query, fragment, or credentials. The sign-in screen can also switch back to
+the local backend when an external server is unavailable.
 
-The app uses the saved address on startup. The default is
-`http://127.0.0.1:3000`. Use HTTPS for remote servers. HTTP is supported for
-`localhost`, `127.0.0.1`, and `[::1]`. Specify only the origin, without a path,
-query, fragment, or credentials.
-
-The desktop client uses the server's device sessions. Electron keeps the token
-in the main process and uses the system credential store to encrypt it on disk.
-When secure storage is unavailable, the session lasts until the app exits.
-
-Electron stores its profile and device sessions in the `desktop` subdirectory
-of the platform user data directory for `anishelf`. On Linux this is
-`$XDG_DATA_HOME/anishelf/desktop`, with `~/.local/share/anishelf/desktop` as the
-default. The previous Electron profile is left in place. Sign in again and
-reapply any local preferences when using the new profile.
+The profile is stored in the `desktop` subdirectory of the platform user data
+directory for `anishelf`. On Linux this defaults to
+`~/.local/share/anishelf/desktop` and respects `XDG_DATA_HOME`. The bundled
+backend keeps its database, settings and logs in the profile's `backend/`
+subdirectory. Electron holds local device credentials in memory and encrypts
+external device tokens on disk when secure storage is available.
 
 The window's normal size and position, maximized state, and fullscreen state are
 saved in `window-state.json` in the desktop profile. If the saved position is no
@@ -59,15 +50,14 @@ On Fedora, the bundled FPM tool used for deb and RPM builds requires the
 compatibility library `libcrypt.so.1`. Install it with
 `sudo dnf install libxcrypt-compat` before packaging if it is not already present.
 
-The package contains the desktop client, not the backend. Connect it to a running
-Anishelf server. The package version comes from the root package manifest. Code
-signing and macOS notarization are not configured; configure credentials and
-signing before distributing signed builds. Linux uses the Anishelf icon and a
-matching desktop entry; Windows and macOS use the default Electron icon.
+The package includes Electron, the Anishelf backend, SQLite and database
+migrations. It runs without system Node.js. Install FFmpeg and FFprobe
+separately for media probing and transcoding. Configure qBittorrent and Jackett
+connections in Settings as needed. Linux uses the Anishelf icon and matching
+desktop entry. Windows and macOS use the default Electron icon. These builds
+are unsigned and macOS builds are not notarized.
 
-The release workflow builds desktop packages for each default runner's native
-architecture after the project checks pass. Currently this is x64 on Linux and
-Windows, and arm64 on macOS. A manual workflow run keeps them as Actions
-artifacts for seven days. For a version tag on `main`, the workflow uploads
-them to the GitHub Release after both container image manifests are published.
-These builds are unsigned and macOS builds are not notarized.
+The release workflow builds installers for Linux x64, Windows x64 and macOS
+arm64. A manual release workflow run keeps the installers as Actions artifacts
+for seven days. For a version tag on `main`, the workflow also attaches them to
+the GitHub Release.

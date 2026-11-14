@@ -25,13 +25,13 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` / `npm run dev:web` | Start the local backend watcher and Web Vite server |
-| `npm run dev:desktop` | Start the backend watcher and Electron with renderer hot updates and main-process restart |
+| `npm run dev:desktop` | Build the backend and start Electron with renderer hot updates and main-process restart |
 | `npm run dev:web:lan` | Start the local backend watcher and expose Vite on `0.0.0.0:5173` for trusted LAN development |
 | `npm start` / `npm run start:web` | Build Backend and Web and serve the built Web UI at the backend address |
-| `npm run start:desktop` | Build Backend and Electron, then launch both without watch mode |
+| `npm run start:desktop` | Build Backend and Electron, then launch the desktop app |
 | `npm run dev:backend` / `npm run start:backend` | Run only Backend with a watcher, or launch the existing backend build |
 | `npm run dev:web:client` | Run only the Web Vite server |
-| `npm run dev:desktop:client` / `npm run start:desktop:client` | Run Electron in development mode without the backend, or launch the existing desktop build |
+| `npm run dev:desktop:client` / `npm run start:desktop:client` | Run desktop development mode or launch the existing desktop build |
 | `npm run check` | Biome, lint, architecture, type checks and tests |
 | `npm run build` | Build the server, Web, and desktop apps |
 | `node --import tsx scripts/manual-tests/anime-corpus.mts summary` / `generate <new-directory>` | Inspect integration fixtures or generate an exclusive placeholder directory |
@@ -46,7 +46,7 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 ## Development proxy and hosting
 
 The Vite development proxy sends API requests to `http://127.0.0.1:3000`.
-Set the desktop client's server address on its sign-in page.
+The desktop app defaults to its bundled backend. Change the connection in **Settings → Server connection**.
 
 | Setting | Use |
 | --- | --- |
