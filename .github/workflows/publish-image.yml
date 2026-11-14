@@ -1,4 +1,4 @@
-name: Publish container images
+name: Publish release
 
 on:
   workflow_dispatch:
@@ -63,6 +63,81 @@ jobs:
     needs: check-source
     if: needs.check-source.outputs.allowed == 'true'
     uses: ./.github/workflows/check.yml
+
+  desktop:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+            extensions: AppImage,deb,rpm
+          - platform: windows
+            runner: windows-latest
+            extensions: exe
+          - platform: macos
+            runner: macos-latest
+            extensions: dmg
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Linux packaging tools
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build desktop packages
+        env:
+          ANISHELF_BUILD_TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
+          ANISHELF_BUILD_COMMIT: ${{ github.sha }}
+          ANISHELF_BUILD_CHANNEL: ${{ github.event_name == 'workflow_dispatch' && 'testing' || 'stable' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run package:desktop -- --publish never
+
+      - name: Verify expected packages
+        shell: bash
+        env:
+          EXTENSIONS: ${{ matrix.extensions }}
+        run: |
+          IFS=, read -ra extensions <<< "$EXTENSIONS"
+          shopt -s nullglob
+          for extension in "${extensions[@]}"; do
+            files=(apps/desktop/release/*."$extension")
+            if [ "${#files[@]}" -ne 1 ]; then
+              echo "Expected exactly one .$extension package; found ${#files[@]}." >&2
+              exit 1
+            fi
+            echo "Built ${files[0]}"
+          done
+
+      - name: Upload desktop packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}-${{ runner.arch }}
+          path: |
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/*.rpm
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.dmg
+          if-no-files-found: error
+          retention-days: 7
 
   build:
     needs: verify
@@ -211,10 +286,10 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   release:
-    needs: publish
+    needs: [publish, desktop]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
@@ -228,16 +303,23 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: node scripts/release-notes.mjs "$RELEASE_TAG" "$RUNNER_TEMP/release-notes.md"
 
-      - name: Publish GitHub Release after both image manifests
+      - name: Download desktop packages
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/desktop
+          pattern: desktop-*
+          merge-multiple: true
+
+      - name: Publish GitHub Release after images and desktop packages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release already exists."
+            gh release upload "$RELEASE_TAG" "$RUNNER_TEMP"/desktop/* --clobber
           elif [[ "$RELEASE_TAG" == *-* ]]; then
-            gh release create "$RELEASE_TAG" --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md" --prerelease
+            gh release create "$RELEASE_TAG" "$RUNNER_TEMP"/desktop/* --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md" --prerelease
           else
-            gh release create "$RELEASE_TAG" --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md" --latest
+            gh release create "$RELEASE_TAG" "$RUNNER_TEMP"/desktop/* --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md" --latest
           fi

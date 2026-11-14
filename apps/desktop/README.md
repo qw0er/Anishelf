@@ -64,3 +64,10 @@ Anishelf server. The package version comes from the root package manifest. Code
 signing and macOS notarization are not configured; configure credentials and
 signing before distributing signed builds. Linux uses the Anishelf icon and a
 matching desktop entry; Windows and macOS use the default Electron icon.
+
+The release workflow builds desktop packages for each default runner's native
+architecture after the project checks pass. Currently this is x64 on Linux and
+Windows, and arm64 on macOS. A manual workflow run keeps them as Actions
+artifacts for seven days. For a version tag on `main`, the workflow uploads
+them to the GitHub Release after both container image manifests are published.
+These builds are unsigned and macOS builds are not notarized.
