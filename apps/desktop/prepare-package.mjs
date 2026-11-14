@@ -12,6 +12,11 @@ const rootPackage = JSON.parse(
 );
 const require = createRequire(import.meta.url);
 const electronVersion = require("electron/package.json").version;
+const backendDir = join(rootDir, "apps/server");
+const { dependencies: backendDependencies } = JSON.parse(
+	await readFile(join(backendDir, "package.json"), "utf8"),
+);
+delete backendDependencies["@anishelf/contracts"];
 
 console.info("desktop.package.preparing", { stagingDir });
 await rm(stagingDir, { recursive: true, force: true });
@@ -25,6 +30,27 @@ await build({
 	target: "node24",
 	external: ["electron", "platformdirs"],
 });
+// Preserve the relative locations used for SQLite migrations and build metadata.
+await build({
+	entryPoints: [join(backendDir, "src/desktop.ts")],
+	outfile: join(stagingDir, "dist/backend/app/bootstrap/desktop.js"),
+	bundle: true,
+	platform: "node",
+	format: "esm",
+	target: "node24",
+	external: Object.keys(backendDependencies),
+});
+await cp(join(backendDir, "migrations"), join(stagingDir, "dist/migrations"), {
+	recursive: true,
+});
+await cp(
+	join(desktopDir, "build-info.json"),
+	join(stagingDir, "dist/backend/build-info.json"),
+);
+await cp(
+	join(desktopDir, "backend-process.mjs"),
+	join(stagingDir, "backend-process.mjs"),
+);
 await cp(join(desktopDir, "dist/preload"), join(stagingDir, "dist/preload"), {
 	recursive: true,
 });
@@ -53,13 +79,16 @@ await writeFile(
 			license: rootPackage.license,
 			type: "module",
 			main: "dist/main/index.js",
-			dependencies: { platformdirs: "4.3.7" },
+			dependencies: backendDependencies,
 			build: {
 				appId: "app.anishelf.desktop",
 				artifactName: `anishelf-desktop-\${version}-\${arch}.\${ext}`,
 				electronVersion,
+				// better-sqlite3 ships Node-API prebuilds for the release targets.
+				npmRebuild: false,
 				directories: { output: join(desktopDir, "release") },
-				files: ["dist/**/*"],
+				files: ["dist/**/*", "backend-process.mjs"],
+				asarUnpack: ["**/*.node"],
 				linux: {
 					target: ["AppImage", "deb", "rpm"],
 					category: "AudioVideo",

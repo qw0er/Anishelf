@@ -88,7 +88,10 @@ export class DesktopApplication {
 	private readonly tokenStores = new Map<string, DeviceTokenStore>();
 	private detachCredentials?: () => void;
 
-	constructor(private readonly onFailure: (error: unknown) => void) {}
+	constructor(
+		private readonly onFailure: (error: unknown) => void,
+		private readonly onLeaveLocalBackend: () => void,
+	) {}
 
 	async start(
 		connection: string | { origin: string; deviceToken: string },
@@ -223,7 +226,9 @@ export class DesktopApplication {
 					: await this.openExternalServer(origin);
 			await writeServerOrigin(app.getPath("userData"), origin);
 			await server.tokens.set(login.token);
+			const leavingLocal = this.server.kind === "local";
 			if (server !== this.server) this.activateServer(server);
+			if (leavingLocal) this.onLeaveLocalBackend();
 			console.info("desktop.device_signed_in", { origin });
 			return { status: "ok", origin };
 		} catch {

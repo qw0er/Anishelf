@@ -12,6 +12,9 @@
 				"src/modules/anime/external-works/bangumi/openapi.gen.ts": ["types"]
 			}
 		},
+		"apps/desktop": {
+			"entry": ["backend-process.mjs"]
+		},
 		"packages/client-ui": {
 			"ignoreIssues": {
 				"src/shared/components/ui/**": ["exports", "types"]

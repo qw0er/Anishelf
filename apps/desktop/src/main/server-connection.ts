@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { serverDefaults } from "@anishelf/contracts/defaults";
 import { net } from "electron";
 import { parseServerOrigin } from "./server-address.js";
 
 const settingsFile = "server-origin";
 
-export async function readServerOrigin(profile: string): Promise<string> {
+export async function readServerOrigin(
+	profile: string,
+): Promise<string | null> {
 	try {
 		const saved = await readFile(join(profile, settingsFile), "utf8");
 		const origin = parseServerOrigin(saved);
@@ -17,7 +18,7 @@ export async function readServerOrigin(profile: string): Promise<string> {
 		if (!(error instanceof Error && "code" in error && error.code === "ENOENT"))
 			console.warn("desktop.saved_server_read_failed");
 	}
-	return `http://${serverDefaults.host}:${serverDefaults.port}`;
+	return null;
 }
 
 export async function writeServerOrigin(profile: string, origin: string) {
