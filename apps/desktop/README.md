@@ -45,3 +45,22 @@ the playback menu.
 Anishelf asks for confirmation before every launch and starts the process detached
 without a shell. No URL protocol handler is needed. Custom player settings are
 stored on this computer.
+
+## Packaging
+
+Run `npm ci` and then `npm run package:desktop` from the repository root.
+The first package build may download Electron and platform packaging tools.
+Output is written to `apps/desktop/release/`: Linux builds AppImage, deb, and rpm,
+Windows builds an NSIS installer, and macOS builds a DMG. Build on the target
+operating system and architecture. Pass electron-builder options after `--`, for
+example `npm run package:desktop -- --dir` for an unpacked application.
+
+On Fedora, the bundled FPM tool used for deb and RPM builds requires the
+compatibility library `libcrypt.so.1`. Install it with
+`sudo dnf install libxcrypt-compat` before packaging if it is not already present.
+
+The package contains the desktop client, not the backend. Connect it to a running
+Anishelf server. The package version comes from the root package manifest. Code
+signing and macOS notarization are not configured; configure credentials and
+signing before distributing signed builds. Linux uses the Anishelf icon and a
+matching desktop entry; Windows and macOS use the default Electron icon.

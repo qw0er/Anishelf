@@ -49,7 +49,8 @@
 		"start:desktop:client": "npm run start --workspace @anishelf/desktop --",
 		"architecture:check": "node scripts/check-architecture.mjs",
 		"architecture:test": "node --test scripts/architecture.test.mjs scripts/release-notes.test.mjs",
-		"unused:check": "knip --no-progress"
+		"unused:check": "knip --no-progress",
+		"package:desktop": "npm run package --workspace @anishelf/desktop --"
 	},
 	"overrides": {
 		"@esbuild-kit/core-utils": {

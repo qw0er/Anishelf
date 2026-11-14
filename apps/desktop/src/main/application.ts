@@ -181,6 +181,18 @@ export class DesktopApplication {
 		const savedState = windowState.read();
 		const window = new BrowserWindow({
 			...windowState.windowOptions(savedState),
+			...(process.platform === "linux"
+				? {
+						icon: fileURLToPath(
+							new URL(
+								app.isPackaged
+									? "../icon.png"
+									: "../../../web/public/icon-512.png",
+								import.meta.url,
+							),
+						),
+					}
+				: {}),
 			webPreferences: {
 				preload,
 				contextIsolation: true,
