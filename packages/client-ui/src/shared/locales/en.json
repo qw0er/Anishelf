@@ -146,6 +146,8 @@
 		"pathsHelp": "Use non-overlapping absolute server paths. Add directories, then Save to start a scan. Removing every directory returns to setup mode.",
 		"newPathLabel": "New resource directory path",
 		"addPath": "Add directory",
+		"chooseDirectory": "Choose directory",
+		"choosePathFailed": "Could not open the directory picker.",
 		"deletePath": "Remove",
 		"removePath": "Remove directory {{path}}",
 		"duplicatePath": "This directory is already in the list.",

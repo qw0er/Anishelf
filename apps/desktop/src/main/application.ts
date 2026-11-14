@@ -18,6 +18,7 @@ import {
 	createDesktopLoginItem,
 	LAUNCH_AT_LOGIN_FLAG,
 } from "./native/login-item.js";
+import { chooseResourceDirectory } from "./native/resource-directory.js";
 import { DesktopTray } from "./native/tray.js";
 import { DesktopUpdateChecker } from "./native/updates.js";
 import { registerRendererProtocol } from "./protocol.js";
@@ -212,6 +213,15 @@ export class DesktopApplication {
 						if (typeof text !== "string")
 							throw new Error("Expected clipboard text.");
 						clipboard.writeText(text);
+					},
+					chooseDirectory: (sender) => {
+						if (this.server.kind !== "local")
+							throw new Error(
+								"Directory selection requires the local backend.",
+							);
+						return chooseResourceDirectory(
+							BrowserWindow.fromWebContents(sender),
+						);
 					},
 					openExternal,
 					downloadFile: async (sender, url, filename) => {

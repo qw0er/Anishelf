@@ -145,6 +145,8 @@
 		"pathsHelp": "使用互不重叠的服务器绝对路径。添加目录后保存即可开始扫描。移除所有目录将返回初始设置。",
 		"newPathLabel": "新资源目录路径",
 		"addPath": "添加目录",
+		"chooseDirectory": "选择目录",
+		"choosePathFailed": "无法打开目录选择器。",
 		"deletePath": "移除",
 		"removePath": "移除目录 {{path}}",
 		"duplicatePath": "此目录已在列表中。",

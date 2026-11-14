@@ -17,6 +17,7 @@ const desktop: DesktopBridge = {
 	clearDeviceToken: (origin) =>
 		ipcRenderer.invoke("desktop:clear-device-token", origin),
 	copyText: (text) => ipcRenderer.invoke("desktop:copy-text", text),
+	chooseDirectory: () => ipcRenderer.invoke("desktop:choose-directory"),
 	openExternal: (url) => ipcRenderer.invoke("desktop:open-external", url),
 	downloadFile: (url, filename) =>
 		ipcRenderer.invoke("desktop:download-file", url, filename),

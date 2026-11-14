@@ -23,6 +23,7 @@ export interface DesktopIpcHandlers {
 	signIn(origin: unknown, password: unknown): Promise<ServerSignInResult>;
 	clearDeviceToken(origin: unknown): Promise<void>;
 	copyText(text: string): Promise<void>;
+	chooseDirectory(sender: WebContents): Promise<string | null>;
 	openExternal(url: string): Promise<void>;
 	downloadFile(
 		sender: WebContents,
@@ -89,6 +90,9 @@ export function registerDesktopIpc(
 			handlers.clearDeviceToken(origin),
 		);
 		handle("desktop:copy-text", (_, text: string) => handlers.copyText(text));
+		handle("desktop:choose-directory", (sender) =>
+			handlers.chooseDirectory(sender),
+		);
 		handle("desktop:open-external", (_, url: string) =>
 			handlers.openExternal(url),
 		);

@@ -1,6 +1,7 @@
 import { Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
+import { getClientRuntime } from "../../../shared/api/connection.js";
 import type { SettingsResponse } from "../../../shared/api/contracts.js";
 import { ActionButton } from "../../../shared/components/ui/action-button.js";
 import {
@@ -19,6 +20,7 @@ export default function ResourceSettings({
 	disabled: boolean;
 }) {
 	const { t } = useTranslation();
+	const { platform } = getClientRuntime();
 	const fetcher = useFetcher<{
 		error: string | null;
 	}>();
@@ -39,6 +41,7 @@ export default function ResourceSettings({
 						<ResourcePathList
 							paths={settings.resourceRoots}
 							disabled={disabled || saving}
+							chooseDirectory={platform.chooseDirectory}
 						/>
 						<div className="action-row">
 							<ActionButton

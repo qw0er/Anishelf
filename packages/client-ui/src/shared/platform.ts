@@ -74,6 +74,8 @@ export interface ClientPlatform {
 	externalPlayers: ExternalPlayerHost;
 	openExternal(url: string): void;
 	copyText(text: string): Promise<void>;
+	/** Host-native directory picker for paths on the host machine. */
+	chooseDirectory?: () => Promise<string | null>;
 	downloadFile(url: string, filename: string): void;
 	downloadText(content: string, filename: string, mediaType: string): void;
 	isVisible(): boolean;

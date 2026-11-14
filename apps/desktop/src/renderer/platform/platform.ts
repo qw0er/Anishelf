@@ -7,6 +7,7 @@ import { createDesktopExternalPlayers } from "./external-players.js";
 
 export async function createDesktopPlatform(
 	desktop: DesktopBridge,
+	options: { canChooseDirectories?: boolean } = {},
 ): Promise<ClientPlatform> {
 	const externalPlayers = await createDesktopExternalPlayers(desktop);
 	return {
@@ -17,6 +18,9 @@ export async function createDesktopPlatform(
 		},
 		externalPlayers,
 		copyText: (text) => desktop.copyText(text),
+		...(options.canChooseDirectories
+			? { chooseDirectory: () => desktop.chooseDirectory() }
+			: {}),
 		openExternal(url) {
 			void desktop.openExternal(url).catch(() => {
 				console.warn("platform.external_link_failed");

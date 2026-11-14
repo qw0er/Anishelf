@@ -40,7 +40,9 @@ async function start() {
 	});
 	const onAuthRequired = () => session.onAuthRequired();
 	const client = await createDesktopServerClient(desktop, onAuthRequired);
-	const platform = await createDesktopPlatform(desktop);
+	const platform = await createDesktopPlatform(desktop, {
+		canChooseDirectories: client.server.kind === "local",
+	});
 	const [closeToTray, launchAtLogin] = await Promise.all([
 		desktop.getCloseToTray(),
 		desktop.getLaunchAtLogin(),

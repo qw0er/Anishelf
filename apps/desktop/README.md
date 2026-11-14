@@ -16,6 +16,11 @@ supported for `localhost`, `127.0.0.1`, and `[::1]`. Enter an origin without a
 path, query, fragment, or credentials. The sign-in screen can also switch back to
 the local backend when an external server is unavailable.
 
+When connected to the bundled backend, **Settings → Library → Resource
+directories** offers **Choose directory** to select a folder with the system
+dialog. External servers use the text field because their paths refer to the
+server machine.
+
 The profile is stored in the `desktop` subdirectory of the platform user data
 directory for `anishelf`. On Linux this defaults to
 `~/.local/share/anishelf/desktop` and respects `XDG_DATA_HOME`. The bundled

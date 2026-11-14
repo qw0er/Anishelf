@@ -63,6 +63,7 @@ export interface DesktopBridge {
 	signIn(origin: string, password: string): Promise<ServerSignInResult>;
 	clearDeviceToken(origin: string): Promise<void>;
 	copyText(text: string): Promise<void>;
+	chooseDirectory(): Promise<string | null>;
 	openExternal(url: string): Promise<void>;
 	downloadFile(url: string, filename: string): Promise<void>;
 	listExternalPlayers(): Promise<ExternalPlayerListResponse>;
