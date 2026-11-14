@@ -1,9 +1,11 @@
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { desktopOrigin } from "@anishelf/contracts/defaults";
 import {
 	app,
 	BrowserWindow,
 	clipboard,
+	net,
 	session,
 	type WebContents,
 } from "electron";
@@ -12,6 +14,7 @@ import { registerDesktopIpc } from "./ipc.js";
 import { downloadMedia } from "./native/download.js";
 import { createExternalPlayerService } from "./native/external-players.js";
 import { openExternal } from "./native/links.js";
+import { DesktopUpdateChecker } from "./native/updates.js";
 import { registerRendererProtocol } from "./protocol.js";
 import {
 	attachDeviceCredentials,
@@ -29,6 +32,31 @@ const rendererUrl = `${desktopOrigin}/`;
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
 
 type DeviceTokenStore = Awaited<ReturnType<typeof openDeviceTokenStore>>;
+
+async function createUpdateChecker() {
+	const version = app.getVersion();
+	let stable = false;
+	if (app.isPackaged) {
+		try {
+			const manifest: unknown = JSON.parse(
+				await readFile(new URL("../build-info.json", import.meta.url), "utf8"),
+			);
+			stable =
+				!!manifest &&
+				typeof manifest === "object" &&
+				"version" in manifest &&
+				manifest.version === version &&
+				"channel" in manifest &&
+				manifest.channel === "stable";
+		} catch (error) {
+			console.warn("desktop.update_build_info_unavailable", { error });
+		}
+	}
+	return new DesktopUpdateChecker(
+		{ version, stable, platform: process.platform, arch: process.arch },
+		(url, options) => net.fetch(url, options),
+	);
+}
 
 interface ConnectedServer {
 	origin: string;
@@ -52,9 +80,11 @@ export class DesktopApplication {
 		const externalPlayers = createExternalPlayerService(
 			app.getPath("userData"),
 		);
+		const updates = await createUpdateChecker();
 		this.cleanup.push(
 			registerDesktopIpc(
 				{
+					checkForUpdates: () => updates.check(),
 					getServerOrigin: async () => this.server.origin,
 					signIn: (origin, password) => this.signIn(origin, password),
 					clearDeviceToken: async (origin) => {

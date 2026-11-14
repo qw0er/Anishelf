@@ -32,6 +32,10 @@ await cp(join(desktopDir, "dist/renderer"), join(stagingDir, "dist/renderer"), {
 	recursive: true,
 });
 await cp(
+	join(desktopDir, "build-info.json"),
+	join(stagingDir, "dist/build-info.json"),
+);
+await cp(
 	join(rootDir, "apps/web/public/icon-512.png"),
 	join(stagingDir, "dist/icon.png"),
 );
@@ -52,6 +56,7 @@ await writeFile(
 			dependencies: { platformdirs: "4.3.7" },
 			build: {
 				appId: "app.anishelf.desktop",
+				artifactName: `anishelf-desktop-\${version}-\${arch}.\${ext}`,
 				electronVersion,
 				directories: { output: join(desktopDir, "release") },
 				files: ["dist/**/*"],

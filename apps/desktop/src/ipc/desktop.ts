@@ -30,7 +30,21 @@ export type ServerSignInResult =
 				| "busy";
 	  };
 
+export interface DesktopUpdateCheck {
+	status:
+		| "available"
+		| "current"
+		| "ahead"
+		| "uncomparable"
+		| "no-release"
+		| "no-package";
+	checkedAt: string;
+	latest: { version: string; url: string } | null;
+	downloads?: readonly { name: string; url: string }[];
+}
+
 export interface DesktopBridge {
+	checkForUpdates(): Promise<DesktopUpdateCheck>;
 	getServerOrigin(): Promise<string>;
 	signIn(origin: string, password: string): Promise<ServerSignInResult>;
 	clearDeviceToken(origin: string): Promise<void>;

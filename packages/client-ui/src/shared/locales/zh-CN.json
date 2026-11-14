@@ -1441,14 +1441,18 @@
 		"backendFailed": "无法加载后端版本。",
 		"mismatch": "前端和后端构建版本不一致，请部署相互匹配的版本。",
 		"releaseNotes": "更新说明",
+		"releases": "发行版本",
+		"downloadUpdate": "下载 {{format}}",
 		"changelog": "更新日志",
 		"changelogVersion": "随前端版本 {{version}} 内置。",
+		"desktopChangelogVersion": "随桌面端版本 {{version}} 内置。",
 		"changelogMissing": "此版本的更新说明不可用。",
 		"installed": "已安装",
 		"checked": "检查时间：{{time}}",
 		"lastCheckFailed": "最近一次检查失败。先前的结果来自上一次成功的检查。",
 		"buildDetails": "构建详情",
 		"web": "前端",
+		"desktop": "桌面端",
 		"backend": "后端",
 		"upgradeGuide": "升级指南",
 		"built": "构建时间：{{time}}",
@@ -1458,7 +1462,8 @@
 			"current": "当前已是最新版本。",
 			"ahead": "此版本比最新稳定版更新。",
 			"uncomparable": "此构建无法与稳定版比较。",
-			"no-release": "尚未发布稳定版。"
+			"no-release": "尚未发布稳定版。",
+			"no-package": "最新发行版没有适合当前系统和架构的安装包。"
 		}
 	},
 	"automaticPreparation": {

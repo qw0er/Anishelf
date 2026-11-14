@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer } =
 	require("electron") as typeof import("electron");
 
 const desktop: DesktopBridge = {
+	checkForUpdates: () => ipcRenderer.invoke("desktop:check-for-updates"),
 	getServerOrigin: () => ipcRenderer.invoke("desktop:server-origin"),
 	signIn: (origin, password) =>
 		ipcRenderer.invoke("desktop:sign-in", origin, password),

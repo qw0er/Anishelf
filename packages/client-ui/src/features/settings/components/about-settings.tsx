@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import Markdown from "react-markdown";
 import { request } from "../../../shared/api/client.js";
 import { getClientRuntime } from "../../../shared/api/connection.js";
-import type { BuildInfo, UpdateCheck } from "../../../shared/api/contracts.js";
+import type { BuildInfo } from "../../../shared/api/contracts.js";
 import { ActionButton } from "../../../shared/components/ui/action-button.js";
 import {
 	Card,
@@ -21,9 +21,9 @@ import {
 } from "../../../shared/components/ui/collapsible.js";
 import { ExternalLink as ExternalAnchor } from "../../../shared/components/ui/external-link.js";
 import { toast } from "../../../shared/components/ui/toast.js";
+import type { ClientUpdateCheck } from "../../../shared/platform.js";
 
 const repository = "https://github.com/qw0er/Anishelf";
-const updateKey = ["system", "updates"];
 function readReleases(changelog: string) {
 	return changelog
 		.split(/^## /m)
@@ -38,7 +38,9 @@ function BuildDetails({ label, info }: { label: string; info: BuildInfo }) {
 	const { t, i18n } = useTranslation();
 	return (
 		<div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs">
-			<span className="w-14 shrink-0 font-medium text-foreground">{label}</span>
+			<span className="min-w-14 shrink-0 font-medium text-foreground">
+				{label}
+			</span>
 			<span>
 				v{info.version} · {info.channel}
 			</span>
@@ -56,7 +58,9 @@ function BuildDetails({ label, info }: { label: string; info: BuildInfo }) {
 
 export function AboutSettings() {
 	const { t, i18n } = useTranslation();
-	const { buildInfo: clientBuild, changelog } = getClientRuntime();
+	const { buildInfo: clientBuild, changelog, platform } = getClientRuntime();
+	const desktop = platform.updates.kind === "desktop";
+	const updateKey = ["system", "updates", platform.updates.kind];
 	const releases = useMemo(() => readReleases(changelog), [changelog]);
 	const client = useQueryClient();
 	const info = useQuery({
@@ -65,14 +69,14 @@ export function AboutSettings() {
 			request<BuildInfo>("/api/system/info", "GET", { signal }),
 		staleTime: Number.POSITIVE_INFINITY,
 	});
-	const updates = useQuery<UpdateCheck>({
+	const updates = useQuery<ClientUpdateCheck>({
 		queryKey: updateKey,
 		enabled: false,
-		queryFn: () => request<UpdateCheck>("/api/system/updates/check", "POST"),
+		queryFn: platform.updates.check,
 	});
 	const check = useMutation({
 		onMutate: () => toast.close("update-check"),
-		mutationFn: () => request<UpdateCheck>("/api/system/updates/check", "POST"),
+		mutationFn: platform.updates.check,
 		onSuccess: (result) => {
 			client.setQueryData(updateKey, result);
 			toast.add({
@@ -82,7 +86,7 @@ export function AboutSettings() {
 			});
 		},
 		onError: () => {
-			console.warn("[Settings] Update check failed.");
+			if (!desktop) console.warn("[Settings] Update check failed.");
 			toast.add({
 				id: "update-check",
 				type: "error",
@@ -95,16 +99,17 @@ export function AboutSettings() {
 		},
 	});
 	const mismatch =
+		!desktop &&
 		info.data &&
 		(info.data.version !== clientBuild.version ||
 			info.data.commit !== clientBuild.commit ||
 			info.data.channel !== clientBuild.channel);
-	const current = info.data ?? clientBuild;
+	const current = desktop ? clientBuild : (info.data ?? clientBuild);
 	return (
 		<div className="stack-page">
 			<Card className="settings-section lg:grid">
 				<CardHeader>
-					<CardTitle>Anishelf</CardTitle>
+					<CardTitle>{desktop ? "Anishelf Desktop" : "Anishelf"}</CardTitle>
 					<CardDescription>{t("about.description")}</CardDescription>
 					<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
 						{[
@@ -139,7 +144,7 @@ export function AboutSettings() {
 							shortLabel={t("about.check")}
 							variant="outline"
 							aria-busy={check.isPending}
-							disabled={check.isPending || !info.data}
+							disabled={check.isPending || (!desktop && !info.data)}
 							onClick={() => check.mutate()}
 						/>
 					</div>
@@ -179,6 +184,15 @@ export function AboutSettings() {
 									{updates.data.latest.version} · {t("about.releaseNotes")}
 								</ExternalAnchor>
 							)}
+							{updates.data.downloads?.map(({ name, url }) => (
+								<ExternalAnchor
+									key={url}
+									className="underline underline-offset-4"
+									href={url}
+								>
+									{t("about.downloadUpdate", { format: name })}
+								</ExternalAnchor>
+							))}
 							<span className="text-xs text-muted-foreground">
 								{t("about.checked", {
 									time: new Date(updates.data.checkedAt).toLocaleString(
@@ -200,7 +214,10 @@ export function AboutSettings() {
 							</CollapsibleTrigger>
 							<CollapsibleContent keepMounted>
 								<div className="mt-2 space-y-2">
-									<BuildDetails label={t("about.web")} info={clientBuild} />
+									<BuildDetails
+										label={t(desktop ? "about.desktop" : "about.web")}
+										info={clientBuild}
+									/>
 									{info.data && (
 										<BuildDetails label={t("about.backend")} info={info.data} />
 									)}
@@ -209,9 +226,13 @@ export function AboutSettings() {
 						</Collapsible>
 						<ExternalAnchor
 							className="hover:text-foreground hover:underline"
-							href={`${repository}/blob/main/docs/guide/deployment.md#updates`}
+							href={
+								desktop
+									? `${repository}/releases`
+									: `${repository}/blob/main/docs/guide/deployment.md#updates`
+							}
 						>
-							{t("about.upgradeGuide")}
+							{t(desktop ? "about.releases" : "about.upgradeGuide")}
 						</ExternalAnchor>
 					</div>
 				</CardContent>
@@ -220,7 +241,12 @@ export function AboutSettings() {
 				<CardHeader>
 					<CardTitle>{t("about.changelog")}</CardTitle>
 					<CardDescription>
-						{t("about.changelogVersion", { version: clientBuild.version })}
+						{t(
+							desktop
+								? "about.desktopChangelogVersion"
+								: "about.changelogVersion",
+							{ version: clientBuild.version },
+						)}
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="min-w-0 lg:max-w-2xl">

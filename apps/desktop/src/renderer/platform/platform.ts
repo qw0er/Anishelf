@@ -11,6 +11,7 @@ export async function createDesktopPlatform(
 	const externalPlayers = await createDesktopExternalPlayers(desktop);
 	return {
 		...browserPlatform,
+		updates: { kind: "desktop", check: desktop.checkForUpdates },
 		get device() {
 			return browserPlatform.device;
 		},

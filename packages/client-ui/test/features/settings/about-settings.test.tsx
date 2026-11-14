@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, expect, onTestFinished, test, vi } from "vitest";
 import { AboutSettings } from "../../../src/features/settings/components/about-settings.js";
 import * as api from "../../../src/shared/api/client.js";
 import { toast } from "../../../src/shared/components/ui/toast.js";
-import { queryClient } from "../../setup.js";
+import { queryClient, testPlatform } from "../../setup.js";
 import "../../../src/shared/i18n.js";
 import {
 	cleanup,
@@ -88,4 +88,44 @@ test("checks only on demand, shows mismatched builds and retains successful resu
 	expect(screen.queryByText(/The latest check failed/)).toBeNull();
 	expect(screen.getByText("A new version is available.")).toBeTruthy();
 	expect(screen.getByText(/Checked/)).toBeTruthy();
+});
+
+test("shows the desktop build and uses the desktop updater without backend build info", async () => {
+	const request = vi
+		.spyOn(api, "request")
+		.mockRejectedValue(new Error("offline"));
+	const download =
+		"https://github.com/qw0er/Anishelf/releases/download/v2.0.0/anishelf-desktop-2.0.0-arm64.dmg";
+	const check = vi.fn().mockResolvedValue({
+		status: "available",
+		checkedAt: "2026-10-24T00:00:00Z",
+		latest: {
+			version: "v2.0.0",
+			url: "https://github.com/qw0er/Anishelf/releases/tag/v2.0.0",
+		},
+		downloads: [{ name: "dmg", url: download }],
+	});
+	const updates = testPlatform.updates;
+	testPlatform.updates = { kind: "desktop", check };
+	onTestFinished(() => {
+		testPlatform.updates = updates;
+	});
+	render(<AboutSettings />);
+	expect(screen.getByText("Anishelf Desktop")).toBeTruthy();
+	expect(screen.getByText("v1.0.2")).toBeTruthy();
+	expect(screen.getByText("Bundled with desktop version 1.0.2.")).toBeTruthy();
+	const button = screen.getByRole<HTMLButtonElement>("button", {
+		name: "Check for updates",
+	});
+	expect(button.disabled).toBe(false);
+	expect(check).not.toHaveBeenCalled();
+	fireEvent.click(button);
+	expect(
+		(await screen.findByRole("link", { name: "Download dmg" })).getAttribute(
+			"href",
+		),
+	).toBe(download);
+	expect(request.mock.calls.map(([path]) => path)).toEqual([
+		"/api/system/info",
+	]);
 });

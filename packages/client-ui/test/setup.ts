@@ -1,6 +1,7 @@
 import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
 import { afterEach, expect, vi } from "vitest";
 import changelog from "../../../CHANGELOG.md?raw";
+import { browserPlatform } from "../src/app/browser-platform.js";
 import { createBrowserExternalPlayers } from "../src/features/settings/web-external-players.js";
 import { configureClientRuntime } from "../src/shared/api/connection.js";
 import { initializeLanguage } from "../src/shared/i18n.js";
@@ -34,6 +35,7 @@ export const openPlayer = vi.fn();
 let testExternalPlayers: ExternalPlayerHost | undefined;
 
 export const testPlatform: ClientPlatform = {
+	updates: browserPlatform.updates,
 	preferences: {
 		getItem: (key) =>
 			typeof window === "undefined" ? null : window.localStorage.getItem(key),

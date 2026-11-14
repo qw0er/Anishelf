@@ -1,6 +1,7 @@
 import { desktopOrigin } from "@anishelf/contracts/defaults";
 import { ipcMain, type WebContents } from "electron";
 import type {
+	DesktopUpdateCheck,
 	ExternalPlayerListResponse,
 	ServerSignInResult,
 } from "../ipc/desktop.js";
@@ -10,6 +11,7 @@ import type {
  * the sender for native dialogs and treat IPC arguments as untrusted.
  */
 export interface DesktopIpcHandlers {
+	checkForUpdates(): Promise<DesktopUpdateCheck>;
 	getServerOrigin(): Promise<string>;
 	signIn(origin: unknown, password: unknown): Promise<ServerSignInResult>;
 	clearDeviceToken(origin: unknown): Promise<void>;
@@ -62,6 +64,7 @@ export function registerDesktopIpc(
 	}
 
 	try {
+		handle("desktop:check-for-updates", () => handlers.checkForUpdates());
 		handle("desktop:server-origin", handlers.getServerOrigin);
 		handle("desktop:sign-in", (_, origin, password) =>
 			handlers.signIn(origin, password),

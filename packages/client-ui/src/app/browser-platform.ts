@@ -1,4 +1,6 @@
 import { createBrowserExternalPlayers } from "../features/settings/public.js";
+import { request } from "../shared/api/client.js";
+import type { UpdateCheck } from "../shared/api/contracts.js";
 import type { ClientPlatform, ExternalPlayerHost } from "../shared/platform.js";
 
 export type {
@@ -30,6 +32,10 @@ const preferencesChanged = "anishelf:preference-changed";
 let browserExternalPlayers: ExternalPlayerHost | undefined;
 
 export const browserPlatform: ClientPlatform = {
+	updates: {
+		kind: "web",
+		check: () => request<UpdateCheck>("/api/system/updates/check", "POST"),
+	},
 	preferences: {
 		getItem: (key) => window.localStorage.getItem(key),
 		setItem(key, value) {

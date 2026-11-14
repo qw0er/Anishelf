@@ -57,6 +57,10 @@ export interface ExternalPlayerHost {
 }
 
 export interface ClientPlatform {
+	updates: {
+		kind: "web" | "desktop";
+		check(): Promise<ClientUpdateCheck>;
+	};
 	preferences: ClientStorage;
 	sessionStorage: ClientStorage;
 	preferredLanguages(): readonly string[];
@@ -80,3 +84,10 @@ export interface ClientPlatform {
 		onOnline: () => void;
 	}): () => void;
 }
+
+import type { UpdateCheck } from "@anishelf/contracts/http";
+
+export type ClientUpdateCheck = Omit<UpdateCheck, "status"> & {
+	status: UpdateCheck["status"] | "no-package";
+	downloads?: readonly { name: string; url: string }[];
+};
