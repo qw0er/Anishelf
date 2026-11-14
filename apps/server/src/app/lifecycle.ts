@@ -1,22 +1,22 @@
 /** Stop producers before consumers release shared resources; attempt all cleanup. */
 export async function closeModules(owners: {
 	acquisition?: { close(): Promise<void> };
-	anime: { quiesce(): Promise<void>; close(): Promise<void> };
-	media: { quiesce(): Promise<void>; close(): Promise<void> };
-	resources: { quiesce(): Promise<void>; close(): Promise<void> };
-	playback: { close(): void | Promise<void> };
+	anime?: { quiesce(): Promise<void>; close(): Promise<void> };
+	media?: { quiesce(): Promise<void>; close(): Promise<void> };
+	resources?: { quiesce(): Promise<void>; close(): Promise<void> };
+	playback?: { close(): void | Promise<void> };
 	database?: { close(): void } | undefined;
 }): Promise<void> {
 	const failures: unknown[] = [];
 	for (const operation of [
 		...(owners.acquisition ? [() => owners.acquisition?.close()] : []),
-		() => owners.playback.close(),
-		() => owners.anime.quiesce(),
-		() => owners.media.quiesce(),
-		() => owners.resources.quiesce(),
-		() => owners.anime.close(),
-		() => owners.media.close(),
-		() => owners.resources.close(),
+		() => owners.playback?.close(),
+		() => owners.anime?.quiesce(),
+		() => owners.media?.quiesce(),
+		() => owners.resources?.quiesce(),
+		() => owners.anime?.close(),
+		() => owners.media?.close(),
+		() => owners.resources?.close(),
 		() => owners.database?.close(),
 	])
 		try {
