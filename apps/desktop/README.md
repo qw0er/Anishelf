@@ -73,11 +73,15 @@ compatibility library `libcrypt.so.1`. Install it with
 The package includes Electron, the Anishelf backend, SQLite and database
 migrations. It runs without system Node.js. Install FFmpeg and FFprobe
 separately for media probing and transcoding. Configure qBittorrent and Jackett
-connections in Settings as needed. Linux uses the Anishelf icon and matching
-desktop entry. Windows and macOS use the default Electron icon. These builds
-are unsigned and macOS builds are not notarized.
+connections in Settings as needed. Every platform uses the Anishelf application
+icon; Linux also gets the matching desktop entry. These builds are unsigned and
+macOS builds are not notarized.
 
 The release workflow builds installers for Linux x64, Windows x64 and macOS
 arm64. A manual release workflow run keeps the installers as Actions artifacts
 for seven days. For a version tag on `main`, the workflow also attaches them to
 the GitHub Release.
+
+The application icons in `assets/app-icon.png`, `app-icon.icns` and
+`app-icon.ico` are rendered from `apps/web/public/favicon.svg`. When the logo
+changes, re-render the 1024×1024 png and rebuild the icns and ico files from it.

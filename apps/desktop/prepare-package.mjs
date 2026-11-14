@@ -64,10 +64,15 @@ await cp(
 	join(desktopDir, "build-info.json"),
 	join(stagingDir, "dist/build-info.json"),
 );
-await cp(
-	join(rootDir, "apps/web/public/icon-512.png"),
-	join(stagingDir, "dist/icon.png"),
-);
+// The icon masters are rendered from apps/web/public/favicon.svg. Keep the png
+// for the Linux window/tray icon and the pre-built icns/ico so electron-builder
+// never needs its on-demand icon tool download during packaging.
+for (const extension of ["png", "icns", "ico"]) {
+	await cp(
+		join(desktopDir, `assets/app-icon.${extension}`),
+		join(stagingDir, `dist/icon.${extension}`),
+	);
+}
 await writeFile(
 	join(stagingDir, "package.json"),
 	`${JSON.stringify(
@@ -90,7 +95,14 @@ await writeFile(
 				// better-sqlite3 ships Node-API prebuilds for the release targets.
 				npmRebuild: false,
 				directories: { output: join(desktopDir, "release") },
-				files: ["dist/**/*", "backend-process.mjs", "assets/**/*"],
+				files: [
+					"dist/**/*",
+					"!dist/icon.icns",
+					"!dist/icon.ico",
+					"backend-process.mjs",
+					"assets/**/*",
+					"!assets/app-icon.*",
+				],
 				asarUnpack: ["**/*.node"],
 				linux: {
 					target: ["AppImage", "deb", "rpm"],
@@ -98,8 +110,8 @@ await writeFile(
 					icon: "dist/icon.png",
 					syncDesktopName: true,
 				},
-				win: { target: ["nsis"] },
-				mac: { target: ["dmg"] },
+				win: { target: ["nsis"], icon: "dist/icon.ico" },
+				mac: { target: ["dmg"], icon: "dist/icon.icns" },
 			},
 		},
 		null,
@@ -109,4 +121,5 @@ await writeFile(
 console.info("desktop.package.prepared", {
 	version: rootPackage.version,
 	electronVersion,
+	icons: ["png", "icns", "ico"],
 });
