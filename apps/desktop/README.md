@@ -4,11 +4,13 @@ This workspace uses TypeScript for the Electron main process and Vite with
 React and TypeScript for the shared Anishelf interface.
 
 From the repository root, run `npm run dev:desktop` to launch Electron with a local
-backend watcher. Run `npm run start:desktop` to build and launch Electron with a
+backend watcher. Renderer changes update through Vite; main process and preload
+changes rebuild and restart Electron. Vite listens on `127.0.0.1:5174`. Run
+`npm run start:desktop` to build and launch Electron with a
 local backend without watch mode. If Electron opens while the backend is still
 starting, retry from the app once the backend is ready.
 
-Use `npm run dev:desktop:client` to build and open only Electron, or
+Use `npm run dev:desktop:client` to run only Electron in development mode, or
 `npm run start:desktop:client` to launch an existing desktop build. Open
 the sign-in page to enter the server address and password together. The app
 checks the connection and signs in before saving the address in the desktop

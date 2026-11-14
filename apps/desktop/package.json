@@ -7,8 +7,7 @@
 	"scripts": {
 		"prebuild": "node ../../scripts/build-info.mjs apps/desktop",
 		"build": "tsc && vite build",
-		"predev": "npm run build",
-		"dev": "electron .",
+		"dev": "node dev.mjs",
 		"start": "electron .",
 		"typecheck": "tsc --noEmit && tsc -p tsconfig.renderer.json",
 		"test": "vitest run"
