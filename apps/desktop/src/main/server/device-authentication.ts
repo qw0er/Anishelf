@@ -1,13 +1,14 @@
 import { desktopOrigin } from "@anishelf/contracts/defaults";
 import { net, type Session, type WebContents } from "electron";
 
+import { isDeviceToken } from "./device-tokens.js";
+
 const deviceSessionsPath = "/api/auth/device-sessions";
 
 export async function signInDevice(
 	origin: string,
 	password: unknown,
-	saveToken: (token: unknown) => Promise<void>,
-) {
+): Promise<{ token: string } | { status: number }> {
 	if (typeof password !== "string" || !password || password.length > 128)
 		return { status: 400 };
 
@@ -26,7 +27,7 @@ export async function signInDevice(
 		return { status: 0 };
 	}
 
-	if (!response.ok) {
+	if (response.status !== 201) {
 		await response.body?.cancel();
 		console.warn("desktop.device_sign_in_rejected", {
 			status: response.status,
@@ -36,15 +37,18 @@ export async function signInDevice(
 
 	try {
 		const body: unknown = await response.json();
-		if (!body || typeof body !== "object" || !("token" in body))
+		if (
+			!body ||
+			typeof body !== "object" ||
+			!("token" in body) ||
+			!isDeviceToken(body.token)
+		)
 			throw new Error("Missing device token.");
-		await saveToken(body.token);
+		return { token: body.token };
 	} catch {
 		console.warn("desktop.device_sign_in_invalid_response");
 		return { status: 502 };
 	}
-	console.info("desktop.device_signed_in");
-	return { status: 201 };
 }
 
 export function attachDeviceCredentials(

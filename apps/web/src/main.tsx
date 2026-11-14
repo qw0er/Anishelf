@@ -10,8 +10,9 @@ import type { BuildInfo } from "@anishelf/contracts/http";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
-import "@anishelf/client-ui/styles.css";
-import { registerPwa } from "./pwa.js";
+import { WebLoginPage } from "./auth/login-page.js";
+import { registerPwa } from "./platform/pwa.js";
+import "./styles.css";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
 
@@ -39,7 +40,9 @@ async function start() {
 	});
 
 	try {
-		const router = createBrowserRouter(createClientRoutes());
+		const router = createBrowserRouter(
+			createClientRoutes({ loginElement: <WebLoginPage /> }),
+		);
 		if (
 			session.attach(
 				() => runtime.dispose(),

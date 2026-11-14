@@ -8,8 +8,10 @@ import type { BuildInfo } from "@anishelf/contracts/http";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter } from "react-router";
-import "@anishelf/client-ui/styles.css";
-import { createDesktopClient } from "./connection.js";
+import { DesktopLoginPage } from "./auth/login-page.js";
+import { createDesktopPlatform } from "./platform/platform.js";
+import { createDesktopServerClient } from "./server/connection.js";
+import "./styles.css";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
 
@@ -22,7 +24,8 @@ document.documentElement.classList.toggle("dark", dark);
 document.documentElement.style.colorScheme = dark ? "dark" : "light";
 
 async function start() {
-	if (!window.desktop) throw new Error("Open Anishelf in Electron.");
+	const desktop = window.desktop;
+	if (!desktop) throw new Error("Open Anishelf in Electron.");
 
 	const session = new ClientSessionLifecycle({
 		name: "desktop",
@@ -32,16 +35,32 @@ async function start() {
 		},
 	});
 	const onAuthRequired = () => session.onAuthRequired();
-	const client = await createDesktopClient(window.desktop, onAuthRequired);
+	const client = await createDesktopServerClient(desktop, onAuthRequired);
+	const platform = await createDesktopPlatform(desktop);
+	const { origin } = client.connection;
 	const runtime = await initializeClient({
 		...client,
+		platform,
 		...__ANISHELF_BUILD__,
 		onAuthRequired,
 		navigate: (path) => session.navigate(path),
 		restartSession: (path) => session.restart(path),
+		serverConnectionPath: "/login",
 	});
 	try {
-		const router = createHashRouter(createClientRoutes());
+		const router = createHashRouter(
+			createClientRoutes({
+				loginElement: (
+					<DesktopLoginPage
+						origin={origin}
+						signIn={(address, password) =>
+							client.authentication.signInTo(address, password)
+						}
+						restart={(path) => session.restart(path)}
+					/>
+				),
+			}),
+		);
 		if (!session.attach(() => runtime.dispose(), router)) return;
 		render(router);
 	} catch (error) {

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, test, vi } from "vitest";
-import { registerPwa } from "../src/pwa.js";
+import { registerPwa } from "../src/platform/pwa.js";
 
 function serviceWorkerFixture(controlled: boolean) {
 	const listeners = new Map<string, () => void>();

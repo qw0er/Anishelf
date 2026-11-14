@@ -21,6 +21,7 @@ import { buttonStyles } from "../../../shared/components/ui/button.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
 import { useCompactNavigation } from "../../../shared/hooks/use-compact-navigation.js";
 import { SecuritySettings } from "../../auth/security-settings.js";
+import { ServerConnectionLink } from "../../components/server-connection-link.js";
 import { useAppRuntime } from "../../runtime/context.js";
 
 const settingsSections = [
@@ -65,7 +66,10 @@ export function SettingsPage() {
 	const metadataProvider = settings?.defaultMetadataProvider ?? "anilist";
 	return settings ? (
 		<div className="stack-page">
-			<PageHeader title={t("settingsPage.title")} />
+			<PageHeader
+				title={t("settingsPage.title")}
+				actions={<ServerConnectionLink />}
+			/>
 			<div className="settings-layout">
 				<nav
 					ref={navigationRef}
@@ -144,6 +148,9 @@ export function SettingsPage() {
 			</div>
 		</div>
 	) : (
-		<section role="alert">{t("errors.settingsUnavailable")}</section>
+		<div className="stack-page">
+			<section role="alert">{t("errors.settingsUnavailable")}</section>
+			<ServerConnectionLink />
+		</div>
 	);
 }

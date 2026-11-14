@@ -12,6 +12,7 @@ import { Spinner } from "../../shared/components/ui/spinner.js";
 import { useDelayedPending } from "../../shared/hooks/use-delayed-pending.js";
 import { getErrorTranslationKey } from "../../shared/lib/error-translation.js";
 import { animeReturnPath, directoryPath } from "../../shared/navigation.js";
+import { ServerConnectionLink } from "../components/server-connection-link.js";
 
 export default function RouteError({
 	kind,
@@ -70,6 +71,7 @@ export default function RouteError({
 							)
 						: t("navigation.goToRoot")}
 				</Link>
+				<ServerConnectionLink />
 			</div>
 		</section>
 	);

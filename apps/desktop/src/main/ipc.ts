@@ -1,6 +1,9 @@
 import { desktopOrigin } from "@anishelf/contracts/defaults";
 import { ipcMain, type WebContents } from "electron";
-import type { ExternalPlayerListResponse } from "../ipc/desktop.js";
+import type {
+	ExternalPlayerListResponse,
+	ServerSignInResult,
+} from "../ipc/desktop.js";
 
 /**
  * Main-process handlers. Unlike the preload-facing DesktopBridge, these receive
@@ -8,8 +11,8 @@ import type { ExternalPlayerListResponse } from "../ipc/desktop.js";
  */
 export interface DesktopIpcHandlers {
 	getServerOrigin(): Promise<string>;
-	signIn(password: string): Promise<{ status: number }>;
-	clearDeviceToken(): Promise<void>;
+	signIn(origin: unknown, password: unknown): Promise<ServerSignInResult>;
+	clearDeviceToken(origin: unknown): Promise<void>;
 	copyText(text: string): Promise<void>;
 	openExternal(url: string): Promise<void>;
 	downloadFile(
@@ -60,10 +63,12 @@ export function registerDesktopIpc(
 
 	try {
 		handle("desktop:server-origin", handlers.getServerOrigin);
-		handle("desktop:sign-in", (_, password: string) =>
-			handlers.signIn(password),
+		handle("desktop:sign-in", (_, origin, password) =>
+			handlers.signIn(origin, password),
 		);
-		handle("desktop:clear-device-token", handlers.clearDeviceToken);
+		handle("desktop:clear-device-token", (_, origin) =>
+			handlers.clearDeviceToken(origin),
+		);
 		handle("desktop:copy-text", (_, text: string) => handlers.copyText(text));
 		handle("desktop:open-external", (_, url: string) =>
 			handlers.openExternal(url),

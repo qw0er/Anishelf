@@ -1,22 +1,19 @@
-import { serverDefaults } from "@anishelf/contracts/defaults";
-
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
-export function resolveServerOrigin(
-	target = process.env.ANISHELF_API_TARGET,
-): string {
-	const url = URL.parse(
-		target ?? `http://${serverDefaults.host}:${serverDefaults.port}`,
-	);
+export function parseServerOrigin(target: unknown): string | null {
+	if (typeof target !== "string") return null;
+	const address = target.trim();
+	if (!/^https?:\/\/[^\s/@?#\\]+\/?$/i.test(address)) return null;
+	const url = URL.parse(address);
 	if (
 		!url ||
 		(url.protocol !== "http:" && url.protocol !== "https:") ||
 		url.href !== `${url.origin}/`
 	) {
-		throw new Error("ANISHELF_API_TARGET must be an HTTP(S) server origin.");
+		return null;
 	}
 	if (url.protocol === "http:" && !loopbackHosts.has(url.hostname)) {
-		throw new Error("ANISHELF_API_TARGET must use HTTPS for a remote server.");
+		return null;
 	}
 	return url.origin;
 }

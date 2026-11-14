@@ -5,8 +5,10 @@ const { contextBridge, ipcRenderer } =
 
 const desktop: DesktopBridge = {
 	getServerOrigin: () => ipcRenderer.invoke("desktop:server-origin"),
-	signIn: (password) => ipcRenderer.invoke("desktop:sign-in", password),
-	clearDeviceToken: () => ipcRenderer.invoke("desktop:clear-device-token"),
+	signIn: (origin, password) =>
+		ipcRenderer.invoke("desktop:sign-in", origin, password),
+	clearDeviceToken: (origin) =>
+		ipcRenderer.invoke("desktop:clear-device-token", origin),
 	copyText: (text) => ipcRenderer.invoke("desktop:copy-text", text),
 	openExternal: (url) => ipcRenderer.invoke("desktop:open-external", url),
 	downloadFile: (url, filename) =>

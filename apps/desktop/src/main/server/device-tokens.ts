@@ -5,6 +5,10 @@ import { safeStorage } from "electron";
 
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
 
+export function isDeviceToken(value: unknown): value is string {
+	return typeof value === "string" && tokenPattern.test(value);
+}
+
 export async function openDeviceTokenStore(
 	server: string,
 	userData: string,
@@ -22,7 +26,7 @@ export async function openDeviceTokenStore(
 			const { result } = await safeStorage.decryptStringAsync(
 				await readFile(path),
 			);
-			if (tokenPattern.test(result)) token = result;
+			if (isDeviceToken(result)) token = result;
 		} catch (error) {
 			if (
 				!(error instanceof Error && "code" in error && error.code === "ENOENT")
@@ -57,10 +61,7 @@ class DeviceTokenStore {
 	}
 
 	set(value: unknown): Promise<void> {
-		if (
-			value !== null &&
-			(typeof value !== "string" || !tokenPattern.test(value))
-		)
+		if (value !== null && !isDeviceToken(value))
 			throw new Error("Invalid device credential.");
 		if (this.token === value) return this.pending;
 

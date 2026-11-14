@@ -27,6 +27,7 @@ interface ClientHost {
 	platform: ClientPlatform;
 	navigate: (path: string) => void;
 	restartSession: (path: string) => void;
+	serverConnectionPath?: string;
 }
 
 export function createClientRuntime(host: ClientHost) {

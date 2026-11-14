@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 import type { DesktopBridge } from "../src/ipc/desktop.js";
-import { createDesktopExternalPlayers } from "../src/renderer/external-players.js";
+import { createDesktopExternalPlayers } from "../src/renderer/platform/external-players.js";
 
 type CatalogResponse = Awaited<
 	ReturnType<DesktopBridge["listExternalPlayers"]>

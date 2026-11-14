@@ -11,14 +11,16 @@ existing React interface where practical. A TV application is out of scope.
 Use [the Web entry](../../apps/web/src/main.tsx) as the reference host. It calls
 `initializeClient` with a server connection, build information, changelog,
 `ClientPlatform` implementation and navigation callbacks. Once initialization
-completes, the host creates a router from `createClientRoutes()` and mounts
-`ClientApp` with that router. Import `@anishelf/client-ui/styles.css` through
+completes, the host passes its sign-in page to
+`createClientRoutes({ loginElement })` and mounts `ClientApp` with the resulting
+routes. Hosts can compose their sign-in pages with the shared `SignInPanel` and
+`PasswordSignInForm`. Import `@anishelf/client-ui/styles.css` through
 the host's build pipeline. The public entry and stylesheet are the supported
 imports for application hosts.
 
 Supply a `ClientAuthentication` from `@anishelf/client-core/authentication`
 alongside the connection. Its `signIn`, `getSession` and `signOut` methods
-drive the shared login page, route guard, foreground session checks and logout.
+drive the shared password form, route guard, foreground session checks and logout.
 The session result exposes authentication status without credentials. The
 optional `changePassword` method controls whether the settings page offers
 password changes. Web uses `createCookieConnection` to supply both the

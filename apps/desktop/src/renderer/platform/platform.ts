@@ -2,7 +2,7 @@ import {
 	browserPlatform,
 	type ClientPlatform,
 } from "@anishelf/client-ui/browser-platform";
-import type { DesktopBridge } from "../ipc/desktop.js";
+import type { DesktopBridge } from "../../ipc/desktop.js";
 import { createDesktopExternalPlayers } from "./external-players.js";
 
 export async function createDesktopPlatform(

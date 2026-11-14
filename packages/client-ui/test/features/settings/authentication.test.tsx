@@ -3,10 +3,13 @@ import { createMemoryRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { authenticatedRoute } from "../../../src/app/auth/guard.js";
-import { LoginPage } from "../../../src/app/auth/login-page.js";
 import { loginReturnPath } from "../../../src/app/auth/return-path.js";
 import { SecuritySettings } from "../../../src/app/auth/security-settings.js";
-import { ClientApp, createClientRoutes } from "../../../src/app/client-app.js";
+import {
+	ClientApp,
+	createClientRoutes,
+	PasswordSignInForm,
+} from "../../../src/app/client-app.js";
 import { request } from "../../../src/shared/api/client.js";
 import "../../../src/shared/i18n.js";
 import { clearCsrfToken, testRuntime } from "../../setup.js";
@@ -42,7 +45,7 @@ test("guards every matched loader before private data is fetched and preserves d
 	const privateLoader = vi.fn().mockResolvedValue(null);
 	const router = createMemoryRouter(
 		[
-			{ path: "/login", element: <LoginPage /> },
+			{ path: "/login", element: <h1>Sign in</h1> },
 			authenticatedRoute({
 				path: "/",
 				loader: privateLoader,
@@ -59,7 +62,7 @@ test("guards every matched loader before private data is fetched and preserves d
 	);
 	routers.push(router);
 	render(<RouterProvider router={router} />);
-	await screen.findByRole("heading", { name: "Sign in to Anishelf" });
+	await screen.findByRole("heading", { name: "Sign in" });
 	expect(privateLoader).not.toHaveBeenCalled();
 	expect(router.state.location.search).toBe(
 		"?returnTo=%2Ffiles%2Fexample%3Fdirectory%3Droot",
@@ -80,9 +83,12 @@ test("login bootstraps anonymous CSRF and displays wrong-password errors", async
 					401,
 				),
 	);
-	const router = createMemoryRouter(createClientRoutes(), {
-		initialEntries: ["/login"],
-	});
+	const router = createMemoryRouter(
+		createClientRoutes({ loginElement: <PasswordSignInForm /> }),
+		{
+			initialEntries: ["/login"],
+		},
+	);
 	routers.push(router);
 	render(<ClientApp router={router} />);
 	fireEvent.change(screen.getByLabelText("Password"), {
@@ -102,9 +108,12 @@ test("successful login asks the host to restart at the requested route", async (
 	fetcher.mockImplementation(async (input) =>
 		json({ authenticated: input !== "/api/auth/session", csrfToken: "csrf" }),
 	);
-	const router = createMemoryRouter(createClientRoutes(), {
-		initialEntries: ["/login?returnTo=%2Ffiles%2Fexample%3Fdirectory%3Droot"],
-	});
+	const router = createMemoryRouter(
+		createClientRoutes({ loginElement: <PasswordSignInForm /> }),
+		{
+			initialEntries: ["/login?returnTo=%2Ffiles%2Fexample%3Fdirectory%3Droot"],
+		},
+	);
 	routers.push(router);
 	render(<ClientApp router={router} />);
 	fireEvent.change(screen.getByLabelText("Password"), {

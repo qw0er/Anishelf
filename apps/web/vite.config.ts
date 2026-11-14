@@ -10,9 +10,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import { loadClientBuild } from "../../scripts/client-build.mts";
 
 // https://vite.dev/config/
-const apiTarget =
-	process.env.ANISHELF_API_TARGET ??
-	`http://${serverDefaults.host}:${serverDefaults.port}`;
+const apiTarget = `http://${serverDefaults.host}:${serverDefaults.port}`;
 export default defineConfig({
 	define: {
 		__ANISHELF_BUILD__: JSON.stringify(loadClientBuild(import.meta.url)),
@@ -53,7 +51,7 @@ export default defineConfig({
 							request.headers.host &&
 							request.headers.origin === `http://${request.headers.host}`
 						) {
-							proxyRequest.setHeader("origin", new URL(apiTarget).origin);
+							proxyRequest.setHeader("origin", apiTarget);
 						}
 					});
 				},

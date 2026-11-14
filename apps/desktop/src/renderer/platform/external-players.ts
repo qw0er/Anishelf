@@ -6,15 +6,15 @@ import type {
 	ExternalPlayerHost,
 	PlayerMedia,
 } from "@anishelf/client-ui/browser-platform";
-import type { DesktopBridge } from "../ipc/desktop.js";
+import type { DesktopBridge } from "../../ipc/desktop.js";
 import type {
 	CommandPlayerConfig,
 	CommandPlayerPreset,
-} from "../shared/player-command.js";
+} from "../../shared/player-command.js";
 import {
 	formatCommand,
 	validateCommandPlayer,
-} from "../shared/player-command.js";
+} from "../../shared/player-command.js";
 
 function toCommandPlayer(
 	player: CommandPlayerConfig | CommandPlayerPreset,

@@ -7,6 +7,7 @@ import {
 	session,
 	type WebContents,
 } from "electron";
+import type { ServerSignInResult } from "../ipc/desktop.js";
 import { registerDesktopIpc } from "./ipc.js";
 import { downloadMedia } from "./native/download.js";
 import { createExternalPlayerService } from "./native/external-players.js";
@@ -17,37 +18,48 @@ import {
 	signInDevice,
 } from "./server/device-authentication.js";
 import { openDeviceTokenStore } from "./server/device-tokens.js";
+import { parseServerOrigin } from "./server-address.js";
+import {
+	checkServerConnection,
+	writeServerOrigin,
+} from "./server-connection.js";
 
 const rendererUrl = `${desktopOrigin}/`;
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
+
+type DeviceTokenStore = Awaited<ReturnType<typeof openDeviceTokenStore>>;
+
+interface ConnectedServer {
+	origin: string;
+	tokens: DeviceTokenStore;
+}
 
 export class DesktopApplication {
 	private readonly windows = new Set<WebContents>();
 	private readonly cleanup: Array<() => void> = [];
 	private openingWindow = false;
+	private signingIn = false;
+	private server!: ConnectedServer;
+	private readonly tokenStores = new Map<string, DeviceTokenStore>();
+	private detachCredentials?: () => void;
 
 	constructor(private readonly onFailure: (error: unknown) => void) {}
 
 	async start(origin: string): Promise<void> {
-		const tokens = await openDeviceTokenStore(origin, app.getPath("userData"));
+		this.activateServer(await this.openServer(origin));
+		this.cleanup.push(() => this.detachCredentials?.());
 		const externalPlayers = createExternalPlayerService(
 			app.getPath("userData"),
 		);
 		this.cleanup.push(
-			attachDeviceCredentials(
-				session.defaultSession,
-				origin,
-				() => tokens.authorization(),
-				this.windows,
-			),
-		);
-		this.cleanup.push(
 			registerDesktopIpc(
 				{
-					getServerOrigin: async () => origin,
-					signIn: (password) =>
-						signInDevice(origin, password, (token) => tokens.set(token)),
-					clearDeviceToken: () => tokens.set(null),
+					getServerOrigin: async () => this.server.origin,
+					signIn: (origin, password) => this.signIn(origin, password),
+					clearDeviceToken: async (origin) => {
+						const server = this.server;
+						if (origin === server.origin) await server.tokens.set(null);
+					},
 					copyText: async (text) => {
 						if (typeof text !== "string")
 							throw new Error("Expected clipboard text.");
@@ -55,7 +67,7 @@ export class DesktopApplication {
 					},
 					openExternal,
 					downloadFile: async (sender, url, filename) => {
-						downloadMedia(sender, origin, url, filename);
+						downloadMedia(sender, this.server.origin, url, filename);
 					},
 					listExternalPlayers: () => externalPlayers.list(),
 					addExternalPlayer: (draft) => externalPlayers.add(draft),
@@ -75,7 +87,7 @@ export class DesktopApplication {
 				this.windows,
 			),
 		);
-		this.cleanup.push(registerRendererProtocol(origin));
+		this.cleanup.push(registerRendererProtocol(() => this.server.origin));
 		await this.createWindow();
 		app.on("activate", this.onActivate);
 		this.cleanup.push(() => app.off("activate", this.onActivate));
@@ -106,6 +118,62 @@ export class DesktopApplication {
 	private readonly onActivate = () => {
 		if (this.windows.size === 0) this.showWindow();
 	};
+
+	private async openServer(origin: string): Promise<ConnectedServer> {
+		let tokens = this.tokenStores.get(origin);
+		if (!tokens) {
+			tokens = await openDeviceTokenStore(origin, app.getPath("userData"));
+			this.tokenStores.set(origin, tokens);
+		}
+		return { origin, tokens };
+	}
+
+	private activateServer(server: ConnectedServer) {
+		this.detachCredentials?.();
+		this.detachCredentials = attachDeviceCredentials(
+			session.defaultSession,
+			server.origin,
+			() => server.tokens.authorization(),
+			this.windows,
+		);
+		this.server = server;
+		console.info("desktop.server_configured", { origin: server.origin });
+	}
+
+	private async signIn(
+		target: unknown,
+		password: unknown,
+	): Promise<ServerSignInResult> {
+		if (this.signingIn) return { status: "busy" };
+		const origin = parseServerOrigin(target);
+		if (!origin) return { status: "invalidAddress" };
+		this.signingIn = true;
+		try {
+			const health = await checkServerConnection(origin);
+			if (health !== "ok") return { status: health };
+
+			const login = await signInDevice(origin, password);
+			if ("status" in login) {
+				if (login.status === 0) return { status: "unreachable" };
+				return { status: "rejected", httpStatus: login.status };
+			}
+
+			const server =
+				origin === this.server.origin
+					? this.server
+					: await this.openServer(origin);
+			await writeServerOrigin(app.getPath("userData"), origin);
+			await server.tokens.set(login.token);
+			if (server !== this.server) this.activateServer(server);
+			console.info("desktop.device_signed_in", { origin });
+			return { status: "ok", origin };
+		} catch {
+			console.error("desktop.server_sign_in_failed");
+			return { status: "saveFailed" };
+		} finally {
+			this.signingIn = false;
+		}
+	}
 
 	private async createWindow() {
 		const window = new BrowserWindow({

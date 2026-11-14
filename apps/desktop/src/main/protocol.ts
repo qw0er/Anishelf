@@ -17,7 +17,7 @@ export function registerRendererScheme() {
 	]);
 }
 
-export function registerRendererProtocol(serverOrigin: string) {
+export function registerRendererProtocol(getServerOrigin: () => string) {
 	protocol.handle("anishelf", async (request) => {
 		const url = new URL(request.url);
 		const path = url.pathname === "/" ? "/index.html" : url.pathname;
@@ -32,6 +32,7 @@ export function registerRendererProtocol(serverOrigin: string) {
 
 		const response = await net.fetch(new URL(path.slice(1), rendererRoot).href);
 		const headers = new Headers(response.headers);
+		const serverOrigin = getServerOrigin();
 		headers.set(
 			"Content-Security-Policy",
 			[

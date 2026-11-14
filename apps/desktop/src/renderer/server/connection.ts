@@ -1,7 +1,6 @@
 import { createServerConnection } from "@anishelf/client-core/connection";
-import type { DesktopBridge } from "../ipc/desktop.js";
+import type { DesktopBridge } from "../../ipc/desktop.js";
 import { DesktopAuthentication } from "./authentication.js";
-import { createDesktopPlatform } from "./platform.js";
 
 declare global {
 	interface Window {
@@ -9,12 +8,11 @@ declare global {
 	}
 }
 
-export async function createDesktopClient(
+export async function createDesktopServerClient(
 	desktop: DesktopBridge,
 	onAuthRequired: () => void,
 ) {
 	const origin = await desktop.getServerOrigin();
-	const platform = await createDesktopPlatform(desktop);
 	const connection = createServerConnection({
 		origin,
 		fetch: (url, init) =>
@@ -31,7 +29,6 @@ export async function createDesktopClient(
 	});
 	return {
 		connection,
-		authentication: new DesktopAuthentication(connection.api, desktop),
-		platform,
+		authentication: new DesktopAuthentication(connection.api, desktop, origin),
 	};
 }

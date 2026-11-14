@@ -18,10 +18,22 @@ export interface ExternalPlayerListResponse {
 	error: boolean;
 }
 
+export type ServerSignInResult =
+	| { status: "ok"; origin: string }
+	| { status: "rejected"; httpStatus: number }
+	| {
+			status:
+				| "invalidAddress"
+				| "invalidResponse"
+				| "unreachable"
+				| "saveFailed"
+				| "busy";
+	  };
+
 export interface DesktopBridge {
 	getServerOrigin(): Promise<string>;
-	signIn(password: string): Promise<{ status: number }>;
-	clearDeviceToken(): Promise<void>;
+	signIn(origin: string, password: string): Promise<ServerSignInResult>;
+	clearDeviceToken(origin: string): Promise<void>;
 	copyText(text: string): Promise<void>;
 	openExternal(url: string): Promise<void>;
 	downloadFile(url: string, filename: string): Promise<void>;

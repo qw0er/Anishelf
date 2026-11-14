@@ -45,9 +45,11 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 
 ## Development proxy and hosting
 
+The Vite development proxy sends API requests to `http://127.0.0.1:3000`.
+Set the desktop client's server address on its sign-in page.
+
 | Setting | Use |
 | --- | --- |
-| `ANISHELF_API_TARGET` | Select the Backend origin for Vite's Web proxy and the Electron desktop app. Set it when running a client against an existing server or using a nondefault Backend port |
 | `ANISHELF_FRONTEND_DIR` | Enable Backend Web hosting from an absolute directory containing a prebuilt `index.html` |
 | `ANISHELF_PUBLIC_ORIGIN` | Set the browser-facing origin for domain access |
 | `ANISHELF_TRUSTED_PROXIES` | Trust only the actual proxy chain; packaged containers include their private Web proxy |

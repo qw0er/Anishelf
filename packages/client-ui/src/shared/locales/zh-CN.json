@@ -828,6 +828,19 @@
 		"unsupported": "此剧集映射不支持观看记录。",
 		"unavailable": "观看记录不可用，本地播放不受影响。"
 	},
+	"serverConnection": {
+		"title": "服务器连接",
+		"address": "服务器地址",
+		"addressHelp": "远程服务器需使用 HTTPS。本机地址可以使用 HTTP。",
+		"invalidAddress": "请输入不含路径、凭据、查询参数或片段的服务器地址。远程地址需使用 HTTPS。",
+		"invalidResponse": "该地址没有返回有效的 Anishelf 健康检查响应。",
+		"unreachable": "无法连接到服务器。请检查地址后重试。",
+		"saveFailed": "无法保存服务器地址，请重试。",
+		"busy": "正在更改服务器，请稍候。",
+		"invalidPassword": "密码不正确。",
+		"rateLimited": "登录尝试次数过多，请稍后重试。",
+		"signInFailed": "无法登录服务器，请重试。"
+	},
 	"auth": {
 		"login": {
 			"title": "登录 Anishelf",

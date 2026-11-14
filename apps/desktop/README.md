@@ -9,15 +9,16 @@ local backend without watch mode. If Electron opens while the backend is still
 starting, retry from the app once the backend is ready.
 
 Use `npm run dev:desktop:client` to build and open only Electron, or
-`npm run start:desktop:client` to launch an existing desktop build. Set
-`ANISHELF_API_TARGET` on these commands to select the server origin. It defaults to
+`npm run start:desktop:client` to launch an existing desktop build. Open
+the sign-in page to enter the server address and password together. The app
+checks the connection and signs in before saving the address in the desktop
+profile. Open **Server connection** from Settings or the page load error screen
+to return to the same form.
+
+The app uses the saved address on startup. The default is
 `http://127.0.0.1:3000`. Use HTTPS for remote servers. HTTP is supported for
 `localhost`, `127.0.0.1`, and `[::1]`. Specify only the origin, without a path,
 query, fragment, or credentials.
-
-```sh
-ANISHELF_API_TARGET=https://anishelf.example.com npm run dev:desktop:client
-```
 
 The desktop client uses the server's device sessions. Electron keeps the token
 in the main process and uses the system credential store to encrypt it on disk.
@@ -37,5 +38,3 @@ the playback menu.
 Anishelf asks for confirmation before every launch and starts the process detached
 without a shell. No URL protocol handler is needed. Custom player settings are
 stored on this computer.
-
-Enter the server password on the shared sign-in page.

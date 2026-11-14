@@ -4,7 +4,7 @@ import { app, dialog } from "electron";
 import { userDataDir } from "platformdirs";
 import { DesktopApplication } from "./application.js";
 import { registerRendererScheme } from "./protocol.js";
-import { resolveServerOrigin } from "./server-address.js";
+import { readServerOrigin } from "./server-connection.js";
 
 const profileOverride = app.commandLine.getSwitchValue("user-data-dir");
 const profileDir = profileOverride
@@ -32,27 +32,12 @@ function startApplication() {
 	});
 
 	app.whenReady().then(async () => {
-		let origin: string;
-		try {
-			origin = resolveServerOrigin();
-			console.info("desktop.server_configured", { origin });
-		} catch (error) {
-			const message =
-				error instanceof Error
-					? error.message
-					: "Invalid server configuration.";
-			console.error("desktop.server_configuration_invalid", { message });
-			dialog.showErrorBox("Invalid Anishelf server address", message);
-			app.exit(1);
-			return;
-		}
-
 		const application = new DesktopApplication((error) => {
 			application.dispose();
 			reportStartupFailure(error);
 		});
 		try {
-			await application.start(origin);
+			await application.start(await readServerOrigin(profileDir));
 			desktop = application;
 			app.once("will-quit", () => application.dispose());
 		} catch (error) {

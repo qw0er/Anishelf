@@ -1,14 +1,21 @@
 import { ApiClientError } from "@anishelf/client-core";
 import { expect, test, vi } from "vitest";
-import { DesktopAuthentication } from "../src/renderer/authentication.js";
+import type { ServerSignInResult } from "../src/ipc/desktop.js";
+import { DesktopAuthentication } from "../src/renderer/server/authentication.js";
 
 test("a stale session check clears its credential before a queued sign-in", async () => {
 	const response = Promise.withResolvers<never>();
-	const signIn = vi.fn(async () => ({ status: 201 }));
+	const signIn = vi.fn(
+		async (): Promise<ServerSignInResult> => ({
+			status: "ok",
+			origin: "https://anishelf.example.com",
+		}),
+	);
 	const clearDeviceToken = vi.fn(async () => {});
 	const authentication = new DesktopAuthentication(
 		{ request: () => response.promise },
 		{ signIn, clearDeviceToken },
+		"https://anishelf.example.com",
 	);
 	const session = authentication.getSession();
 	const login = authentication.signIn("password");
@@ -25,11 +32,17 @@ test("a stale session check clears its credential before a queued sign-in", asyn
 
 test("a rejected sign-in does not block a retry", async () => {
 	const signIn = vi
-		.fn(async () => ({ status: 201 }))
-		.mockResolvedValueOnce({ status: 429 });
+		.fn(
+			async (): Promise<ServerSignInResult> => ({
+				status: "ok",
+				origin: "https://anishelf.example.com",
+			}),
+		)
+		.mockResolvedValueOnce({ status: "rejected", httpStatus: 429 });
 	const authentication = new DesktopAuthentication(
 		{ request: vi.fn() },
 		{ signIn, clearDeviceToken: vi.fn() },
+		"https://anishelf.example.com",
 	);
 	const rejected = authentication.signIn("password");
 	const retry = authentication.signIn("password");

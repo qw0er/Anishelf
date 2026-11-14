@@ -845,6 +845,19 @@
 		"unsupported": "This episode mapping is not supported for tracking.",
 		"unavailable": "Tracking is unavailable. Local playback is unaffected."
 	},
+	"serverConnection": {
+		"title": "Server connection",
+		"address": "Server address",
+		"addressHelp": "Use HTTPS for remote servers. HTTP is available for localhost.",
+		"invalidAddress": "Enter a server address with no path, credentials, query, or fragment. Remote addresses require HTTPS.",
+		"invalidResponse": "The address did not return a valid Anishelf health response.",
+		"unreachable": "Could not reach the server. Check the address and try again.",
+		"saveFailed": "Could not save the server address. Try again.",
+		"busy": "A server change is already in progress.",
+		"invalidPassword": "Incorrect password.",
+		"rateLimited": "Too many sign-in attempts. Try again later.",
+		"signInFailed": "Could not sign in to the server. Try again."
+	},
 	"auth": {
 		"login": {
 			"title": "Sign in to Anishelf",

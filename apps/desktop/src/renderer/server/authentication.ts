@@ -1,7 +1,7 @@
 import { ApiClientError } from "@anishelf/client-core";
 import type { ClientAuthentication } from "@anishelf/client-core/authentication";
 import type { createServerConnection } from "@anishelf/client-core/connection";
-import type { DesktopBridge } from "../ipc/desktop.js";
+import type { DesktopBridge } from "../../ipc/desktop.js";
 
 const currentDevicePath = "/api/auth/device-sessions/current";
 
@@ -35,25 +35,33 @@ export class DesktopAuthentication implements ClientAuthentication {
 			DesktopBridge,
 			"signIn" | "clearDeviceToken"
 		>,
+		private readonly origin: string,
 	) {
 		this.changePassword = this.changePassword.bind(this);
 	}
 
 	signIn(password: string): Promise<void> {
-		return this.run(async () => {
-			const { status } = await this.desktop.signIn(password);
-			if (status !== 201) throw signInError(status);
+		return this.signInTo(this.origin, password).then((result) => {
+			if (result.status === "ok") return;
+			if (result.status === "rejected") throw signInError(result.httpStatus);
+			throw signInError(result.status === "unreachable" ? 0 : 500);
 		});
+	}
+
+	signInTo(origin: string, password: string) {
+		return this.run(() => this.desktop.signIn(origin, password));
 	}
 
 	getSession(): ReturnType<ClientAuthentication["getSession"]> {
 		return this.run(async () => {
 			try {
-				await this.api.request(currentDevicePath, "GET");
+				await this.api.request(currentDevicePath, "GET", {
+					signal: AbortSignal.timeout(5_000),
+				});
 				return { authenticated: true };
 			} catch (error) {
 				if (!isUnauthorized(error)) throw error;
-				await this.desktop.clearDeviceToken();
+				await this.desktop.clearDeviceToken(this.origin);
 				return { authenticated: false };
 			}
 		});
@@ -66,7 +74,7 @@ export class DesktopAuthentication implements ClientAuthentication {
 			} catch (error) {
 				if (!isUnauthorized(error)) throw error;
 			}
-			await this.desktop.clearDeviceToken();
+			await this.desktop.clearDeviceToken(this.origin);
 		});
 	}
 
@@ -78,7 +86,7 @@ export class DesktopAuthentication implements ClientAuthentication {
 				{},
 				{ currentPassword, password },
 			);
-			await this.desktop.clearDeviceToken();
+			await this.desktop.clearDeviceToken(this.origin);
 		});
 	}
 

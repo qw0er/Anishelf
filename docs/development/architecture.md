@@ -133,6 +133,12 @@ adapter implements external links, player handoff, clipboard access, downloads,
 device preferences and page lifecycle events. The React app owns when to use
 each capability and retains DOM APIs for rendering, layout and media.
 
+In `apps/web/src/` and `apps/desktop/src/renderer/`, the top-level files are
+the application entry and stylesheet. Host-specific sign-in pages live in
+`auth/`. Platform integrations live in `platform/`, including Web service
+worker registration and desktop external players. The desktop renderer's
+`server/` owns its API connection and device-session adapter.
+
 | Layer | Responsibility |
 | --- | --- |
 | `app/` | Route definitions, providers, page composition, global feedback, cross-module invalidation and UI slots |

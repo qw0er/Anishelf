@@ -57,7 +57,6 @@ templates for container wiring.
 | `ANISHELF_LOG_ROTATE_INTERVAL` | `1d` | `1h` or `1d` |
 | `ANISHELF_FFMPEG_PATH` / `ANISHELF_FFPROBE_PATH` | Executables from PATH | Optional absolute executable paths |
 | `ANISHELF_FRONTEND_DIR` | Unset | Enable Backend Web hosting from an absolute directory containing a prebuilt `index.html` |
-| `ANISHELF_API_TARGET` | `http://127.0.0.1:3000` | Vite development proxy target |
 | `NODE_ENV` | Unset | `development` enables local Vite Origin exceptions |
 
 System service detection requires systemd's `INVOCATION_ID` and an accessible
