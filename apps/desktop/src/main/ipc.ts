@@ -13,6 +13,8 @@ import type {
  */
 export interface DesktopIpcHandlers {
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
+	getCloseToTray(): Promise<boolean>;
+	setCloseToTray(enabled: unknown): Promise<void>;
 	getServerConnection: DesktopBridge["getServerConnection"];
 	useLocalBackend: DesktopBridge["useLocalBackend"];
 	signIn(origin: unknown, password: unknown): Promise<ServerSignInResult>;
@@ -67,6 +69,10 @@ export function registerDesktopIpc(
 
 	try {
 		handle("desktop:check-for-updates", () => handlers.checkForUpdates());
+		handle("desktop:tray:get", handlers.getCloseToTray);
+		handle("desktop:tray:set", (_, enabled) =>
+			handlers.setCloseToTray(enabled),
+		);
 		handle("desktop:server-connection", handlers.getServerConnection);
 		handle("desktop:use-local-backend", handlers.useLocalBackend);
 		handle("desktop:sign-in", (_, origin, password) =>

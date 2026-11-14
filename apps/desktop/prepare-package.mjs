@@ -51,6 +51,9 @@ await cp(
 	join(desktopDir, "backend-process.mjs"),
 	join(stagingDir, "backend-process.mjs"),
 );
+await cp(join(desktopDir, "assets"), join(stagingDir, "assets"), {
+	recursive: true,
+});
 await cp(join(desktopDir, "dist/preload"), join(stagingDir, "dist/preload"), {
 	recursive: true,
 });
@@ -87,7 +90,7 @@ await writeFile(
 				// better-sqlite3 ships Node-API prebuilds for the release targets.
 				npmRebuild: false,
 				directories: { output: join(desktopDir, "release") },
-				files: ["dist/**/*", "backend-process.mjs"],
+				files: ["dist/**/*", "backend-process.mjs", "assets/**/*"],
 				asarUnpack: ["**/*.node"],
 				linux: {
 					target: ["AppImage", "deb", "rpm"],

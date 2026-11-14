@@ -13,6 +13,7 @@ import { createDesktopPlatform } from "./platform/platform.js";
 import { createDesktopServerClient } from "./server/connection.js";
 import { DesktopExternalPlayerSettings } from "./settings/external-player-settings.js";
 import { ServerConnectionSettings } from "./settings/server-connection-settings.js";
+import { TraySettings } from "./settings/tray-settings.js";
 import "./styles.css";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
@@ -39,6 +40,7 @@ async function start() {
 	const onAuthRequired = () => session.onAuthRequired();
 	const client = await createDesktopServerClient(desktop, onAuthRequired);
 	const platform = await createDesktopPlatform(desktop);
+	const closeToTray = await desktop.getCloseToTray();
 	const { origin } = client.connection;
 	const runtime = await initializeClient({
 		...client,
@@ -57,15 +59,21 @@ async function start() {
 						chooseExecutable={desktop.choosePlayerExecutable}
 					/>
 				),
-				serverSettings: (
-					<ServerConnectionSettings
-						server={client.server}
-						signIn={(address, password) =>
-							client.authentication.signInTo(address, password)
-						}
-						switchToLocal={desktop.useLocalBackend}
-						restart={() => session.restart("/settings?section=account")}
-					/>
+				desktopSettings: (
+					<>
+						<ServerConnectionSettings
+							server={client.server}
+							signIn={(address, password) =>
+								client.authentication.signInTo(address, password)
+							}
+							switchToLocal={desktop.useLocalBackend}
+							restart={() => session.restart("/settings?section=desktop")}
+						/>
+						<TraySettings
+							closeToTray={closeToTray}
+							save={desktop.setCloseToTray}
+						/>
+					</>
 				),
 				showSecuritySettings: client.server.kind === "external",
 				loginElement: (

@@ -156,6 +156,7 @@
 			"playback": "播放",
 			"downloads": "下载",
 			"account": "账户",
+			"desktop": "桌面",
 			"about": "关于"
 		},
 		"pathHelpLabel": "目录规则"
@@ -827,6 +828,12 @@
 		"ambiguous": "存在多个剧集关联，请先审核映射。",
 		"unsupported": "此剧集映射不支持观看记录。",
 		"unavailable": "观看记录不可用，本地播放不受影响。"
+	},
+	"desktopSettings": {
+		"title": "窗口与托盘",
+		"closeToTray": "关闭窗口时保留在托盘",
+		"closeToTrayHelp": "本机后端会继续运行。可通过托盘菜单重新打开窗口或退出 Anishelf。",
+		"saveFailed": "无法保存托盘设置，请重试。"
 	},
 	"serverConnection": {
 		"mode": "连接方式",

@@ -46,6 +46,8 @@ export interface DesktopUpdateCheck {
 
 export interface DesktopBridge {
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
+	getCloseToTray(): Promise<boolean>;
+	setCloseToTray(enabled: boolean): Promise<void>;
 	getServerConnection(): Promise<{
 		kind: "local" | "external";
 		origin: string;

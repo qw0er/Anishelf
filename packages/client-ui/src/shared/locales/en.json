@@ -157,6 +157,7 @@
 			"playback": "Playback",
 			"downloads": "Downloads",
 			"account": "Account",
+			"desktop": "Desktop",
 			"about": "About"
 		},
 		"pathHelpLabel": "Directory rules"
@@ -844,6 +845,12 @@
 		"ambiguous": "Multiple episode associations; review the mapping first.",
 		"unsupported": "This episode mapping is not supported for tracking.",
 		"unavailable": "Tracking is unavailable. Local playback is unaffected."
+	},
+	"desktopSettings": {
+		"title": "Window and tray",
+		"closeToTray": "Keep running in the tray when closing the window",
+		"closeToTrayHelp": "The local backend stays running. Use the tray menu to reopen the window or quit Anishelf.",
+		"saveFailed": "Could not save the tray setting. Try again."
 	},
 	"serverConnection": {
 		"mode": "Connection mode",

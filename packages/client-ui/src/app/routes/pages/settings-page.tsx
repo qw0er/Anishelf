@@ -1,4 +1,11 @@
-import { Download, FolderOpen, Info, Play, UserRound } from "lucide-react";
+import {
+	Download,
+	FolderOpen,
+	Info,
+	Monitor,
+	Play,
+	UserRound,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
@@ -29,6 +36,7 @@ const settingsSections = [
 	"playback",
 	"downloads",
 	"account",
+	"desktop",
 	"about",
 ] as const;
 const sectionIcons = {
@@ -36,6 +44,7 @@ const sectionIcons = {
 	playback: Play,
 	downloads: Download,
 	account: UserRound,
+	desktop: Monitor,
 	about: Info,
 };
 type SettingsSection = (typeof settingsSections)[number];
@@ -55,11 +64,11 @@ function sectionPath(
 
 export function SettingsPage({
 	externalPlayerSettings,
-	serverSettings,
+	desktopSettings,
 	showSecuritySettings = true,
 }: {
 	externalPlayerSettings: ReactNode;
-	serverSettings?: ReactNode;
+	desktopSettings?: ReactNode;
 	showSecuritySettings?: boolean | undefined;
 }) {
 	const navigationRef = useCompactNavigation();
@@ -67,9 +76,11 @@ export function SettingsPage({
 	const { t } = useTranslation();
 	const [params] = useSearchParams();
 	const requestedSection = params.get("section");
-	const activeSection: SettingsSection = isSettingsSection(requestedSection)
-		? requestedSection
-		: "library";
+	const activeSection: SettingsSection =
+		isSettingsSection(requestedSection) &&
+		(requestedSection !== "desktop" || desktopSettings)
+			? requestedSection
+			: "library";
 	const { settings, scanning, scanPending } = useAppRuntime();
 	const metadataProvider = settings?.defaultMetadataProvider ?? "anilist";
 	return settings ? (
@@ -83,6 +94,7 @@ export function SettingsPage({
 				>
 					<div className="settings-navigation-items">
 						{settingsSections.map((section) => {
+							if (section === "desktop" && !desktopSettings) return null;
 							const Icon = sectionIcons[section];
 							return (
 								<Tooltip
@@ -111,6 +123,14 @@ export function SettingsPage({
 					</div>
 				</nav>
 				<div className="min-w-0 settings-content">
+					{desktopSettings && (
+						<div
+							className={activeSection === "desktop" ? "stack-page" : "hidden"}
+							data-settings-section="desktop"
+						>
+							{desktopSettings}
+						</div>
+					)}
 					{activeSection === "about" && <AboutSettings />}
 					<div
 						className={activeSection === "library" ? "stack-page" : "hidden"}
@@ -143,7 +163,6 @@ export function SettingsPage({
 						className={activeSection === "account" ? "stack-page" : "hidden"}
 						data-settings-section="account"
 					>
-						{serverSettings}
 						<TrackingAccountSettings
 							key={metadataProvider}
 							metadataProvider={metadataProvider}
@@ -156,7 +175,7 @@ export function SettingsPage({
 	) : (
 		<div className="stack-page">
 			<section role="alert">{t("errors.settingsUnavailable")}</section>
-			{serverSettings ?? <ServerConnectionLink />}
+			{desktopSettings ?? <ServerConnectionLink />}
 		</div>
 	);
 }

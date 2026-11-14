@@ -10,7 +10,7 @@ development command after changing server code to rebuild the backend. Run
 `npm run start:desktop` for a regular build and launch.
 
 The app starts the bundled backend by default and signs in automatically. In
-**Settings → Server connection**, choose **External server** to enter another
+**Settings → Desktop → Server connection**, choose **External server** to enter another
 Anishelf server's address and password. Use HTTPS for remote servers. HTTP is
 supported for `localhost`, `127.0.0.1`, and `[::1]`. Enter an origin without a
 path, query, fragment, or credentials. The sign-in screen can also switch back to
@@ -27,6 +27,13 @@ The window's normal size and position, maximized state, and fullscreen state are
 saved in `window-state.json` in the desktop profile. If the saved position is no
 longer visible on a connected display, the window opens at a default position.
 On Wayland, the compositor controls window positioning.
+
+In **Settings → Desktop → Window and tray**, enable **Keep running in the
+tray when closing the window** to keep the window and bundled backend alive
+after closing the window. The option is off by default. Use **Open Anishelf**
+in the tray menu to show the window and **Quit Anishelf** to exit and stop the
+bundled backend. On Linux, tray visibility depends on the desktop environment.
+Launching Anishelf again brings the existing window back.
 
 The desktop platform adapter uses Electron for clipboard writes, media downloads,
 and opening links and external players. External players are configured as command

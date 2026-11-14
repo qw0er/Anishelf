@@ -4,6 +4,8 @@ const { contextBridge, ipcRenderer } =
 	require("electron") as typeof import("electron");
 
 const desktop: DesktopBridge = {
+	getCloseToTray: () => ipcRenderer.invoke("desktop:tray:get"),
+	setCloseToTray: (enabled) => ipcRenderer.invoke("desktop:tray:set", enabled),
 	checkForUpdates: () => ipcRenderer.invoke("desktop:check-for-updates"),
 	getServerConnection: () => ipcRenderer.invoke("desktop:server-connection"),
 	useLocalBackend: () => ipcRenderer.invoke("desktop:use-local-backend"),

@@ -46,7 +46,7 @@ Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 ## Development proxy and hosting
 
 The Vite development proxy sends API requests to `http://127.0.0.1:3000`.
-The desktop app defaults to its bundled backend. Change the connection in **Settings → Server connection**.
+The desktop app defaults to its bundled backend. Change the connection in **Settings → Desktop → Server connection**.
 
 | Setting | Use |
 | --- | --- |

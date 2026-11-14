@@ -14,6 +14,7 @@ import { registerDesktopIpc } from "./ipc.js";
 import { downloadMedia } from "./native/download.js";
 import { createExternalPlayerService } from "./native/external-players.js";
 import { openExternal } from "./native/links.js";
+import { DesktopTray } from "./native/tray.js";
 import { DesktopUpdateChecker } from "./native/updates.js";
 import { registerRendererProtocol } from "./protocol.js";
 import {
@@ -29,6 +30,13 @@ import {
 import { WindowStateStore } from "./window-state.js";
 
 const rendererUrl = `${desktopOrigin}/`;
+const iconPath = () =>
+	fileURLToPath(
+		new URL(
+			app.isPackaged ? "../icon.png" : "../../../web/public/icon-512.png",
+			import.meta.url,
+		),
+	);
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
 
 type DeviceTokenStore = Awaited<ReturnType<typeof openDeviceTokenStore>>;
@@ -86,6 +94,7 @@ function logLocalShutdownFailure(error: unknown) {
 export class DesktopApplication {
 	private readonly windows = new Set<WebContents>();
 	private readonly cleanup: Array<() => void> = [];
+	private tray: DesktopTray | undefined;
 	private openingWindow = false;
 	private switching = false;
 	private disposed = false;
@@ -110,6 +119,8 @@ export class DesktopApplication {
 				? await this.openExternalServer(connection)
 				: connectLocalBackend(connection);
 		this.activateServer(server);
+		this.tray = new DesktopTray(() => this.showWindow(), iconPath());
+		this.cleanup.push(() => this.tray?.dispose());
 		this.cleanup.push(() => this.detachCredentials?.());
 		const externalPlayers = createExternalPlayerService(
 			app.getPath("userData"),
@@ -119,6 +130,12 @@ export class DesktopApplication {
 			registerDesktopIpc(
 				{
 					checkForUpdates: () => updates.check(),
+					getCloseToTray: async () => this.tray?.enabled ?? false,
+					setCloseToTray: async (enabled) => {
+						if (this.disposed || !this.tray)
+							throw new Error("Desktop tray unavailable.");
+						this.tray.setEnabled(enabled);
+					},
 					getServerConnection: async () => ({
 						kind: this.server.kind,
 						origin: this.server.origin,
@@ -169,6 +186,7 @@ export class DesktopApplication {
 	}
 
 	showWindow(): void {
+		if (this.disposed) return;
 		const contents = this.windows.values().next().value;
 		const window = contents && BrowserWindow.fromWebContents(contents);
 		if (window) {
@@ -187,7 +205,7 @@ export class DesktopApplication {
 	}
 
 	private readonly onActivate = () => {
-		if (this.windows.size === 0) this.showWindow();
+		this.showWindow();
 	};
 
 	private async openExternalServer(origin: string) {
@@ -294,14 +312,7 @@ export class DesktopApplication {
 			...windowState.windowOptions(savedState),
 			...(process.platform === "linux"
 				? {
-						icon: fileURLToPath(
-							new URL(
-								app.isPackaged
-									? "../icon.png"
-									: "../../../web/public/icon-512.png",
-								import.meta.url,
-							),
-						),
+						icon: iconPath(),
 					}
 				: {}),
 			webPreferences: {
@@ -312,6 +323,12 @@ export class DesktopApplication {
 			},
 		});
 		windowState.manage(window, savedState);
+		window.on("close", (event) => {
+			if (this.disposed || !this.tray?.enabled) return;
+			event.preventDefault();
+			window.hide();
+			console.debug("desktop.window_hidden_to_tray");
+		});
 		if (process.platform !== "darwin") window.removeMenu();
 		const contents = window.webContents;
 		this.windows.add(contents);
