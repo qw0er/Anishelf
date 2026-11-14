@@ -74,21 +74,7 @@ export function SettingsPage({
 	const metadataProvider = settings?.defaultMetadataProvider ?? "anilist";
 	return settings ? (
 		<div className="stack-page">
-			<PageHeader
-				title={t("settingsPage.title")}
-				actions={
-					serverSettings ? (
-						<Link
-							className={buttonStyles("outline")}
-							to={sectionPath(params, "account")}
-						>
-							{t("serverConnection.title")}
-						</Link>
-					) : (
-						<ServerConnectionLink />
-					)
-				}
-			/>
+			<PageHeader title={t("settingsPage.title")} />
 			<div className="settings-layout">
 				<nav
 					ref={navigationRef}

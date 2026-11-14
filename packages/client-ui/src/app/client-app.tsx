@@ -37,6 +37,10 @@ export {
 export { Field, FieldError } from "../shared/components/ui/field.js";
 export { FieldHelp } from "../shared/components/ui/field-help.js";
 export { Input } from "../shared/components/ui/input.js";
+export {
+	NativeSelect,
+	NativeSelectOption,
+} from "../shared/components/ui/native-select.js";
 export { Spinner } from "../shared/components/ui/spinner.js";
 export { Textarea } from "../shared/components/ui/textarea.js";
 export { toast } from "../shared/components/ui/toast.js";

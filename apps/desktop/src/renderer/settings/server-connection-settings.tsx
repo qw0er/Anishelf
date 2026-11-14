@@ -6,6 +6,8 @@ import {
 	CardTitle,
 	FieldError,
 	Input,
+	NativeSelect,
+	NativeSelectOption,
 	Spinner,
 } from "@anishelf/client-ui";
 import { useState } from "react";
@@ -76,24 +78,26 @@ export function ServerConnectionSettings({
 							void submit();
 					}}
 				>
-					<fieldset className="flex flex-wrap gap-4" disabled={pending}>
-						<legend className="sr-only">{t("serverConnection.title")}</legend>
-						{(["local", "external"] as const).map((option) => (
-							<label key={option} className="flex items-center gap-2 text-sm">
-								<input
-									type="radio"
-									name="connection-kind"
-									value={option}
-									checked={kind === option}
-									onChange={() => {
-										setKind(option);
-										setError(undefined);
-									}}
-								/>
-								{t(`serverConnection.${option}`)}
-							</label>
-						))}
-					</fieldset>
+					<label htmlFor="settings-connection-kind" className="block space-y-2">
+						<span className="field-label">{t("serverConnection.mode")}</span>
+						<NativeSelect
+							id="settings-connection-kind"
+							value={kind}
+							disabled={pending}
+							onChange={({ target: { value } }) => {
+								if (value !== "local" && value !== "external") return;
+								setKind(value);
+								setError(undefined);
+							}}
+						>
+							<NativeSelectOption value="local">
+								{t("serverConnection.local")}
+							</NativeSelectOption>
+							<NativeSelectOption value="external">
+								{t("serverConnection.external")}
+							</NativeSelectOption>
+						</NativeSelect>
+					</label>
 					{kind === "external" && (
 						<>
 							<label

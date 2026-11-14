@@ -846,6 +846,7 @@
 		"unavailable": "Tracking is unavailable. Local playback is unaffected."
 	},
 	"serverConnection": {
+		"mode": "Connection mode",
 		"local": "Local backend",
 		"external": "External server",
 		"currentLocal": "Connected to the local backend.",

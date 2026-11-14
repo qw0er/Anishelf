@@ -829,6 +829,7 @@
 		"unavailable": "观看记录不可用，本地播放不受影响。"
 	},
 	"serverConnection": {
+		"mode": "连接方式",
 		"local": "本机后端",
 		"external": "外部服务器",
 		"currentLocal": "当前连接本机后端。",
