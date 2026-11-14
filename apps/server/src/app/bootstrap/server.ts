@@ -17,14 +17,16 @@ export async function createServer(
 	logger: Logger,
 	database: ApplicationDatabase,
 	tools: MediaTools,
-	{ printInitialPassword }: { printInitialPassword: boolean },
+	{ localDeviceToken }: { localDeviceToken: string | undefined },
 ) {
+	const localOnly = localDeviceToken !== undefined;
 	const owners: Parameters<typeof closeModules>[0] = { database };
 	try {
 		const authentication = await createAuthenticationModule({
 			logger,
 			dataDir: system.deployment.dataDir,
 			store: database.authentication,
+			localDeviceToken,
 			sources: {
 				version: async (id) =>
 					(await resources.api.sources.resolveSource(id)).identity
@@ -96,7 +98,9 @@ export async function createServer(
 		owners.acquisition = acquisition;
 		const app = createHttpApp({
 			configure: authentication.registerHttp,
-			config: system.deployment,
+			config: localOnly
+				? { ...system.deployment, trustedProxies: [] }
+				: system.deployment,
 			logger,
 			development: system.environment.development,
 			...(system.deployment.frontendDir
@@ -114,7 +118,7 @@ export async function createServer(
 			],
 			closeDependencies: () => closeModules(owners),
 		});
-		if (printInitialPassword && authentication.initialPassword)
+		if (!localOnly && authentication.initialPassword)
 			app.addHook("onListen", async () => {
 				process.stdout.write(
 					`\nAnishelf authentication initialized.\nInitial password: ${authentication.initialPassword}\nThis password will not be displayed again. You can change it in Settings.\n\n`,

@@ -16,6 +16,23 @@ import { type createLoginLimits, verifyLogin } from "./login.js";
 export const deviceLoginPath = "/api/auth/device-sessions";
 const currentDevicePath = `${deviceLoginPath}/current`;
 
+function requireCurrentDevice(device?: DeviceSession): DeviceSession {
+	if (!device)
+		throw new DomainError("AUTH_REQUIRED", "Sign in with a device session.");
+	return device;
+}
+
+export function registerCurrentDeviceRoute(
+	app: HttpInstance,
+	getDevice: (request: FastifyRequest) => DeviceSession | undefined,
+) {
+	app.get(
+		currentDevicePath,
+		{ schema: { response: { 200: DeviceSessionSchema } } },
+		async (request) => requireCurrentDevice(getDevice(request)),
+	);
+}
+
 export function registerDeviceRoutes(
 	app: HttpInstance,
 	service: AuthenticationService,
@@ -55,17 +72,7 @@ export function registerDeviceRoutes(
 		{ schema: { response: { 200: Type.Array(DeviceSessionSchema) } } },
 		async () => sessions.list(),
 	);
-	function currentDevice(request: FastifyRequest) {
-		const device = getDevice(request);
-		if (!device)
-			throw new DomainError("AUTH_REQUIRED", "Sign in with a device session.");
-		return device;
-	}
-	app.get(
-		currentDevicePath,
-		{ schema: { response: { 200: DeviceSessionSchema } } },
-		async (request) => currentDevice(request),
-	);
+	registerCurrentDeviceRoute(app, getDevice);
 	function revokeDevice(request: FastifyRequest, id: string) {
 		if (sessions.revoke(id))
 			request.log.info(
@@ -74,7 +81,7 @@ export function registerDeviceRoutes(
 			);
 	}
 	app.delete(currentDevicePath, async (request, reply) => {
-		revokeDevice(request, currentDevice(request).id);
+		revokeDevice(request, requireCurrentDevice(getDevice(request)).id);
 		return reply.code(204).send();
 	});
 	app.delete(

@@ -7,6 +7,10 @@ export function createToken(): string {
 	return randomBytes(32).toString("base64url");
 }
 
+export function readBearerToken(authorization: string): string | undefined {
+	return /^Bearer ([A-Za-z0-9_-]{43})$/i.exec(authorization)?.[1];
+}
+
 export function digest(value: string): string {
 	return createHash("sha256").update(value).digest("hex");
 }

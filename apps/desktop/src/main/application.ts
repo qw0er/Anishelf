@@ -20,7 +20,7 @@ import {
 	attachDeviceCredentials,
 	signInDevice,
 } from "./server/device-authentication.js";
-import { openDeviceTokenStore } from "./server/device-tokens.js";
+import { isDeviceToken, openDeviceTokenStore } from "./server/device-tokens.js";
 import { parseServerOrigin } from "./server-address.js";
 import {
 	checkServerConnection,
@@ -58,9 +58,25 @@ async function createUpdateChecker() {
 	);
 }
 
-interface ConnectedServer {
-	origin: string;
-	tokens: DeviceTokenStore;
+type ConnectedServer =
+	| { kind: "external"; origin: string; tokens: DeviceTokenStore }
+	| { kind: "local"; origin: string; deviceToken: string };
+
+function connectLocalBackend(backend: { origin: string; deviceToken: string }) {
+	const address = URL.parse(backend.origin);
+	if (
+		address?.protocol !== "http:" ||
+		address.hostname !== "127.0.0.1" ||
+		!address.port ||
+		address.origin !== backend.origin ||
+		!isDeviceToken(backend.deviceToken)
+	)
+		throw new Error("Invalid local backend connection.");
+	return {
+		kind: "local",
+		origin: backend.origin,
+		deviceToken: backend.deviceToken,
+	} as const;
 }
 
 export class DesktopApplication {
@@ -74,8 +90,14 @@ export class DesktopApplication {
 
 	constructor(private readonly onFailure: (error: unknown) => void) {}
 
-	async start(origin: string): Promise<void> {
-		this.activateServer(await this.openServer(origin));
+	async start(
+		connection: string | { origin: string; deviceToken: string },
+	): Promise<void> {
+		const server =
+			typeof connection === "string"
+				? await this.openExternalServer(connection)
+				: connectLocalBackend(connection);
+		this.activateServer(server);
 		this.cleanup.push(() => this.detachCredentials?.());
 		const externalPlayers = createExternalPlayerService(
 			app.getPath("userData"),
@@ -89,7 +111,8 @@ export class DesktopApplication {
 					signIn: (origin, password) => this.signIn(origin, password),
 					clearDeviceToken: async (origin) => {
 						const server = this.server;
-						if (origin === server.origin) await server.tokens.set(null);
+						if (server.kind === "external" && origin === server.origin)
+							await server.tokens.set(null);
 					},
 					copyText: async (text) => {
 						if (typeof text !== "string")
@@ -150,13 +173,13 @@ export class DesktopApplication {
 		if (this.windows.size === 0) this.showWindow();
 	};
 
-	private async openServer(origin: string): Promise<ConnectedServer> {
+	private async openExternalServer(origin: string) {
 		let tokens = this.tokenStores.get(origin);
 		if (!tokens) {
 			tokens = await openDeviceTokenStore(origin, app.getPath("userData"));
 			this.tokenStores.set(origin, tokens);
 		}
-		return { origin, tokens };
+		return { kind: "external", origin, tokens } as const;
 	}
 
 	private activateServer(server: ConnectedServer) {
@@ -164,7 +187,10 @@ export class DesktopApplication {
 		this.detachCredentials = attachDeviceCredentials(
 			session.defaultSession,
 			server.origin,
-			() => server.tokens.authorization(),
+			() =>
+				server.kind === "local"
+					? `Bearer ${server.deviceToken}`
+					: server.tokens.authorization(),
 			this.windows,
 		);
 		this.server = server;
@@ -178,6 +204,8 @@ export class DesktopApplication {
 		if (this.signingIn) return { status: "busy" };
 		const origin = parseServerOrigin(target);
 		if (!origin) return { status: "invalidAddress" };
+		if (this.server.kind === "local" && origin === this.server.origin)
+			return { status: "rejected", httpStatus: 403 };
 		this.signingIn = true;
 		try {
 			const health = await checkServerConnection(origin);
@@ -190,9 +218,9 @@ export class DesktopApplication {
 			}
 
 			const server =
-				origin === this.server.origin
+				this.server.kind === "external" && origin === this.server.origin
 					? this.server
-					: await this.openServer(origin);
+					: await this.openExternalServer(origin);
 			await writeServerOrigin(app.getPath("userData"), origin);
 			await server.tokens.set(login.token);
 			if (server !== this.server) this.activateServer(server);

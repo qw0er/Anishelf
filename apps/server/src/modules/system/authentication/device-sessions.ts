@@ -4,7 +4,12 @@ import { DomainError } from "../../../shared/errors.js";
 import type { AuthenticationService } from "./application.js";
 import { authenticationFailure } from "./diagnostics.js";
 import type { AuthenticationStore } from "./ports.js";
-import { createToken, digest, sessionLifetime } from "./tokens.js";
+import {
+	createToken,
+	digest,
+	readBearerToken,
+	sessionLifetime,
+} from "./tokens.js";
 
 export function createDeviceSessions(
 	service: AuthenticationService,
@@ -48,7 +53,7 @@ export function createDeviceSessions(
 			return { token, session: device };
 		},
 		authenticate(authorization: string) {
-			const token = /^Bearer ([A-Za-z0-9_-]{43})$/i.exec(authorization)?.[1];
+			const token = readBearerToken(authorization);
 			if (!token) return undefined;
 			return deviceStore("read", () =>
 				store.readDeviceSession(digest(token), service.fingerprint, Date.now()),

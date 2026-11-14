@@ -68,6 +68,7 @@ export async function createAuthenticationModule(options: {
 	dataDir: string;
 	store: AuthenticationStore;
 	sources: MediaLinkSources;
+	localDeviceToken?: string | undefined;
 }) {
 	const logger = options.logger.child({ module: "system.authentication" });
 	let credentials: Awaited<ReturnType<typeof loadCredentials>>;

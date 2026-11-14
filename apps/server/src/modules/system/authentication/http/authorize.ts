@@ -19,8 +19,12 @@ const webSessionPaths = new Set([
 	"/api/auth/logout",
 ]);
 
-function requireDeviceTransport(request: FastifyRequest) {
-	if (request.protocol === "https" || isDirectLoopbackRequest(request)) return;
+function requireDeviceTransport(request: FastifyRequest, localOnly: boolean) {
+	if (
+		(!localOnly && request.protocol === "https") ||
+		isDirectLoopbackRequest(request)
+	)
+		return;
 	request.log.warn(
 		{ event: "auth.device_insecure_transport" },
 		"Device authentication requires HTTPS or direct loopback HTTP.",
@@ -34,8 +38,9 @@ function requireDeviceTransport(request: FastifyRequest) {
 export function registerAuthorization(
 	app: HttpInstance,
 	service: AuthenticationService,
-	sessions: ReturnType<typeof createDeviceSessions>,
+	sessions: Pick<ReturnType<typeof createDeviceSessions>, "authenticate">,
 	mediaLinks: ReturnType<typeof createMediaLinks>,
+	{ localOnly = false }: { localOnly?: boolean } = {},
 ) {
 	const devices = new WeakMap<FastifyRequest, DeviceSession>();
 	const anonymousRoutes = new Set(["/api/auth/session", "/api/auth/login"]);
@@ -47,8 +52,9 @@ export function registerAuthorization(
 		const route = request.routeOptions.url;
 		if (route === "/api/health") return;
 		const authorization = request.headers.authorization;
-		if (request.method === "POST" && route === deviceLoginPath) {
-			requireDeviceTransport(request);
+		if (localOnly) requireDeviceTransport(request, true);
+		if (!localOnly && request.method === "POST" && route === deviceLoginPath) {
+			requireDeviceTransport(request, false);
 			if (
 				authorization !== undefined ||
 				request.cookies[sessionCookieName] !== undefined
@@ -60,7 +66,7 @@ export function registerAuthorization(
 			return;
 		}
 		if (authorization !== undefined) {
-			requireDeviceTransport(request);
+			if (!localOnly) requireDeviceTransport(request, false);
 			const device = sessions.authenticate(authorization);
 			if (!device) {
 				reply.header("WWW-Authenticate", 'Bearer realm="Anishelf"');
@@ -70,7 +76,7 @@ export function registerAuthorization(
 				);
 				throw new DomainError("AUTH_REQUIRED", "Sign in to continue.");
 			}
-			if (request.cookies[sessionCookieName] !== undefined)
+			if (request.cookies?.[sessionCookieName] !== undefined)
 				throw new DomainError(
 					"REQUEST_FORBIDDEN",
 					"Use one authentication method per request.",
@@ -83,7 +89,7 @@ export function registerAuthorization(
 			devices.set(request, device);
 			return;
 		}
-		if (isDesktopApiRequest(request)) {
+		if (localOnly || isDesktopApiRequest(request)) {
 			if (await mediaLinks.permits(request.method, url)) return;
 			reply.header("WWW-Authenticate", 'Bearer realm="Anishelf"');
 			throw new DomainError("AUTH_REQUIRED", "Sign in to continue.");
