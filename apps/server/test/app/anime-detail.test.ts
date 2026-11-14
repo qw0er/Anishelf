@@ -144,7 +144,9 @@ test("detail and lightweight status remain independent during a metadata outage"
 			downloads: { total: 3, active: 2, attention: 1 },
 		});
 		expect(status.json().downloads).not.toHaveProperty("items");
-		expect(discovery.get).toHaveBeenCalledExactlyOnceWith(key, 1, false);
+		expect(discovery.get).toHaveBeenCalledExactlyOnceWith(key, {
+			includeDiagnostics: false,
+		});
 		const invalid = await app.inject({
 			url: "/api/anime/status/malformed",
 			headers: { host: "127.0.0.1" },

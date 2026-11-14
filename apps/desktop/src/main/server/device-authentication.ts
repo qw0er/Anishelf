@@ -85,4 +85,5 @@ export function attachDeviceCredentials(
 			callback({ requestHeaders });
 		},
 	);
+	return () => session.webRequest.onBeforeSendHeaders(null);
 }

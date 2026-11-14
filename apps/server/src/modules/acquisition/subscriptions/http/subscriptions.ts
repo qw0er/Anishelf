@@ -45,11 +45,10 @@ export function registerSubscriptionRoutes(
 			},
 		},
 		async (request) =>
-			subscriptions.get(
-				request.query.workKey,
-				Number(request.query.page ?? 1),
-				request.query.diagnostics !== "false",
-			),
+			subscriptions.get(request.query.workKey, {
+				page: Number(request.query.page ?? 1),
+				includeDiagnostics: request.query.diagnostics !== "false",
+			}),
 	);
 	app.put(
 		path,

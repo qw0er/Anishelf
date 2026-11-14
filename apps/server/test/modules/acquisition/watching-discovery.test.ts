@@ -38,7 +38,8 @@ test("empty discovery retains intent, freezes its creation scope, retries and su
 		expect.objectContaining({ providerId: "nyaasi", outcome: "no_match" }),
 	]);
 	expect(
-		reopened.subscriptions.get(workKey, 1, false).discovery,
+		reopened.subscriptions.get(workKey, { includeDiagnostics: false })
+			.discovery,
 	).toBeUndefined();
 	f.advance();
 	await reopened.subscriptions.resolvePending();

@@ -17,6 +17,12 @@ import type {
 	TrackingUpdateProvider,
 } from "../ports.js";
 
+import {
+	hasReachedTrackingIntent,
+	matchesAttemptBaseline,
+	matchesRemoteState,
+} from "./reconciliation.js";
+
 interface Options {
 	access: TrackingListAccess;
 	store: TrackingOperationStore;
@@ -32,29 +38,6 @@ interface Options {
 }
 const terminal = (op: TrackingOperation) =>
 	op.state === "succeeded" || op.state === "cancelled";
-function matches(
-	remote: TrackingRemoteState | null,
-	desired: TrackingDesiredState,
-): boolean {
-	return (
-		remote !== null &&
-		(desired.progress === undefined || remote.progress === desired.progress) &&
-		(desired.status === undefined || remote.status === desired.status)
-	);
-}
-function unchanged(
-	remote: TrackingRemoteState | null,
-	attempt: TrackingAttempt,
-): boolean {
-	const baseline = attempt.baseline;
-	if (!remote || !baseline) return remote === baseline;
-	return (
-		remote.id === baseline.id &&
-		(attempt.desired.progress === undefined ||
-			remote.progress === baseline.progress) &&
-		(attempt.desired.status === undefined || remote.status === baseline.status)
-	);
-}
 /** Durable absolute intent; immutable attempts survive uncertain delivery and newer edits. */
 export class TrackingUpdates {
 	private readonly lifetime = new AbortController();
@@ -463,20 +446,12 @@ export class TrackingUpdates {
 			const progress = await inspect(remote, attempt.desired);
 			signal.throwIfAborted();
 			this.options.access.assertCurrent(generation);
-			const reached = (
-				state: TrackingRemoteState | null,
-				desired: TrackingDesiredState,
-				checked: typeof progress,
-			) =>
-				checked === undefined
-					? matches(state, desired)
-					: checked.state === "matched" &&
-						state !== null &&
-						(automatic || state.progress === desired.progress) &&
-						(desired.status === undefined || state.status === desired.status);
-			if (!reached(remote, attempt.desired, progress)) {
+
+			if (
+				!hasReachedTrackingIntent(remote, attempt.desired, progress, automatic)
+			) {
 				if (
-					!unchanged(remote, attempt) ||
+					!matchesAttemptBaseline(remote, attempt) ||
 					(attempt.episodeBaseline !== undefined &&
 						attempt.episodeBaseline !== progress?.baseline)
 				) {
@@ -539,10 +514,11 @@ export class TrackingUpdates {
 				signal.throwIfAborted();
 				this.options.access.assertCurrent(generation);
 				if (
-					!reached(
+					!hasReachedTrackingIntent(
 						remote,
 						attempt.desired,
 						await inspect(remote, attempt.desired),
+						automatic,
 					)
 				)
 					throw new TrackingProviderError("invalid-response", null);
@@ -557,7 +533,7 @@ export class TrackingUpdates {
 				latest.revision === attempt.revision ||
 				(latest.desired.progress === attempt.desired.progress &&
 					latest.desired.status === attempt.desired.status) ||
-				(progress === undefined && matches(remote, latest.desired));
+				(progress === undefined && matchesRemoteState(remote, latest.desired));
 			this.persist({
 				...latest,
 				baseline: remote,

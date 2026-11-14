@@ -50,4 +50,7 @@ export function registerRendererProtocol(serverOrigin: string) {
 		headers.set("Referrer-Policy", "no-referrer");
 		return new Response(response.body, { status: response.status, headers });
 	});
+	return () => {
+		protocol.unhandle("anishelf");
+	};
 }

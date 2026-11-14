@@ -5,6 +5,11 @@ import type {
 	SubscriptionView,
 } from "./domain/model.js";
 
+export interface SubscriptionViewOptions {
+	page?: number;
+	includeDiagnostics?: boolean;
+}
+
 export interface SubscriptionsApi {
 	list(): Promise<{ title: string; view: SubscriptionView }[]>;
 	profiles(): {
@@ -18,7 +23,7 @@ export interface SubscriptionsApi {
 		selectionAvailable: boolean;
 	};
 	search(input: SubscriptionSearchInput): Promise<SubscriptionSearchResult>;
-	get(workKey: string, page?: number, diagnostics?: boolean): SubscriptionView;
+	get(workKey: string, options?: SubscriptionViewOptions): SubscriptionView;
 	save(input: SaveSubscriptionInput): Promise<SubscriptionView>;
 	setEnabled(
 		workKey: string,

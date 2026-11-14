@@ -1,5 +1,6 @@
 import {
 	ClientApp,
+	ClientSessionLifecycle,
 	createClientRoutes,
 	initializeClient,
 } from "@anishelf/client-ui";
@@ -23,32 +24,33 @@ document.documentElement.style.colorScheme = dark ? "dark" : "light";
 async function start() {
 	if (!window.desktop) throw new Error("Open Anishelf in Electron.");
 
-	let restarting = false;
-	function restartSession(path: string) {
-		if (restarting) return;
-		restarting = true;
-		runtime.dispose();
-		window.history.replaceState(null, "", `#${path}`);
-		window.location.reload();
-	}
-
-	function onAuthRequired() {
-		const { pathname, search, hash } = router.state.location;
-		if (pathname === "/login") return;
-		const returnTo = encodeURIComponent(`${pathname}${search}${hash}`);
-		console.debug("auth.session_required", { host: "desktop" });
-		restartSession(`/login?returnTo=${returnTo}`);
-	}
-
+	const session = new ClientSessionLifecycle({
+		name: "desktop",
+		open(path) {
+			window.history.replaceState(null, "", `#${path}`);
+			window.location.reload();
+		},
+	});
+	const onAuthRequired = () => session.onAuthRequired();
 	const client = await createDesktopClient(window.desktop, onAuthRequired);
 	const runtime = await initializeClient({
 		...client,
 		...__ANISHELF_BUILD__,
 		onAuthRequired,
-		navigate: (path) => void router.navigate(path),
-		restartSession,
+		navigate: (path) => session.navigate(path),
+		restartSession: (path) => session.restart(path),
 	});
-	const router = createHashRouter(createClientRoutes());
+	try {
+		const router = createHashRouter(createClientRoutes());
+		if (!session.attach(() => runtime.dispose(), router)) return;
+		render(router);
+	} catch (error) {
+		runtime.dispose();
+		throw error;
+	}
+}
+
+function render(router: ReturnType<typeof createHashRouter>) {
 	root.render(
 		<StrictMode>
 			<ClientApp router={router} />

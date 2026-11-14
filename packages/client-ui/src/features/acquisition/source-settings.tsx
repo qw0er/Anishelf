@@ -1,15 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-	ArrowDown,
-	ArrowUp,
 	ExternalLink,
 	MoreHorizontal,
 	Package,
-	PlugZap,
 	RefreshCw,
 	Save,
-	Search,
-	Trash2,
 	Unplug,
 } from "lucide-react";
 import { useState } from "react";
@@ -37,12 +32,6 @@ import {
 } from "../../shared/components/ui/collapsible.js";
 import { ConnectionSettings } from "../../shared/components/ui/connection-settings.js";
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "../../shared/components/ui/dialog.js";
-import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
@@ -53,10 +42,6 @@ import { FieldHeading } from "../../shared/components/ui/field-heading.js";
 import { FieldHelp } from "../../shared/components/ui/field-help.js";
 import { Input } from "../../shared/components/ui/input.js";
 import { LoadingState } from "../../shared/components/ui/loading-state.js";
-import {
-	NativeSelect,
-	NativeSelectOption,
-} from "../../shared/components/ui/native-select.js";
 import { StatusBadge } from "../../shared/components/ui/status-badge.js";
 import { toast } from "../../shared/components/ui/toast.js";
 import { Tooltip } from "../../shared/components/ui/tooltip.js";
@@ -64,14 +49,17 @@ import { useAutoSave } from "../../shared/hooks/use-auto-save.js";
 import { useRefreshError } from "../../shared/hooks/use-refresh-error.js";
 import { isHttpUrl } from "../../shared/lib/url.js";
 import {
+	SourceDiagnosticsDialog,
+	useSourceDiagnostics,
+} from "./source-diagnostics.js";
+import { SourceProviderSettings } from "./source-provider-settings.js";
+import {
 	activateBundledSourceConnector,
 	clearSourceConnector,
 	getSourceConnector,
 	getSourceProviders,
-	probeSourceProvider,
 	saveSourceConnector,
 	sourceSettingsKey,
-	testSource,
 } from "./sources-api.js";
 
 function sourceConnectionKey(settings: SourceConnectorSettings): string {
@@ -150,8 +138,10 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 	const [apiKey, setApiKey] = useState("");
 	const [providers, setProviders] = useState(settings.providers);
 	const [available, setAvailable] = useState<SourceProviders>([]);
-	const [providerId, setProviderId] = useState(settings.providers[0] ?? "");
-	const [title, setTitle] = useState("");
+	const diagnostics = useSourceDiagnostics(
+		settings.generation,
+		settings.providers[0] ?? "",
+	);
 	const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 	const connectionChanged = url !== (settings.url ?? "") || Boolean(apiKey);
 	const sitesChanged =
@@ -160,8 +150,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 	const saved = (value: SourceConnectorSettings) => {
 		setApiKey("");
 		setAvailable([]);
-		probe.reset();
-		search.reset();
+		diagnostics.reset();
 		setUrl(value.url ?? "");
 		client.setQueryData(sourceSettingsKey, value);
 		console.info("[Settings] Jackett source settings saved.");
@@ -204,13 +193,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				providers,
 			}),
 		onSuccess: (value) => {
-			setProviderId(
-				value.providers.includes(providerId)
-					? providerId
-					: (value.providers[0] ?? ""),
-			);
-			probe.reset();
-			search.reset();
+			diagnostics.reconcileProvider(value.providers);
 			client.setQueryData(sourceSettingsKey, value);
 			console.info("[Settings] Jackett source sites saved.");
 			toast.add({
@@ -240,8 +223,7 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			}),
 		onSuccess: (value) => {
 			setManagementUrl(value.managementUrl ?? "");
-			probe.reset();
-			search.reset();
+			diagnostics.reset();
 			client.setQueryData(sourceSettingsKey, value);
 			console.info("[Settings] Jackett management URL saved.");
 			toast.add({
@@ -291,18 +273,6 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 			});
 		},
 	});
-	const probe = useMutation({
-		mutationFn: () => probeSourceProvider(settings.generation, providerId),
-	});
-	const search = useMutation({
-		mutationFn: () =>
-			testSource({
-				kind: "search",
-				connectionRevision: settings.generation,
-				providerId,
-				titles: [title.trim()],
-			}),
-	});
 	const managementDraft = managementUrl.trim();
 	const managementValid = managementDraft === "" || isHttpUrl(managementDraft);
 	const flushManagementUrl = useAutoSave(
@@ -318,26 +288,12 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 		clear.isPending ||
 		bundled.isPending ||
 		list.isPending ||
-		probe.isPending ||
-		search.isPending;
+		diagnostics.checking ||
+		diagnostics.searching;
 	const error =
-		clear.isError ||
-		bundled.isError ||
-		list.isError ||
-		probe.isError ||
-		search.isError;
+		clear.isError || bundled.isError || list.isError || diagnostics.failed;
 	const canTest =
 		!busy && !changed && settings.hasApiKey && Boolean(settings.url);
-	const selectableSites = available.filter(
-		(site) => !providers.includes(site.id),
-	);
-	function move(index: number, direction: number) {
-		const next = [...providers];
-		const target = index + direction;
-		if (target < 0 || target >= next.length) return;
-		[next[index], next[target]] = [next[target] ?? "", next[index] ?? ""];
-		setProviders(next);
-	}
 	return (
 		<div className="flex min-w-0 flex-col gap-4">
 			{(settings.error ||
@@ -492,290 +448,31 @@ function ConnectorForm({ settings }: { settings: SourceConnectorSettings }) {
 				</div>
 			)}
 
-			<section
-				className="flex min-w-0 flex-col gap-3 border-t pt-4"
-				aria-label={t("acquisition.sources.resourceSites")}
-			>
-				<div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-					<div className="min-w-0 space-y-1">
-						<h3 className="text-sm font-medium">
-							{t("acquisition.sources.resourceSites")}
-						</h3>
+			<SourceProviderSettings
+				settings={settings}
+				providers={providers}
+				setProviders={setProviders}
+				available={available}
+				busy={busy}
+				changed={changed}
+				sitesChanged={sitesChanged}
+				canTest={canTest}
+				loadingSites={list.isPending}
+				savingSites={saveSites.isPending}
+				onOpenDiagnostics={() => setDiagnosticsOpen(true)}
+				onLoadSites={() => list.mutate()}
+				onSaveSites={() => saveSites.mutate()}
+			/>
 
-						{changed && (
-							<p role="status" className="text-sm text-muted-foreground">
-								{t("acquisition.sources.saveBeforeDiagnostics")}
-							</p>
-						)}
-					</div>
-					<div className="action-row">
-						<ActionButton
-							icon={PlugZap}
-							label={t("acquisition.sources.test")}
-							variant="outline"
-							disabled={!canTest || !settings.providers.length}
-							onClick={() => setDiagnosticsOpen(true)}
-						/>
-						<ActionButton
-							icon={RefreshCw}
-							label={t("acquisition.sources.testAndLoad")}
-							shortLabel={t("acquisition.sources.loadSites")}
-							variant="outline"
-							disabled={!canTest}
-							onClick={() => list.mutate()}
-							aria-busy={list.isPending}
-						/>
-					</div>
-				</div>
-				{providers.length > 0 && (
-					<ul
-						aria-label={t("acquisition.sources.selectedSites")}
-						className="max-h-64 min-w-0 divide-y overflow-y-auto rounded-lg border"
-					>
-						{providers.map((id, index) => (
-							<li
-								key={id}
-								className="flex min-w-0 items-center gap-2 px-3 py-2"
-							>
-								<span className="min-w-0 flex-1 truncate text-sm" title={id}>
-									<span className="mr-2 text-muted-foreground">
-										{index + 1}.
-									</span>
-									{available.find((site) => site.id === id)?.name ?? id}
-								</span>
-								<Tooltip
-									content={t("acquisition.sources.moveEarlier", {
-										name: id,
-									})}
-								>
-									<Button
-										size="icon"
-										variant="ghost"
-										disabled={busy || index === 0}
-										aria-label={t("acquisition.sources.moveEarlier", {
-											name: id,
-										})}
-										onClick={() => move(index, -1)}
-									>
-										<ArrowUp size={16} aria-hidden="true" />
-									</Button>
-								</Tooltip>
-								<Tooltip
-									content={t("acquisition.sources.moveLater", {
-										name: id,
-									})}
-								>
-									<Button
-										size="icon"
-										variant="ghost"
-										disabled={busy || index === providers.length - 1}
-										aria-label={t("acquisition.sources.moveLater", {
-											name: id,
-										})}
-										onClick={() => move(index, 1)}
-									>
-										<ArrowDown size={16} aria-hidden="true" />
-									</Button>
-								</Tooltip>
-								<DropdownMenu>
-									<Tooltip
-										content={t("acquisition.sources.siteActions", {
-											name: id,
-										})}
-									>
-										<DropdownMenuTrigger
-											render={
-												<Button
-													size="icon"
-													type="button"
-													variant="ghost"
-													aria-label={t("acquisition.sources.siteActions", {
-														name: id,
-													})}
-												/>
-											}
-										>
-											<MoreHorizontal size={16} aria-hidden="true" />
-										</DropdownMenuTrigger>
-									</Tooltip>
-									<DropdownMenuContent>
-										<DropdownMenuItem
-											disabled={busy}
-											onClick={() =>
-												setProviders(providers.filter((value) => value !== id))
-											}
-										>
-											<Trash2 size={16} aria-hidden="true" />
-											{t("acquisition.sources.removeAria", { name: id })}
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</li>
-						))}
-					</ul>
-				)}
-				{selectableSites.length > 0 && (
-					<Field className="flex flex-col gap-2">
-						<label htmlFor="source-add-site" className="field-label">
-							{t("acquisition.sources.availableSites")}
-						</label>
-						<NativeSelect
-							id="source-add-site"
-							className="form-select"
-							value=""
-							disabled={busy || providers.length >= 32}
-							onChange={(event) => {
-								if (event.target.value)
-									setProviders([...providers, event.target.value]);
-							}}
-						>
-							<NativeSelectOption value="">
-								{t("acquisition.sources.addSite")}
-							</NativeSelectOption>
-							{selectableSites.map((site) => (
-								<NativeSelectOption key={site.id} value={site.id}>
-									{site.name}
-								</NativeSelectOption>
-							))}
-						</NativeSelect>
-					</Field>
-				)}
-				{sitesChanged && (
-					<div className="action-row">
-						<ActionButton
-							icon={Save}
-							label={t("acquisition.sources.saveSites")}
-							disabled={busy || !settings.url || !settings.hasApiKey}
-							aria-busy={saveSites.isPending}
-							onClick={() => saveSites.mutate()}
-						/>
-					</div>
-				)}
-			</section>
-
-			<Dialog open={diagnosticsOpen} onOpenChange={setDiagnosticsOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>{t("acquisition.sources.diagnostics")}</DialogTitle>
-					</DialogHeader>
-					<div className="mt-4 flex min-w-0 flex-col gap-4">
-						<Field className="flex flex-col gap-2">
-							<label className="field-label" htmlFor="source-test-provider">
-								{t("acquisition.sources.siteToTest")}
-							</label>
-							<NativeSelect
-								id="source-test-provider"
-								className="form-select"
-								value={providerId}
-								disabled={busy}
-								onChange={(event) => {
-									setProviderId(event.target.value);
-									probe.reset();
-									search.reset();
-								}}
-							>
-								{!settings.providers.length && (
-									<NativeSelectOption value="">
-										{t("acquisition.sources.saveSiteFirst")}
-									</NativeSelectOption>
-								)}
-								{settings.providers.map((id) => (
-									<NativeSelectOption key={id} value={id}>
-										{id}
-									</NativeSelectOption>
-								))}
-							</NativeSelect>
-						</Field>
-						<div className="action-row">
-							<ActionButton
-								icon={PlugZap}
-								label={t("acquisition.sources.checkSupport")}
-								shortLabel={t("acquisition.sources.checkSupport")}
-								variant="outline"
-								disabled={!canTest || !providerId}
-								onClick={() => probe.mutate()}
-								aria-busy={probe.isPending}
-							/>
-						</div>
-						{probe.data && !changed && (
-							<p role="status" className="text-sm text-muted-foreground">
-								{probe.data.searchSupported
-									? t("acquisition.sources.searchSupported")
-									: t("acquisition.sources.searchUnsupported")}
-							</p>
-						)}
-						<form
-							className="flex min-w-0 flex-col gap-3"
-							onSubmit={(event) => {
-								event.preventDefault();
-								search.mutate();
-							}}
-						>
-							<Field className="flex flex-col gap-2">
-								<label className="field-label" htmlFor="source-test-title">
-									{t("acquisition.sources.titleToSearch")}
-								</label>
-								<Input
-									id="source-test-title"
-									maxLength={256}
-									value={title}
-									disabled={busy}
-									onChange={(event) => {
-										setTitle(event.target.value);
-										search.reset();
-									}}
-								/>
-							</Field>
-							<div className="action-row">
-								<ActionButton
-									icon={Search}
-									label={t("acquisition.sources.testSearch")}
-									shortLabel={t("acquisition.sources.testSearch")}
-									type="submit"
-									variant="outline"
-									disabled={!canTest || !providerId || !title.trim()}
-									aria-busy={search.isPending}
-								/>
-							</div>
-						</form>
-						{search.data && !changed && (
-							<div
-								role="status"
-								className="rounded-lg border bg-muted/20 p-3 text-sm"
-							>
-								<p>
-									{search.data.entries.length
-										? t("acquisition.sources.searchReturned", {
-												count: search.data.entries.length,
-											})
-										: t("acquisition.sources.noResults")}
-								</p>
-								{search.data.coverage?.limited && (
-									<p className="mt-1 text-muted-foreground">
-										{t("acquisition.sources.limitedCoverage", {
-											reason: search.data.coverage.reason,
-										})}
-									</p>
-								)}
-								{search.data.entries.length > 0 && (
-									<ul className="mt-2 divide-y">
-										{search.data.entries.slice(0, 5).map((entry) => (
-											<li key={entry.id} className="break-all py-1">
-												{entry.title}
-											</li>
-										))}
-									</ul>
-								)}
-							</div>
-						)}
-					</div>
-					{(probe.isError || search.isError) && (
-						<p role="alert" className="field-error">
-							{t("acquisition.sources.actionFailed")}
-						</p>
-					)}
-				</DialogContent>
-			</Dialog>
+			<SourceDiagnosticsDialog
+				diagnostics={diagnostics}
+				providers={settings.providers}
+				open={diagnosticsOpen}
+				onOpenChange={setDiagnosticsOpen}
+				busy={busy}
+				changed={changed}
+				canTest={canTest}
+			/>
 
 			{error && (
 				<p role="alert" className="field-error">

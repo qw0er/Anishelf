@@ -9,76 +9,86 @@ function isUnauthorized(error: unknown) {
 	return error instanceof ApiClientError && error.status === 401;
 }
 
-export function createDesktopAuthentication(
-	connection: ReturnType<typeof createServerConnection>,
-	desktop: DesktopBridge,
-): ClientAuthentication {
-	const { api } = connection;
-	let pending = Promise.resolve();
+function signInError(status: number): ApiClientError {
+	if (status === 0) {
+		return new ApiClientError({
+			kind: "network",
+			message:
+				"Cannot connect to the server. Check your connection and try again.",
+		});
+	}
+	let message = "Could not sign in. Check the server and try again.";
+	if (status === 401) message = "Invalid password.";
+	if (status === 429) message = "Too many login attempts. Try again later.";
+	return new ApiClientError({ kind: "http", status, message });
+}
+
+export class DesktopAuthentication implements ClientAuthentication {
+	private pending = Promise.resolve();
+
+	constructor(
+		private readonly api: Pick<
+			ReturnType<typeof createServerConnection>["api"],
+			"request"
+		>,
+		private readonly desktop: Pick<
+			DesktopBridge,
+			"signIn" | "clearDeviceToken"
+		>,
+	) {
+		this.changePassword = this.changePassword.bind(this);
+	}
+
+	signIn(password: string): Promise<void> {
+		return this.run(async () => {
+			const { status } = await this.desktop.signIn(password);
+			if (status !== 201) throw signInError(status);
+		});
+	}
+
+	getSession(): ReturnType<ClientAuthentication["getSession"]> {
+		return this.run(async () => {
+			try {
+				await this.api.request(currentDevicePath, "GET");
+				return { authenticated: true };
+			} catch (error) {
+				if (!isUnauthorized(error)) throw error;
+				await this.desktop.clearDeviceToken();
+				return { authenticated: false };
+			}
+		});
+	}
+
+	signOut(): Promise<void> {
+		return this.run(async () => {
+			try {
+				await this.api.request(currentDevicePath, "DELETE");
+			} catch (error) {
+				if (!isUnauthorized(error)) throw error;
+			}
+			await this.desktop.clearDeviceToken();
+		});
+	}
+
+	changePassword(currentPassword: string, password: string): Promise<void> {
+		return this.run(async () => {
+			await this.api.request(
+				"/api/auth/password",
+				"PUT",
+				{},
+				{ currentPassword, password },
+			);
+			await this.desktop.clearDeviceToken();
+		});
+	}
 
 	// A session check must not clear a credential from a concurrent sign-in.
-	function run<T>(operation: () => Promise<T>): Promise<T> {
-		const result = pending.then(operation);
-		pending = result.then(
+	private run<T>(operation: () => Promise<T>): Promise<T> {
+		const result = this.pending.then(operation);
+		this.pending = result.then(
 			() => {},
 			() => {},
 		);
 		return result;
 	}
-
-	return {
-		signIn(password) {
-			return run(async () => {
-				const { status } = await desktop.signIn(password);
-				if (status === 201) return;
-				if (status === 0) {
-					throw new ApiClientError({
-						kind: "network",
-						message:
-							"Cannot connect to the server. Check your connection and try again.",
-					});
-				}
-				const message =
-					status === 401
-						? "Invalid password."
-						: status === 429
-							? "Too many login attempts. Try again later."
-							: "Could not sign in. Check the server and try again.";
-				throw new ApiClientError({ kind: "http", status, message });
-			});
-		},
-		getSession() {
-			return run(async () => {
-				try {
-					await api.request(currentDevicePath, "GET");
-					return { authenticated: true };
-				} catch (error) {
-					if (!isUnauthorized(error)) throw error;
-					await desktop.clearDeviceToken();
-					return { authenticated: false };
-				}
-			});
-		},
-		signOut() {
-			return run(async () => {
-				try {
-					await api.request(currentDevicePath, "DELETE");
-				} catch (error) {
-					if (!isUnauthorized(error)) throw error;
-				}
-				await desktop.clearDeviceToken();
-			});
-		},
-		changePassword(currentPassword, password) {
-			return run(async () => {
-				await api.request(
-					"/api/auth/password",
-					"PUT",
-					{},
-					{ currentPassword, password },
-				);
-				await desktop.clearDeviceToken();
-			});
-		},
-	};
 }

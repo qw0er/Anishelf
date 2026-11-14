@@ -3,7 +3,6 @@ import { workReference } from "@anishelf/contracts/references";
 import { DomainError } from "../../../../shared/errors.js";
 import type { AcquisitionTarget } from "../../../anime/public.js";
 import type { SourceSnapshot } from "../../sources/public.js";
-import { coveredEpisodeCount } from "../domain/completion.js";
 import type {
 	Candidate,
 	SaveSubscriptionInput,
@@ -17,15 +16,14 @@ import {
 	defaultAcquisitionProfileId,
 } from "../domain/profiles.js";
 import { selectCandidates } from "../domain/selection.js";
-import type { SubscriptionsApi } from "../public.js";
+import type { SubscriptionsApi, SubscriptionViewOptions } from "../public.js";
+import { SubscriptionCompletion } from "./completion.js";
 import { SubscriptionsContext, type SubscriptionsOptions } from "./context.js";
 import { SubscriptionDiscovery } from "./discovery.js";
 import { PendingSubscriptions } from "./pending.js";
-
+import { maximumSubscriptions, saveSubscription } from "./save.js";
+import { projectSubscriptionView } from "./view.js";
 import { SubscriptionWorker } from "./worker.js";
-
-const maximumSubscriptions = 64;
-const pageSize = 20;
 
 function conflict(): never {
 	throw new DomainError(
@@ -34,6 +32,30 @@ function conflict(): never {
 	);
 }
 export class SubscriptionsApplication implements SubscriptionsApi {
+	private readonly completion: SubscriptionCompletion;
+	private timer: ReturnType<typeof setInterval> | undefined;
+	private readonly pending: PendingSubscriptions;
+	private readonly context: SubscriptionsContext;
+	private readonly worker: SubscriptionWorker;
+	private readonly discovery: SubscriptionDiscovery;
+	constructor(private readonly options: SubscriptionsOptions) {
+		this.context = new SubscriptionsContext(options);
+		this.completion = new SubscriptionCompletion({
+			store: options.store,
+			scheduling: this.context.scheduling,
+			signal: this.context.signal,
+			assertOpen: () => this.context.open(),
+			now: () => this.context.now(),
+			logger: options.logger,
+		});
+		this.discovery = new SubscriptionDiscovery(this.context);
+		this.pending = new PendingSubscriptions(this.context, this.discovery);
+		this.worker = new SubscriptionWorker(
+			this.context,
+			(subscription, feed, target) =>
+				this.evaluateCandidates(subscription, feed, target),
+		);
+	}
 	async list() {
 		return Promise.all(
 			this.options.store.subscriptions().map(async (sub) => {
@@ -51,7 +73,10 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 						"Subscription title unavailable",
 					);
 				}
-				return { title, view: this.get(sub.workKey, 1, false) };
+				return {
+					title,
+					view: this.get(sub.workKey, { includeDiagnostics: false }),
+				};
 			}),
 		);
 	}
@@ -59,31 +84,8 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		return this.options.store.subscriptions().length < maximumSubscriptions;
 	}
 
-	private timer: ReturnType<typeof setInterval> | undefined;
-	private readonly pending: PendingSubscriptions;
-	private readonly context: SubscriptionsContext;
-	private readonly worker: SubscriptionWorker;
-	private readonly discovery: SubscriptionDiscovery;
-	constructor(private readonly options: SubscriptionsOptions) {
-		this.context = new SubscriptionsContext(options);
-		this.discovery = new SubscriptionDiscovery(this.context);
-		this.pending = new PendingSubscriptions(this.context, this.discovery);
-		this.worker = new SubscriptionWorker(
-			this.context,
-			(subscription, feed, target) =>
-				this.evaluateCandidates(subscription, feed, target),
-		);
-	}
-	private key(value: string) {
-		this.context.open();
-		try {
-			workReference(value);
-		} catch {
-			throw new DomainError("INVALID_REQUEST", "Invalid anime reference.");
-		}
-	}
 	search(input: SubscriptionSearchInput) {
-		this.key(input.workKey);
+		this.assertOpenWork(input.workKey);
 		if (
 			!Number.isSafeInteger(input.startEpisode) ||
 			input.startEpisode < 1 ||
@@ -114,242 +116,47 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				: {}),
 		};
 	}
-	get(workKey: string, page = 1, diagnostics = true): SubscriptionView {
-		this.key(workKey);
+	get(
+		workKey: string,
+		{ page = 1, includeDiagnostics = true }: SubscriptionViewOptions = {},
+	): SubscriptionView {
+		this.assertOpenWork(workKey);
 		if (!Number.isSafeInteger(page) || page < 1 || page > 10000)
 			throw new DomainError("INVALID_REQUEST", "Invalid candidate page.");
+
 		const subscription = this.options.store.subscription(workKey);
-		let feed = subscription
-			? subscription.feedId
-				? this.options.sources.snapshot(subscription.feedId)
-				: null
-			: null;
-		let sourceError: string | null = null;
-		if (subscription?.sourceInput) {
-			try {
-				const snapshot = this.options.sources.snapshot(
-					subscription.sourceInput,
-				);
-				feed ??= snapshot;
-			} catch {
-				sourceError = "source_changed";
-			}
-		}
-		const candidates = this.selection()
-			.candidates(workKey)
-			.sort(
-				(a, b) =>
-					(a.episode ?? Infinity) - (b.episode ?? Infinity) ||
-					a.id.localeCompare(b.id),
-			);
-		return {
-			subscription: subscription
-				? {
-						workKey: subscription.workKey,
-						feedId: subscription.feedId,
-						startEpisode: subscription.startEpisode,
-						profileId: subscription.profileId ?? null,
-						enabled: subscription.enabled,
-						management:
-							subscription.createdBy === "watching" ? "watching" : "manual",
-						runState: this.context.stopReason(subscription) ?? "active",
-						revision: subscription.revision,
-						...(subscription.schedule
-							? {
-									schedule: {
-										...subscription.schedule,
-										metadataFresh:
-											subscription.schedule.metadataFresh &&
-											subscription.schedule.metadataCheckAt >
-												this.context.now(),
-										nextCheckAt:
-											subscription.schedule.nextCheckAt === null
-												? null
-												: Math.max(
-														this.context.scheduling.resourceDueAt(subscription),
-														feed?.error ? feed.nextAttemptAt : 0,
-													),
-									},
-								}
-							: {}),
-						source:
-							feed?.label ??
-							(subscription.automatic
-								? "Automatic source"
-								: "Source unavailable"),
-						sourceKind:
-							subscription.sourceInput?.kind ??
-							(subscription.automatic ? "automatic" : "feed"),
-						checkedAt:
-							feed?.checkedAt ?? subscription.discovery?.checkedAt ?? null,
-						nextAttemptAt:
-							feed?.nextAttemptAt ?? subscription.automatic?.retryAt ?? 0,
-						error: sourceError ?? feed?.error ?? subscription.lastError ?? null,
-					}
-				: null,
-			candidates: diagnostics
-				? candidates.slice((page - 1) * pageSize, page * pageSize)
-				: [],
-			total: candidates.length,
+		const { feed, sourceChanged } = this.readSubscriptionSource(subscription);
+		const candidates = this.selection().candidates(workKey);
+		const runState = subscription
+			? (this.context.stopReason(subscription) ?? "active")
+			: "active";
+
+		return projectSubscriptionView({
+			subscription,
+			feed,
+			sourceChanged,
+			runState,
+			schedule: subscription
+				? this.readViewSchedule(subscription, feed)
+				: undefined,
+			candidates,
 			page,
-			...(diagnostics && subscription?.discovery
-				? { discovery: subscription.discovery }
-				: {}),
-		};
+			includeDiagnostics,
+		});
 	}
 	async save(input: SaveSubscriptionInput): Promise<SubscriptionView> {
-		return this.persist(input);
+		return this.saveAtomically(input);
 	}
 	saveAtomically(
 		input: SaveSubscriptionInput,
-		commit: (subscription: Subscription) => void,
-	): SubscriptionView {
-		return this.persist(input, commit);
-	}
-	private persist(
-		input: SaveSubscriptionInput,
 		commit?: (subscription: Subscription) => void,
 	): SubscriptionView {
-		this.key(input.workKey);
-		if (
-			!Number.isSafeInteger(input.startEpisode) ||
-			input.startEpisode < 1 ||
-			input.startEpisode > 10000
-		)
-			throw new DomainError("INVALID_REQUEST", "Invalid starting episode.");
-		const current = this.options.store.subscription(input.workKey);
-		if ((current?.revision ?? null) !== input.revision) conflict();
-		if (!current && !this.hasCapacity())
-			throw new DomainError(
-				"ACQUISITION_UNAVAILABLE",
-				"Subscription limit reached.",
-			);
-		const profileId = input.profileId ?? null;
-		if (
-			!(this.options.profiles ?? builtinAcquisitionProfiles).some(
-				(profile) =>
-					profile.id === (profileId ?? this.profiles().selectedProfileId),
-			)
-		)
-			throw new DomainError(
-				"INVALID_REQUEST",
-				"The acquisition profile is unavailable. Choose an existing profile.",
-			);
-
-		const target = input.target;
-		const destination = this.options.downloadTarget?.();
-		if (
-			target &&
-			(!destination?.validated ||
-				destination.revision !== target.destinationRevision ||
-				destination.connectionGeneration !== target.connectionGeneration)
-		)
-			throw new DomainError(
-				"ACQUISITION_CONFLICT",
-				"Configure and validate the current download destination, then save again.",
-			);
-		const automatic =
-			input.source?.kind === "automatic" ||
-			(!input.source && !current) ||
-			(!input.source && !!current?.automatic && !current.feedId);
-		const selectedProfile = (
-			this.options.profiles ?? builtinAcquisitionProfiles
-		).find(
-			(profile) =>
-				profile.id === (profileId ?? this.profiles().selectedProfileId),
-		);
-		const settings = this.options.sources.connector.settings();
-		if (automatic && (!settings.ready || !settings.providers.length))
-			throw new DomainError(
-				"ACQUISITION_UNAVAILABLE",
-				"Configure source sites in Settings first.",
-			);
-		const subscription: Subscription = {
-			workKey: input.workKey,
-			feedId: automatic ? null : (current?.feedId ?? null),
-			sourceInput: automatic
-				? null
-				: input.source?.kind !== "automatic"
-					? (input.source ?? current?.sourceInput ?? null)
-					: null,
-			...(current?.discovery && !automatic
-				? { discovery: current.discovery }
-				: {}),
-			// A save from the work editor explicitly takes manual ownership.
-			...(current?.completion && current.startEpisode === input.startEpisode
-				? { completion: current.completion }
-				: {}),
-			...(automatic && selectedProfile
-				? {
-						automatic: {
-							sourceGeneration: settings.generation,
-							profileFingerprint:
-								acquisitionProfileFingerprint(selectedProfile),
-							target,
-							retryAt: 0,
-						},
-					}
-				: {}),
-			startEpisode: input.startEpisode,
-			profileId,
-			enabled: current?.enabled ?? true,
-			revision: randomUUID(),
-		};
-		try {
-			this.options.store.transaction(() => {
-				if (!automatic) {
-					const source = subscription.sourceInput ?? subscription.feedId;
-					const snapshot = source
-						? this.options.sources.snapshot(source)
-						: null;
-					if (!snapshot)
-						throw new DomainError("INVALID_REQUEST", "Choose a source.");
-					subscription.feedId = snapshot.id;
-				}
-				if (commit) commit(subscription);
-				// Preserve existing selection clocks on a configuration edit; changed profiles are fenced until reevaluation.
-				this.options.store.saveSubscription(
-					subscription,
-					current?.feedId === subscription.feedId
-						? this.options.store.candidates(input.workKey)
-						: [],
-				);
-				if (target && subscription.feedId)
-					this.options.store.authorize({
-						workKey: subscription.workKey,
-						feedId: subscription.feedId,
-						startEpisode: subscription.startEpisode,
-						...target,
-					});
-				else this.options.store.revoke(subscription.workKey);
-			});
-		} catch (error) {
-			this.options.logger.warn(
-				{
-					event: "acquisition.subscription_save_failed",
-					workKey: input.workKey,
-				},
-				"Subscription and permission were rolled back.",
-			);
-			throw error;
-		}
-		this.options.logger.info(
-			{
-				event:
-					current?.createdBy === "watching" && !commit
-						? "acquisition.subscription_taken_over"
-						: "acquisition.subscription_saved",
-				workKey: subscription.workKey,
-				sourceId: subscription.feedId,
-				revision: subscription.revision,
-				acquisitionEnabled: Boolean(target),
-			},
-			"Subscription saved; source collection will run in the background.",
-		);
+		this.assertOpenWork(input.workKey);
+		saveSubscription(this.options, input, commit);
 		return this.get(input.workKey);
 	}
 	async setEnabled(workKey: string, revision: string, enabled: boolean) {
-		this.key(workKey);
+		this.assertOpenWork(workKey);
 		const current = this.options.store.subscription(workKey);
 		if (!current || current.revision !== revision) conflict();
 		if (
@@ -381,7 +188,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		return this.get(workKey);
 	}
 	async remove(workKey: string, revision: string) {
-		this.key(workKey);
+		this.assertOpenWork(workKey);
 		this.options.store.transaction(() => {
 			const current = this.options.store.subscription(workKey);
 			if (current?.revision !== revision) conflict();
@@ -400,7 +207,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 	}
 	refresh(workKey: string, revision: string) {
 		return this.context.tracked(async () => {
-			this.key(workKey);
+			this.assertOpenWork(workKey);
 			const subscription = this.options.store.subscription(workKey);
 			if (
 				!subscription ||
@@ -666,66 +473,8 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 		return snapshot ? this.worker.pollSource(snapshot) : Promise.resolve();
 	}
 
-	private completionCheck: Promise<void> | undefined;
 	checkCompletion(): Promise<void> {
-		if (this.completionCheck) return this.completionCheck;
-		const task = this.updateCompletion().finally(() => {
-			this.completionCheck = undefined;
-		});
-		this.completionCheck = task;
-		return task;
-	}
-	private async updateCompletion() {
-		for (const subscription of this.options.store.subscriptions()) {
-			if (!subscription.enabled) continue;
-			try {
-				const target = await this.context.scheduling.read(subscription);
-				if (!target) continue;
-				this.context.open();
-				const current = this.options.store.subscription(subscription.workKey);
-				if (!current || current.revision !== subscription.revision) continue;
-				const total = target.work.episodeCount;
-				const previous = current.completion;
-				const covered = coveredEpisodeCount(current, target);
-				const expanded =
-					previous && total !== null && total > previous.episodeCount;
-				if (previous && !expanded) continue;
-				if (covered === null && !expanded) continue;
-				const updated = {
-					...(this.options.store.subscription(current.workKey) ?? current),
-					completion:
-						covered === null
-							? null
-							: { episodeCount: covered, completedAt: this.context.now() },
-					revision: randomUUID(),
-				};
-				this.options.store.saveSubscription(
-					updated,
-					this.options.store.candidates(current.workKey),
-				);
-				this.options.logger.info(
-					{
-						event:
-							covered === null
-								? "acquisition.subscription_reopened"
-								: "acquisition.subscription_completed",
-						workKey: current.workKey,
-						episodeCount: total,
-					},
-					"Subscription coverage state changed.",
-				);
-			} catch {
-				if (this.context.signal.aborted) return;
-				this.context.scheduling.update(subscription, null);
-				this.options.logger.debug(
-					{
-						event: "acquisition.subscription_coverage_unavailable",
-						workKey: subscription.workKey,
-					},
-					"Coverage check will retry without changing subscription state.",
-				);
-			}
-		}
+		return this.completion.check();
 	}
 
 	/** Explicit confirmation renews managed permissions without changing saved release settings. */
@@ -803,5 +552,59 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			this.worker.close(),
 			this.context.scheduling.close(),
 		]);
+	}
+
+	private assertOpenWork(workKey: string): void {
+		this.context.open();
+		try {
+			workReference(workKey);
+		} catch {
+			throw new DomainError("INVALID_REQUEST", "Invalid anime reference.");
+		}
+	}
+
+	private readSubscriptionSource(subscription: Subscription | null): {
+		feed: SourceSnapshot | null;
+		sourceChanged: boolean;
+	} {
+		const feed = subscription?.feedId
+			? this.options.sources.snapshot(subscription.feedId)
+			: null;
+		if (!subscription?.sourceInput) return { feed, sourceChanged: false };
+
+		try {
+			const configuredSource = this.options.sources.snapshot(
+				subscription.sourceInput,
+			);
+			return { feed: feed ?? configuredSource, sourceChanged: false };
+		} catch {
+			this.options.logger.debug(
+				{
+					event: "acquisition.subscription_view_source_changed",
+					workKey: subscription.workKey,
+				},
+				"Subscription source could not be resolved",
+			);
+			return { feed, sourceChanged: true };
+		}
+	}
+
+	private readViewSchedule(
+		subscription: Subscription,
+		feed: SourceSnapshot | null,
+	) {
+		const schedule = subscription.schedule;
+		if (!schedule) return undefined;
+
+		const metadataFresh =
+			schedule.metadataFresh && schedule.metadataCheckAt > this.context.now();
+		let nextCheckAt = schedule.nextCheckAt;
+		if (nextCheckAt !== null) {
+			nextCheckAt = Math.max(
+				this.context.scheduling.resourceDueAt(subscription),
+				feed?.error ? feed.nextAttemptAt : 0,
+			);
+		}
+		return { ...schedule, metadataFresh, nextCheckAt };
 	}
 }

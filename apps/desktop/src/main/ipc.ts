@@ -33,6 +33,7 @@ export function registerDesktopIpc(
 	handlers: DesktopIpcHandlers,
 	windows: ReadonlySet<WebContents>,
 ) {
+	const channels: string[] = [];
 	function handle<Args extends unknown[], Result>(
 		channel: string,
 		action: (sender: WebContents, ...args: Args) => Promise<Result>,
@@ -50,27 +51,44 @@ export function registerDesktopIpc(
 			}
 			return action(event.sender, ...args);
 		});
+		channels.push(channel);
 	}
 
-	handle("desktop:server-origin", handlers.getServerOrigin);
-	handle("desktop:sign-in", (_, password: string) => handlers.signIn(password));
-	handle("desktop:clear-device-token", handlers.clearDeviceToken);
-	handle("desktop:copy-text", (_, text: string) => handlers.copyText(text));
-	handle("desktop:open-external", (_, url: string) =>
-		handlers.openExternal(url),
-	);
-	handle("desktop:download-file", handlers.downloadFile);
-	handle("desktop:external-players:list", () => handlers.listExternalPlayers());
-	handle("desktop:external-players:add", (_, draft) =>
-		handlers.addExternalPlayer(draft),
-	);
-	handle("desktop:external-players:remove", (_, id) =>
-		handlers.removeExternalPlayer(id),
-	);
-	handle("desktop:external-players:choose-executable", (sender) =>
-		handlers.choosePlayerExecutable(sender),
-	);
-	handle("desktop:external-players:launch", (sender, id, mediaUrl, mimeType) =>
-		handlers.launchExternalPlayer(sender, id, mediaUrl, mimeType),
-	);
+	function unregister() {
+		for (const channel of channels.splice(0)) ipcMain.removeHandler(channel);
+	}
+
+	try {
+		handle("desktop:server-origin", handlers.getServerOrigin);
+		handle("desktop:sign-in", (_, password: string) =>
+			handlers.signIn(password),
+		);
+		handle("desktop:clear-device-token", handlers.clearDeviceToken);
+		handle("desktop:copy-text", (_, text: string) => handlers.copyText(text));
+		handle("desktop:open-external", (_, url: string) =>
+			handlers.openExternal(url),
+		);
+		handle("desktop:download-file", handlers.downloadFile);
+		handle("desktop:external-players:list", () =>
+			handlers.listExternalPlayers(),
+		);
+		handle("desktop:external-players:add", (_, draft) =>
+			handlers.addExternalPlayer(draft),
+		);
+		handle("desktop:external-players:remove", (_, id) =>
+			handlers.removeExternalPlayer(id),
+		);
+		handle("desktop:external-players:choose-executable", (sender) =>
+			handlers.choosePlayerExecutable(sender),
+		);
+		handle(
+			"desktop:external-players:launch",
+			(sender, id, mediaUrl, mimeType) =>
+				handlers.launchExternalPlayer(sender, id, mediaUrl, mimeType),
+		);
+	} catch (error) {
+		unregister();
+		throw error;
+	}
+	return unregister;
 }

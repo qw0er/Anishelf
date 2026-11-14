@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen, Play, Trash2 } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
@@ -27,29 +27,19 @@ import { NativeSelect } from "../../../../shared/components/ui/native-select.js"
 import { PaginationControls } from "../../../../shared/components/ui/pagination-controls.js";
 import { RefreshButton } from "../../../../shared/components/ui/refresh-button.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
-import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { useRefreshError } from "../../../../shared/hooks/use-refresh-error.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { formatFileSize } from "../../../resources/public.js";
 import { deletePreparedMediaBatch } from "../api.js";
 import { preparationKeys, preparedMediaQuery } from "../queries.js";
 
+import { PreparedMediaRow } from "./prepared-media-row.js";
+
 export function PreparedMediaPage({ onDeleted }: { onDeleted(): void }) {
 	const scope = useQueryScope();
 	return (
 		<PreparedMediaInventory key={scope} scope={scope} onDeleted={onDeleted} />
 	);
-}
-
-function watchPath(item: PreparedMediaItem) {
-	const query = new URLSearchParams({
-		version: item.sourceVersion,
-		asset: item.id,
-		audio: item.audioStreamIndices.length
-			? String(item.audioStreamIndices[0])
-			: "none",
-	});
-	return `/files/${encodeURIComponent(item.fileId)}?${query}`;
 }
 
 function PreparedMediaInventory({
@@ -365,121 +355,21 @@ function PreparedMediaInventory({
 								)}
 								<ul className="divide-y">
 									{items.map((item) => (
-										<li
+										<PreparedMediaRow
 											key={item.id}
-											className={`grid items-center gap-x-3 gap-y-2 py-3 ${
-												selecting
-													? "grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto]"
-													: "grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto]"
-											}`}
-										>
-											{selecting && (
-												<Checkbox
-													className="size-5 shrink-0"
-													aria-label={t("preparedMedia.select", {
-														name: item.filename,
-													})}
-													checked={chosen.some(
-														(chosen) => chosen.id === item.id,
-													)}
-													disabled={
-														mutation.isPending || !!item.deleteBlockedReason
-													}
-													onCheckedChange={(checked) =>
-														setSelected((previous) =>
-															checked
-																? [...previous, item.id]
-																: previous.filter((id) => id !== item.id),
-														)
-													}
-												/>
-											)}
-											<div className="min-w-0 flex-1 space-y-1">
-												<Tooltip
-													openOnClick
-													content={
-														<div className="space-y-1 break-all">
-															<p>{item.sourcePath}</p>
-															<p>
-																{new Date(item.createdAtMs).toLocaleString(
-																	i18n.language,
-																)}
-															</p>
-														</div>
-													}
-												>
-													<button
-														type="button"
-														className="block w-full truncate rounded text-left list-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-														aria-label={item.filename}
-													>
-														{item.filename}
-													</button>
-												</Tooltip>
-												<p className="break-words text-xs text-muted-foreground">
-													{item.profileName} ·{" "}
-													{item.audioStreamIndices.length
-														? t("preparedMedia.audio", {
-																count: item.audioStreamIndices.length,
-															})
-														: t("audioTracks.none")}{" "}
-													· {size(item.sizeBytes)} ·{" "}
-													{t(`preparedMedia.states.${item.status}`)}
-													{item.deleteBlockedReason &&
-														` · ${t(`preparedMedia.blocked.${item.deleteBlockedReason}`)}`}
-												</p>
-											</div>
-											<div
-												className={`flex items-center justify-end ${selecting ? "col-start-2 sm:col-start-auto" : ""}`}
-											>
-												<Tooltip content={t("preparedMedia.watch")}>
-													{item.status === "ready" ? (
-														<Link
-															className={buttonStyles(
-																"ghost",
-																undefined,
-																"icon",
-															)}
-															aria-label={t("preparedMedia.watch")}
-															to={watchPath(item)}
-														>
-															<Play size={16} aria-hidden="true" />
-														</Link>
-													) : (
-														<Button
-															size="icon"
-															variant="ghost"
-															disabled
-															aria-label={t("preparedMedia.watch")}
-														>
-															<Play size={16} aria-hidden="true" />
-														</Button>
-													)}
-												</Tooltip>
-												<Tooltip content={t("preparedMedia.locate")}>
-													<Link
-														className={buttonStyles("ghost", undefined, "icon")}
-														aria-label={t("preparedMedia.locate")}
-														to={`/files/${encodeURIComponent(item.fileId)}/locate`}
-													>
-														<FolderOpen size={16} aria-hidden="true" />
-													</Link>
-												</Tooltip>
-												<Tooltip content={t("preparedMedia.delete")}>
-													<Button
-														size="icon"
-														variant="ghost"
-														aria-label={t("preparedMedia.delete")}
-														disabled={
-															mutation.isPending || !!item.deleteBlockedReason
-														}
-														onClick={() => confirm([item])}
-													>
-														<Trash2 size={16} aria-hidden="true" />
-													</Button>
-												</Tooltip>
-											</div>
-										</li>
+											item={item}
+											selecting={selecting}
+											selected={chosen.some((entry) => entry.id === item.id)}
+											busy={mutation.isPending}
+											onSelect={(checked) =>
+												setSelected((previous) =>
+													checked
+														? [...previous, item.id]
+														: previous.filter((id) => id !== item.id),
+												)
+											}
+											onDelete={() => confirm([item])}
+										/>
 									))}
 								</ul>
 							</>

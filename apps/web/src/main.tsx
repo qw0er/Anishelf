@@ -1,6 +1,7 @@
 import { createCookieConnection } from "@anishelf/client-core/cookie-authentication";
 import {
 	ClientApp,
+	ClientSessionLifecycle,
 	createClientRoutes,
 	initializeClient,
 } from "@anishelf/client-ui";
@@ -11,30 +12,19 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
 import "@anishelf/client-ui/styles.css";
 import { registerPwa } from "./pwa.js";
-import { loginRedirectPath } from "./session.js";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
 
 registerPwa();
 
 async function start() {
-	let redirectingToLogin = false;
-	function onAuthRequired() {
-		if (window.location.pathname === "/login") {
-			runtime.queryClient.clear();
-			return;
-		}
-		if (redirectingToLogin) return;
-		redirectingToLogin = true;
-		console.debug("auth.session_required", { host: "web" });
-		restartSession(loginRedirectPath(window.location));
-	}
-
-	function restartSession(path: string) {
-		runtime.dispose();
-		window.location.replace(path);
-	}
-
+	const root = document.getElementById("root");
+	if (!root) throw new Error("Missing root element.");
+	const session = new ClientSessionLifecycle({
+		name: "web",
+		open: (path) => window.location.replace(path),
+	});
+	const onAuthRequired = () => session.onAuthRequired();
 	const runtime = await initializeClient({
 		...createCookieConnection({
 			origin: window.location.origin,
@@ -44,13 +34,30 @@ async function start() {
 		...__ANISHELF_BUILD__,
 		onAuthRequired,
 		platform: browserPlatform,
-		navigate: (path) => void router.navigate(path),
-		restartSession,
+		navigate: (path) => session.navigate(path),
+		restartSession: (path) => session.restart(path),
 	});
 
-	const root = document.getElementById("root");
-	if (!root) throw new Error("Missing root element.");
-	const router = createBrowserRouter(createClientRoutes());
+	try {
+		const router = createBrowserRouter(createClientRoutes());
+		if (
+			session.attach(
+				() => runtime.dispose(),
+				router,
+				() => runtime.queryClient.clear(),
+			)
+		)
+			render(root, router);
+	} catch (error) {
+		runtime.dispose();
+		throw error;
+	}
+}
+
+function render(
+	root: HTMLElement,
+	router: ReturnType<typeof createBrowserRouter>,
+) {
 	console.debug("client.started", { host: "web" });
 	createRoot(root).render(
 		<StrictMode>

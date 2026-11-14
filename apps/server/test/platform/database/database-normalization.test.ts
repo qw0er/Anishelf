@@ -21,9 +21,9 @@ import {
 import {
 	writeCatalogAssociations,
 	writeCatalogOperations,
-	writeCatalogReviews,
 	writeCatalogWorks,
 } from "../../../src/modules/anime/anime-catalog/infrastructure/records.js";
+import { writeCatalogReviews } from "../../../src/modules/anime/anime-catalog/infrastructure/review-records.js";
 import { MetadataRepository } from "../../../src/modules/anime/external-works/metadata/infrastructure/repository.js";
 import {
 	writeTrackingListCache,

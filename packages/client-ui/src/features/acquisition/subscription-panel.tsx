@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
 	ChevronRight,
 	CircleMinus,
@@ -31,31 +31,19 @@ import {
 	DropdownMenuTrigger,
 } from "../../shared/components/ui/dropdown-menu.js";
 import { StatusBadge } from "../../shared/components/ui/status-badge.js";
-import { toast } from "../../shared/components/ui/toast.js";
-import {
-	type AnimeStatusState,
-	animeStatusQuery,
-	invalidateAnimeQueries,
-} from "../anime/public.js";
+import { type AnimeStatusState, animeStatusQuery } from "../anime/public.js";
 import {
 	DownloadActivityPanel,
 	SubscriptionIssue,
 } from "./download-activity.js";
-import { downloadKeys } from "./downloads-api.js";
 import { SubscriptionForm } from "./subscription-form.js";
 import {
 	airingWaitLabel,
 	SubscriptionSchedule,
 } from "./subscription-schedule.js";
 import { subscriptionStatus } from "./subscription-status.js";
-import {
-	acquisitionProfilesQuery,
-	refreshSubscription,
-	removeSubscription,
-	type SubscriptionListItem,
-	toggleSubscription,
-} from "./subscriptions-api.js";
-import { watchingKey } from "./watching-api.js";
+import { acquisitionProfilesQuery } from "./subscriptions-api.js";
+import { useSubscriptionActions } from "./use-subscription-actions.js";
 import { watchingReason } from "./watching-reason.js";
 
 export function SubscriptionPanel({
@@ -79,7 +67,6 @@ export function SubscriptionPanel({
 	onActivityClose?: () => void;
 }) {
 	const { t, i18n } = useTranslation();
-	const client = useQueryClient();
 	const detailsTrigger = useRef<HTMLButtonElement>(null);
 	const actionsTrigger = useRef<HTMLButtonElement>(null);
 	const editorReturnFocus = useRef<HTMLButtonElement | null>(null);
@@ -139,97 +126,11 @@ export function SubscriptionPanel({
 				: t("acquisition.subscription.automaticManaged");
 	const rowSummary = compact ? state.label : summary;
 
-	const updated = async (result?: SubscriptionView) => {
-		await client.cancelQueries({
-			queryKey: ["anime-status"],
-			predicate: (query) => query.queryKey[2] === workKey,
-		});
-		if (result)
-			client.setQueriesData<
-				import("../../shared/api/contracts.js").AnimeStatusResponse
-			>(
-				{
-					queryKey: ["anime-status"],
-					predicate: (query) => query.queryKey[2] === workKey,
-				},
-				(previous) =>
-					previous
-						? {
-								...previous,
-								subscription: { subscription: result.subscription },
-							}
-						: undefined,
-			);
-		if (inventory && result) {
-			await client.cancelQueries({
-				queryKey: ["acquisition", "subscription", "list"],
-			});
-			client.setQueryData<SubscriptionListItem[]>(
-				["acquisition", "subscription", "list"],
-				(previous) =>
-					previous?.flatMap((item) =>
-						item.view.subscription?.workKey === workKey
-							? result.subscription
-								? [{ ...item, view: result }]
-								: []
-							: [item],
-					),
-			);
-		}
-		setEditor(null);
-		void client.invalidateQueries({
-			queryKey: ["acquisition", "subscription", "list"],
-		});
-		void client.invalidateQueries({
-			queryKey: ["acquisition", "subscription", workKey],
-		});
-		void client.invalidateQueries({ queryKey: [...downloadKeys, workKey] });
-		void client.invalidateQueries({ queryKey: watchingKey });
-		void invalidateAnimeQueries(client, "acquisition", workKey);
-	};
-	const action = useMutation({
-		mutationFn: async (command: "toggle" | "refresh" | "remove") => {
-			if (!sub) return;
-			if (command === "toggle")
-				return toggleSubscription(
-					workKey,
-					sub.revision,
-					sub.runState === "completed" || !sub.enabled,
-				);
-			else if (command === "refresh")
-				return refreshSubscription(workKey, sub.revision);
-			else {
-				await removeSubscription(workKey, sub.revision);
-				return {
-					subscription: null,
-					candidates: [],
-					total: 0,
-					page: 1,
-				} satisfies SubscriptionView;
-			}
-		},
-		onSuccess: async (result, command) => {
-			console.info("[acquisition] Subscription command completed.", {
-				workKey,
-				command,
-			});
-			await updated(result);
-			toast.add({
-				type: "success",
-				title: t("acquisition.subscription.updated"),
-			});
-		},
-		onError: (_error, command) => {
-			console.warn("[acquisition] Subscription command failed.", {
-				workKey,
-				command,
-			});
-			updated();
-			toast.add({
-				type: "error",
-				title: t("acquisition.subscription.updateFailed"),
-			});
-		},
+	const { action, updated } = useSubscriptionActions({
+		workKey,
+		subscription: sub,
+		inventory: Boolean(inventory),
+		onEditorClose: () => setEditor(null),
 	});
 	const feedback = {
 		view: view ?? { subscription: null },

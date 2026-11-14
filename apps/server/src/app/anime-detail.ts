@@ -78,7 +78,9 @@ export function registerAnimeDetailRoutes(
 				);
 			}
 			const { entries, ...snapshot } = anime.tracking.list();
-			const { subscription } = acquisition.subscriptions.get(key, 1, false);
+			const { subscription } = acquisition.subscriptions.get(key, {
+				includeDiagnostics: false,
+			});
 			const activity = acquisition.downloads?.summary(key);
 			const downloads = activity
 				? {

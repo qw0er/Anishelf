@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
 import type {
@@ -14,6 +13,11 @@ import type {
 	IdentificationApi,
 	IdentificationResult,
 } from "../identification/public.js";
+
+import {
+	identificationFingerprint,
+	sourcesNeedingIdentification,
+} from "./identification-evidence.js";
 
 interface DirectoryResult {
 	fingerprint: string;
@@ -402,15 +406,11 @@ export class AutomaticIdentificationCoordinator {
 			for (const fileId of this.cache.get(id)?.fileIds ?? [])
 				affectedFiles.add(fileId);
 			for (const file of files) affectedFiles.add(file.id);
-			const fingerprint = createHash("sha256")
-				.update(
-					JSON.stringify([
-						this.options.identification.version,
-						this.options.metadataContext?.(),
-						sources,
-					]),
-				)
-				.digest("hex");
+			const fingerprint = identificationFingerprint(
+				this.options.identification.version,
+				this.options.metadataContext?.(),
+				sources,
+			);
 			const cached = this.cache.get(id);
 			let results: IdentificationResult[];
 			if (!forced && cached?.fingerprint === fingerprint)
@@ -418,15 +418,7 @@ export class AutomaticIdentificationCoordinator {
 			else {
 				const reusable =
 					(await this.options.catalog?.reusableAcquisitions?.(sources)) ?? [];
-				const reused = new Set(
-					reusable.map(
-						(result) =>
-							`${result.source.fileId}:${result.source.sourceVersion}`,
-					),
-				);
-				const unidentified = sources.filter(
-					(source) => !reused.has(`${source.fileId}:${source.sourceVersion}`),
-				);
+				const unidentified = sourcesNeedingIdentification(sources, reusable);
 				results = [...reusable];
 				for (
 					let start = 0;

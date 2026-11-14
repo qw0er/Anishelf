@@ -25,6 +25,10 @@ import type {
 	WatchingStatus,
 } from "../public.js";
 
+import { projectWatchingPreviewWork } from "./preview.js";
+
+import { WatchingReconciliation, watchingConflict } from "./reconcile.js";
+
 interface Options {
 	store: WatchingStore;
 	hasCapacity?(): boolean;
@@ -51,12 +55,6 @@ interface Options {
 	logger: Logger;
 	now?: () => number;
 }
-function conflict(): never {
-	throw new DomainError(
-		"ACQUISITION_CONFLICT",
-		"Automation inputs changed. Preview and confirm again.",
-	);
-}
 const emptySnapshot: WatchingSnapshot = {
 	accountId: null,
 	generation: "unavailable",
@@ -81,16 +79,28 @@ export class WatchingApplication implements WatchingApi {
 			result: WatchingPreview;
 		}
 	>();
-	constructor(private readonly options: Options) {}
-	private startEpisode(
-		progress: number,
-		backlog: WatchingConfig["backlog"],
-	): number | null {
-		if (backlog === "beginning") return 1;
-		return Number.isSafeInteger(progress) && progress >= 0 && progress < 10000
-			? progress + 1
-			: null;
+	private readonly reconciliation: WatchingReconciliation;
+
+	constructor(private readonly options: Options) {
+		this.reconciliation = new WatchingReconciliation({
+			store: options.store,
+			signal: this.shutdown.signal,
+			logger: options.logger,
+			...(options.tracking ? { tracking: options.tracking } : {}),
+			policy: () => this.policy(),
+			snapshot: () => this.snapshot(),
+			reason: (policy, snapshot) => this.reason(policy, snapshot),
+			now: () => this.now(),
+			subscription: (key) => options.subscription(key),
+			managedReason: (subscription) => this.managedReason(subscription),
+			put: (row) => this.put(row),
+			member: (accountId, key) => this.member(accountId, key) ?? undefined,
+			make: (accountId, key, title) => this.make(accountId, key, title),
+			hasCapacity: () => options.hasCapacity?.() ?? true,
+			admit: (input, commit) => options.admit(input, commit),
+		});
 	}
+
 	private subscriptionReason(key: string): string | null {
 		return this.options.subscription(key) ? "subscription_present" : null;
 	}
@@ -331,7 +341,7 @@ export class WatchingApplication implements WatchingApi {
 		config: WatchingConfig,
 	): Promise<WatchingPreview> {
 		if (this.shutdown.signal.aborted || revision !== this.policy().revision)
-			conflict();
+			watchingConflict();
 		const snapshot = this.options.tracking
 			? await abortable(this.options.tracking.refresh(), this.shutdown.signal)
 			: undefined;
@@ -353,7 +363,7 @@ export class WatchingApplication implements WatchingApi {
 				"ACQUISITION_UNAVAILABLE",
 				"Validate a download destination and configure a release profile and source sites first.",
 			);
-		if (revision !== this.policy().revision) conflict();
+		if (revision !== this.policy().revision) watchingConflict();
 		const entries = snapshot.entries.filter((entry) =>
 			isActiveViewing(entry.status),
 		);
@@ -370,29 +380,17 @@ export class WatchingApplication implements WatchingApi {
 			config,
 			destination: target.path,
 			providers: [...sources.providers],
-			works: entries.map((entry) => {
-				const row = this.member(snapshot.accountId ?? "", entry.workKey);
-				return {
-					workKey: entry.workKey,
-					title: entry.title,
-					startEpisode:
-						row?.startEpisode ??
-						this.startEpisode(entry.progress, config.backlog),
-					reason:
-						this.subscriptionReason(entry.workKey) ??
-						(row?.excluded
-							? "excluded"
-							: row?.paused
-								? "manually_paused"
-								: this.startEpisode(entry.progress, config.backlog) === null &&
-										row?.startEpisode == null
-									? "invalid_progress"
-									: this.options.subscription(entry.workKey)?.sourceInput
-												?.kind === "search"
-										? "will_renew_source"
-										: "will_manage"),
-				};
-			}),
+			works: entries.map((entry) =>
+				projectWatchingPreviewWork({
+					entry,
+					backlog: config.backlog,
+					member: this.member(snapshot.accountId ?? "", entry.workKey),
+					existingReason: this.subscriptionReason(entry.workKey),
+					hasSearchSource:
+						this.options.subscription(entry.workKey)?.sourceInput?.kind ===
+						"search",
+				}),
+			),
 		};
 		// One candidate per session, bounded globally; activation candidates never persist.
 		for (const [id, value] of this.previews)
@@ -437,7 +435,7 @@ export class WatchingApplication implements WatchingApi {
 			candidate.result.expiresAt <= this.now() ||
 			candidate.result.revision !== this.policy().revision
 		)
-			conflict();
+			watchingConflict();
 		this.assertProfileAvailable();
 		const policy: WatchingPolicy = {
 			revision: randomUUID(),
@@ -451,9 +449,10 @@ export class WatchingApplication implements WatchingApi {
 			this.snapshot().revision !== candidate.snapshot ||
 			this.scope(this.snapshot()) !== candidate.scope
 		)
-			conflict();
+			watchingConflict();
 		this.options.transaction(() => {
-			if (this.policy().revision !== candidate.result.revision) conflict();
+			if (this.policy().revision !== candidate.result.revision)
+				watchingConflict();
 			this.options.store.savePolicy(policy);
 			for (const work of candidate.result.works) {
 				const subscription = this.options.subscription(work.workKey);
@@ -491,7 +490,7 @@ export class WatchingApplication implements WatchingApi {
 		return this.status();
 	}
 	disable(revision: string): WatchingStatus {
-		if (revision !== this.policy().revision) conflict();
+		if (revision !== this.policy().revision) watchingConflict();
 		this.options.store.savePolicy({
 			...this.policy(),
 			enabled: false,
@@ -515,10 +514,10 @@ export class WatchingApplication implements WatchingApi {
 			snapshot.accountId !== input.accountId ||
 			snapshot.generation !== input.trackingGeneration
 		)
-			conflict();
+			watchingConflict();
 		const row = this.member(input.accountId, input.workKey),
 			entry = snapshot.entries.find((entry) => entry.workKey === input.workKey);
-		if ((row?.revision ?? null) !== input.revision) conflict();
+		if ((row?.revision ?? null) !== input.revision) watchingConflict();
 		if (!entry && !row)
 			throw new DomainError(
 				"INVALID_REQUEST",
@@ -546,142 +545,11 @@ export class WatchingApplication implements WatchingApi {
 		);
 		return this.status();
 	}
-	private guard(policy: WatchingPolicy, snapshot: WatchingSnapshot) {
-		if (
-			this.shutdown.signal.aborted ||
-			this.policy().revision !== policy.revision ||
-			this.reason(policy) !== "ready" ||
-			this.snapshot().revision !== snapshot.revision
-		)
-			conflict();
-	}
-	private async run() {
-		const policy = this.policy();
-		if (!policy.enabled || !policy.grant || !this.options.tracking) return;
-		let snapshot = this.snapshot();
-		if (
-			!snapshot.fresh &&
-			snapshot.refreshAllowed &&
-			(snapshot.retryAt === null || snapshot.retryAt <= this.now())
-		)
-			snapshot = await abortable(
-				this.options.tracking.refresh(),
-				this.shutdown.signal,
-			);
-		if (this.reason(policy, snapshot) !== "ready") return;
-		const grant = policy.grant;
-		for (const row of this.options.store.members()) {
-			if (row.accountId !== grant.accountId) continue;
-			const subscription = this.options.subscription(row.workKey);
-			if (
-				subscription?.createdBy !== "watching" ||
-				subscription.watchingAccountId !== grant.accountId
-			)
-				continue;
-			const reason = this.managedReason(subscription);
-			if (row.reason !== reason)
-				this.put({ ...row, reason, startEpisode: subscription.startEpisode });
-		}
-		let attempted = 0,
-			deferred = false;
-		for (const entry of snapshot.entries.filter((entry) =>
-			isActiveViewing(entry.status),
-		)) {
-			this.guard(policy, snapshot);
-			const existing = this.options.subscription(entry.workKey);
-			const row =
-				this.member(grant.accountId, entry.workKey) ??
-				this.make(grant.accountId, entry.workKey, entry.title);
-			if (existing) {
-				if (
-					existing.createdBy === "watching" &&
-					existing.watchingAccountId === grant.accountId
-				) {
-					const reason = this.managedReason(existing);
-					if (row.reason !== reason)
-						this.put({ ...row, reason, startEpisode: existing.startEpisode });
-				}
-				continue;
-			}
-			if (row.excluded) continue;
-			if (this.options.hasCapacity?.() === false) {
-				if (row.reason !== "subscription_limit")
-					this.put({ ...row, reason: "subscription_limit" });
-				continue;
-			}
-			const startEpisode = this.startEpisode(entry.progress, grant.backlog);
-			if (startEpisode === null) {
-				if (row.reason !== "invalid_progress")
-					this.put({ ...row, reason: "invalid_progress" });
-				continue;
-			}
-			if (attempted++ >= 5) {
-				deferred = true;
-				continue;
-			}
-			try {
-				this.options.admit(
-					{
-						workKey: entry.workKey,
-						revision: null,
-						source: { kind: "automatic" },
-						startEpisode,
-						profileId: null,
-						target: {
-							destinationRevision: grant.destinationRevision,
-							connectionGeneration: grant.downloaderGeneration,
-						},
-					},
-					(saved) => {
-						this.guard(policy, snapshot);
-						const current = this.member(grant.accountId, entry.workKey);
-						if (current && current.revision !== row.revision) conflict();
-						saved.createdBy = "watching";
-						saved.profileId = null;
-						if (saved.automatic) delete saved.automatic.profileFingerprint;
-						saved.watchingAccountId = grant.accountId;
-						this.put({
-							...row,
-							startEpisode,
-							subscriptionRevision: null,
-							grantId: null,
-							reason: "created",
-							retryAt: 0,
-						});
-					},
-				);
-				this.options.logger.info(
-					{
-						event: "acquisition.watching_subscription_created",
-						viewingStatus: entry.status,
-						activeViewing: isActiveViewing(entry.status),
-						workKey: entry.workKey,
-						grantId: grant.id,
-					},
-					"Watching created a group-managed subscription; discovery will run in the background.",
-				);
-			} catch (error) {
-				this.options.logger.warn(
-					{
-						event: "acquisition.watching_creation_failed",
-						workKey: entry.workKey,
-						code: error instanceof DomainError ? error.code : "unavailable",
-					},
-					"Watching subscription creation deferred.",
-				);
-			}
-		}
-		this.guard(policy, snapshot);
-		if (!deferred)
-			this.options.store.savePolicy({
-				...policy,
-				appliedSnapshot: snapshot.revision,
-			});
-	}
+
 	tick(): Promise<void> {
 		if (this.running || this.shutdown.signal.aborted)
 			return this.running ?? Promise.resolve();
-		const task = this.run().catch(() => {
+		const task = this.reconciliation.reconcile().catch(() => {
 			if (!this.shutdown.signal.aborted)
 				this.options.logger.warn(
 					{ event: "acquisition.watching_reconciliation_failed" },

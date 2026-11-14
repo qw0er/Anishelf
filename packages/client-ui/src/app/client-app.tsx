@@ -15,11 +15,17 @@ import { libraryRoute } from "./routes/library.js";
 
 export async function initializeClient(host: ClientHost) {
 	const runtime = configureClientRuntime(host);
-	await initializeLanguage(host.platform);
-	return runtime;
+	try {
+		await initializeLanguage(host.platform);
+		return runtime;
+	} catch (error) {
+		runtime.dispose();
+		throw error;
+	}
 }
 
 export type { ClientPlatform } from "../shared/platform.js";
+export { ClientSessionLifecycle } from "./session-lifecycle.js";
 
 export function createClientRoutes(): RouteObject[] {
 	return [

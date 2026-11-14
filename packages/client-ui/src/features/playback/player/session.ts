@@ -32,7 +32,7 @@ export interface PlaybackSessionState {
 
 import { PlaybackEvidence } from "./evidence.js";
 
-type Position = Pick<SavePlaybackProgressRequest, "positionMs" | "durationMs">;
+import { capturePlaybackPosition, type Position } from "./progress-position.js";
 
 export function isRetryablePlaybackError(cause: unknown): boolean {
 	if (isRequestCancelled(cause)) return true;
@@ -288,19 +288,10 @@ export class PlaybackSessionController {
 			Number.isFinite(video.durationMs) && video.durationMs > 0
 				? video.durationMs
 				: null;
+		const position = this.position?.positionMs ?? session.progress.positionMs;
+		const mediaPosition = mediaTimeMs(position, this.timeline);
 		const target =
-			duration === null
-				? mediaTimeMs(
-						this.position?.positionMs ?? session.progress.positionMs,
-						this.timeline,
-					)
-				: Math.min(
-						mediaTimeMs(
-							this.position?.positionMs ?? session.progress.positionMs,
-							this.timeline,
-						),
-						duration,
-					);
+			duration === null ? mediaPosition : Math.min(mediaPosition, duration);
 		try {
 			video.currentTimeMs = target;
 			if (!video.seeking) this.finishRestore();
@@ -326,31 +317,12 @@ export class PlaybackSessionController {
 	private capture(ended = false): void {
 		const video = this.video;
 		if (!video || !this.state.restored) return;
-		const durationMs =
-			this.timeline.sourceDurationMs ??
-			(this.timeline.sourceOriginMs === 0 &&
-			this.timeline.mediaOriginMs === 0 &&
-			Number.isFinite(video.durationMs) &&
-			video.durationMs > 0
-				? Math.round(video.durationMs)
-				: null);
-		const localPosition =
-			(ended || video.ended) && Number.isFinite(video.durationMs)
-				? video.durationMs
-				: video.currentTimeMs;
-		const positionMs = sourceTimeMs(localPosition, this.timeline);
-		if (
-			!Number.isSafeInteger(positionMs) ||
-			positionMs < 0 ||
-			(durationMs !== null &&
-				(!Number.isSafeInteger(durationMs) || durationMs <= 0))
-		)
-			return;
-		this.position = {
-			positionMs:
-				durationMs === null ? positionMs : Math.min(positionMs, durationMs),
-			durationMs,
-		};
+		const position = capturePlaybackPosition(
+			video,
+			this.timeline,
+			ended || video.ended,
+		);
+		if (position) this.position = position;
 	}
 	private queueSave(ended = false, retry = false): void {
 		clearTimeout(this.seekTimer);

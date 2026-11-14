@@ -20,13 +20,12 @@ import type { CatalogStore } from "../ports.js";
 import {
 	readCatalogAssociations,
 	readCatalogOperations,
-	readCatalogReviews,
 	readCatalogWorks,
 	writeCatalogAssociations,
 	writeCatalogOperations,
-	writeCatalogReviews,
 	writeCatalogWorks,
 } from "./records.js";
+import { readCatalogReviews, writeCatalogReviews } from "./review-records.js";
 import {
 	catalogAssociations,
 	catalogEpisodes,

@@ -13,6 +13,7 @@ import type { LibraryChange } from "../domain/model.js";
 import type { ScanState } from "../domain/scan-state.js";
 import type { LibraryIndex } from "../infrastructure/index.js";
 import type { ChangeProcessor } from "./change-processor.js";
+import { LibraryPublication } from "./library-publication.js";
 import type { RootMonitorManager } from "./root-monitor-manager.js";
 import type { ScanRunner } from "./scan-runner.js";
 
@@ -33,7 +34,7 @@ function copyState(state: ScanState): ScanState {
 /** Sole owner of publication exclusion, task cancellation, settings coordination and shutdown. */
 export class LibrarySynchronizer {
 	private latest: ScanState | null = null;
-	private readonly listeners = new Set<(change: LibraryChange) => void>();
+	private readonly publication: LibraryPublication;
 	private pendingStart: Promise<ScanState> | undefined;
 	private active: Promise<void> | undefined;
 	private saving: Promise<Readonly<PersistentSettings>> | undefined;
@@ -53,7 +54,9 @@ export class LibrarySynchronizer {
 			monitoring: RootMonitorManager;
 			logger: Logger;
 		},
-	) {}
+	) {
+		this.publication = new LibraryPublication(options.logger);
+	}
 	get state(): ScanState | null {
 		return this.latest === null ? null : copyState(this.latest);
 	}
@@ -80,21 +83,7 @@ export class LibrarySynchronizer {
 		return { ...settings, resourceRoots: [...settings.resourceRoots] };
 	}
 	onSnapshotChanged(listener: (change: LibraryChange) => void): () => void {
-		this.listeners.add(listener);
-		return () => {
-			this.listeners.delete(listener);
-		};
-	}
-	private notify(directoryIds: readonly string[] | null = null): void {
-		for (const listener of this.listeners)
-			try {
-				listener({ revision: this.options.index.revision, directoryIds });
-			} catch (err) {
-				this.options.logger.warn(
-					{ event: "scan.listener_failed", err },
-					"Library snapshot listener failed.",
-				);
-			}
+		return this.publication.subscribe(listener);
 	}
 	/** Baselines, root recovery and incremental patches share the same final validation and notification. */
 	private publish(
@@ -112,7 +101,11 @@ export class LibrarySynchronizer {
 				"Resource settings changed during scanning. Scan again.",
 			);
 		const directories = commit();
-		if (directories === null || directories.length) this.notify(directories);
+		if (directories === null || directories.length)
+			this.publication.notify({
+				revision: this.options.index.revision,
+				directoryIds: directories,
+			});
 		return true;
 	}
 	async startScan(): Promise<ScanState> {
@@ -434,7 +427,10 @@ export class LibrarySynchronizer {
 	async reset(): Promise<void> {
 		await this.options.monitoring.reset();
 		this.latest = null;
-		this.notify();
+		this.publication.notify({
+			revision: this.options.index.revision,
+			directoryIds: null,
+		});
 	}
 	async waitForCompletion(): Promise<ScanState | null> {
 		await this.pendingStart;
@@ -449,7 +445,7 @@ export class LibrarySynchronizer {
 	close(): Promise<void> {
 		if (this.closing) return this.closing;
 		this.closed = true;
-		this.listeners.clear();
+		this.publication.close();
 		this.scanController?.abort();
 		this.updateController?.abort();
 		this.closing = Promise.allSettled([
