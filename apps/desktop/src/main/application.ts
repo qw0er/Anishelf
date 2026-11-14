@@ -24,6 +24,7 @@ const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
 export class DesktopApplication {
 	private readonly windows = new Set<WebContents>();
 	private readonly cleanup: Array<() => void> = [];
+	private openingWindow = false;
 
 	constructor(private readonly onFailure: (error: unknown) => void) {}
 
@@ -84,10 +85,26 @@ export class DesktopApplication {
 		for (const cleanup of this.cleanup.splice(0).reverse()) cleanup();
 	}
 
-	private readonly onActivate = () => {
-		if (this.windows.size === 0) {
-			void this.createWindow().catch(this.onFailure);
+	showWindow(): void {
+		const contents = this.windows.values().next().value;
+		const window = contents && BrowserWindow.fromWebContents(contents);
+		if (window) {
+			if (window.isMinimized()) window.restore();
+			window.show();
+			window.focus();
+			return;
 		}
+		if (this.openingWindow) return;
+		this.openingWindow = true;
+		void this.createWindow()
+			.catch(this.onFailure)
+			.finally(() => {
+				this.openingWindow = false;
+			});
+	}
+
+	private readonly onActivate = () => {
+		if (this.windows.size === 0) this.showWindow();
 	};
 
 	private async createWindow() {

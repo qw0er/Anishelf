@@ -15,34 +15,52 @@ app.setPath("userData", profileDir);
 app.setPath("sessionData", profileDir);
 console.info("desktop.data_directory_configured", { path: profileDir });
 
-registerRendererScheme();
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+	console.info("desktop.second_instance_exit");
+	app.quit();
+} else {
+	startApplication();
+}
 
-app.whenReady().then(async () => {
-	let origin: string;
-	try {
-		origin = resolveServerOrigin();
-		console.info("desktop.server_configured", { origin });
-	} catch (error) {
-		const message =
-			error instanceof Error ? error.message : "Invalid server configuration.";
-		console.error("desktop.server_configuration_invalid", { message });
-		dialog.showErrorBox("Invalid Anishelf server address", message);
-		app.exit(1);
-		return;
-	}
-
-	const desktop = new DesktopApplication((error) => {
-		desktop.dispose();
-		reportStartupFailure(error);
+function startApplication() {
+	registerRendererScheme();
+	let desktop: DesktopApplication | undefined;
+	app.on("second-instance", () => {
+		console.info("desktop.second_instance_received");
+		desktop?.showWindow();
 	});
-	try {
-		await desktop.start(origin);
-		app.once("will-quit", () => desktop.dispose());
-	} catch (error) {
-		desktop.dispose();
-		reportStartupFailure(error);
-	}
-});
+
+	app.whenReady().then(async () => {
+		let origin: string;
+		try {
+			origin = resolveServerOrigin();
+			console.info("desktop.server_configured", { origin });
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Invalid server configuration.";
+			console.error("desktop.server_configuration_invalid", { message });
+			dialog.showErrorBox("Invalid Anishelf server address", message);
+			app.exit(1);
+			return;
+		}
+
+		const application = new DesktopApplication((error) => {
+			application.dispose();
+			reportStartupFailure(error);
+		});
+		try {
+			await application.start(origin);
+			desktop = application;
+			app.once("will-quit", () => application.dispose());
+		} catch (error) {
+			application.dispose();
+			reportStartupFailure(error);
+		}
+	});
+}
 
 function reportStartupFailure(error: unknown) {
 	console.error("desktop.start_failed", { error });
