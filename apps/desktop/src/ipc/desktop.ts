@@ -27,7 +27,8 @@ export type ServerSignInResult =
 				| "invalidResponse"
 				| "unreachable"
 				| "saveFailed"
-				| "busy";
+				| "busy"
+				| "localStartFailed";
 	  };
 
 export interface DesktopUpdateCheck {
@@ -45,7 +46,11 @@ export interface DesktopUpdateCheck {
 
 export interface DesktopBridge {
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
-	getServerOrigin(): Promise<string>;
+	getServerConnection(): Promise<{
+		kind: "local" | "external";
+		origin: string;
+	}>;
+	useLocalBackend(): Promise<ServerSignInResult>;
 	signIn(origin: string, password: string): Promise<ServerSignInResult>;
 	clearDeviceToken(origin: string): Promise<void>;
 	copyText(text: string): Promise<void>;

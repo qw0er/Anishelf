@@ -118,7 +118,7 @@ export class LocalBackend {
 			if (terminated === undefined)
 				throw new Error("Local backend did not exit after termination.");
 		} else if (code !== 0 && this.running) {
-			throw new Error(`Local backend shutdown failed (code ${code}).`);
+			console.warn("desktop.backend_shutdown_failed", { code });
 		}
 		console.info("desktop.backend_stopped");
 	}

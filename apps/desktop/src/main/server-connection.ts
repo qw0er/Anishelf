@@ -21,8 +21,15 @@ export async function readServerOrigin(
 	return null;
 }
 
-export async function writeServerOrigin(profile: string, origin: string) {
+export async function writeServerOrigin(
+	profile: string,
+	origin: string | null,
+) {
 	const path = join(profile, settingsFile);
+	if (origin === null) {
+		await rm(path, { force: true });
+		return;
+	}
 	const temporary = `${path}.${randomUUID()}.tmp`;
 	try {
 		await writeFile(temporary, `${origin}\n`, { mode: 0o600, flag: "wx" });

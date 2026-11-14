@@ -32,6 +32,20 @@ function startApplication() {
 	let recovering = false;
 	let exitCode = 0;
 
+	async function stopLocalBackend() {
+		const active = backend;
+		await active?.close();
+		if (backend === active) backend = undefined;
+	}
+
+	function startLocalBackend() {
+		if (quitting || backend) throw new Error("Local backend is unavailable.");
+		backend = new LocalBackend(profileDir, (error) => {
+			void recover(error);
+		});
+		return backend.start();
+	}
+
 	function stop() {
 		if (quitting) return;
 		quitting = true;
@@ -39,7 +53,7 @@ function startApplication() {
 			try {
 				desktop?.dispose();
 			} finally {
-				await backend?.close();
+				await stopLocalBackend();
 			}
 		})()
 			.catch((error: unknown) => {
@@ -55,7 +69,7 @@ function startApplication() {
 		console.error("desktop.start_failed", { error });
 		exitCode = 1;
 		desktop?.dispose();
-		await backend?.close().catch((shutdownError: unknown) => {
+		await stopLocalBackend().catch((shutdownError: unknown) => {
 			console.error("desktop.backend_shutdown_failed", {
 				error: shutdownError,
 			});
@@ -95,20 +109,12 @@ function startApplication() {
 		.then(async () => {
 			const externalOrigin = await readServerOrigin(profileDir);
 			if (quitting) return;
-			if (!externalOrigin)
-				backend = new LocalBackend(profileDir, (error) => {
-					void recover(error);
-				});
-			const connection = externalOrigin ?? (await backend?.start());
+			const connection = externalOrigin ?? (await startLocalBackend());
 			if (quitting) return;
-			if (!connection) throw new Error("Missing backend connection.");
 			desktop = new DesktopApplication(
 				(error) => void recover(error),
-				() => {
-					void backend?.close().catch((error: unknown) => {
-						console.error("desktop.backend_shutdown_failed", { error });
-					});
-				},
+				startLocalBackend,
+				stopLocalBackend,
 			);
 			await desktop.start(connection);
 		})

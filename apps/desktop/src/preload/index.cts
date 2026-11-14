@@ -5,7 +5,8 @@ const { contextBridge, ipcRenderer } =
 
 const desktop: DesktopBridge = {
 	checkForUpdates: () => ipcRenderer.invoke("desktop:check-for-updates"),
-	getServerOrigin: () => ipcRenderer.invoke("desktop:server-origin"),
+	getServerConnection: () => ipcRenderer.invoke("desktop:server-connection"),
+	useLocalBackend: () => ipcRenderer.invoke("desktop:use-local-backend"),
 	signIn: (origin, password) =>
 		ipcRenderer.invoke("desktop:sign-in", origin, password),
 	clearDeviceToken: (origin) =>

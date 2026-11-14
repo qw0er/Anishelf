@@ -12,6 +12,7 @@ import { DesktopLoginPage } from "./auth/login-page.js";
 import { createDesktopPlatform } from "./platform/platform.js";
 import { createDesktopServerClient } from "./server/connection.js";
 import { DesktopExternalPlayerSettings } from "./settings/external-player-settings.js";
+import { ServerConnectionSettings } from "./settings/server-connection-settings.js";
 import "./styles.css";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
@@ -56,9 +57,25 @@ async function start() {
 						chooseExecutable={desktop.choosePlayerExecutable}
 					/>
 				),
+				serverSettings: (
+					<ServerConnectionSettings
+						server={client.server}
+						signIn={(address, password) =>
+							client.authentication.signInTo(address, password)
+						}
+						switchToLocal={desktop.useLocalBackend}
+						restart={() => session.restart("/settings?section=account")}
+					/>
+				),
+				showSecuritySettings: client.server.kind === "external",
 				loginElement: (
 					<DesktopLoginPage
 						origin={origin}
+						switchToLocal={
+							client.server.kind === "external"
+								? desktop.useLocalBackend
+								: undefined
+						}
 						signIn={(address, password) =>
 							client.authentication.signInTo(address, password)
 						}

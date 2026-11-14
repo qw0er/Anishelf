@@ -28,6 +28,12 @@ export {
 	maximumPlayerTemplateLength,
 } from "../features/settings/ui.js";
 export { Button, buttonStyles } from "../shared/components/ui/button.js";
+export {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "../shared/components/ui/card.js";
 export { Field, FieldError } from "../shared/components/ui/field.js";
 export { FieldHelp } from "../shared/components/ui/field-help.js";
 export { Input } from "../shared/components/ui/input.js";
@@ -43,13 +49,23 @@ export { ClientSessionLifecycle } from "./session-lifecycle.js";
 export function createClientRoutes({
 	loginElement,
 	externalPlayerSettings,
+	serverSettings,
+	showSecuritySettings,
 }: {
 	loginElement: ReactElement;
 	externalPlayerSettings?: ReactElement;
+	serverSettings?: ReactElement;
+	showSecuritySettings?: boolean;
 }): RouteObject[] {
 	return [
 		{ path: "/login", element: loginElement },
-		authenticatedRoute(createLibraryRoute(externalPlayerSettings)),
+		authenticatedRoute(
+			createLibraryRoute({
+				externalPlayerSettings,
+				serverSettings,
+				showSecuritySettings,
+			}),
+		),
 	];
 }
 

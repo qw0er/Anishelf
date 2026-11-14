@@ -846,6 +846,14 @@
 		"unavailable": "Tracking is unavailable. Local playback is unaffected."
 	},
 	"serverConnection": {
+		"local": "Local backend",
+		"external": "External server",
+		"currentLocal": "Connected to the local backend.",
+		"currentExternal": "Connected to {{address}}.",
+		"connect": "Connect",
+		"useLocal": "Use local backend",
+		"localStartFailed": "Could not start the local backend. Try again.",
+		"stopLocalHelp": "Switching stops the local backend and interrupts any playback or media preparation it is serving.",
 		"title": "Server connection",
 		"address": "Server address",
 		"addressHelp": "Use HTTPS for remote servers. HTTP is available for localhost.",

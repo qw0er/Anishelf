@@ -829,6 +829,14 @@
 		"unavailable": "观看记录不可用，本地播放不受影响。"
 	},
 	"serverConnection": {
+		"local": "本机后端",
+		"external": "外部服务器",
+		"currentLocal": "当前连接本机后端。",
+		"currentExternal": "当前连接 {{address}}。",
+		"connect": "连接",
+		"useLocal": "使用本机后端",
+		"localStartFailed": "无法启动本机后端，请重试。",
+		"stopLocalHelp": "切换后会停止本机后端，并中断它正在服务的播放或媒体准备任务。",
 		"title": "服务器连接",
 		"address": "服务器地址",
 		"addressHelp": "远程服务器需使用 HTTPS。本机地址可以使用 HTTP。",

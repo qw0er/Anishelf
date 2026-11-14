@@ -79,18 +79,27 @@ function connectLocalBackend(backend: { origin: string; deviceToken: string }) {
 	} as const;
 }
 
+function logLocalShutdownFailure(error: unknown) {
+	console.warn("desktop.backend_shutdown_failed", { error });
+}
+
 export class DesktopApplication {
 	private readonly windows = new Set<WebContents>();
 	private readonly cleanup: Array<() => void> = [];
 	private openingWindow = false;
-	private signingIn = false;
+	private switching = false;
+	private disposed = false;
 	private server!: ConnectedServer;
 	private readonly tokenStores = new Map<string, DeviceTokenStore>();
 	private detachCredentials?: () => void;
 
 	constructor(
 		private readonly onFailure: (error: unknown) => void,
-		private readonly onLeaveLocalBackend: () => void,
+		private readonly startLocalBackend: () => Promise<{
+			origin: string;
+			deviceToken: string;
+		}>,
+		private readonly stopLocalBackend: () => Promise<void>,
 	) {}
 
 	async start(
@@ -110,7 +119,11 @@ export class DesktopApplication {
 			registerDesktopIpc(
 				{
 					checkForUpdates: () => updates.check(),
-					getServerOrigin: async () => this.server.origin,
+					getServerConnection: async () => ({
+						kind: this.server.kind,
+						origin: this.server.origin,
+					}),
+					useLocalBackend: () => this.useLocalBackend(),
 					signIn: (origin, password) => this.signIn(origin, password),
 					clearDeviceToken: async (origin) => {
 						const server = this.server;
@@ -151,6 +164,7 @@ export class DesktopApplication {
 	}
 
 	dispose(): void {
+		this.disposed = true;
 		for (const cleanup of this.cleanup.splice(0).reverse()) cleanup();
 	}
 
@@ -204,12 +218,12 @@ export class DesktopApplication {
 		target: unknown,
 		password: unknown,
 	): Promise<ServerSignInResult> {
-		if (this.signingIn) return { status: "busy" };
+		if (this.switching || this.disposed) return { status: "busy" };
 		const origin = parseServerOrigin(target);
 		if (!origin) return { status: "invalidAddress" };
 		if (this.server.kind === "local" && origin === this.server.origin)
 			return { status: "rejected", httpStatus: 403 };
-		this.signingIn = true;
+		this.switching = true;
 		try {
 			const health = await checkServerConnection(origin);
 			if (health !== "ok") return { status: health };
@@ -224,18 +238,52 @@ export class DesktopApplication {
 				this.server.kind === "external" && origin === this.server.origin
 					? this.server
 					: await this.openExternalServer(origin);
-			await writeServerOrigin(app.getPath("userData"), origin);
 			await server.tokens.set(login.token);
+			if (this.disposed) return { status: "busy" };
+			await writeServerOrigin(app.getPath("userData"), origin);
+			if (this.disposed) return { status: "busy" };
 			const leavingLocal = this.server.kind === "local";
 			if (server !== this.server) this.activateServer(server);
-			if (leavingLocal) this.onLeaveLocalBackend();
+			if (leavingLocal)
+				await this.stopLocalBackend().catch(logLocalShutdownFailure);
 			console.info("desktop.device_signed_in", { origin });
 			return { status: "ok", origin };
 		} catch {
 			console.error("desktop.server_sign_in_failed");
 			return { status: "saveFailed" };
 		} finally {
-			this.signingIn = false;
+			this.switching = false;
+		}
+	}
+
+	private async useLocalBackend(): Promise<ServerSignInResult> {
+		if (this.switching || this.disposed) return { status: "busy" };
+		if (this.server.kind === "local")
+			return { status: "ok", origin: this.server.origin };
+
+		this.switching = true;
+		try {
+			let server: ReturnType<typeof connectLocalBackend>;
+			try {
+				server = connectLocalBackend(await this.startLocalBackend());
+			} catch (error) {
+				console.warn("desktop.local_backend_start_failed", { error });
+				await this.stopLocalBackend().catch(logLocalShutdownFailure);
+				return { status: "localStartFailed" };
+			}
+			try {
+				if (this.disposed) return { status: "busy" };
+				await writeServerOrigin(app.getPath("userData"), null);
+			} catch (error) {
+				console.warn("desktop.local_backend_save_failed", { error });
+				await this.stopLocalBackend().catch(logLocalShutdownFailure);
+				return { status: "saveFailed" };
+			}
+			if (this.disposed) return { status: "busy" };
+			this.activateServer(server);
+			return { status: "ok", origin: server.origin };
+		} finally {
+			this.switching = false;
 		}
 	}
 

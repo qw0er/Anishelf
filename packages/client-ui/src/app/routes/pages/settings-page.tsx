@@ -55,8 +55,12 @@ function sectionPath(
 
 export function SettingsPage({
 	externalPlayerSettings,
+	serverSettings,
+	showSecuritySettings = true,
 }: {
 	externalPlayerSettings: ReactNode;
+	serverSettings?: ReactNode;
+	showSecuritySettings?: boolean | undefined;
 }) {
 	const navigationRef = useCompactNavigation();
 	const preparation = usePreparationContext();
@@ -72,7 +76,18 @@ export function SettingsPage({
 		<div className="stack-page">
 			<PageHeader
 				title={t("settingsPage.title")}
-				actions={<ServerConnectionLink />}
+				actions={
+					serverSettings ? (
+						<Link
+							className={buttonStyles("outline")}
+							to={sectionPath(params, "account")}
+						>
+							{t("serverConnection.title")}
+						</Link>
+					) : (
+						<ServerConnectionLink />
+					)
+				}
 			/>
 			<div className="settings-layout">
 				<nav
@@ -142,11 +157,12 @@ export function SettingsPage({
 						className={activeSection === "account" ? "stack-page" : "hidden"}
 						data-settings-section="account"
 					>
+						{serverSettings}
 						<TrackingAccountSettings
 							key={metadataProvider}
 							metadataProvider={metadataProvider}
 						/>
-						<SecuritySettings />
+						{showSecuritySettings && <SecuritySettings />}
 					</div>
 				</div>
 			</div>
@@ -154,7 +170,7 @@ export function SettingsPage({
 	) : (
 		<div className="stack-page">
 			<section role="alert">{t("errors.settingsUnavailable")}</section>
-			<ServerConnectionLink />
+			{serverSettings ?? <ServerConnectionLink />}
 		</div>
 	);
 }

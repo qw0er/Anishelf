@@ -26,9 +26,15 @@ import {
 } from "./resources-data.js";
 import { libraryLoader } from "./root-data.js";
 import { settingsAction } from "./settings-data.js";
-export function createLibraryRoute(
-	externalPlayerSettings?: ReactNode,
-): RouteObject {
+export function createLibraryRoute({
+	externalPlayerSettings,
+	serverSettings,
+	showSecuritySettings,
+}: {
+	externalPlayerSettings?: ReactNode;
+	serverSettings?: ReactNode;
+	showSecuritySettings?: boolean | undefined;
+} = {}): RouteObject {
 	return {
 		id: "library",
 		path: "/",
@@ -49,7 +55,11 @@ export function createLibraryRoute(
 				path: "settings",
 				action: settingsAction,
 				element: (
-					<SettingsPage externalPlayerSettings={externalPlayerSettings} />
+					<SettingsPage
+						externalPlayerSettings={externalPlayerSettings}
+						serverSettings={serverSettings}
+						showSecuritySettings={showSecuritySettings}
+					/>
 				),
 			},
 			{

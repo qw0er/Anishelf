@@ -1,6 +1,7 @@
 import { desktopOrigin } from "@anishelf/contracts/defaults";
 import { ipcMain, type WebContents } from "electron";
 import type {
+	DesktopBridge,
 	DesktopUpdateCheck,
 	ExternalPlayerListResponse,
 	ServerSignInResult,
@@ -12,7 +13,8 @@ import type {
  */
 export interface DesktopIpcHandlers {
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
-	getServerOrigin(): Promise<string>;
+	getServerConnection: DesktopBridge["getServerConnection"];
+	useLocalBackend: DesktopBridge["useLocalBackend"];
 	signIn(origin: unknown, password: unknown): Promise<ServerSignInResult>;
 	clearDeviceToken(origin: unknown): Promise<void>;
 	copyText(text: string): Promise<void>;
@@ -65,7 +67,8 @@ export function registerDesktopIpc(
 
 	try {
 		handle("desktop:check-for-updates", () => handlers.checkForUpdates());
-		handle("desktop:server-origin", handlers.getServerOrigin);
+		handle("desktop:server-connection", handlers.getServerConnection);
+		handle("desktop:use-local-backend", handlers.useLocalBackend);
 		handle("desktop:sign-in", (_, origin, password) =>
 			handlers.signIn(origin, password),
 		);

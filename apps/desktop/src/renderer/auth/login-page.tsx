@@ -16,27 +16,16 @@ import {
 } from "react-router";
 import type { ServerSignInResult } from "../../ipc/desktop.js";
 
-type SignInError =
-	| Exclude<ServerSignInResult["status"], "ok" | "rejected">
-	| "invalidPassword"
-	| "rateLimited"
-	| "signInFailed";
-
-function signInError(
-	result: Exclude<ServerSignInResult, { status: "ok" }>,
-): SignInError {
-	if (result.status !== "rejected") return result.status;
-	if (result.httpStatus === 401) return "invalidPassword";
-	if (result.httpStatus === 429) return "rateLimited";
-	return "signInFailed";
-}
+import { connectionError } from "../server/connection-error.js";
 
 export function DesktopLoginPage({
 	origin,
+	switchToLocal,
 	signIn,
 	restart,
 }: {
 	origin: string;
+	switchToLocal?: (() => Promise<ServerSignInResult>) | undefined;
 	signIn(address: string, password: string): Promise<ServerSignInResult>;
 	restart(path: string): void;
 }) {
@@ -47,21 +36,21 @@ export function DesktopLoginPage({
 	const [address, setAddress] = useState(origin);
 	const [password, setPassword] = useState("");
 	const [pending, setPending] = useState(false);
-	const [error, setError] = useState<SignInError>();
+	const [error, setError] = useState<ReturnType<typeof connectionError>>();
 	useBlocker(pending);
 
-	async function submit() {
+	async function submit(connect: () => Promise<ServerSignInResult>) {
 		setPending(true);
 		setError(undefined);
 		try {
-			const result = await signIn(address, password.trim());
+			const result = await connect();
 			if (result.status === "ok") {
 				const returnTo =
 					result.origin === origin ? params.get("returnTo") : null;
 				restart(loginReturnPath(returnTo, result.origin));
 				return;
 			}
-			setError(signInError(result));
+			setError(connectionError(result));
 		} catch {
 			console.error("desktop.sign_in_request_failed");
 			setError("signInFailed");
@@ -76,7 +65,7 @@ export function DesktopLoginPage({
 				className="space-y-4"
 				onSubmit={(event) => {
 					event.preventDefault();
-					if (!pending) void submit();
+					if (!pending) void submit(() => signIn(address, password.trim()));
 				}}
 			>
 				<label htmlFor="server-origin" className="block space-y-2">
@@ -139,6 +128,16 @@ export function DesktopLoginPage({
 						{pending && <Spinner />}
 						{t("auth.login.signIn")}
 					</Button>
+					{switchToLocal && (
+						<Button
+							type="button"
+							variant="outline"
+							disabled={pending}
+							onClick={() => void submit(switchToLocal)}
+						>
+							{t("serverConnection.useLocal")}
+						</Button>
+					)}
 					{state?.canGoBack === true && (
 						<Button
 							type="button"

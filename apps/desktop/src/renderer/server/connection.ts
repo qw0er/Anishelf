@@ -12,7 +12,8 @@ export async function createDesktopServerClient(
 	desktop: DesktopBridge,
 	onAuthRequired: () => void,
 ) {
-	const origin = await desktop.getServerOrigin();
+	const server = await desktop.getServerConnection();
+	const { origin } = server;
 	const connection = createServerConnection({
 		origin,
 		fetch: (url, init) =>
@@ -28,6 +29,7 @@ export async function createDesktopServerClient(
 		},
 	});
 	return {
+		server,
 		connection,
 		authentication: new DesktopAuthentication(connection.api, desktop, origin),
 	};
