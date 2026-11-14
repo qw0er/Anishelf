@@ -12,12 +12,14 @@ export interface ExternalPlayerPreset {
 	readonly template: string;
 }
 
+export const maximumPlayerTemplateLength = 2048;
+
 /** Browser handoff compatibility; this does not detect installed applications. */
 export const externalPlayerPolicy = {
 	storageKey: "anishelf.external-players.v1",
 	maximumCustomPlayers: 30,
 	maximumNameLength: 80,
-	maximumTemplateLength: 2048,
+	maximumTemplateLength: maximumPlayerTemplateLength,
 	blockedSchemes: [
 		"http",
 		"https",

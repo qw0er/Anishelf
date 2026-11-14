@@ -10,7 +10,7 @@ import {
 import { Toaster } from "../shared/components/ui/toast.js";
 import { initializeLanguage } from "../shared/i18n.js";
 import { authenticatedRoute } from "./auth/guard.js";
-import { libraryRoute } from "./routes/library.js";
+import { createLibraryRoute } from "./routes/library.js";
 
 export async function initializeClient(host: ClientHost) {
 	const runtime = configureClientRuntime(host);
@@ -23,10 +23,18 @@ export async function initializeClient(host: ClientHost) {
 	}
 }
 
+export {
+	ExternalPlayerSettings,
+	maximumPlayerTemplateLength,
+} from "../features/settings/ui.js";
 export { Button, buttonStyles } from "../shared/components/ui/button.js";
-export { FieldError } from "../shared/components/ui/field.js";
+export { Field, FieldError } from "../shared/components/ui/field.js";
+export { FieldHelp } from "../shared/components/ui/field-help.js";
 export { Input } from "../shared/components/ui/input.js";
 export { Spinner } from "../shared/components/ui/spinner.js";
+export { Textarea } from "../shared/components/ui/textarea.js";
+export { toast } from "../shared/components/ui/toast.js";
+export { Tooltip } from "../shared/components/ui/tooltip.js";
 export type { ClientPlatform } from "../shared/platform.js";
 export { PasswordSignInForm, SignInPanel } from "./auth/password-sign-in.js";
 export { loginReturnPath } from "./auth/return-path.js";
@@ -34,12 +42,14 @@ export { ClientSessionLifecycle } from "./session-lifecycle.js";
 
 export function createClientRoutes({
 	loginElement,
+	externalPlayerSettings,
 }: {
 	loginElement: ReactElement;
+	externalPlayerSettings?: ReactElement;
 }): RouteObject[] {
 	return [
 		{ path: "/login", element: loginElement },
-		authenticatedRoute(libraryRoute),
+		authenticatedRoute(createLibraryRoute(externalPlayerSettings)),
 	];
 }
 

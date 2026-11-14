@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createMemoryRouter, useLocation, useNavigate } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import App from "../../../src/app/App.js";
-import { libraryRoute } from "../../../src/app/routes/library.js";
+import { createLibraryRoute } from "../../../src/app/routes/library.js";
 import { Toaster } from "../../../src/shared/components/ui/toast.js";
 import { fireEvent, render, screen } from "../../support/query-test-utils.js";
 
@@ -34,7 +34,7 @@ export function renderApp(path = "/directories/root", strict = false) {
 	const router = createMemoryRouter(
 		[
 			{
-				...libraryRoute,
+				...createLibraryRoute(),
 				element: (
 					<>
 						<App />

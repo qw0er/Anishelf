@@ -54,7 +54,6 @@ export interface ExternalPlayerHost {
 	link?(player: ExternalPlayer, media: PlayerMedia): string | undefined;
 	launch(player: ExternalPlayer, media: PlayerMedia): Promise<void>;
 	subscribe(listener: () => void): () => void;
-	chooseExecutable?(): Promise<string | null>;
 }
 
 export interface ClientPlatform {

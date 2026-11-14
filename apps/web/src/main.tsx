@@ -12,6 +12,7 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
 import { WebLoginPage } from "./auth/login-page.js";
 import { registerPwa } from "./platform/pwa.js";
+import { WebExternalPlayerSettings } from "./settings/external-player-settings.js";
 import "./styles.css";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
@@ -41,7 +42,10 @@ async function start() {
 
 	try {
 		const router = createBrowserRouter(
-			createClientRoutes({ loginElement: <WebLoginPage /> }),
+			createClientRoutes({
+				loginElement: <WebLoginPage />,
+				externalPlayerSettings: <WebExternalPlayerSettings />,
+			}),
 		);
 		if (
 			session.attach(

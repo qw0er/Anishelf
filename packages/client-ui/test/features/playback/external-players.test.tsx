@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { DesktopExternalPlayerSettings } from "../../../../../apps/desktop/src/renderer/settings/external-player-settings.js";
+import { WebExternalPlayerSettings } from "../../../../../apps/web/src/settings/external-player-settings.js";
 import * as playbackApi from "../../../src/features/playback/player/api.js";
 import { PlaybackActionsMenu } from "../../../src/features/playback/player/components/external-player-menu.js";
 import * as resourceApi from "../../../src/features/resources/resource-access/api.js";
-import { ExternalPlayerSettings } from "../../../src/features/settings/components/external-player-settings.js";
 import {
 	detectClientPlatform,
 	externalPlayerPolicy,
@@ -171,7 +172,7 @@ test("rejects malformed and duplicate persisted entries without overwriting them
 
 test("Settings adds and deletes persistent custom players, updating mounted consumers", async () => {
 	const consumer = renderHook(useExternalPlayers);
-	const view = render(<ExternalPlayerSettings />);
+	const view = render(<WebExternalPlayerSettings />);
 	fireEvent.change(screen.getByLabelText("Player name"), {
 		target: { value: "My player" },
 	});
@@ -180,10 +181,13 @@ test("Settings adds and deletes persistent custom players, updating mounted cons
 	});
 	fireEvent.click(screen.getByRole("button", { name: "Add player" }));
 	await screen.findByText("My player");
+	expect(screen.getByLabelText<HTMLInputElement>("URL template").value).toBe(
+		"",
+	);
 	expect(consumer.result.current.custom).toHaveLength(1);
 	expect(readCustomPlayers(localStorage)[0]?.name).toBe("My player");
 	view.unmount();
-	render(<ExternalPlayerSettings />);
+	render(<WebExternalPlayerSettings />);
 	expect(screen.getByText("My player")).toBeTruthy();
 	fireEvent.click(screen.getByRole("button", { name: "Delete My player" }));
 	await waitFor(() => expect(consumer.result.current.custom).toHaveLength(0));
@@ -247,7 +251,6 @@ function commandHost(
 			entry.kind === "command" ? entry.executable : entry.template,
 		launch: vi.fn(async () => {}),
 		subscribe: () => () => {},
-		chooseExecutable: vi.fn(async () => "/usr/bin/mpv"),
 	};
 }
 
@@ -255,7 +258,11 @@ test("command settings edits an executable and one argument per line", async () 
 	const host = commandHost();
 	const add = vi.mocked(host.add);
 	vi.spyOn(testPlatform, "externalPlayers", "get").mockReturnValue(host);
-	render(<ExternalPlayerSettings />);
+	render(
+		<DesktopExternalPlayerSettings
+			chooseExecutable={async () => "/usr/bin/mpv"}
+		/>,
+	);
 	fireEvent.change(screen.getByLabelText("Player name"), {
 		target: { value: "My mpv" },
 	});
@@ -279,12 +286,31 @@ test("command settings edits an executable and one argument per line", async () 
 test("command settings fills the executable from the native picker", async () => {
 	const host = commandHost();
 	vi.spyOn(testPlatform, "externalPlayers", "get").mockReturnValue(host);
-	render(<ExternalPlayerSettings />);
+	render(
+		<DesktopExternalPlayerSettings
+			chooseExecutable={async () => "/usr/bin/mpv"}
+		/>,
+	);
 	fireEvent.click(screen.getByRole("button", { name: "Choose executable" }));
 	await waitFor(() =>
 		expect(
 			(screen.getByLabelText("Executable") as HTMLInputElement).value,
 		).toBe("/usr/bin/mpv"),
+	);
+	fireEvent.change(screen.getByLabelText("Player name"), {
+		target: { value: "Picked player" },
+	});
+	fireEvent.change(screen.getByLabelText("Arguments"), {
+		target: { value: "{url}" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Add player" }));
+	await waitFor(() =>
+		expect(host.add).toHaveBeenCalledWith({
+			kind: "command",
+			name: "Picked player",
+			executable: "/usr/bin/mpv",
+			args: ["{url}"],
+		}),
 	);
 });
 

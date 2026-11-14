@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { RouteObject } from "react-router";
 import {
 	EpisodeDownloadAction,
@@ -25,85 +26,91 @@ import {
 } from "./resources-data.js";
 import { libraryLoader } from "./root-data.js";
 import { settingsAction } from "./settings-data.js";
-export const libraryRoute: RouteObject = {
-	id: "library",
-	path: "/",
-	element: <App />,
-	loader: libraryLoader,
-	errorElement: <RouteError kind="page" />,
-	hydrateFallbackElement: <InitialLoading />,
-	children: [
-		{ path: "subscriptions", element: <SubscriptionsPage /> },
-		{ path: "review", element: <ReviewPage /> },
-		{
-			path: "history",
-			loader: historyLoader,
-			element: <HistoryPage />,
-			errorElement: <RouteError kind="directory" />,
-		},
-		{
-			path: "settings",
-			action: settingsAction,
-			element: <SettingsPage />,
-		},
-		{
-			index: true,
-			element: <AnimeLibraryPage />,
-			errorElement: <RouteError kind="directory" />,
-		},
-		{
-			path: "anime/tracked/:mediaId",
-			element: (
-				<TrackedAnimeDetail
-					renderEpisodeAction={(target) => (
-						<EpisodeDownloadAction
-							key={`${target.workKey}:${target.episode}`}
-							{...target}
-						/>
-					)}
-					renderSubscription={(workKey, status) => (
-						<WorkAcquisitionPanel
-							key={workKey}
-							workKey={workKey}
-							status={status}
-						/>
-					)}
-				/>
-			),
-			errorElement: <RouteError kind="directory" />,
-		},
-		{
-			path: "anime/:id",
-			loader: animeLoader,
-			element: <AnimeDetailPage />,
-			errorElement: <RouteError kind="directory" />,
-		},
-		{
-			element: <FilesLayout />,
-			children: [
-				{
-					path: "directories/:id",
-					loader: directoryLoader,
-					element: <DirectoryPage />,
-					errorElement: <RouteError kind="directory" />,
-				},
-				{ path: "prepared-media", element: <PreparedMediaRoute /> },
-			],
-		},
-		{
-			path: "files/:id/locate",
-			loader: locateFileLoader,
-			errorElement: <RouteError kind="file" />,
-		},
-		{
-			path: "files/:id",
-			loader: fileLoader,
-			element: <PlayerPage />,
-			errorElement: <RouteError kind="file" />,
-		},
-		{
-			path: "*",
-			element: <NotFoundPage />,
-		},
-	],
-};
+export function createLibraryRoute(
+	externalPlayerSettings?: ReactNode,
+): RouteObject {
+	return {
+		id: "library",
+		path: "/",
+		element: <App />,
+		loader: libraryLoader,
+		errorElement: <RouteError kind="page" />,
+		hydrateFallbackElement: <InitialLoading />,
+		children: [
+			{ path: "subscriptions", element: <SubscriptionsPage /> },
+			{ path: "review", element: <ReviewPage /> },
+			{
+				path: "history",
+				loader: historyLoader,
+				element: <HistoryPage />,
+				errorElement: <RouteError kind="directory" />,
+			},
+			{
+				path: "settings",
+				action: settingsAction,
+				element: (
+					<SettingsPage externalPlayerSettings={externalPlayerSettings} />
+				),
+			},
+			{
+				index: true,
+				element: <AnimeLibraryPage />,
+				errorElement: <RouteError kind="directory" />,
+			},
+			{
+				path: "anime/tracked/:mediaId",
+				element: (
+					<TrackedAnimeDetail
+						renderEpisodeAction={(target) => (
+							<EpisodeDownloadAction
+								key={`${target.workKey}:${target.episode}`}
+								{...target}
+							/>
+						)}
+						renderSubscription={(workKey, status) => (
+							<WorkAcquisitionPanel
+								key={workKey}
+								workKey={workKey}
+								status={status}
+							/>
+						)}
+					/>
+				),
+				errorElement: <RouteError kind="directory" />,
+			},
+			{
+				path: "anime/:id",
+				loader: animeLoader,
+				element: <AnimeDetailPage />,
+				errorElement: <RouteError kind="directory" />,
+			},
+			{
+				element: <FilesLayout />,
+				children: [
+					{
+						path: "directories/:id",
+						loader: directoryLoader,
+						element: <DirectoryPage />,
+						errorElement: <RouteError kind="directory" />,
+					},
+					{ path: "prepared-media", element: <PreparedMediaRoute /> },
+				],
+			},
+			{
+				path: "files/:id/locate",
+				loader: locateFileLoader,
+				errorElement: <RouteError kind="file" />,
+			},
+			{
+				path: "files/:id",
+				loader: fileLoader,
+				element: <PlayerPage />,
+				errorElement: <RouteError kind="file" />,
+			},
+			{
+				path: "*",
+				element: <NotFoundPage />,
+			},
+		],
+	};
+}

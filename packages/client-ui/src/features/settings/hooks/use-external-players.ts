@@ -20,6 +20,5 @@ export function useExternalPlayers() {
 		describe: host.describe,
 		link: host.link,
 		launch: host.launch,
-		chooseExecutable: host.chooseExecutable,
 	};
 }

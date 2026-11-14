@@ -34,7 +34,6 @@ type PlayerBridge = Pick<
 	| "addExternalPlayer"
 	| "removeExternalPlayer"
 	| "launchExternalPlayer"
-	| "choosePlayerExecutable"
 >;
 
 export async function createDesktopExternalPlayers(
@@ -56,7 +55,6 @@ class DesktopExternalPlayers implements ExternalPlayerHost {
 		this.add = this.add.bind(this);
 		this.remove = this.remove.bind(this);
 		this.launch = this.launch.bind(this);
-		this.chooseExecutable = this.chooseExecutable.bind(this);
 	}
 
 	static async open(desktop: PlayerBridge): Promise<DesktopExternalPlayers> {
@@ -109,10 +107,6 @@ class DesktopExternalPlayers implements ExternalPlayerHost {
 		this.listeners.add(listener);
 		return () => this.listeners.delete(listener);
 	}
-	chooseExecutable(): Promise<string | null> {
-		return this.desktop.choosePlayerExecutable();
-	}
-
 	private async load(): Promise<void> {
 		try {
 			const response = await this.desktop.listExternalPlayers();

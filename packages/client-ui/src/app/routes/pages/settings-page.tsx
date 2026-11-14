@@ -1,4 +1,5 @@
 import { Download, FolderOpen, Info, Play, UserRound } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import {
@@ -11,7 +12,6 @@ import { TrackingAccountSettings } from "../../../features/anime/ui.js";
 import { usePreparationContext } from "../../../features/media/public.js";
 import {
 	AboutSettings,
-	ExternalPlayerSettings,
 	MetadataSourceSettings,
 	PreparationProfileSettings,
 	ResourceSettings,
@@ -53,7 +53,11 @@ function sectionPath(
 	return `/settings?${next.toString()}`;
 }
 
-export function SettingsPage() {
+export function SettingsPage({
+	externalPlayerSettings,
+}: {
+	externalPlayerSettings: ReactNode;
+}) {
 	const navigationRef = useCompactNavigation();
 	const preparation = usePreparationContext();
 	const { t } = useTranslation();
@@ -123,7 +127,7 @@ export function SettingsPage() {
 						data-settings-section="playback"
 					>
 						<PreparationProfileSettings preparation={preparation} />
-						<ExternalPlayerSettings />
+						{externalPlayerSettings}
 					</div>
 					<div
 						className={activeSection === "downloads" ? "stack-page" : "hidden"}

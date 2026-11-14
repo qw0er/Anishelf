@@ -11,6 +11,7 @@ import { createHashRouter } from "react-router";
 import { DesktopLoginPage } from "./auth/login-page.js";
 import { createDesktopPlatform } from "./platform/platform.js";
 import { createDesktopServerClient } from "./server/connection.js";
+import { DesktopExternalPlayerSettings } from "./settings/external-player-settings.js";
 import "./styles.css";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
@@ -50,6 +51,11 @@ async function start() {
 	try {
 		const router = createHashRouter(
 			createClientRoutes({
+				externalPlayerSettings: (
+					<DesktopExternalPlayerSettings
+						chooseExecutable={desktop.choosePlayerExecutable}
+					/>
+				),
 				loginElement: (
 					<DesktopLoginPage
 						origin={origin}

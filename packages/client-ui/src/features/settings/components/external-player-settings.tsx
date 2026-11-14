@@ -1,8 +1,7 @@
-import { FolderOpen, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActionButton } from "../../../shared/components/ui/action-button.js";
-import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Card,
 	CardContent,
@@ -11,30 +10,35 @@ import {
 	CardTitle,
 } from "../../../shared/components/ui/card.js";
 import { Field } from "../../../shared/components/ui/field.js";
-import { FieldHelp } from "../../../shared/components/ui/field-help.js";
 import { Input } from "../../../shared/components/ui/input.js";
-import { Textarea } from "../../../shared/components/ui/textarea.js";
 import { toast } from "../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../shared/components/ui/tooltip.js";
-import type { ExternalPlayerDraft } from "../../../shared/platform.js";
+import type {
+	ExternalPlayer,
+	ExternalPlayerDraft,
+} from "../../../shared/platform.js";
 import { externalPlayerPolicy } from "../external-player-policy.js";
 import { useExternalPlayers } from "../hooks/use-external-players.js";
 
-function parseArgumentLines(value: string): string[] {
-	return value
-		.split(/\r?\n/)
-		.map((line) => line.trim())
-		.filter(Boolean);
+interface ExternalPlayerSettingsProps {
+	description: string;
+	storageError: string;
+	saveError: string;
+	fields: ReactNode;
+	createDraft(name: string, values: FormData): ExternalPlayerDraft;
+	renderPlayerDetail?(player: ExternalPlayer): ReactNode;
 }
 
-export function ExternalPlayerSettings() {
+export function ExternalPlayerSettings({
+	description,
+	storageError,
+	saveError,
+	fields,
+	createDraft,
+	renderPlayerDetail,
+}: ExternalPlayerSettingsProps) {
 	const { t } = useTranslation();
 	const players = useExternalPlayers();
-	const command = players.mode === "command";
-	const [name, setName] = useState("");
-	const [template, setTemplate] = useState("");
-	const [executable, setExecutable] = useState("");
-	const [argumentsText, setArgumentsText] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
 	const full =
@@ -62,11 +66,7 @@ export function ExternalPlayerSettings() {
 			toast.add({
 				id: "external-players-save",
 				type: "error",
-				title: t(
-					command
-						? "externalPlayers.commandSaveError"
-						: "externalPlayers.saveError",
-				),
+				title: saveError,
 			});
 			return false;
 		} finally {
@@ -95,33 +95,10 @@ export function ExternalPlayerSettings() {
 			toast.add({
 				id: "external-players-save",
 				type: "error",
-				title: t(
-					command
-						? "externalPlayers.commandSaveError"
-						: "externalPlayers.saveError",
-				),
+				title: saveError,
 			});
 		} finally {
 			setPending(false);
-		}
-	}
-
-	async function chooseExecutable() {
-		if (!players.chooseExecutable) return;
-		try {
-			const path = await players.chooseExecutable();
-			if (path) {
-				setExecutable(path);
-				setError(null);
-				console.debug("[Settings] External player executable selected.");
-			}
-		} catch {
-			console.warn("[Settings] External player executable selection failed.");
-			toast.add({
-				id: "external-players-executable",
-				type: "error",
-				title: t("externalPlayers.chooseExecutableFailed"),
-			});
 		}
 	}
 
@@ -129,22 +106,12 @@ export function ExternalPlayerSettings() {
 		<Card className="settings-section lg:grid">
 			<CardHeader>
 				<CardTitle>{t("externalPlayers.title")}</CardTitle>
-				<CardDescription>
-					{t(
-						command
-							? "externalPlayers.commandDescription"
-							: "externalPlayers.description",
-					)}
-				</CardDescription>
+				<CardDescription>{description}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{players.error && (
 					<p role="alert" className="field-error sm:col-span-2">
-						{t(
-							command
-								? "externalPlayers.commandStorageError"
-								: "externalPlayers.storageError",
-						)}
+						{storageError}
 					</p>
 				)}
 				{players.custom.length > 0 && (
@@ -163,11 +130,7 @@ export function ExternalPlayerSettings() {
 											{player.name}
 										</button>
 									</Tooltip>
-									{player.kind === "command" && (
-										<span className="block truncate text-xs text-muted-foreground">
-											{player.executable}
-										</span>
-									)}
+									{renderPlayerDetail?.(player)}
 								</div>
 								<ActionButton
 									icon={Trash2}
@@ -187,130 +150,38 @@ export function ExternalPlayerSettings() {
 					className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
 					onSubmit={(event) => {
 						event.preventDefault();
-						if (pending) return;
-						const draft: ExternalPlayerDraft = command
-							? {
-									kind: "command",
-									name: name.trim(),
-									executable,
-									args: parseArgumentLines(argumentsText),
-								}
-							: {
-									kind: "url-template",
-									name: name.trim(),
-									template: template.trim(),
-								};
+						if (pending || full || players.error) return;
+						const form = event.currentTarget;
+						const values = new FormData(form);
+						const name = String(values.get("name") ?? "").trim();
+						const draft = createDraft(name, values);
 						const validationError = players.validate(draft);
 						if (validationError) {
 							setError(validationError);
 							return;
 						}
 						void save(draft).then((saved) => {
-							if (!saved) return;
-							setName("");
-							setTemplate("");
-							setExecutable("");
-							setArgumentsText("");
+							if (saved) form.reset();
 						});
 					}}
 				>
-					<Field>
-						<label
-							htmlFor="external-player-name"
-							className="field-label flex h-11 items-center"
-						>
-							{t("externalPlayers.name")}
-						</label>
-						<Input
-							id="external-player-name"
-							required
-							maxLength={externalPlayerPolicy.maximumNameLength}
-							value={name}
-							onChange={(event) => setName(event.target.value)}
-						/>
-					</Field>
-					{command ? (
-						<>
-							<Field>
-								<div className="flex h-11 items-center gap-1">
-									<label
-										htmlFor="external-player-executable"
-										className="field-label"
-									>
-										{t("externalPlayers.executable")}
-									</label>
-									<FieldHelp
-										label={t("externalPlayers.executableHelpLabel")}
-										help={t("externalPlayers.executableHelp")}
-									/>
-								</div>
-								<div className="flex min-w-0 gap-2">
-									<Input
-										id="external-player-executable"
-										value={executable}
-										onChange={(event) => setExecutable(event.target.value)}
-										placeholder={t("externalPlayers.executablePlaceholder")}
-									/>
-									<Tooltip content={t("externalPlayers.chooseExecutable")}>
-										<Button
-											type="button"
-											variant="outline"
-											size="icon"
-											className="shrink-0"
-											aria-label={t("externalPlayers.chooseExecutable")}
-											disabled={pending}
-											onClick={() => void chooseExecutable()}
-										>
-											<FolderOpen size={16} aria-hidden="true" />
-										</Button>
-									</Tooltip>
-								</div>
-							</Field>
-							<Field className="sm:col-span-2">
-								<div className="flex h-11 items-center gap-1">
-									<label
-										htmlFor="external-player-arguments"
-										className="field-label"
-									>
-										{t("externalPlayers.arguments")}
-									</label>
-									<FieldHelp
-										label={t("externalPlayers.argumentsHelpLabel")}
-										help={t("externalPlayers.argumentsHelp")}
-									/>
-								</div>
-								<Textarea
-									id="external-player-arguments"
-									value={argumentsText}
-									onChange={(event) => setArgumentsText(event.target.value)}
-									placeholder={"--no-terminal\n{url}"}
-								/>
-							</Field>
-						</>
-					) : (
+					<fieldset disabled={pending} className="contents">
 						<Field>
-							<div className="flex h-11 items-center gap-1">
-								<label
-									htmlFor="external-player-template"
-									className="field-label"
-								>
-									{t("externalPlayers.template")}
-								</label>
-								<FieldHelp
-									label={t("externalPlayers.templateHelpLabel")}
-									help={t("externalPlayers.templateHelp")}
-								/>
-							</div>
+							<label
+								htmlFor="external-player-name"
+								className="field-label flex h-11 items-center"
+							>
+								{t("externalPlayers.name")}
+							</label>
 							<Input
-								id="external-player-template"
+								id="external-player-name"
+								name="name"
 								required
-								maxLength={externalPlayerPolicy.maximumTemplateLength}
-								value={template}
-								onChange={(event) => setTemplate(event.target.value)}
-								placeholder="infuse://x-callback-url/play?url={urlEncoded}"
+								maxLength={externalPlayerPolicy.maximumNameLength}
 							/>
 						</Field>
-					)}
+						{fields}
+					</fieldset>
 					<div className="action-row sm:col-span-2">
 						<ActionButton
 							icon={Plus}

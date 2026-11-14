@@ -22,7 +22,6 @@ test("reloads the catalog after removing a player and notifies current subscribe
 		addExternalPlayer: vi.fn(),
 		removeExternalPlayer,
 		launchExternalPlayer: vi.fn(),
-		choosePlayerExecutable: vi.fn(),
 	});
 	expect(host.list().custom).toEqual([{ ...player, kind: "command" }]);
 	const listener = vi.fn();

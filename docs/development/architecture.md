@@ -138,6 +138,9 @@ the application entry and stylesheet. Host-specific sign-in pages live in
 `auth/`. Platform integrations live in `platform/`, including Web service
 worker registration and desktop external players. The desktop renderer's
 `server/` owns its API connection and device-session adapter.
+Each host supplies its external-player form from `settings/`. The shared
+playback settings page hosts the form and shares the player list and add and
+remove actions across clients.
 
 | Layer | Responsibility |
 | --- | --- |
