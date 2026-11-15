@@ -2,8 +2,9 @@ import { createHash } from "node:crypto";
 import { constants, type Dirent, type Stats } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import { access, lstat, open, readdir, realpath, stat } from "node:fs/promises";
-import { extname, isAbsolute, join, relative, sep, win32 } from "node:path";
+import { extname, join, relative } from "node:path";
 import { subtitleMimeTypes } from "@anishelf/contracts/subtitles";
+import { pathContains, relativePathParts } from "../../../../platform/paths.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeepReadonly } from "../../../../shared/policy.js";
@@ -26,14 +27,6 @@ function denied(): never {
 	throw new DomainError(
 		"RESOURCE_ACCESS_DENIED",
 		"Access to this resource is denied.",
-	);
-}
-
-function contains(root: string, path: string): boolean {
-	const child = relative(root, path);
-	return (
-		child === "" ||
-		(child !== ".." && !child.startsWith(`..${sep}`) && !isAbsolute(child))
 	);
 }
 
@@ -170,6 +163,17 @@ export class ResourceAccess {
 		);
 	}
 
+	async inspectVideoFileWithPath(relativePath: string) {
+		const { file, canonicalPath } = await this.openTypedFile(
+			relativePath,
+			"video",
+		);
+		return {
+			relativePath: relative(this.root, canonicalPath),
+			metadata: await this.inspectOpenedSourceWithVersion(file),
+		};
+	}
+
 	async inspectSubtitleSource(
 		relativePath: string,
 	): Promise<ResourceSourceMetadata> {
@@ -239,17 +243,17 @@ export class ResourceAccess {
 	}
 
 	async openFile(relativePath: string): Promise<OpenedResourceFile> {
-		return this.openTypedFile(relativePath, "video");
+		return (await this.openTypedFile(relativePath, "video")).file;
 	}
 
 	async openSubtitleFile(relativePath: string): Promise<OpenedResourceFile> {
-		return this.openTypedFile(relativePath, "subtitle");
+		return (await this.openTypedFile(relativePath, "subtitle")).file;
 	}
 
 	private async openTypedFile(
 		relativePath: string,
 		kind: "video" | "subtitle",
-	): Promise<OpenedResourceFile> {
+	): Promise<{ file: OpenedResourceFile; canonicalPath: string }> {
 		let handle: FileHandle | undefined;
 		try {
 			const { path, info } = await this.validatePath(relativePath);
@@ -286,12 +290,15 @@ export class ResourceAccess {
 				denied();
 			let released = false;
 			return {
-				handle: fileHandle,
-				...metadata(opened, mimeType),
-				async release() {
-					if (released) return;
-					released = true;
-					await fileHandle.close();
+				canonicalPath: current.canonicalPath,
+				file: {
+					handle: fileHandle,
+					...metadata(opened, mimeType),
+					async release() {
+						if (released) return;
+						released = true;
+						await fileHandle.close();
+					},
 				},
 			};
 		} catch (cause) {
@@ -302,18 +309,12 @@ export class ResourceAccess {
 
 	private async validatePath(
 		relativePath: string,
-	): Promise<{ path: string; info: Stats }> {
-		if (
-			relativePath.includes("\0") ||
-			isAbsolute(relativePath) ||
-			win32.isAbsolute(relativePath)
-		)
-			denied();
-		const components = relativePath === "" ? [] : relativePath.split(sep);
-		if (components.some((part) => part === "" || part === "." || part === ".."))
-			denied();
+	): Promise<{ path: string; canonicalPath: string; info: Stats }> {
+		const components =
+			relativePath === "" ? [] : relativePathParts(relativePath);
+		if (!components) denied();
 		const path = join(this.root, ...components);
-		if (!contains(this.root, path)) denied();
+		if (!pathContains(this.root, path)) denied();
 		let current = this.root;
 		let info = await lstat(current);
 		if (info.isSymbolicLink() || !info.isDirectory()) denied();
@@ -327,7 +328,8 @@ export class ResourceAccess {
 					"The resource is no longer available.",
 				);
 		}
-		if (!contains(this.root, await realpath(path))) denied();
-		return { path, info };
+		const canonicalPath = await realpath(path);
+		if (!pathContains(this.root, canonicalPath)) denied();
+		return { path, canonicalPath, info };
 	}
 }

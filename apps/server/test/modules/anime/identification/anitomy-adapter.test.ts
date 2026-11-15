@@ -5,7 +5,11 @@ import { titleEvidence } from "../../../../src/modules/anime/identification/doma
 import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import type { WorkCandidate } from "../../../../src/modules/anime/identification/public.js";
 
+import { fixtureIdentificationPath } from "../../../support/anime-parsing-corpus.js";
+
 const parser = new AnitomyIdentificationParser();
+const extract = (path: string) =>
+	parser.extract([fixtureIdentificationPath(path)])[0];
 const work: WorkCandidate = {
 	reference: { id: "1" },
 	snapshotId: "test",
@@ -17,7 +21,7 @@ const work: WorkCandidate = {
 	part: null,
 };
 test("maps a bounded leaf range, ignoring the ancestor batch range", () => {
-	const evidence = parser.extract(["Show [01-12]/Show - 01-02.mkv"])[0];
+	const evidence = extract("Show [01-12]/Show - 01-02.mkv");
 	if (!evidence) throw new Error("Missing evidence");
 	expect(evidence.numbering).toBe("range");
 	expect(
@@ -25,7 +29,7 @@ test("maps a bounded leaf range, ignoring the ancestor batch range", () => {
 	).toEqual(["1", "2"]);
 });
 test("a release year before the episode is not a descending range", () => {
-	const evidence = parser.extract(["Show 2023 - 01 [1920x1080].mkv"])[0];
+	const evidence = extract("Show 2023 - 01 [1920x1080].mkv");
 	if (!evidence) throw new Error("Missing evidence");
 	expect(evidence.numbering).toBe("single");
 	expect(proposeMapping(evidence, work).targets).toEqual([
@@ -35,7 +39,7 @@ test("a release year before the episode is not a descending range", () => {
 test.each(["Show - 29 (S02E01).mkv", "Show - 29 (s02e01).mkv"])(
 	"selects explicit local numbering and preserves raw numbering: %s",
 	(name) => {
-		const evidence = parser.extract([name])[0];
+		const evidence = extract(name);
 		if (!evidence) throw new Error("Missing evidence");
 		expect(evidence.rawEpisodes).toEqual(["29", "01"]);
 		expect(evidence.selectedEpisodes).toEqual(["01"]);
@@ -47,29 +51,26 @@ test.each(["Show - 29 (S02E01).mkv", "Show - 29 (s02e01).mkv"])(
 test.each(["Show - 03-01.mkv", "Show - 01-999.mkv", "Show - 01 (S02E29).mkv"])(
 	"keeps invalid or inconsistent numbers unresolved: %s",
 	(name) => {
-		const evidence = parser.extract([name])[0];
+		const evidence = extract(name);
 		if (!evidence) throw new Error("Missing evidence");
 		expect(proposeMapping(evidence, work).targets).toEqual([]);
 	},
 );
 test("episode zero supplies a manual special suggestion without automatic regular mapping", () => {
-	const evidence = parser.extract(["Show - 00.mkv"])[0];
+	const evidence = extract("Show - 00.mkv");
 	if (!evidence) throw new Error("Missing evidence");
 	const mapping = proposeMapping(evidence, work);
 	expect(mapping.targets).toEqual([{ kind: "special", number: "0" }]);
 	expect(mapping.unresolved).toHaveLength(1);
 });
 test("extracts bilingual titles and only repeated bracket labels as fallbacks", () => {
-	expect(parser.extract(["迷宫饭 Dungeon Meshi - 01.mkv"])[0]?.titles).toEqual(
+	expect(extract("迷宫饭 Dungeon Meshi - 01.mkv")?.titles).toEqual(
 		expect.arrayContaining(["迷宫饭", "Dungeon Meshi"]),
 	);
 	expect(
-		parser.extract(["[Mushoku Tensei][12-23]/[Mushoku Tensei][15].mp4"])[0]
-			?.titles,
+		extract("[Mushoku Tensei][12-23]/[Mushoku Tensei][15].mp4")?.titles,
 	).toContain("Mushoku Tensei");
-	expect(parser.extract(["[SomeGroup][15].mp4"])[0]?.titles).not.toContain(
-		"SomeGroup",
-	);
+	expect(extract("[SomeGroup][15].mp4")?.titles).not.toContain("SomeGroup");
 });
 test.each([
 	"Menu 1.mkv",
@@ -78,18 +79,12 @@ test.each([
 	"[Group][Show S2][menu][03].mkv",
 	"[Group]Show The Movie[Trailer2][1080p].mp4",
 ])("classifies ancillary leaf %s", (name) => {
-	expect(parser.extract([`Show S2/Extra/${name}`])[0]?.contentKind).toBe(
-		"ancillary",
-	);
+	expect(extract(`Show S2/Extra/${name}`)?.contentKind).toBe("ancillary");
 });
 test("menu directories classify resources without treating every extras file as ancillary", () => {
-	expect(parser.extract(["Show/menu/01.mkv"])[0]?.contentKind).toBe(
-		"ancillary",
-	);
-	expect(parser.extract(["Show/extras/Show - 01.mkv"])[0]?.contentKind).toBe(
-		"regular",
-	);
-	expect(parser.extract(["The Menu - 01.mkv"])[0]?.contentKind).toBe("regular");
+	expect(extract("Show/menu/01.mkv")?.contentKind).toBe("ancillary");
+	expect(extract("Show/extras/Show - 01.mkv")?.contentKind).toBe("regular");
+	expect(extract("The Menu - 01.mkv")?.contentKind).toBe("regular");
 });
 test.each([
 	"Example 第二季",
@@ -102,7 +97,7 @@ test.each([
 });
 test("retains raw elements and both sides of conflicting season evidence", () => {
 	const path = "葬送的芙莉莲 第二季/Sousou no Frieren S01E01.mkv";
-	const evidence = parser.extract([path])[0];
+	const evidence = extract(path);
 	expect(evidence?.seasons.map(Number)).toEqual(expect.arrayContaining([1, 2]));
 	expect(evidence?.inputs[0]?.elements).toEqual(
 		animeNameParser.parse("Sousou no Frieren S01E01.mkv"),
@@ -112,9 +107,9 @@ test("retains raw elements and both sides of conflicting season evidence", () =>
 	);
 });
 test("cleans language residue only with an explicit dubbed audio tag", () => {
-	expect(
-		parser.extract(["SPYxFAMILY Chinese Dubbed - 01.mp4"])[0]?.titles,
-	).toContain("SPYxFAMILY");
+	expect(extract("SPYxFAMILY Chinese Dubbed - 01.mp4")?.titles).toContain(
+		"SPYxFAMILY",
+	);
 	expect(
 		animeNameParser.adapt("Johnny English", [
 			{ kind: "title", value: "Johnny English", position: 0 },

@@ -12,6 +12,7 @@ import {
 	cleanup,
 	connectedModule,
 	fixture,
+	fixturePath,
 	hash,
 	key,
 	logger,
@@ -39,7 +40,7 @@ test("direct save flows through background selection, one download and verified 
 		const destination = await downloads.saveDestination({
 			revision: null,
 			scopeId: "root",
-			path: "/downloads",
+			path: fixturePath("downloads"),
 		});
 		await downloads.validate(destination.revision);
 		const calls = f.anime.target.mock.calls.length;
@@ -164,7 +165,7 @@ test.each([false, true])(
 			const dest = await worker.saveDestination({
 				revision: null,
 				scopeId: "root",
-				path: "/downloads",
+				path: fixturePath("downloads"),
 			});
 			await worker.validate(dest.revision);
 			const revision = f.db.acquisition.subscription(key)?.revision ?? null;
@@ -360,7 +361,7 @@ test.each([
 		const destination = await worker.saveDestination({
 			revision: null,
 			scopeId: "root",
-			path: "/downloads",
+			path: fixturePath("downloads"),
 		});
 		await worker.validate(destination.revision);
 		const preview = await watching.preview("session", "unconfigured", {

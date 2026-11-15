@@ -2,6 +2,7 @@ import type {
 	DownloadContext,
 	DownloadExecution,
 } from "../application/context.js";
+import { sameDownloadPath } from "../application/destination-paths.js";
 import { isTorrentComplete } from "../domain/completion.js";
 import { resolveTorrent } from "../infrastructure/torrent.js";
 import type { CompletedDownload, SubmissionAdmission } from "../ports.js";
@@ -77,7 +78,7 @@ export class DownloadTransfers {
 									current !== null &&
 									isTorrentComplete(current) &&
 									current.ownerKey === item.id &&
-									current.savePath === task.savePath &&
+									sameDownloadPath(current.savePath, task.savePath) &&
 									JSON.stringify(currentFiles) === JSON.stringify(files)
 								);
 							},

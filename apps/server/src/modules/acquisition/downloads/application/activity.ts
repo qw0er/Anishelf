@@ -1,4 +1,4 @@
-import { posix } from "node:path";
+import { join } from "node:path";
 import { DomainError } from "../../../../shared/errors.js";
 import { downloadDefaults as policy } from "../defaults.js";
 import type { DownloadActivity } from "../domain/model.js";
@@ -44,9 +44,7 @@ export class DownloadActivityQueries {
 				subscription && this.destination.authorized(subscription),
 			),
 			destination:
-				directory && destination
-					? posix.join(destination.path, directory)
-					: null,
+				directory && destination ? join(destination.path, directory) : null,
 			items: result.items.map((item) => ({
 				id: item.id,
 				origin: item.origin,

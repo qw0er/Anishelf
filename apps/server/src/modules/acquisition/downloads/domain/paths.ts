@@ -1,29 +1,23 @@
 import { createHash } from "node:crypto";
-import { posix } from "node:path";
 import { workReference } from "@anishelf/contracts/references";
 import { DownloadError } from "./model.js";
-export function absoluteDownloadPath(value: string) {
-	if (
-		!value.startsWith("/") ||
-		value.includes("\\") ||
-		[...value].some((char) => char.charCodeAt(0) < 32) ||
-		value.length > 2048 ||
-		value.split("/").includes("..")
-	)
-		throw new DownloadError("invalid_destination");
-	return posix.normalize(value).replace(/\/$/, "") || "/";
+
+export const maximumDownloadFilePathLength = 4096;
+
+export function isDownloadPathPart(part: string): boolean {
+	return (
+		part.length > 0 &&
+		part !== "." &&
+		part !== ".." &&
+		!/[\\/]/.test(part) &&
+		![...part].some((char) => char.charCodeAt(0) < 32)
+	);
 }
-export function inside(path: string, root: string) {
-	return path === root || path.startsWith(`${root === "/" ? "" : root}/`);
-}
+
 export function relativeDownloadPath(value: string) {
 	if (
-		!value ||
-		value.length > 4096 ||
-		value.includes("\\") ||
-		[...value].some((char) => char.charCodeAt(0) < 32) ||
-		value.split("/").some((part) => !part || part === "." || part === "..") ||
-		posix.isAbsolute(value)
+		value.length > maximumDownloadFilePathLength ||
+		!value.split("/").every(isDownloadPathPart)
 	)
 		throw new DownloadError("invalid_file_path");
 	return value;

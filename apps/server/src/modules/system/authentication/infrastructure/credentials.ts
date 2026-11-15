@@ -1,14 +1,7 @@
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
-import {
-	chmod,
-	link,
-	mkdir,
-	open,
-	readFile,
-	rename,
-	unlink,
-} from "node:fs/promises";
+import { chmod, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { writeStateFile } from "../../../../platform/state-file.js";
 
 function derive(
 	password: string,
@@ -92,41 +85,15 @@ export async function verifyPassword(password: string, credential: Credential) {
 	)) as Buffer;
 	return timingSafeEqual(hash, Buffer.from(credential.hash, "hex"));
 }
-/** Publish complete files; initialization never replaces another process's winner. */
-async function publish(path: string, content: string, replace: boolean) {
-	const temporary = `${path}.${randomBytes(12).toString("hex")}.pending`;
-	const handle = await open(temporary, "wx", 0o600);
-	try {
-		await handle.writeFile(content);
-		await handle.sync();
-	} finally {
-		await handle.close();
-	}
-	try {
-		if (replace) await rename(temporary, path);
-		else {
-			try {
-				await link(temporary, path);
-			} catch (error) {
-				if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
-				throw error;
-			}
-		}
-		return true;
-	} finally {
-		await unlink(temporary).catch(() => {});
-	}
-}
 export async function replaceCredential(
 	dataDir: string,
 	credential: Credential,
 ) {
 	await mkdir(dataDir, { recursive: true, mode: 0o700 });
 	await chmod(dataDir, 0o700);
-	await publish(
+	await writeStateFile(
 		join(dataDir, "auth.json"),
 		`${JSON.stringify(credential, null, 2)}\n`,
-		true,
 	);
 }
 export async function loadCredentials(dataDir: string) {
@@ -141,7 +108,11 @@ export async function loadCredentials(dataDir: string) {
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 		const password = randomPassword();
 		const generated = await hashPassword(password);
-		if (await publish(path, `${JSON.stringify(generated, null, 2)}\n`, false))
+		if (
+			await writeStateFile(path, `${JSON.stringify(generated, null, 2)}\n`, {
+				createOnly: true,
+			})
+		)
 			initialPassword = password;
 		credential = parseCredential(await readFile(path, "utf8"));
 	}
@@ -151,7 +122,9 @@ export async function loadCredentials(dataDir: string) {
 		await readFile(keyPath);
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-		await publish(keyPath, randomBytes(32).toString("hex"), false);
+		await writeStateFile(keyPath, randomBytes(32).toString("hex"), {
+			createOnly: true,
+		});
 	}
 	const secret = await readFile(keyPath, "utf8");
 	if (!/^[a-f0-9]{64}$/.test(secret))

@@ -4,6 +4,7 @@ import { TorrentError } from "../../../../src/modules/acquisition/torrent-client
 import {
 	connectedModule,
 	fixture,
+	fixturePath,
 	key,
 	seedSubscription,
 	setupTestLifecycle,
@@ -58,7 +59,7 @@ test("direct subscription save binds the current target without a source request
 	const dest = await downloads.saveDestination({
 		revision: null,
 		scopeId: "root",
-		path: "/downloads",
+		path: fixturePath("downloads"),
 	});
 	await downloads.validate(dest.revision);
 	const input = {
@@ -79,7 +80,7 @@ test("direct subscription save binds the current target without a source request
 	await downloads.saveDestination({
 		revision: dest.revision,
 		scopeId: "root",
-		path: "/other",
+		path: fixturePath("other"),
 	});
 	await expect(
 		module.api.subscriptions.save({
@@ -179,8 +180,8 @@ test("pre-submission checks exclude another active version and reject stale rele
 			totalBytes: 100,
 			downloadBytesPerSecond: 1,
 			uploadBytesPerSecond: 0,
-			savePath: "/elsewhere",
-			contentPath: "/elsewhere/file",
+			savePath: fixturePath("elsewhere"),
+			contentPath: fixturePath("elsewhere/file"),
 			ownerKey: null,
 		},
 	]);
@@ -210,7 +211,7 @@ test("subscription save rolls back binding, subscription, candidates and permiss
 	const destination = await downloads.saveDestination({
 		revision: null,
 		scopeId: "root",
-		path: "/downloads",
+		path: fixturePath("downloads"),
 	});
 	await downloads.validate(destination.revision);
 	const before = f.db.acquisition.subscription(key),

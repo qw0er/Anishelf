@@ -1,15 +1,12 @@
 import { constants } from "node:fs";
-import {
-	chmod,
-	lstat,
-	mkdir,
-	mkdtemp,
-	open,
-	readdir,
-	rename,
-	rm,
-} from "node:fs/promises";
+import { chmod, lstat, mkdir, mkdtemp, open, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import type { Logger } from "pino";
+import {
+	isWindowsSharingError,
+	removeFile,
+	renameFile,
+} from "../../../../../platform/filesystem.js";
 import { storageRules } from "../../../../../platform/storage.js";
 
 export interface ProcessingWorkspace {
@@ -21,7 +18,10 @@ export interface ProcessingWorkspace {
 /** Private, uniquely allocated files; callers never provide an output filename. */
 export class MediaProcessingFiles {
 	private readonly root: string;
-	constructor(dataDir: string) {
+	constructor(
+		dataDir: string,
+		private readonly logger?: Logger,
+	) {
 		this.root = join(dataDir, "cache", "media-processing");
 	}
 	async initialize(): Promise<void> {
@@ -32,8 +32,20 @@ export class MediaProcessingFiles {
 		const root = await lstat(this.root);
 		if (!root.isDirectory() || root.isSymbolicLink())
 			throw new Error("Invalid media processing directory.");
-		for (const name of await readdir(this.root))
-			await rm(join(this.root, name), { recursive: true, force: true });
+		for (const name of await readdir(this.root)) {
+			try {
+				await removeFile(join(this.root, name), {
+					recursive: true,
+					force: true,
+				});
+			} catch (err) {
+				if (!isWindowsSharingError(err)) throw err;
+				this.logger?.warn(
+					{ event: "media.processing_cleanup_deferred", name, err },
+					"Previous media workspace is still in use.",
+				);
+			}
+		}
 	}
 	async allocate(): Promise<ProcessingWorkspace> {
 		await mkdir(this.root, {
@@ -68,10 +80,10 @@ export class MediaProcessingFiles {
 		} finally {
 			await file.close();
 		}
-		await rename(workspace.pendingPath, workspace.path);
+		await renameFile(workspace.pendingPath, workspace.path);
 		return size;
 	}
 	async remove(workspace: ProcessingWorkspace): Promise<void> {
-		await rm(workspace.directory, { recursive: true, force: true });
+		await removeFile(workspace.directory, { recursive: true, force: true });
 	}
 }

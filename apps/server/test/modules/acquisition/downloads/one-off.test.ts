@@ -5,6 +5,7 @@ import { SourceError } from "../../../../src/modules/acquisition/sources/public.
 import { TorrentError } from "../../../../src/modules/acquisition/torrent-clients/public.js";
 import {
 	fixture,
+	fixturePath,
 	hash,
 	key,
 	setupTestLifecycle,
@@ -266,7 +267,7 @@ test("a matching external episode transfer blocks acquisition before a new add",
 	await f.client.add(
 		{
 			source: { magnet: `magnet:?xt=urn:btih:${hash}` },
-			savePath: "/external",
+			savePath: fixturePath("external"),
 			ownerKey: "external",
 		},
 		new AbortController().signal,

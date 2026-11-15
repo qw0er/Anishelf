@@ -1,5 +1,6 @@
 import { lstat, realpath, rename, rm } from "node:fs/promises";
-import { basename, isAbsolute, join, sep, win32 } from "node:path";
+import { basename, join } from "node:path";
+import { pathContains, relativePathParts } from "../../../../platform/paths.js";
 import { DomainError } from "../../../../shared/errors.js";
 
 function denied(): never {
@@ -19,16 +20,8 @@ export class ResourceMutations {
 	}
 	private async resolve(path: string, allowRoot = false) {
 		if (path === "" && allowRoot) return this.root;
-		if (
-			!path ||
-			path.includes("\0") ||
-			path.includes("\\") ||
-			isAbsolute(path) ||
-			win32.isAbsolute(path)
-		)
-			denied();
-		const parts = path.split(sep);
-		if (parts.some((part) => !part || part === "." || part === "..")) denied();
+		const parts = relativePathParts(path);
+		if (!parts) denied();
 		let current = this.root;
 		for (const [index, part] of parts.entries()) {
 			current = join(current, part);
@@ -54,7 +47,7 @@ export class ResourceMutations {
 		const directory = await destination.access.resolve(destination.path, true);
 		if (!(await lstat(directory)).isDirectory()) denied();
 		const target = join(directory, basename(source));
-		if (directory === source || directory.startsWith(`${source}${sep}`))
+		if (pathContains(source, directory))
 			throw new DomainError(
 				"RESOURCE_CONFLICT",
 				"A folder cannot be moved into itself.",

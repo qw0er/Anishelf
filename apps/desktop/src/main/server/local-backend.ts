@@ -5,6 +5,7 @@ import { isDeviceToken } from "./device-tokens.js";
 
 const startupTimeoutMs = 20_000;
 const shutdownTimeoutMs = 5_000;
+const maximumDiagnosticLength = 16_384;
 
 interface BackendConnection {
 	origin: string;
@@ -17,6 +18,7 @@ export class LocalBackend {
 	private readonly ready: Promise<BackendConnection>;
 	private stopping: Promise<void> | undefined;
 	private running = false;
+	private stderr = "";
 
 	constructor(profileDir: string, onExit: (error: Error) => void) {
 		const appPath = app.getAppPath();
@@ -26,8 +28,11 @@ export class LocalBackend {
 		this.child = utilityProcess.fork(
 			join(appPath, "backend-process.mjs"),
 			[backendPath, join(profileDir, "backend")],
-			{ serviceName: "Anishelf Backend" },
+			{ serviceName: "Anishelf Backend", stdio: ["ignore", "inherit", "pipe"] },
 		);
+		this.child.stderr?.setEncoding("utf8").on("data", (chunk: string) => {
+			this.stderr = (this.stderr + chunk).slice(-maximumDiagnosticLength);
+		});
 		this.child.on("error", (type, location) => {
 			console.error("desktop.backend_process_error", { type, location });
 		});
@@ -43,6 +48,10 @@ export class LocalBackend {
 			});
 		});
 		this.ready = this.waitUntilReady();
+	}
+
+	get diagnostics(): string {
+		return this.stderr;
 	}
 
 	start(): Promise<BackendConnection> {

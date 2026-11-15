@@ -28,7 +28,7 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 			sources: ResourceAccessApi;
 			tools: MediaProbe;
 			repository: InspectionStore;
-			cacheVersion?: string;
+			cacheVersion?: () => Promise<string>;
 			policy?: DeepReadonly<MediaInspectionPolicy>;
 			logger?: Logger;
 		},
@@ -45,7 +45,10 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 			);
 	}
 
-	private async probe(source: ResolvedSource): Promise<MediaInspectionResult> {
+	private async probe(
+		source: ResolvedSource,
+		formatVersion: string,
+	): Promise<MediaInspectionResult> {
 		this.options.sources.assertAccessRevision(source.accessRevision);
 		const info = await this.options.tools.probe(
 			await this.options.sources.filePath(source),
@@ -58,7 +61,7 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 				scopeId: current.identity.scopeId,
 				fileId: current.identity.fileId,
 				sourceVersion: current.identity.sourceVersion,
-				formatVersion: this.options.cacheVersion ?? "probe:1",
+				formatVersion,
 				info,
 			});
 		} catch {
@@ -83,10 +86,13 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 			expectedSourceVersion,
 		);
 		this.assertOpen();
+		const formatVersion = (await this.options.cacheVersion?.()) ?? "probe:1";
+		this.assertOpen();
 		const key = JSON.stringify([
 			source.identity.scopeId,
 			fileId,
 			source.identity.sourceVersion,
+			formatVersion,
 		]);
 		let cached: import("./ports.js").InspectionRecord | null = null;
 		try {
@@ -99,7 +105,7 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 		}
 		let info =
 			cached?.sourceVersion === source.identity.sourceVersion &&
-			cached.formatVersion === (this.options.cacheVersion ?? "probe:1")
+			cached.formatVersion === formatVersion
 				? cached.info
 				: undefined;
 		if (info) {
@@ -120,7 +126,7 @@ export class MediaInspectionApplication implements MediaInspectionApi {
 				pending = Promise.resolve()
 					.then(() => {
 						this.assertOpen();
-						return this.probe(source);
+						return this.probe(source, formatVersion);
 					})
 					.finally(() => this.active.delete(key));
 				this.active.set(key, pending);

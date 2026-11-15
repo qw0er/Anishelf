@@ -136,7 +136,9 @@ test("isolates failed categories, bounds enumeration and distinguishes absent fr
 			return listings[kind];
 		});
 	const result = await detectMediaCapabilities(statuses, mediaToolPolicy);
-	expect(run).toHaveBeenCalledTimes(mediaCapabilityKinds.length);
+	expect(
+		run.mock.calls.filter(([, args]) => args[0] !== "-version"),
+	).toHaveLength(mediaCapabilityKinds.length);
 	expect(maximumActive).toBe(mediaToolPolicy.capabilityConcurrency);
 	expect(result.status).toBe("partial");
 	expect(result.inventory.encoders).toMatchObject({
@@ -188,11 +190,10 @@ test("deduplicates concurrent inventories, preserves partial results and isolate
 			if (!kind) throw new Error("unexpected command");
 			return kind === "filters" ? "broken output" : listings[kind];
 		});
-	const tools = await MediaTools.create({
+	const tools = MediaTools.create({
 		ffmpegPath: "/test/ffmpeg",
 		ffprobePath: "/test/ffprobe",
 	});
-	run.mockClear();
 	const [first, second] = await Promise.all([
 		tools.capabilities(),
 		tools.capabilities(),
@@ -204,12 +205,15 @@ test("deduplicates concurrent inventories, preserves partial results and isolate
 	const third = await tools.capabilities();
 	expect(third.inventory.encoders.entries.length).toBeGreaterThan(0);
 	expect(third.inventory.filters.status).toBe("failed");
-	expect(run).toHaveBeenCalledTimes(mediaCapabilityKinds.length);
+	expect(
+		run.mock.calls.filter(([, args]) => args[0] !== "-version"),
+	).toHaveLength(mediaCapabilityKinds.length);
 });
 
 test("enumerates the installed FFmpeg build with bounded child processes", async () => {
-	const tools = await MediaTools.create();
-	if (!tools.status.ffmpeg.available) return;
+	const tools = MediaTools.create();
+	const ffmpeg = await tools.toolStatus("ffmpeg");
+	if (!ffmpeg.available) return;
 	const result = await tools.capabilities();
 	expect(result.status).toBe("ready");
 	expect(result.tools.ffmpeg.version).toMatch(/^ffmpeg version /);
@@ -226,7 +230,7 @@ test("enumerates the installed FFmpeg build with bounded child processes", async
 		expect.objectContaining({ name: "file", flags: "IO" }),
 	);
 	expect(result.detectedAtMs).not.toBeNull();
-	expect(JSON.stringify(result)).not.toContain(tools.status.ffmpeg.path);
+	expect(JSON.stringify(result)).not.toContain(ffmpeg.path);
 });
 
 test("parses FFmpeg 5 and 7 filters without a separator", () => {

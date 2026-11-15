@@ -148,6 +148,56 @@ test("same-named files and sidecars are isolated across roots, including media t
 	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
 });
 
+test("torrent paths refresh the same resource identity as a full scan", async () => {
+	const f = await fixture();
+	const root = f.roots[0];
+	if (!root) throw new Error("Missing fixture root");
+	const scopeId = resourceRootId(root);
+	const series = join(root, "Series");
+	await mkdir(series);
+	await writeFile(join(series, "01.mkv"), "downloaded video");
+	const refreshed = await f.library.refreshDownload(scopeId, "Series/01.mkv");
+	expect(refreshed.relativePath).toBe(join("Series", "01.mkv"));
+	await f.scan();
+	expect(
+		(await f.library.sources.resolveSource(refreshed.fileId)).identity,
+	).toEqual(refreshed);
+	await expect(
+		f.library.refreshDownload(scopeId, "Series/../01.mkv"),
+	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+});
+
+test.runIf(process.platform === "win32")(
+	"torrent paths with different casing use the names on disk",
+	async () => {
+		const f = await fixture();
+		const root = f.roots[0] as string;
+		const scopeId = resourceRootId(root);
+		await mkdir(join(root, "Series"));
+		await writeFile(join(root, "Series", "01.MKV"), "downloaded video");
+		const refreshed = await f.library.refreshDownload(scopeId, "series/01.mkv");
+		expect(refreshed.relativePath).toBe(join("Series", "01.MKV"));
+		await f.scan();
+		expect(
+			(await f.library.sources.resolveSource(refreshed.fileId)).identity,
+		).toEqual(refreshed);
+	},
+);
+
+test("incomplete directories cannot reach a watched root through a link", async () => {
+	const f = await fixture();
+	const scopeId = resourceRootId(f.roots[0] as string);
+	const watched = f.roots[1] as string;
+	const alias = join(f.base, "staging");
+	await symlink(watched, alias, "junction");
+	await expect(
+		f.library.validateDownloadRoot(scopeId, join(alias, "not-created-yet")),
+	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+	await expect(
+		f.library.validateDownloadRoot(scopeId, join(f.base, "incomplete")),
+	).resolves.toBeUndefined();
+});
+
 test("reordering, removing and restoring roots preserves identity and playback history", async () => {
 	const f = await fixture();
 	const file = f.files[0];

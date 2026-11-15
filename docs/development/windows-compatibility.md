@@ -18,6 +18,20 @@ Audit baseline: commit `f00eeb2b` (2026-11-14). The desktop icon packaging
 defect found during the audit was fixed in that commit and is not repeated here.
 The review did not modify repository code.
 
+## Implementation status
+
+The audit below records the original findings. The first repair batch targets
+Windows 11 with the default local desktop profile and a same-machine
+qBittorrent installation. Windows runtime verification is pending.
+
+| Area | Implementation |
+| --- | --- |
+| W1, W21 | Resource paths use host separators. Identification validates and splits paths once and sends the original path to Anitomy. Download ingestion resolves the actual local path before lookup and ID calculation. |
+| W2, W7, W8 | The processor flushes completed output through a writable handle. Publication moves it into the prepared cache on the same filesystem. Private file operations retry Windows sharing failures. Locked orphan cache entries produce warnings, and failed preparation initialization can retry. Settings and credentials use a file lock and atomic rename for creation and updates. |
+| W3, W14, W15 | Download destinations accept fully qualified Windows drive and UNC paths and compare qBittorrent's paths using host rules. Resources resolves directory aliases when checking incomplete downloads against watched roots. Initial resource roots use the host path-list delimiter. A remote downloader still needs to expose its data through the existing shared path model. |
+| W5, W6, W12 | The desktop backend accepts explicit FFmpeg and FFprobe environment overrides. Media discovery and transcode profile validation run on demand. Startup failures include a path to the desktop failure log when the log can be written. |
+| W11 | The Windows window session-end event invokes the normal shutdown path. Forced termination and completion during sign-out still require Windows testing. |
+
 ## Summary
 
 The backend core (HTTP, database, authentication, network clients, media argument
@@ -51,7 +65,7 @@ unverified.
 | Capability | Windows status | Notes |
 | --- | --- | --- |
 | Startup, HTTP API, SQLite, authentication, logging | Usable | Platform directories, loopback binding, SQLite WAL and log rotation are platform-neutral |
-| Resource scanning, browsing, playback, subtitles | Mostly usable | Reparse points are skipped; paths longer than `MAX_PATH` fail |
+| Resource scanning, browsing, playback, subtitles | Mostly usable | Links are skipped; test junctions, cloud placeholders and long paths on Windows |
 | Anime automatic identification and review | Blocked | Native `\` paths are rejected by the identification boundary |
 | Nested resource move and delete | Blocked | The mutation boundary rejects native `\` paths |
 | Media preparation (transcoding) publication | Blocked | Publication fsyncs a read-only handle and a directory handle |
@@ -296,9 +310,9 @@ Settings, credentials, cooldown/bootstrap state and artifact publication rename 
 temporary file over the target, and library mutations remove files, without
 retrying Windows sharing violations.
 
-**Impact:** Hard links require local NTFS (same volume); they fail on exFAT,
-FAT32, SMB and some redirected data directories, breaking first-run settings or
-credential creation. A rename/remove that races with antivirus, the indexer or
+**Impact:** Hard links require filesystem support and source and destination on
+the same volume. FAT32, exFAT and network or redirected directories without
+hard-link support can break first-run settings or credential creation. A rename/remove that races with antivirus, the indexer or
 another open handle fails with `EPERM`/`EBUSY`, surfacing as generic save or
 write failures. A currently streamed prepared file can also block replacement.
 
@@ -343,12 +357,13 @@ unopenable root reports a root issue.
 `lstat` reports a symbolic link
 ([access.ts:314-L331](../../apps/server/src/modules/resources/resource-access/infrastructure/access.ts#L314-L331),
 [scanner.ts:115](../../apps/server/src/modules/resources/library/infrastructure/scanner.ts#L115)).
-libuv maps every Windows reparse point (symlinks, directory junctions, OneDrive
-and Dropbox placeholders) to a symbolic-link entry.
+libuv classifies specific reparse tags as links, including ordinary directory
+junctions. Cloud placeholder behavior depends on the provider and needs Windows
+verification.
 
-**Impact:** A library stored under OneDrive/Dropbox, or containing a junction
-that points to another drive, is silently skipped — users see an empty or
-incomplete library and downloads placed through such a junction never ingest.
+**Impact:** A junction inside a watched root can be skipped, leaving the library
+incomplete and preventing ingestion through that junction. Cloud-backed roots
+need separate tests with hydrated and online-only files.
 
 **Fix:** Distinguish real symlinks from other reparse points; allow components
 whose `realpath` stays inside the root (the final containment check already
@@ -405,7 +420,7 @@ confirm the log records the module error and the dialog exposes the path.
 
 | ID | Severity | Area | Finding | Evidence | Suggested fix |
 | --- | --- | --- | --- | --- | --- |
-| W13 | Medium | Paths | No long-path handling: paths over `MAX_PATH` (260) fail for scanning, playback and FFmpeg | `join`-built paths throughout; only the download directory name is length-capped | Add `toLongPath()` at filesystem boundaries, cap generated directory names, map `ENAMETOOLONG` to an actionable warning |
+| W13 | Medium | Paths | Long-path behavior is unverified across the scanner, playback and FFmpeg | `join`-built paths throughout; only the download directory name is length-capped | Add `toLongPath()` at filesystem boundaries, cap generated directory names, map `ENAMETOOLONG` to an actionable warning |
 | W14 | Medium | Configuration | `ANISHELF_INITIAL_RESOURCE_ROOTS` splits on `:`, so `C:\Media` is unusable | [deployment.ts:73-L84](../../apps/server/src/modules/system/configuration/infrastructure/deployment.ts#L73-L84) | Split by platform delimiter or accept repeated/JSON values; document Windows form |
 | W15 | Medium | Configuration | Windows absolute-path validation is too permissive: `\Media`, `\\?\C:\…` and `/data` pass `isAbsolute` and resolve against the current drive | [persistent.ts:114-L129](../../apps/server/src/modules/system/configuration/infrastructure/persistent.ts#L114-L129), [deployment.ts:26-L31](../../apps/server/src/modules/system/configuration/infrastructure/deployment.ts#L26-L31) | Add a strict Windows absolute-path validator (drive letter or UNC; reject device namespaces and root-relative forms) and log resolved values |
 | W16 | Medium | Storage | On FAT/exFAT volumes `st_dev`/`st_ino` can be zero or non-unique, weakening source versioning and replacement checks | [access.ts:184-L203](../../apps/server/src/modules/resources/resource-access/infrastructure/access.ts#L184-L203) | When either field is zero, add a cheap content fingerprint to `sourceVersion` and skip the dev/ino equality check |
@@ -458,7 +473,7 @@ the findings.
 
 | Order | Work | Fixes | Verification |
 | --- | --- | --- | --- |
-| 1 | Canonical logical resource paths: internal POSIX form, boundary conversion, stored-path normalization | W1, W21; enables W17/W18 fixes | win32-injected scan/identify/ingest/mutate tests; Windows library walkthrough |
+| 1 | Share host path rules across resources and identification. Convert torrent paths at the resource boundary and retain the resource ID algorithm. | W1, W21 | Scan, identify, ingest and mutate a nested Windows library. Compare IDs before and after a full scan. |
 | 2 | `platform/filesystem` helpers: sync directory, durable file publish, retrying rename/remove, hard-link fallback | W2, W8, part of W9 | Injected `EPERM`/`EBUSY` tests; Windows preparation and settings runs |
 | 3 | Platform-aware download path codec and downloader↔server path mapping | W3, part of W14 | Path table tests; Windows qBittorrent round trip |
 | 4 | Desktop host hardening: environment whitelist, media-tool settings and diagnostics, process-tree termination, `session-end`, main log, startup timeout | W5, W6, W7, W11, W12, W27 | Desktop unit tests; Windows crash/logoff/force-kill scenarios |
@@ -475,13 +490,13 @@ Run these on a clean Windows 11 machine or VM with the current release
 candidate. Record the build, version and date with the results.
 
 1. Install the unsigned `.exe` (document the SmartScreen step), launch, and
-   confirm `desktop.backend_ready` in the backend log.
+   confirm `application.started` in the backend log. For startup failures, check
+   the desktop diagnostic log shown in the error dialog.
 2. Add a media root with a nested directory, scan, and confirm the review queue
-   receives entries (currently expected to stay empty — W1).
-3. Move and delete a nested resource from the UI (currently expected to be
-   denied — W1).
-4. Install FFmpeg in a non-PATH location, confirm detection fails, then point the
-   app at it through the new setting (W5).
+   receives entries (W1).
+3. Move and delete a nested resource from the UI (W1).
+4. Install FFmpeg and FFprobe outside PATH, set the desktop environment overrides
+   and confirm both tools are detected on demand (W5).
 5. Prepare one small file with the default profile; confirm a ready artifact and
    that a restart keeps it (W2).
 6. Configure a same-machine qBittorrent, save and validate the destination,

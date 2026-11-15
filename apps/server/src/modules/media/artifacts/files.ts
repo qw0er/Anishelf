@@ -1,15 +1,13 @@
 import { constants } from "node:fs";
-import {
-	link,
-	lstat,
-	mkdir,
-	open,
-	readdir,
-	rename,
-	rm,
-	statfs,
-} from "node:fs/promises";
+import { lstat, mkdir, open, readdir, statfs } from "node:fs/promises";
 import { join } from "node:path";
+import type { Logger } from "pino";
+import {
+	isWindowsSharingError,
+	removeFile,
+	renameFile,
+	syncDirectory,
+} from "../../../platform/filesystem.js";
 import type { MediaInfo } from "../../../platform/media/model.js";
 import { storageRules } from "../../../platform/storage.js";
 import type { PreparedArtifact } from "../preparation/public.js";
@@ -18,7 +16,10 @@ import { InvalidPreparedMediaError } from "./public.js";
 /** Private files addressed only by opaque execution fingerprints. */
 export class PreparedMediaFiles {
 	private readonly root: string;
-	constructor(dataDir: string) {
+	constructor(
+		dataDir: string,
+		private readonly logger?: Logger,
+	) {
 		this.root = join(dataDir, "cache", "prepared-media");
 	}
 	path(id: string): string {
@@ -35,9 +36,21 @@ export class PreparedMediaFiles {
 		if (!root.isDirectory() || root.isSymbolicLink())
 			throw new Error("Invalid prepared media directory.");
 		const keep = new Set(artifacts.map((artifact) => `${artifact.id}.media`));
-		for (const name of await readdir(this.root))
-			if (!keep.has(name))
-				await rm(join(this.root, name), { force: true, recursive: true });
+		for (const name of await readdir(this.root)) {
+			if (keep.has(name)) continue;
+			try {
+				await removeFile(join(this.root, name), {
+					force: true,
+					recursive: true,
+				});
+			} catch (err) {
+				if (!isWindowsSharingError(err)) throw err;
+				this.logger?.warn(
+					{ event: "preparation.orphan_cleanup_deferred", name, err },
+					"Prepared-media cache entry is still in use.",
+				);
+			}
+		}
 		const valid = new Set<string>();
 		for (const artifact of artifacts) {
 			try {
@@ -73,26 +86,19 @@ export class PreparedMediaFiles {
 		sizeBytes: number,
 	): Promise<void> {
 		const path = this.path(id);
-		const pending = `${path}.pending`;
+		// The processor has already synced this private output.
+		const handle = await this.openAt(processedPath, sizeBytes);
+		await handle.close();
 		try {
-			// Same data directory/filesystem: adopt the validated bytes without copying a film.
-			await link(processedPath, pending);
-			const handle = await this.openAt(pending, sizeBytes);
-			try {
-				await handle.sync();
-			} finally {
-				await handle.close();
-			}
-			await rename(pending, path);
-			const directory = await open(this.root, constants.O_RDONLY);
-			try {
-				await directory.sync();
-			} finally {
-				await directory.close();
-			}
-		} finally {
-			await rm(pending, { force: true });
+			await renameFile(processedPath, path);
+		} catch (err) {
+			this.logger?.warn(
+				{ event: "preparation.publish_failed", id, err },
+				"Could not move validated media into the prepared cache.",
+			);
+			throw err;
 		}
+		await syncDirectory(this.root);
 	}
 	private async openAt(path: string, sizeBytes: number) {
 		const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -121,7 +127,6 @@ export class PreparedMediaFiles {
 		}
 	}
 	async remove(id: string): Promise<void> {
-		await rm(this.path(id), { force: true });
-		await rm(`${this.path(id)}.pending`, { force: true });
+		await removeFile(this.path(id), { force: true });
 	}
 }

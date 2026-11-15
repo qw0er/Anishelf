@@ -54,7 +54,7 @@ export class MediaTools {
 		private readonly logger?: Logger,
 	) {}
 
-	static async create(
+	static create(
 		config: MediaToolsConfig = {
 			ffmpegPath: deploymentDefaults.ffmpeg,
 			ffprobePath: deploymentDefaults.ffprobe,
@@ -64,20 +64,16 @@ export class MediaTools {
 		},
 		environment = captureRuntimeEnvironment().executableSearch,
 		logger?: Logger,
-	): Promise<MediaTools> {
+	): MediaTools {
 		validateMediaToolPolicy(policy.mediaTools);
+		const toolLogger = logger?.child({ module: "media-tools" });
 		const discovery = new MediaToolDiscovery(
 			config,
 			policy.mediaTools,
 			environment,
-			logger?.child({ module: "media-tools" }),
+			toolLogger,
 		);
-		await Promise.all([discovery.get("ffmpeg"), discovery.get("ffprobe")]);
-		return new MediaTools(
-			discovery,
-			policy,
-			logger?.child({ module: "media-tools" }),
-		);
+		return new MediaTools(discovery, policy, toolLogger);
 	}
 
 	async extractAss(
@@ -169,10 +165,6 @@ export class MediaTools {
 			this.policy.mediaTools,
 			this.logger,
 		);
-	}
-
-	get status(): Readonly<{ ffmpeg: ToolStatus; ffprobe: ToolStatus }> {
-		return this.discovery.status;
 	}
 
 	toolStatus(tool: "ffmpeg" | "ffprobe"): Promise<ToolStatus> {

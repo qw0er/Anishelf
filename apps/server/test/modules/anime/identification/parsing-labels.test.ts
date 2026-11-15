@@ -298,12 +298,13 @@ test("sibling batches never mix unrelated immediate parent directories", () => {
 			{ ...entry, id: "two", relativePath: "Two/02.mkv", batch: "mixed" },
 		],
 	};
-	const extract = vi.fn((paths: string[]) => parser.extract(paths));
+	const extract = vi.fn(parser.extract.bind(parser));
 	evaluateParsingCorpus(input, { version: parser.version, extract });
-	expect(extract.mock.calls.map(([paths]) => paths)).toEqual([
-		["One/01.mkv"],
-		["Two/02.mkv"],
-	]);
+	expect(
+		extract.mock.calls.map(([paths]) =>
+			paths.map(({ relativePath }) => relativePath),
+		),
+	).toEqual([["One/01.mkv"], ["Two/02.mkv"]]);
 });
 
 test("ordinary tests and evaluation never request a live source refresh", () => {

@@ -13,6 +13,9 @@ export async function startDesktopBackend({
 		env: {
 			PATH: process.env.PATH,
 			PATHEXT: process.env.PATHEXT,
+			ANISHELF_FFMPEG_PATH: process.env.ANISHELF_FFMPEG_PATH,
+			ANISHELF_FFPROBE_PATH: process.env.ANISHELF_FFPROBE_PATH,
+			ANISHELF_LOG_LEVEL: process.env.ANISHELF_LOG_LEVEL,
 			ANISHELF_HOST: "127.0.0.1",
 			ANISHELF_ALLOWED_HOSTS: "127.0.0.1",
 			ANISHELF_DATA_DIR: dataDir,

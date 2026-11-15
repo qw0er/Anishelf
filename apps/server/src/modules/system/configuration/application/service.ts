@@ -40,12 +40,11 @@ export class ConfigurationService {
 			profiles: this.transcodeProfiles,
 		});
 	}
-	async configureTranscodeValidation(
+	configureTranscodeValidation(
 		validator: TranscodeProfileValidator,
 		logger?: Logger,
-	): Promise<void> {
+	): void {
 		this.validator = validator;
-		await this.refreshTranscodeValidation();
 		logger?.info(
 			{
 				event: "configuration.transcode_profiles_loaded",
@@ -108,9 +107,10 @@ export class ConfigurationService {
 		);
 	}
 
-	selectTranscodeProfile(
+	async selectTranscodeProfile(
 		profileId: string | null,
 	): Promise<Readonly<PersistentSettings>> {
+		await this.refreshTranscodeValidation();
 		return this.change((current) => {
 			if (
 				profileId !== null &&

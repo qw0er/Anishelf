@@ -1,8 +1,12 @@
 import parseTorrent from "parse-torrent";
+import { isWindowsPathPart } from "../../../../platform/paths.js";
 import type { ReleaseEvidence } from "../../sources/public.js";
 import { downloadDefaults } from "../defaults.js";
 import { DownloadError } from "../domain/model.js";
-import { relativeDownloadPath } from "../domain/paths.js";
+import {
+	isDownloadPathPart,
+	maximumDownloadFilePathLength,
+} from "../domain/paths.js";
 import type { TorrentReader } from "../ports.js";
 
 function rawPaths(info: unknown) {
@@ -16,10 +20,15 @@ function rawPaths(info: unknown) {
 				: typeof value === "string"
 					? value
 					: "";
-		relativeDownloadPath(text);
-		if (text.includes("/")) throw new DownloadError("invalid_file_path");
+		if (
+			text.length > maximumDownloadFilePathLength ||
+			!isDownloadPathPart(text) ||
+			(process.platform === "win32" && !isWindowsPathPart(text))
+		)
+			throw new DownloadError("invalid_file_path");
+		return text.length;
 	};
-	component(data["name.utf-8"] ?? data.name);
+	const nameLength = component(data["name.utf-8"] ?? data.name);
 	if (Array.isArray(data.files))
 		for (const value of data.files) {
 			if (!value || typeof value !== "object")
@@ -28,20 +37,27 @@ function rawPaths(info: unknown) {
 				path = file["path.utf-8"] ?? file.path;
 			if (!Array.isArray(path) || !path.length)
 				throw new DownloadError("invalid_file_path");
-			path.forEach(component);
+			let length = nameLength;
+			for (const part of path) {
+				length += 1 + component(part);
+				if (length > maximumDownloadFilePathLength)
+					throw new DownloadError("invalid_file_path");
+			}
 		}
 	// Hybrid metadata must not hide unsafe v2 path components behind valid v1 paths.
 	let count = 0;
-	const tree = (node: unknown, depth: number) => {
+	const tree = (node: unknown, depth: number, parentLength: number) => {
 		if (++count > 10000 || depth > 64 || !node || typeof node !== "object")
 			throw new DownloadError("invalid_file_path");
 		for (const [name, child] of Object.entries(node))
 			if (name) {
-				component(name);
-				tree(child, depth + 1);
+				const length = parentLength + 1 + component(name);
+				if (length > maximumDownloadFilePathLength)
+					throw new DownloadError("invalid_file_path");
+				tree(child, depth + 1, length);
 			}
 	};
-	if (data["file tree"]) tree(data["file tree"], 0);
+	if (data["file tree"]) tree(data["file tree"], 0, nameLength);
 }
 export async function resolveTorrent(
 	entry: Pick<ReleaseEvidence, "download" | "hash">,
@@ -61,7 +77,6 @@ export async function resolveTorrent(
 		if (entry.hash && parsed.infoHash !== entry.hash.toLowerCase())
 			throw new DownloadError("torrent_identity_conflict");
 		if (bytes) rawPaths(parsed.info);
-		for (const file of parsed.files ?? []) relativeDownloadPath(file.path);
 		return {
 			hash: parsed.infoHash,
 			source: bytes

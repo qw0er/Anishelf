@@ -13,7 +13,11 @@ import {
 	parseMediaInfo,
 } from "../../../src/platform/media/tools.js";
 
-const tools = await MediaTools.create();
+const tools = MediaTools.create();
+const [ffmpeg, ffprobe] = await Promise.all([
+	tools.toolStatus("ffmpeg"),
+	tools.toolStatus("ffprobe"),
+]);
 let fixture: string;
 beforeAll(async () => {
 	fixture = await mkdtemp(join(tmpdir(), "anishelf-media-tools-"));
@@ -79,20 +83,20 @@ test.each(["not json", "{}", '{"format":{},"streams":[{"index":-1}]}'])(
 
 test("does not silently replace invalid executable overrides", async () => {
 	const missing = join(fixture, "missing");
-	const unavailable = await MediaTools.create({
+	const unavailable = MediaTools.create({
 		ffmpegPath: missing,
 		ffprobePath: missing,
 	});
-	expect(unavailable.status.ffmpeg.available).toBe(false);
+	expect((await unavailable.toolStatus("ffmpeg")).available).toBe(false);
 	await expect(
 		unavailable.probe(join(fixture, "video.mkv")),
 	).rejects.toMatchObject({ code: "TOOL_UNAVAILABLE" });
-	const independent = await MediaTools.create({
+	const independent = MediaTools.create({
 		ffmpegPath: missing,
 		ffprobePath: "ffprobe",
 	});
-	expect(independent.status.ffprobe.available).toBe(
-		tools.status.ffprobe.available,
+	expect((await independent.toolStatus("ffprobe")).available).toBe(
+		ffprobe.available,
 	);
 });
 
@@ -137,10 +141,10 @@ test("limits attachment inventory by type, individual size, total size and count
 	expect(listed).toHaveLength(subtitleFontLimits.maximumCount);
 });
 
-test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
+test.skipIf(!ffmpeg.available || !ffprobe.available)(
 	"probes real MKV and extracts SRT/ASS/WebVTT tracks",
 	async () => {
-		if (!tools.status.ffmpeg.available) throw new Error("FFmpeg unavailable");
+		if (!ffmpeg.available) throw new Error("FFmpeg unavailable");
 		const srt = join(fixture, "source.srt");
 		const ass = join(fixture, "source.ass");
 		const vtt = join(fixture, "source.vtt");
@@ -148,27 +152,13 @@ test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
 		const font = new URL("../../fixtures/fonts/fixture.ttf", import.meta.url)
 			.pathname;
 		await writeFile(srt, "1\n00:00:00,200 --> 00:00:01,200\nHello SRT\n");
-		await runTool(tools.status.ffmpeg.path, [
-			"-nostdin",
-			"-v",
-			"error",
-			"-i",
-			srt,
-			ass,
-		]);
+		await runTool(ffmpeg.path, ["-nostdin", "-v", "error", "-i", srt, ass]);
 		await writeFile(
 			ass,
 			(await readFile(ass, "utf8")).replace("Hello SRT", "{\\i1}Hello SRT"),
 		);
-		await runTool(tools.status.ffmpeg.path, [
-			"-nostdin",
-			"-v",
-			"error",
-			"-i",
-			srt,
-			vtt,
-		]);
-		await runTool(tools.status.ffmpeg.path, [
+		await runTool(ffmpeg.path, ["-nostdin", "-v", "error", "-i", srt, vtt]);
+		await runTool(ffmpeg.path, [
 			"-nostdin",
 			"-v",
 			"error",
@@ -278,17 +268,17 @@ test("normalizes chapters without rejecting playable media for malformed chapter
 	).toEqual([]);
 });
 
-test.skipIf(!tools.status.ffmpeg.available || !tools.status.ffprobe.available)(
+test.skipIf(!ffmpeg.available || !ffprobe.available)(
 	"reads embedded chapters through real FFprobe",
 	async () => {
-		if (!tools.status.ffmpeg.available) throw new Error("FFmpeg unavailable");
+		if (!ffmpeg.available) throw new Error("FFmpeg unavailable");
 		const metadata = join(fixture, "chapters.ffmeta");
 		const media = join(fixture, "chapters.mkv");
 		await writeFile(
 			metadata,
 			";FFMETADATA1\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=1000\ntitle=Opening\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=1000\nEND=2000\ntitle=本編\n",
 		);
-		await runTool(tools.status.ffmpeg.path, [
+		await runTool(ffmpeg.path, [
 			"-nostdin",
 			"-v",
 			"error",

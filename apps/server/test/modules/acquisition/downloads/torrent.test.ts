@@ -1,7 +1,8 @@
+import { posix } from "node:path";
 import { toTorrentFile } from "parse-torrent";
 import { expect, test, vi } from "vitest";
+import { absoluteDownloadPath } from "../../../../src/modules/acquisition/downloads/application/destination-paths.js";
 import {
-	absoluteDownloadPath,
 	relativeDownloadPath,
 	workDirectory,
 } from "../../../../src/modules/acquisition/downloads/domain/paths.js";
@@ -48,7 +49,7 @@ test("destination and torrent paths reject escapes and directory names remain bo
 	for (const path of ["../x", "/x", "a/../x", "a\\x", "a//x"])
 		expect(() => relativeDownloadPath(path)).toThrow();
 	for (const path of ["relative", "/a/../b", "C:\\media"])
-		expect(() => absoluteDownloadPath(path)).toThrow();
+		expect(() => absoluteDownloadPath(path, posix)).toThrow();
 	expect(workDirectory(key, "Frieren")).toBe("Frieren [anilist-1]");
 	expect(
 		Buffer.byteLength(workDirectory(key, "动画".repeat(200))),
@@ -109,3 +110,42 @@ test("v1 and hybrid torrent bytes resolve consistently and reject unsafe origina
 		),
 	).rejects.toMatchObject({ code: "invalid_file_path" });
 });
+
+test.each([
+	{ folder: "Season 1", allowed: true },
+	{ folder: "..", allowed: false },
+	{ folder: "a".repeat(4085), allowed: false },
+])(
+	"validates the raw nested torrent path (allowed: $allowed)",
+	async ({ folder, allowed }) => {
+		const torrent = toTorrentFile({
+			infoHash: "",
+			announce: [],
+			urlList: [],
+			info: {
+				name: Buffer.from("Series"),
+				length: 100,
+				files: [
+					{ path: [Buffer.from(folder), Buffer.from("01.mkv")], length: 100 },
+				],
+				"piece length": 16384,
+				pieces: Buffer.alloc(20),
+			},
+		});
+		const transport = {
+			read: vi.fn(async () => new Uint8Array(torrent)),
+			close: async () => {},
+		};
+		const result = resolveTorrent(
+			{ download: "https://example.org/season.torrent", hash: null },
+			readerFor(transport),
+			new AbortController().signal,
+		);
+		if (allowed)
+			await expect(result).resolves.toMatchObject({
+				hash: expect.stringMatching(/^[a-f0-9]{40}$/),
+			});
+		else
+			await expect(result).rejects.toMatchObject({ code: "invalid_file_path" });
+	},
+);

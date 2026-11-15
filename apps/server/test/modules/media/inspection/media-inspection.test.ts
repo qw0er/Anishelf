@@ -275,7 +275,7 @@ test("reuses SQLite inspections after reopen, replaces changed versions and prun
 			sources: library.sources,
 			tools: { probe },
 			repository: database.inspections,
-			cacheVersion,
+			cacheVersion: async () => cacheVersion,
 		});
 	inspection = create();
 	const first = await inspection.inspect(fileId());

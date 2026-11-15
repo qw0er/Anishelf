@@ -86,7 +86,7 @@ export class MediaProcessingApplication implements MediaProcessingApi {
 		const policy = options.policy ?? mediaProcessingPolicy;
 		validateMediaProcessingPolicy(policy);
 		this.policy = freeze(structuredClone(policy));
-		this.files = new MediaProcessingFiles(options.dataDir);
+		this.files = new MediaProcessingFiles(options.dataDir, options.logger);
 	}
 	start(request: MediaExecutionRequest): MediaExecutionHandle {
 		return this.launch(validateExecutionRequest(request));

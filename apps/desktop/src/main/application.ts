@@ -407,6 +407,11 @@ export class DesktopApplication {
 			},
 		});
 		windowState.manage(window, savedState, { applyMode: !startHidden });
+		if (process.platform === "win32")
+			window.once("session-end", () => {
+				console.info("desktop.session_end");
+				app.quit();
+			});
 		if (startHidden && savedState)
 			this.hiddenWindowMode = {
 				maximized: savedState.maximized,

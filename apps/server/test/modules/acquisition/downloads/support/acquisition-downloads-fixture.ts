@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, parse } from "node:path";
 import pino from "pino";
 import { afterEach, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../../src/app/bootstrap/database.js";
@@ -15,6 +15,10 @@ import type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,
 } from "../../../../../src/modules/anime/public.js";
+
+export function fixturePath(path: string): string {
+	return join(parse(tmpdir()).root, path);
+}
 
 export const cleanup: (() => Promise<unknown>)[] = [];
 
@@ -68,7 +72,7 @@ export async function fixture(persistent = false, bundled = false) {
 	};
 	const probe = vi.fn<TorrentClient["probe"]>(async () => ({
 		version: "5.0.5",
-		incompleteDirectory: "/incomplete",
+		incompleteDirectory: fixturePath("incomplete"),
 	}));
 	const add = vi.fn<TorrentClient["add"]>(async (input) => {
 		state.task = {
@@ -83,7 +87,7 @@ export async function fixture(persistent = false, bundled = false) {
 			downloadBytesPerSecond: 10,
 			uploadBytesPerSecond: 0,
 			savePath: input.savePath,
-			contentPath: `${input.savePath}/Frieren - 03.mkv`,
+			contentPath: join(input.savePath, "Frieren - 03.mkv"),
 			ownerKey: input.ownerKey,
 		};
 	});
@@ -106,7 +110,7 @@ export async function fixture(persistent = false, bundled = false) {
 		roots: vi.fn(async () =>
 			bundled
 				? [
-						{ scopeId: "other", name: "Other", path: "/other" },
+						{ scopeId: "other", name: "Other", path: fixturePath("other") },
 						{ scopeId: "root", name: "Anime", path: "/data/media" },
 					]
 				: [{ scopeId: "root", name: "Anime" }],
@@ -251,7 +255,7 @@ export async function fixture(persistent = false, bundled = false) {
 		const saved = await worker.saveDestination({
 			revision: db.acquisitionDownloads.destination()?.revision ?? null,
 			scopeId: "root",
-			path: "/downloads",
+			path: fixturePath("downloads"),
 		});
 		await worker.validate(saved.revision);
 		return saved;

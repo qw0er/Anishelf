@@ -82,7 +82,7 @@ export async function createMediaModule(options: {
 		tools,
 		logger,
 	} = options;
-	await configuration.configureTranscodeValidation?.(
+	configuration.configureTranscodeValidation?.(
 		(profiles) =>
 			tools.validateProfiles<import("../system/public.js").TranscodeProfile>(
 				profiles,
@@ -93,7 +93,10 @@ export async function createMediaModule(options: {
 		sources: library.sources,
 		tools,
 		repository: database.inspections,
-		cacheVersion: `probe:1:${tools.status.ffprobe.available ? tools.status.ffprobe.version : "unavailable"}`,
+		cacheVersion: async () => {
+			const probe = await tools.toolStatus("ffprobe");
+			return `probe:1:${probe.available ? probe.version : "unavailable"}`;
+		},
 		logger,
 		policy: policy.mediaInspection,
 	});

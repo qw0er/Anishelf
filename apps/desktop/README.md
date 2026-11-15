@@ -72,8 +72,16 @@ compatibility library `libcrypt.so.1`. Install it with
 
 The package includes Electron, the Anishelf backend, SQLite and database
 migrations. It runs without system Node.js. Install FFmpeg and FFprobe
-separately for media probing and transcoding. Configure qBittorrent and Jackett
-connections in Settings as needed. Every platform uses the Anishelf application
+separately for media probing and transcoding. If the executables are outside
+PATH, set `ANISHELF_FFMPEG_PATH` and `ANISHELF_FFPROBE_PATH` to their absolute
+paths in the desktop application's environment and restart Anishelf. Media
+tools are detected when a feature first needs them. If the bundled backend
+fails to start, check the diagnostic log shown in the error dialog.
+
+Configure qBittorrent and Jackett connections in Settings as needed. For
+qBittorrent on the same Windows machine, enter the full completed download
+directory, such as `C:\Media`, and configure an incomplete directory outside
+all watched roots. Every platform uses the Anishelf application
 icon; Linux also gets the matching desktop entry. These builds are unsigned and
 macOS builds are not notarized.
 

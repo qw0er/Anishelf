@@ -7,6 +7,7 @@ import { createAuthenticationModule } from "../../../../src/modules/system/creat
 import {
 	cleanup,
 	fixture,
+	fixturePath,
 	key,
 	logger,
 	setupTestLifecycle,
@@ -70,7 +71,11 @@ test("download endpoints enforce authentication, CSRF, revision checks and safe 
 				method: "PUT",
 				url,
 				headers: signed,
-				payload: { revision: null, scopeId: "root", path: "/downloads" },
+				payload: {
+					revision: null,
+					scopeId: "root",
+					path: fixturePath("downloads"),
+				},
 			})
 		).statusCode,
 	).toBe(403);
@@ -78,7 +83,11 @@ test("download endpoints enforce authentication, CSRF, revision checks and safe 
 		method: "PUT",
 		url,
 		headers: mutation,
-		payload: { revision: null, scopeId: "root", path: "/downloads" },
+		payload: {
+			revision: null,
+			scopeId: "root",
+			path: fixturePath("downloads"),
+		},
 	});
 	expect(result.statusCode).toBe(200);
 	expect(
@@ -87,7 +96,11 @@ test("download endpoints enforce authentication, CSRF, revision checks and safe 
 				method: "PUT",
 				url,
 				headers: mutation,
-				payload: { revision: null, scopeId: "root", path: "/other" },
+				payload: {
+					revision: null,
+					scopeId: "root",
+					path: fixturePath("other"),
+				},
 			})
 		).statusCode,
 	).toBe(409);
@@ -133,7 +146,7 @@ test("download endpoints enforce authentication, CSRF, revision checks and safe 
 	const destination = await module.api.downloads?.saveDestination({
 		revision: result.json().revision,
 		scopeId: "root",
-		path: "/downloads",
+		path: fixturePath("downloads"),
 	});
 	if (!destination) throw new Error("Missing downloads");
 	await module.api.downloads?.validate(destination.revision);

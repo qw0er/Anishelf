@@ -1,4 +1,4 @@
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import { createHttpApp } from "../../../../src/app/bootstrap/http.js";
 import { createAuthenticationModule } from "../../../../src/modules/system/create.js";
 import {
@@ -7,11 +7,6 @@ import {
 	key,
 	setupTestLifecycle,
 } from "./support/rss-fixture.js";
-
-vi.mock("node:fs/promises", async () => {
-	const { memoryFs } = await import("../../../support/memory-filesystem.js");
-	return memoryFs.promises;
-});
 
 setupTestLifecycle();
 

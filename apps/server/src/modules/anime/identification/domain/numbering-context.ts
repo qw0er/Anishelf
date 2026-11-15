@@ -1,3 +1,4 @@
+import { dirname, normalize } from "node:path";
 import { proposeMapping } from "./mapping.js";
 import { rankCandidates } from "./matching.js";
 import type { IdentificationResult, WorkCandidate } from "./model.js";
@@ -14,7 +15,7 @@ function scope(result: IdentificationResult, work: WorkCandidate) {
 	const path = result.source.relativePath;
 	return JSON.stringify([
 		result.source.scopeId,
-		path.slice(0, path.lastIndexOf("/") + 1),
+		dirname(normalize(path)),
 		seasons[0],
 		work.reference,
 	]);

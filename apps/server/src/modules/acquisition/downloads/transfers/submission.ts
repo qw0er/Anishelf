@@ -1,4 +1,4 @@
-import { posix } from "node:path";
+import { join } from "node:path";
 import type { TorrentTask } from "../../torrent-clients/public.js";
 import {
 	type TorrentClient,
@@ -8,9 +8,12 @@ import type {
 	DownloadContext,
 	DownloadExecution,
 } from "../application/context.js";
+import {
+	absoluteDownloadPath,
+	sameDownloadPath,
+} from "../application/destination-paths.js";
 import { downloadDefaults as policy } from "../defaults.js";
 import { DownloadError, type DownloadIntent } from "../domain/model.js";
-import { absoluteDownloadPath } from "../domain/paths.js";
 import { resolveTorrent } from "../infrastructure/torrent.js";
 import type { SubmissionAdmission } from "../ports.js";
 
@@ -49,6 +52,10 @@ export class DownloadSubmission {
 			});
 			return null;
 		}
+		const savePath = join(
+			absoluteDownloadPath(item.destination.path),
+			item.directory,
+		);
 		if (!task) {
 			const snapshot = await client.tasks(this.context.signal);
 			if (
@@ -93,7 +100,7 @@ export class DownloadSubmission {
 				await client.add(
 					{
 						source: source.source,
-						savePath: posix.join(item.destination.path, item.directory),
+						savePath,
 						ownerKey: item.id,
 					},
 					this.context.signal,
@@ -127,10 +134,7 @@ export class DownloadSubmission {
 			});
 			return null;
 		}
-		if (
-			absoluteDownloadPath(task.savePath) !==
-			posix.join(item.destination.path, item.directory)
-		)
+		if (!sameDownloadPath(task.savePath, savePath))
 			throw new DownloadError("task_path_changed");
 		item = execution.save({
 			...item,

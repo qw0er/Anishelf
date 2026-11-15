@@ -125,11 +125,10 @@ test("tool metadata shares concurrent requests and refreshes on explicit reload"
 				throw new Error(`Unexpected tool arguments: ${args.join(" ")}`);
 			return help[topic as keyof typeof help];
 		});
-	const tools = await MediaTools.create({
+	const tools = MediaTools.create({
 		ffmpegPath: "/test/ffmpeg",
 		ffprobePath: "/test/ffprobe",
 	});
-	run.mockClear();
 	const profiles = [
 		{
 			id: "custom:runtime",
@@ -144,7 +143,8 @@ test("tool metadata shares concurrent requests and refreshes on explicit reload"
 	]);
 	expect(a.profiles[0]?.video.codec).toBe("h264");
 	expect(b.profiles[0]?.audio.codec).toBe("aac");
-	const topics = () => run.mock.calls.map(([, args]) => args[2]).sort();
+	const topics = () =>
+		run.mock.calls.flatMap(([, args]) => args[2] ?? []).sort();
 	expect(topics()).toEqual(Object.keys(help).sort());
 	expect(detect).toHaveBeenCalledTimes(1);
 	await tools.validateProfiles(profiles);

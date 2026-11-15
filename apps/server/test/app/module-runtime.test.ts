@@ -2,9 +2,8 @@ import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../src/app/bootstrap/database.js";
-import { initializeMediaTools } from "../../src/app/bootstrap/media-tools.js";
 import { createAnimeModule } from "../../src/modules/anime/create.js";
 import { createMediaModule } from "../../src/modules/media/create.js";
 import { mediaProcessingPolicy } from "../../src/modules/media/preparation/execution/policy.js";
@@ -13,6 +12,7 @@ import { createResourcesModule } from "../../src/modules/resources/create.js";
 import { libraryPolicy } from "../../src/modules/resources/library/policy.js";
 import { resourceRootId } from "../../src/modules/resources/resource-access/domain/identity.js";
 import { createSystemModule } from "../../src/modules/system/create.js";
+import { MediaTools } from "../../src/platform/media/index.js";
 
 test("large modules expose capability objects and quiesce without destroying shared sources", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-module-runtime-"));
@@ -24,11 +24,13 @@ test("large modules expose capability objects and quiesce without destroying sha
 		ANISHELF_INITIAL_RESOURCE_ROOTS: root,
 	});
 	const database = ApplicationDatabase.open(system.api.deployment.dataDir);
-	const tools = await initializeMediaTools(
+	const tools = MediaTools.create(
 		system.api.deployment.mediaTools,
-		logger,
+		undefined,
 		system.api.environment.executableSearch,
+		logger,
 	);
+	const detect = vi.spyOn(tools, "toolStatus");
 	await expect(
 		createResourcesModule({
 			system: system.api,
@@ -72,6 +74,7 @@ test("large modules expose capability objects and quiesce without destroying sha
 		logger,
 	});
 	try {
+		expect(detect).not.toHaveBeenCalled();
 		expect(Object.getPrototypeOf(system.api)).toBe(Object.prototype);
 		expect(system.api.snapshot).not.toHaveProperty("policy");
 		expect(Object.getPrototypeOf(resources.api.sources)).toBe(Object.prototype);

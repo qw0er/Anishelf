@@ -1,7 +1,7 @@
 import { constants, readFileSync } from "node:fs";
 import { access, mkdir, stat } from "node:fs/promises";
 import { isIP } from "node:net";
-import { isAbsolute, join } from "node:path";
+import { delimiter, join } from "node:path";
 import ipaddr from "ipaddr.js";
 import { userDataDir, userLogDir } from "platformdirs";
 import {
@@ -12,6 +12,7 @@ import type {
 	LoggingConfig,
 	LogLevel,
 } from "../../../../platform/logging/config.js";
+import { isFullyQualifiedPath } from "../../../../platform/paths.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { DeploymentConfig } from "../domain/model.js";
@@ -24,7 +25,11 @@ function invalid(message: string, cause?: unknown): never {
 }
 
 function absolutePath(value: string, name: string): string {
-	if (value.trim() === "" || value.includes("\0") || !isAbsolute(value)) {
+	if (
+		value.trim() === "" ||
+		value.includes("\0") ||
+		!isFullyQualifiedPath(value)
+	) {
 		invalid(`${name} must be an absolute filesystem path.`);
 	}
 	return value;
@@ -73,10 +78,10 @@ function allowedHosts(value: string): string[] {
 function initialRoots(env: Environment): string[] | undefined {
 	const value = env.ANISHELF_INITIAL_RESOURCE_ROOTS;
 	if (value === undefined) return undefined;
-	const paths = value.split(":").map((path) => path.trim());
+	const paths = value.split(delimiter).map((path) => path.trim());
 	if (paths.length > 64)
 		invalid(
-			"ANISHELF_INITIAL_RESOURCE_ROOTS must contain at most 64 colon-separated absolute paths.",
+			`ANISHELF_INITIAL_RESOURCE_ROOTS must contain at most 64 absolute paths separated by "${delimiter}".`,
 		);
 	return paths.map((path) =>
 		absolutePath(path, "ANISHELF_INITIAL_RESOURCE_ROOTS"),

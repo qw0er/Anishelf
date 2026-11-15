@@ -25,12 +25,15 @@ import { LibraryIndex } from "../../../../src/modules/resources/library/infrastr
 import { libraryRuntimePolicy } from "../../../../src/modules/resources/library/policy.js";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import type { SourceIdentity } from "../../../../src/modules/resources/resource-access/public.js";
+import { fixtureIdentificationPath } from "../../../support/anime-parsing-corpus.js";
 import { createHttpApp } from "../../../support/http.js";
 import { createLibraryModule } from "../../../support/library.js";
 import { updateResourceSettings } from "../../../support/settings.js";
 import { settingsStore } from "../../../support/settings-store.js";
 
 const parser = new AnitomyIdentificationParser();
+const extract = (path: string) =>
+	parser.extract([fixtureIdentificationPath(path)])[0];
 const logger = pino({ enabled: false });
 const work: WorkCandidate = {
 	snapshotId: "snapshot-1",
@@ -180,7 +183,7 @@ test("multiple parser episode tokens require review and movies remain proposals"
 		"Show - 01-999.mkv",
 	];
 	for (const name of names) {
-		const evidence = parser.extract([name])[0];
+		const evidence = extract(name);
 		if (!evidence) throw new Error("Missing extraction");
 		expect(proposeMapping(evidence, work).targets, name).toEqual([]);
 		expect(
@@ -188,8 +191,8 @@ test("multiple parser episode tokens require review and movies remain proposals"
 			name,
 		).toBeGreaterThan(0);
 	}
-	const range = parser.extract(["Frieren - 01-03.mkv"])[0];
-	const film = parser.extract(["Your Name.mkv"])[0];
+	const range = extract("Frieren - 01-03.mkv");
+	const film = extract("Your Name.mkv");
 	if (!range || !film) throw new Error("Missing extraction");
 	expect(
 		proposeMapping(range, work).targets.map((target) => target.number),
@@ -295,7 +298,8 @@ test("identification rejects duplicate or nonconfined inputs and oversized batch
 		"../escape.mkv",
 		"/absolute.mkv",
 		"dir/./file.mkv",
-		"dir\\file.mkv",
+		"dir/../other.mkv",
+		"dir\\..\\other.mkv",
 	])
 		await expect(engine.identify([source(path)])).rejects.toMatchObject({
 			code: "INVALID_REQUEST",
@@ -306,6 +310,24 @@ test("identification rejects duplicate or nonconfined inputs and oversized batch
 		),
 	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
 	expect(await engine.identify([])).toEqual([]);
+});
+
+test("native paths supply filenames, ancestors and folder context for identification", async () => {
+	const relativePath = join("Frieren (01-12) [Batch]", "05.mkv");
+	const [result] = await new IdentificationApplication({ parser }).identify([
+		source(relativePath),
+	]);
+	expect(result?.source.relativePath).toBe(relativePath);
+	expect(result?.evidence.inputs).toEqual(
+		expect.arrayContaining([
+			expect.objectContaining({ mode: "basename", input: "05.mkv" }),
+			expect.objectContaining({
+				mode: "ancestor",
+				input: "Frieren (01-12) [Batch]",
+			}),
+		]),
+	);
+	expect(result?.evidence.selectedEpisodes).toEqual(["05"]);
 });
 
 test("completed scans trigger automatic identification and unchanged scans reuse results", async () => {

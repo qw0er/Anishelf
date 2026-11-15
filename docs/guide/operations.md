@@ -44,7 +44,7 @@ templates for container wiring.
 | `ANISHELF_WEB_TRUSTED_PROXIES` | `127.0.0.1/32 ::1/128` | Advanced automatic/multi-origin HTTPS or original client IP: Web external proxy IPs/CIDRs, space-separated; use the source address seen by Web |
 | `ANISHELF_TRUSTED_PROXIES` | `loopback` | Trusted proxy IPs/CIDRs; packaged containers also trust `uniquelocal` |
 | `ANISHELF_DATA_DIR` | OS user data directory; `/var/lib/anishelf` for a Linux systemd system service in `system.slice` | Persistent app state |
-| `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | Up to 64 colon-separated media paths; initializes missing settings only |
+| `ANISHELF_INITIAL_RESOURCE_ROOTS` | Unset | Up to 64 media paths separated by the host path delimiter. Initializes missing settings only. |
 | `ANISHELF_QBITTORRENT_API_URL` | Unset | API form hint; does not save credentials or connect |
 | `ANISHELF_INITIAL_QBITTORRENT_WEBUI_URL` | Unset | Browser WebUI link for missing settings only |
 | `ANISHELF_BUNDLED_QBITTORRENT_CONNECTION_FILE` | Unset | Initial deployment credentials; manual connection/disconnect takes precedence |
@@ -82,9 +82,11 @@ Container mounts and Settings must refer to the same files.
 | Remove a root | Hide its resources; preserve associations/history and original files |
 | Files missing after mount/network changes | Check access and run a manual scan to reconcile |
 
-Startup `ANISHELF_INITIAL_RESOURCE_ROOTS=/media/anime:/media/movies` only seeds
-missing settings. Use Settings for later edits; direct settings-file edits require
-restart. Network filesystems need deployment-specific watcher checks. See
+Startup `ANISHELF_INITIAL_RESOURCE_ROOTS` only seeds missing settings. Separate
+paths with a colon on Linux and macOS (`/media/anime:/media/movies`) or a
+semicolon on Windows (`C:\Anime;D:\Movies`). Use Settings for later edits.
+Direct settings-file edits require a restart. Network filesystems need
+deployment-specific watcher checks. See
 [monitoring architecture](../development/architecture.md#resource-directory-isolation).
 
 ## Preparation profiles

@@ -2,10 +2,10 @@ import { join } from "node:path";
 import { createSystemModule } from "../../modules/system/create.js";
 import type { Environment } from "../../platform/environment.js";
 import { ApplicationLogging } from "../../platform/logging/index.js";
+import { MediaTools } from "../../platform/media/index.js";
 import { DomainError } from "../../shared/errors.js";
 import { openDatabase } from "./database.js";
 import type { createHttpApp } from "./http.js";
-import { initializeMediaTools } from "./media-tools.js";
 import { createServer } from "./server.js";
 
 type HttpApp = ReturnType<typeof createHttpApp>;
@@ -54,10 +54,11 @@ export async function startBackend({
 			},
 			"Application starting.",
 		);
-		const tools = await initializeMediaTools(
+		const tools = MediaTools.create(
 			config.mediaTools,
-			logger,
+			undefined,
 			configuration.environment.executableSearch,
+			logger,
 		);
 		const database = openDatabase(config.dataDir, logger);
 		app = await createServer(configuration, logger, database, tools, {

@@ -1,6 +1,7 @@
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
+import { PreparedMediaFiles } from "../../../../src/modules/media/artifacts/files.js";
 import { preparationPolicy } from "../../../../src/modules/media/preparation/policy.js";
 import { DomainError } from "../../../../src/shared/errors.js";
 
@@ -16,6 +17,18 @@ import {
 } from "./support/preparation-fixture.js";
 
 setupTestLifecycle();
+
+test("publication moves the validated output into the prepared cache", async () => {
+	const f = await fixture();
+	const files = new PreparedMediaFiles(f.dataDir);
+	await files.initialize([]);
+	const output = join(f.dataDir, "validated-output");
+	await writeFile(output, "video", { flush: true });
+	const id = "a".repeat(64);
+	await files.publish(id, output, 5);
+	await expect(readFile(output)).rejects.toMatchObject({ code: "ENOENT" });
+	expect(await readFile(files.path(id), "utf8")).toBe("video");
+});
 
 test("restart marks interrupted jobs retryable and cleans incomplete output", async () => {
 	let blocked = true;

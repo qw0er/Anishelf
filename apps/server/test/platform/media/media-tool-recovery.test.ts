@@ -37,11 +37,11 @@ afterEach(async () => {
 	await rm(fixture, { recursive: true, force: true });
 });
 
-test("recovers probing after startup detection failure without restarting", async () => {
+test("recovers probing after initial detection failure without restarting", async () => {
 	const logs: string[] = [];
 	const logger = pino({}, { write: (line) => logs.push(line) });
-	const tools = await MediaTools.create(config, undefined, undefined, logger);
-	expect(tools.status.ffprobe.available).toBe(false);
+	const tools = MediaTools.create(config, undefined, undefined, logger);
+	expect((await tools.toolStatus("ffprobe")).available).toBe(false);
 	expect(logs.map((line) => JSON.parse(line))).toContainEqual(
 		expect.objectContaining({
 			event: "media.tool_detection_failed",
@@ -58,15 +58,16 @@ test("recovers probing after startup detection failure without restarting", asyn
 	await expect(tools.probe(path)).resolves.toMatchObject({
 		format: "matroska",
 	});
-	expect(tools.status.ffprobe.available).toBe(true);
+	expect((await tools.toolStatus("ffprobe")).available).toBe(true);
 	expect(logs.map((line) => JSON.parse(line))).toContainEqual(
 		expect.objectContaining({ event: "media.tool_recovered", tool: "ffprobe" }),
 	);
 });
 
 test("coalesces concurrent retries and applies a cooldown after each failure", async () => {
-	const tools = await MediaTools.create(config);
+	const tools = MediaTools.create(config);
 	const run = vi.mocked(processTools.runTool);
+	await tools.toolStatus("ffprobe");
 	run.mockClear();
 	await Promise.all(
 		Array.from({ length: 10 }, () => tools.toolStatus("ffprobe")),
@@ -101,7 +102,7 @@ test("rebuilds cached capabilities after recovery and shares the new enumeration
 			result.tools.ffprobe.available = tools.ffprobe.available;
 			return result;
 		});
-	const tools = await MediaTools.create(config);
+	const tools = MediaTools.create(config);
 	expect((await tools.capabilities()).tools.ffmpeg.available).toBe(false);
 	await tools.capabilities();
 	expect(detect).toHaveBeenCalledTimes(1);
@@ -122,9 +123,7 @@ test("keeps an invalid explicit path unavailable instead of falling back to PATH
 	const resolve = vi
 		.mocked(processTools.resolveExecutable)
 		.mockRejectedValue(new Error("Not executable"));
-	const tools = await MediaTools.create(config);
-	resolve.mockClear();
-	now += mediaToolPolicy.detectionRetryIntervalMs;
+	const tools = MediaTools.create(config);
 	await expect(tools.probe(join(fixture, "video.mkv"))).rejects.toMatchObject({
 		code: "TOOL_UNAVAILABLE",
 	});

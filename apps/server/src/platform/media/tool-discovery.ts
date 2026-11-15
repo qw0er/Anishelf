@@ -10,7 +10,7 @@ type Tool = "ffmpeg" | "ffprobe";
 
 /** Successful discovery is stable; failed discovery can recover on demand. */
 export class MediaToolDiscovery {
-	readonly status: Record<Tool, ToolStatus> = {
+	private readonly status: Record<Tool, ToolStatus> = {
 		ffmpeg: { available: false, message: "FFmpeg has not been detected." },
 		ffprobe: { available: false, message: "FFprobe has not been detected." },
 	};
@@ -60,15 +60,16 @@ export class MediaToolDiscovery {
 			if (!version.startsWith(`${tool} version `))
 				throw new Error("Unexpected executable version output");
 			status = { available: true, path, version };
-			if (retry)
-				this.logger?.info(
-					{
-						event: "media.tool_recovered",
-						tool,
-						durationMs: Date.now() - started,
-					},
-					"Media tool detection recovered.",
-				);
+			this.logger?.info(
+				{
+					event: retry ? "media.tool_recovered" : "media.tool_ready",
+					tool,
+					path,
+					version,
+					durationMs: Date.now() - started,
+				},
+				"Media tool detected.",
+			);
 		} catch (err) {
 			this.retryAt.set(tool, Date.now() + this.policy.detectionRetryIntervalMs);
 			this.logger?.warn(

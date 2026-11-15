@@ -121,13 +121,17 @@ test("encoder-specific settings compile without accepting raw graphs or mismatch
 });
 
 test("real two-audio FFmpeg completes all four processing branches, preserves tracks/copied packets and rejects limits/cancellation", async (context) => {
-	const tools = await MediaTools.create();
-	if (!tools.status.ffmpeg.available || !tools.status.ffprobe.available) {
+	const tools = MediaTools.create();
+	const [ffmpegStatus, ffprobeStatus] = await Promise.all([
+		tools.toolStatus("ffmpeg"),
+		tools.toolStatus("ffprobe"),
+	]);
+	if (!ffmpegStatus.available || !ffprobeStatus.available) {
 		context.skip();
 		return;
 	}
-	const ffmpeg = tools.status.ffmpeg.path;
-	const ffprobe = tools.status.ffprobe.path;
+	const ffmpeg = ffmpegStatus.path;
+	const ffprobe = ffprobeStatus.path;
 	const root = await mkdtemp(join(tmpdir(), "anishelf-real-execution-"));
 	const sourcePath = join(root, "短样本 $(literal).mkv");
 	let library: ReturnType<typeof createLibraryModule> | undefined;

@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { pathContains } from "../../../../platform/paths.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { Subscription } from "../../subscriptions/public.js";
 import type { TorrentClient } from "../../torrent-clients/public.js";
 import { type DownloadDestination, DownloadError } from "../domain/model.js";
-import { absoluteDownloadPath, inside } from "../domain/paths.js";
 import type { DownloadApplicationContext } from "./context.js";
 import { conflict } from "./context.js";
+import { absoluteDownloadPath } from "./destination-paths.js";
 
 export class DownloadDestinationSettings {
 	constructor(private readonly context: DownloadApplicationContext) {}
@@ -167,18 +168,15 @@ export class DownloadDestinationSettings {
 		probe: Awaited<ReturnType<TorrentClient["probe"]>>,
 		destination: DownloadDestination,
 	) {
-		if (
-			!probe.incompleteDirectory ||
-			inside(
-				absoluteDownloadPath(probe.incompleteDirectory),
-				destination.path,
-			) ||
-			inside(destination.path, absoluteDownloadPath(probe.incompleteDirectory))
-		)
+		if (!probe.incompleteDirectory)
+			throw new DownloadError("incomplete_directory_required");
+		const incomplete = absoluteDownloadPath(probe.incompleteDirectory);
+		const target = absoluteDownloadPath(destination.path);
+		if (pathContains(target, incomplete) || pathContains(incomplete, target))
 			throw new DownloadError("incomplete_directory_required");
 		await this.context.options.resources.validate(
 			destination.scopeId,
-			probe.incompleteDirectory,
+			incomplete,
 		);
 	}
 }

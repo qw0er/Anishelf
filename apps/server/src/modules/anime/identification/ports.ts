@@ -8,7 +8,12 @@ export interface IdentificationMetadata {
 		options?: { refresh?: boolean },
 	): Promise<WorkCandidate[]>;
 }
+export interface IdentificationSourcePath {
+	relativePath: string;
+	filename: string;
+	ancestors: string[];
+}
 export interface IdentificationParser {
 	readonly version: string;
-	extract(paths: string[]): ExtractionEvidence[];
+	extract(paths: readonly IdentificationSourcePath[]): ExtractionEvidence[];
 }

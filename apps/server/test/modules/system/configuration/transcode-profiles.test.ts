@@ -208,7 +208,7 @@ test("external profile, preset and settings edits apply only to a new startup sn
 
 test("detected unsupported profiles cannot be selected; unverified profiles remain selectable", async () => {
 	const service = await load();
-	await service.configureTranscodeValidation(async (profiles) => ({
+	service.configureTranscodeValidation(async (profiles) => ({
 		profiles: structuredClone(
 			profiles,
 		) as typeof service.transcodeProfiles extends readonly (infer T)[]

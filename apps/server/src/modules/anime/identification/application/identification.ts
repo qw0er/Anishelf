@@ -1,4 +1,3 @@
-import { posix } from "node:path";
 import { DomainError } from "../../../../shared/errors.js";
 import type { SourceIdentity } from "../../../resources/public.js";
 import { identificationDefaults as policy } from "../defaults.js";
@@ -11,8 +10,13 @@ import type {
 } from "../domain/model.js";
 import { applyNumberingContext } from "../domain/numbering-context.js";
 import { identificationSearchQueries } from "../domain/search-queries.js";
-import type { IdentificationMetadata, IdentificationParser } from "../ports.js";
+import type {
+	IdentificationMetadata,
+	IdentificationParser,
+	IdentificationSourcePath,
+} from "../ports.js";
 import type { IdentificationApi } from "../public.js";
+import { identificationSourcePath } from "./source-path.js";
 
 /** Stateless recognition: no HTTP, filesystem access, jobs or durable decisions. */
 export class IdentificationApplication implements IdentificationApi {
@@ -38,19 +42,13 @@ export class IdentificationApplication implements IdentificationApi {
 			);
 		const identities = sources.map((source) => ({ ...source }));
 		const seen = new Set<string>();
-		const groups = new Map<string, SourceIdentity[]>();
+		const groups = new Map<
+			string,
+			{ source: SourceIdentity; path: IdentificationSourcePath }[]
+		>();
 		for (const source of identities) {
-			if (
-				!source.fileId ||
-				!source.sourceVersion ||
-				!source.relativePath ||
-				source.relativePath.includes("\0") ||
-				source.relativePath.includes("\\") ||
-				posix.isAbsolute(source.relativePath) ||
-				source.relativePath
-					.split("/")
-					.some((part) => part === ".." || part === "." || part === "")
-			)
+			const path = identificationSourcePath(source.relativePath);
+			if (!source.fileId || !source.sourceVersion || !path)
 				throw new DomainError(
 					"INVALID_REQUEST",
 					"Supply validated root-relative source identities.",
@@ -62,17 +60,16 @@ export class IdentificationApplication implements IdentificationApi {
 					"Duplicate source identity in identification batch.",
 				);
 			seen.add(key);
-			const directory = JSON.stringify([
-				source.scopeId,
-				posix.dirname(source.relativePath),
-			]);
+			const directory = JSON.stringify([source.scopeId, path.ancestors]);
 			const group = groups.get(directory) ?? [];
-			group.push(source);
+			group.push({ source, path });
 			groups.set(directory, group);
 		}
 		const extractions = new Map<SourceIdentity, ExtractionEvidence>();
 		for (const group of groups.values()) {
-			group.sort((a, b) => a.relativePath.localeCompare(b.relativePath, "en"));
+			group.sort((a, b) =>
+				a.source.relativePath.localeCompare(b.source.relativePath, "en"),
+			);
 			for (
 				let offset = 0;
 				offset < group.length;
@@ -81,11 +78,11 @@ export class IdentificationApplication implements IdentificationApi {
 				signal.throwIfAborted();
 				const chunk = group.slice(offset, offset + policy.parserGroupSize);
 				const evidence = this.options.parser.extract(
-					chunk.map((source) => source.relativePath),
+					chunk.map(({ path }) => path),
 				);
 				if (evidence.length !== chunk.length)
 					throw new Error("Parser returned an incomplete batch.");
-				for (const [index, source] of chunk.entries()) {
+				for (const [index, { source }] of chunk.entries()) {
 					const extracted = evidence[index];
 					if (!extracted) throw new Error("Parser omitted a source.");
 					extractions.set(source, extracted);

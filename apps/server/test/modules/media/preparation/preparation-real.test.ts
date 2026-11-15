@@ -41,12 +41,16 @@ function required<T>(value: T | null | undefined): T {
 	return value;
 }
 test("real prepared media supports HTTP seeking, playback selection and restart reuse", async (context) => {
-	const tools = await MediaTools.create();
-	if (!tools.status.ffmpeg.available || !tools.status.ffprobe.available) {
+	const tools = MediaTools.create();
+	const [ffmpegStatus, ffprobeStatus] = await Promise.all([
+		tools.toolStatus("ffmpeg"),
+		tools.toolStatus("ffprobe"),
+	]);
+	if (!ffmpegStatus.available || !ffprobeStatus.available) {
 		context.skip();
 		return;
 	}
-	const ffmpeg = tools.status.ffmpeg.path;
+	const ffmpeg = ffmpegStatus.path;
 	const root = await mkdtemp(join(tmpdir(), "anishelf-preparation-real-"));
 	const dataDir = join(root, "data");
 	const media = join(root, "media");

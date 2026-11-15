@@ -25,7 +25,7 @@ export interface SystemApi extends SettingsStore {
 	configureTranscodeValidation?(
 		validator: import("./configuration/profile.js").TranscodeProfileValidator,
 		logger?: import("pino").Logger,
-	): Promise<void>;
+	): void;
 	refreshTranscodeValidation?(): Promise<void>;
 
 	onSettingsChanged?(listener: () => void): () => void;

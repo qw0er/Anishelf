@@ -1,5 +1,7 @@
 import { mkdirSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { inspect } from "node:util";
 import { app, dialog } from "electron";
 import { userDataDir } from "platformdirs";
 import { DesktopApplication } from "./application.js";
@@ -81,17 +83,37 @@ function startApplication() {
 		console.error("desktop.start_failed", { error });
 		exitCode = 1;
 		desktop?.dispose();
+		const failedBackend = backend;
 		await stopLocalBackend().catch((shutdownError: unknown) => {
 			console.error("desktop.backend_shutdown_failed", {
 				error: shutdownError,
 			});
 		});
 		if (quitting) return;
+		const logDirectory = join(profileDir, "logs");
+		const logPath = join(logDirectory, "desktop-failure.log");
+		let detail: string | undefined;
+		try {
+			await mkdir(logDirectory, { recursive: true, mode: 0o700 });
+			await writeFile(
+				logPath,
+				`${new Date().toISOString()} desktop.start_failed
+${inspect(error)}
+${failedBackend?.diagnostics ?? ""}`,
+				{ mode: 0o600 },
+			);
+			detail = `Diagnostic log
+${logPath}`;
+		} catch (error) {
+			console.warn("desktop.diagnostic_log_failed", { error });
+		}
+		if (quitting) return;
 		const { response } = await dialog
 			.showMessageBox({
 				type: "error",
 				title: "Anishelf",
 				message: "Anishelf could not start or its local backend stopped.",
+				...(detail ? { detail } : {}),
 				buttons: ["Restart Anishelf", "Quit"],
 				cancelId: 1,
 			})

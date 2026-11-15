@@ -39,9 +39,7 @@ export class CompletedDownloadIngestion {
 		const video = videos[0];
 		if (!video) return;
 		for (const file of files) relativeDownloadPath(file.path);
-		const path = relativeDownloadPath(
-			posix.join(item.directory, relativeDownloadPath(video.path)),
-		);
+		const path = relativeDownloadPath(posix.join(item.directory, video.path));
 		if (item.ingestion !== "available")
 			this.context.options.logger.info(
 				{

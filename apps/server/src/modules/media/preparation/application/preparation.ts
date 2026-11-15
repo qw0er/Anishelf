@@ -94,13 +94,18 @@ export class PreparationApplication implements PreparationApi {
 			return Promise.reject(
 				new DomainError("PREPARATION_UNAVAILABLE", "Preparation is closed."),
 			);
-		this.initialization ??= Promise.resolve().then(async () => {
-			const system = this.options.services;
-			system.context.closed = this.closed;
-			this.system = system;
-			await system.recover();
-			this.cleanup.start();
-		});
+		this.initialization ??= Promise.resolve()
+			.then(async () => {
+				const system = this.options.services;
+				system.context.closed = this.closed;
+				this.system = system;
+				await system.recover();
+				if (!this.closed) this.cleanup.start();
+			})
+			.catch((error) => {
+				this.initialization = undefined;
+				throw error;
+			});
 		return this.initialization;
 	}
 	private async ensure() {

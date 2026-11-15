@@ -38,7 +38,7 @@ export function createPreparationApplication(options: {
 			options.repository,
 			options.sources,
 			options.processing,
-			createArtifactFiles(options.dataDir),
+			createArtifactFiles(options.dataDir, options.logger),
 			options.profiles,
 			policy,
 			options.logger,
@@ -81,7 +81,7 @@ export async function initializePreparationModule(
 		logger.warn(
 			{
 				event: "preparation.unavailable",
-				errorName: error instanceof Error ? error.name : "unknown",
+				err: error,
 			},
 			"Media preparation is unavailable.",
 		);

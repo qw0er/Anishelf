@@ -1,18 +1,14 @@
-import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import {
-	access,
-	link,
-	readFile,
-	rename,
-	rm,
-	stat,
-	writeFile,
-} from "node:fs/promises";
-import { isAbsolute, join, relative, sep } from "node:path";
+import { access, readFile, stat } from "node:fs/promises";
+import { join } from "node:path";
 import { TranscodeProfileIdSchema } from "@anishelf/contracts/schemas/transcode-profiles";
 import { Check } from "typebox/value";
 import { canonicalPath } from "../../../../platform/canonical-path.js";
+import {
+	isFullyQualifiedPath,
+	pathContains,
+} from "../../../../platform/paths.js";
+import { writeStateFile } from "../../../../platform/state-file.js";
 import { storageRules } from "../../../../platform/storage.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PersistentSettings } from "../domain/model.js";
@@ -119,7 +115,7 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 				typeof root !== "string" ||
 				root.trim() === "" ||
 				root.includes("\0") ||
-				!isAbsolute(root),
+				!isFullyQualifiedPath(root),
 		)
 	) {
 		throw new DomainError(
@@ -153,14 +149,6 @@ function validatePersistentSettings(value: unknown): PersistentSettings {
 				}),
 		...profile,
 	};
-}
-
-function contains(parent: string, child: string): boolean {
-	const path = relative(parent, child);
-	return (
-		path === "" ||
-		(path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path))
-	);
 }
 
 /** Existing settings win; missing settings may be initialized before setup mode. */
@@ -230,7 +218,7 @@ async function checkDirectorySeparation(
 		canonicalPath(dataDir),
 		canonicalPath(resourceRoots),
 	]);
-	if (contains(data, root) || contains(root, data)) {
+	if (pathContains(data, root) || pathContains(root, data)) {
 		throw new DomainError(
 			"CONFIG_INVALID",
 			"dataDir and resourceRoots must be separate directories; neither may contain the other.",
@@ -247,8 +235,8 @@ async function validateResourceDirectories(
 		await checkDirectorySeparation(dataDir, roots[index] as string);
 		for (let other = 0; other < index; other++) {
 			if (
-				contains(canonical[index] as string, canonical[other] as string) ||
-				contains(canonical[other] as string, canonical[index] as string)
+				pathContains(canonical[index] as string, canonical[other] as string) ||
+				pathContains(canonical[other] as string, canonical[index] as string)
 			)
 				throw new DomainError(
 					"CONFIG_INVALID",
@@ -319,29 +307,19 @@ async function writePersistentSettings(
 	createOnly = false,
 ): Promise<boolean> {
 	const target = join(dataDir, storageRules.settingsFile);
-	const temporary = join(dataDir, `.settings-${randomUUID()}.tmp`);
 	try {
-		await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
-			flag: "wx",
-			mode: storageRules.fileMode,
-		});
-		if (createOnly) {
-			// Publish a complete file atomically without replacing existing settings.
-			await link(temporary, target);
-		} else {
-			await rename(temporary, target);
-		}
-		return true;
+		return await writeStateFile(
+			target,
+			`${JSON.stringify(settings, null, 2)}\n`,
+			{
+				createOnly,
+			},
+		);
 	} catch (cause) {
-		if (createOnly && (cause as NodeJS.ErrnoException).code === "EEXIST")
-			return false;
 		throw new DomainError(
 			"CONFIG_WRITE_FAILED",
 			"Cannot save persistent settings. Check the data directory and permissions.",
 			{ cause },
 		);
-	} finally {
-		// Best-effort cleanup must not hide the original write error.
-		await rm(temporary, { force: true }).catch(() => {});
 	}
 }

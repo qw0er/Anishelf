@@ -184,7 +184,7 @@ test("isolates standalone cases and retains explicit sibling batches", () => {
 			},
 		],
 	};
-	const extract = vi.fn((paths: string[]) => parser.extract(paths));
+	const extract = vi.fn(parser.extract.bind(parser));
 	evaluateParsingCorpus(input, { version: parser.version, extract });
 	expect(extract.mock.calls.map(([paths]) => paths.length)).toEqual([1, 2]);
 });

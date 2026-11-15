@@ -71,6 +71,10 @@ export interface ResourceRootSelection {
 	issue: RootIssue | null;
 }
 export interface ResourceRootAccess extends ResourceFiles {
+	inspectVideoFileWithPath(relativePath: string): Promise<{
+		relativePath: string;
+		metadata: ResourceSourceMetadata;
+	}>;
 	filePath(relativePath: string): Promise<string>;
 }
 export interface ResourceRootsApi {

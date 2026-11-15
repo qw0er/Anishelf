@@ -29,7 +29,6 @@ export function registerTranscodeProfileRoutes(
 			},
 		},
 		async (request) => {
-			await configuration.refreshTranscodeValidation?.();
 			await configuration.selectTranscodeProfile(request.body.profileId);
 			return transcodeProfileCatalog(configuration);
 		},

@@ -32,8 +32,11 @@ test("credentials initialize once, privately and without storing the password", 
 		await verifyPassword(winner?.initialPassword ?? "", results[0].credential),
 	).toBe(true);
 	expect(results[0].credential).toEqual(results[1].credential);
-	expect((await stat(join(path, "auth.json"))).mode & 0o777).toBe(0o600);
-	expect((await stat(path)).mode & 0o777).toBe(0o700);
+	expect(results[0].secret).toBe(results[1].secret);
+	if (process.platform !== "win32") {
+		expect((await stat(join(path, "auth.json"))).mode & 0o777).toBe(0o600);
+		expect((await stat(path)).mode & 0o777).toBe(0o700);
+	}
 	expect(await readFile(join(path, "auth.json"), "utf8")).not.toContain(
 		winner?.initialPassword,
 	);

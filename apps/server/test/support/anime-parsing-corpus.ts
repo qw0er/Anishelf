@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { type Static, Type } from "typebox";
 import { Check } from "typebox/value";
+import { identificationSourcePath } from "../../src/modules/anime/identification/application/source-path.js";
 import type { ExtractionEvidence } from "../../src/modules/anime/identification/domain/model.js";
 import { AnitomyIdentificationParser } from "../../src/modules/anime/identification/infrastructure/parser.js";
 import { evidenceSchema } from "./anime-identification-evidence.js";
@@ -168,6 +169,12 @@ export function summarizeParsingCorpus(corpus: ParsingCorpus) {
 	};
 }
 
+export function fixtureIdentificationPath(relativePath: string) {
+	const path = identificationSourcePath(relativePath);
+	if (!path) throw new Error(`Invalid fixture path: ${relativePath}`);
+	return path;
+}
+
 export function evaluateParsingCorpus(
 	corpus: ParsingCorpus,
 	parser: Pick<
@@ -199,7 +206,7 @@ export function evaluateParsingCorpus(
 	for (const entries of groups.values()) {
 		try {
 			const evidence = parser.extract(
-				entries.map((entry) => entry.relativePath),
+				entries.map((entry) => fixtureIdentificationPath(entry.relativePath)),
 			);
 			if (evidence.length !== entries.length)
 				throw new Error("Parser returned a different number of results.");

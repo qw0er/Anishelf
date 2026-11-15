@@ -20,9 +20,10 @@ import {
 const run = promisify(execFile);
 test("manual Matroska preparation preserves subtitles, fonts, chapters and dispositions", async () => {
 	const root = await mkdtemp(join(tmpdir(), "anishelf-preserve-"));
-	const tools = await MediaTools.create();
-	expect(tools.status.ffmpeg.available).toBe(true);
-	const ffmpeg = tools.status.ffmpeg.available ? tools.status.ffmpeg.path : "";
+	const tools = MediaTools.create();
+	const status = await tools.toolStatus("ffmpeg");
+	if (!status.available) throw new Error(status.message);
+	const ffmpeg = status.path;
 	try {
 		const source = join(root, "source.mkv"),
 			output = join(root, "output.mkv"),
