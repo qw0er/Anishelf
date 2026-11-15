@@ -224,9 +224,8 @@ export class DesktopApplication {
 						);
 					},
 					openExternal,
-					downloadFile: async (sender, url, filename) => {
-						downloadMedia(sender, this.server.origin, url, filename);
-					},
+					downloadFile: async (sender, url, filename) =>
+						downloadMedia(sender, this.server.origin, url, filename),
 					listExternalPlayers: () => externalPlayers.list(),
 					addExternalPlayer: (draft) => externalPlayers.add(draft),
 					removeExternalPlayer: (id) => externalPlayers.remove(id),

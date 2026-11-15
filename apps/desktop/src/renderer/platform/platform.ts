@@ -10,6 +10,11 @@ export async function createDesktopPlatform(
 	options: { canChooseDirectories?: boolean } = {},
 ): Promise<ClientPlatform> {
 	const externalPlayers = await createDesktopExternalPlayers(desktop);
+	function requestDownload(url: string, filename: string) {
+		return desktop.downloadFile(url, filename).catch(() => {
+			console.warn("platform.download_failed");
+		});
+	}
 	return {
 		...browserPlatform,
 		updates: { kind: "desktop", check: desktop.checkForUpdates },
@@ -27,9 +32,14 @@ export async function createDesktopPlatform(
 			});
 		},
 		downloadFile(url, filename) {
-			void desktop.downloadFile(url, filename).catch(() => {
-				console.warn("platform.download_failed");
-			});
+			void requestDownload(url, filename);
+		},
+		downloadText(content, filename, mediaType) {
+			const url = URL.createObjectURL(new Blob([content], { type: mediaType }));
+			// Keep the blob available until Electron attaches it to the download item.
+			void requestDownload(url, filename).finally(() =>
+				URL.revokeObjectURL(url),
+			);
 		},
 	};
 }
