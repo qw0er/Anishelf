@@ -56,11 +56,12 @@ test("starts the desktop API on a dynamic loopback port and releases it on close
 			await root.body?.cancel();
 			await access(join(dataDir, "anishelf.sqlite"));
 			await access(join(dataDir, "logs", "anishelf.log"));
-			expect(
-				stdout.mock.calls.some(([chunk]) =>
-					String(chunk).includes("Initial password:"),
-				),
-			).toBe(false);
+			const terminalLog = stdout.mock.calls
+				.map(([chunk]) => String(chunk))
+				.join("");
+			expect(terminalLog).toContain('"event":"application.started"');
+			expect(terminalLog).not.toContain("Initial password:");
+			expect(terminalLog).not.toContain(backend.deviceToken);
 		} finally {
 			await Promise.all([backend.close(), backend.close()]);
 		}
@@ -70,7 +71,8 @@ test("starts the desktop API on a dynamic loopback port and releases it on close
 			}),
 		).rejects.toMatchObject({ cause: { code: "ECONNREFUSED" } });
 		const log = await readFile(join(dataDir, "logs", "anishelf.log"), "utf8");
-		expect(log.includes(backend.deviceToken)).toBe(false);
+		expect(log).toContain('"event":"application.started"');
+		expect(log).not.toContain(backend.deviceToken);
 		const restarted = await startDesktopBackend({ dataDir });
 		try {
 			expect(restarted.deviceToken === backend.deviceToken).toBe(false);

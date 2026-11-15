@@ -19,7 +19,7 @@ export async function startDesktopBackend({
 			ANISHELF_HOST: "127.0.0.1",
 			ANISHELF_ALLOWED_HOSTS: "127.0.0.1",
 			ANISHELF_DATA_DIR: dataDir,
-			ANISHELF_LOG_DESTINATION: "file",
+			ANISHELF_LOG_DESTINATION: "both",
 			ANISHELF_LOG_PATH: join(dataDir, "logs", "anishelf.log"),
 		},
 		listenPort: 0,
