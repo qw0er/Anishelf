@@ -1,4 +1,5 @@
 import {
+	appendFile,
 	mkdir,
 	mkdtemp,
 	realpath,
@@ -8,9 +9,11 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { createResourceId } from "../../../../src/modules/resources/library/domain/model.js";
+import { FilesystemWatcher } from "../../../../src/modules/resources/library/infrastructure/filesystem-watcher.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
 import { LibraryScanner } from "../../../../src/modules/resources/library/infrastructure/scanner.js";
 import { libraryRuntimePolicy } from "../../../../src/modules/resources/library/policy.js";
@@ -19,12 +22,14 @@ import { ResourceAccess } from "../../../../src/modules/resources/resource-acces
 import { createLibraryModule } from "../../../support/library.js";
 import { updateResourceSettings } from "../../../support/settings.js";
 
+vi.setConfig({ testTimeout: 20000, expect: { poll: { timeout: 4000 } } });
+
 const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
 	for (const close of cleanup.splice(0).reverse()) await close();
 	vi.restoreAllMocks();
 });
-async function fixture() {
+async function fixture(writeStabilityMs = 100) {
 	// Match production root identity, including macOS /var -> /private/var aliases.
 	const base = await realpath(
 		await mkdtemp(join(tmpdir(), "anishelf-monitor-")),
@@ -38,7 +43,7 @@ async function fixture() {
 		library: { ...libraryRuntimePolicy.library },
 	};
 	policy.library.changeDebounceMs = 20;
-	policy.library.writeStabilityMs = 100;
+	policy.library.writeStabilityMs = writeStabilityMs;
 	policy.library.monitorRetryMs = 100;
 	let settings = { resourceRoots: [root] };
 	const library = createLibraryModule({
@@ -67,7 +72,7 @@ async function fixture() {
 	};
 }
 const fileId = (path: string, scopeId: string) =>
-	createResourceId("file", path, scopeId);
+	createResourceId("file", join(...path.split("/")), scopeId);
 
 test("native monitoring applies file changes, preserves unrelated entries, and never performs another full scan", async () => {
 	const f = await fixture();
@@ -80,7 +85,10 @@ test("native monitoring applies file changes, preserves unrelated entries, and n
 	await mkdir(join(f.root, "series/nested"), { recursive: true });
 	await writeFile(join(f.root, "series/nested/01.mkv"), "first");
 	await expect
-		.poll(() => f.index.findPath("series/nested/01.mkv", f.scopeId)?.kind)
+		.poll(
+			() =>
+				f.index.findPath(join("series", "nested", "01.mkv"), f.scopeId)?.kind,
+		)
 		.toBe("file");
 	await writeFile(join(f.root, "series/nested/01.mkv"), "updated video");
 	await expect
@@ -91,14 +99,19 @@ test("native monitoring applies file changes, preserves unrelated entries, and n
 		.toBe(13);
 	await rename(join(f.root, "series"), join(f.root, "renamed"));
 	await expect
-		.poll(() => f.index.findPath("renamed/nested/01.mkv", f.scopeId)?.kind)
+		.poll(
+			() =>
+				f.index.findPath(join("renamed", "nested", "01.mkv"), f.scopeId)?.kind,
+		)
 		.toBe("file");
 	await expect
 		.poll(() => f.index.findPath("series", f.scopeId))
 		.toBeUndefined();
 	await rm(join(f.root, "renamed"), { recursive: true });
 	await expect
-		.poll(() => f.index.findPath("renamed/nested/01.mkv", f.scopeId))
+		.poll(() =>
+			f.index.findPath(join("renamed", "nested", "01.mkv"), f.scopeId),
+		)
 		.toBeUndefined();
 	// Native watchers can repeat change events for unchanged files. Assert state
 	// preservation here; exact read scope is covered with controlled input paths.
@@ -142,6 +155,21 @@ test("events during a baseline scan are retained and applied after publication",
 	} finally {
 		release();
 	}
+});
+
+test("monitoring waits for a video written in chunks to stabilize", async () => {
+	const f = await fixture(400);
+	await f.library.startScan();
+	await f.library.waitForCompletion();
+	const path = join(f.root, "copy.mkv");
+	for (let chunk = 0; chunk < 5; chunk++) {
+		await appendFile(path, "chunk");
+		await delay(100);
+		expect(f.index.findPath("copy.mkv", f.scopeId)).toBeUndefined();
+	}
+	await expect
+		.poll(() => f.index.findPath("copy.mkv", f.scopeId))
+		.toMatchObject({ sizeBytes: 25 });
 });
 
 test("losing the root retains the snapshot, reports degradation, and reconciles after recovery", async () => {
@@ -258,3 +286,43 @@ test("multiple native monitors isolate equal paths and keep healthy roots updati
 		.poll(async () => (await f.library.getStatus()).monitor?.status)
 		.toBe("watching");
 });
+
+test.runIf(process.platform === "win32")(
+	"native monitoring can repeatedly restart while the watched directory is changing",
+	async () => {
+		const f = await fixture();
+		const onChange = vi.fn();
+		const onError = vi.fn();
+		const watcher = new FilesystemWatcher({
+			policy: { ...libraryRuntimePolicy.library, writeStabilityMs: 100 },
+			logger: pino({ enabled: false }),
+			onChange,
+			onError,
+		});
+		const path = join(f.root, "copy.mkv");
+		let writing = true;
+		const writer = (async () => {
+			while (writing) {
+				await appendFile(path, "chunk");
+				await delay(5);
+			}
+		})();
+		try {
+			for (let restart = 0; restart < 25; restart++) {
+				await watcher.start(f.root, true);
+				await delay(10);
+			}
+			writing = false;
+			await writer;
+			await writeFile(join(f.root, "after.mkv"), "complete");
+			await expect
+				.poll(() => onChange.mock.calls.flat())
+				.toContain("after.mkv");
+			expect(watcher.state.status).toBe("watching");
+			expect(onError).not.toHaveBeenCalled();
+		} finally {
+			writing = false;
+			await Promise.all([writer, watcher.close()]);
+		}
+	},
+);
