@@ -35,7 +35,11 @@ export function createLibraryModule(options: {
 			getFile: index.getFile.bind(index),
 		},
 	});
-	const monitoring = new RootMonitorManager({ policy: policy.library, logger });
+	const monitoring = new RootMonitorManager({
+		policy: policy.library,
+		logger,
+		mode: process.platform === "win32" ? "periodic" : "events",
+	});
 	const scans = new ScanRunner({
 		roots,
 		scanner: new LibraryScanner(logger.child({ module: "scanner" }), policy),

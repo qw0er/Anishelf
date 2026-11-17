@@ -41,7 +41,7 @@ export interface LibraryChange {
 	directoryIds: readonly string[] | null;
 }
 export interface MonitorState {
-	status: "starting" | "watching" | "degraded" | "disabled";
+	status: "starting" | "watching" | "polling" | "degraded" | "disabled";
 	error: string | null;
 }
 

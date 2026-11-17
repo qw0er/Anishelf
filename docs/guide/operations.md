@@ -74,7 +74,7 @@ Container mounts and Settings must refer to the same files.
 
 | Action / condition | Result |
 | --- | --- |
-| Save roots | Validate, persist and scan automatically; later changes use filesystem monitoring |
+| Save roots | Validate, persist and scan automatically |
 | Empty list | Setup mode; no scan |
 | Duplicate, nested or symlink-aliased roots | Rejected, as is overlap with app data |
 | Add a container media root | Mount it read-write for Move/Delete, then add its container path in Settings |
@@ -88,6 +88,13 @@ semicolon on Windows (`C:\Anime;D:\Movies`). Use Settings for later edits.
 Direct settings-file edits require a restart. Network filesystems need
 deployment-specific watcher checks. See
 [monitoring architecture](../development/architecture.md#resource-directory-isolation).
+
+On Windows, external file changes are discovered by a scheduled refresh every
+60 minutes. Startup scans, manual scans, and imports apply through their usual
+paths. Linux and macOS use filesystem events. On Windows, logs include
+`library.refresh_scheduled` when refresh is enabled and
+`library.refresh_degraded` or `library.refresh_recovered` when a directory's
+refresh status changes.
 
 ## Preparation profiles
 

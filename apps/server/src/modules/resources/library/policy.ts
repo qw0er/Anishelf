@@ -12,6 +12,7 @@ const defaults = {
 	writeStabilityMs: 2000,
 	monitorRetryMs: 1000,
 	monitorMaximumRetryMs: 30000,
+	periodicRefreshMs: 60 * 60 * 1000,
 	maximumPendingChanges: 10000,
 	concurrency: 8,
 	warningMessageLimit: 5,

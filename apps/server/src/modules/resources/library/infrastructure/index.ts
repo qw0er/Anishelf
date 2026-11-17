@@ -247,12 +247,11 @@ export class LibraryIndex {
 
 	/** Replace one mounted scope atomically, retaining all other roots. */
 	replaceScope(scopeId: string, entries: readonly LibraryEntry[]): string[] {
-		const root = this.findPath("", scopeId);
-		const removals = root
-			? root.id === "root"
-				? this.listChildren(root.id).map((child) => child.id)
-				: [root.id]
-			: [];
+		const retained = new Set(entries.map(({ id }) => id));
+		const removals: string[] = [];
+		for (const entry of this.current.entriesById.values())
+			if (entry.scopeId === scopeId && !retained.has(entry.id))
+				removals.push(entry.id);
 		return this.apply(entries, removals);
 	}
 

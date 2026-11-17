@@ -104,6 +104,7 @@ export const LibraryResponseSchema = Type.Object(
 					status: Type.Union([
 						Type.Literal("starting"),
 						Type.Literal("watching"),
+						Type.Literal("polling"),
 						Type.Literal("degraded"),
 						Type.Literal("disabled"),
 					]),

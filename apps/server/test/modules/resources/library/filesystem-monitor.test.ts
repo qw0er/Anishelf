@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import pino from "pino";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, expect, test as platformTest, vi } from "vitest";
 import { createResourceId } from "../../../../src/modules/resources/library/domain/model.js";
 import { FilesystemWatcher } from "../../../../src/modules/resources/library/infrastructure/filesystem-watcher.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
@@ -24,10 +24,14 @@ import { updateResourceSettings } from "../../../support/settings.js";
 
 vi.setConfig({ testTimeout: 20000, expect: { poll: { timeout: 4000 } } });
 
+const refreshMs = 10_000;
+const test = platformTest.skipIf(process.platform === "win32");
+
 const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
 	for (const close of cleanup.splice(0).reverse()) await close();
 	vi.restoreAllMocks();
+	vi.useRealTimers();
 });
 async function fixture(writeStabilityMs = 100) {
 	// Match production root identity, including macOS /var -> /private/var aliases.
@@ -42,6 +46,7 @@ async function fixture(writeStabilityMs = 100) {
 		...libraryRuntimePolicy,
 		library: { ...libraryRuntimePolicy.library },
 	};
+	policy.library.periodicRefreshMs = refreshMs;
 	policy.library.changeDebounceMs = 20;
 	policy.library.writeStabilityMs = writeStabilityMs;
 	policy.library.monitorRetryMs = 100;
@@ -287,42 +292,95 @@ test("multiple native monitors isolate equal paths and keep healthy roots updati
 		.toBe("watching");
 });
 
-test.runIf(process.platform === "win32")(
-	"native monitoring can repeatedly restart while the watched directory is changing",
+platformTest.runIf(process.platform === "win32")(
+	"scheduled refresh updates Windows roots without opening a watcher",
 	async () => {
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+		const scheduled = vi.spyOn(globalThis, "setTimeout");
+		const futureRefreshes = () =>
+			scheduled.mock.calls.filter(([, delay]) => delay === refreshMs).length;
+		const watch = vi.spyOn(FilesystemWatcher.prototype, "start");
 		const f = await fixture();
-		const onChange = vi.fn();
-		const onError = vi.fn();
-		const watcher = new FilesystemWatcher({
-			policy: { ...libraryRuntimePolicy.library, writeStabilityMs: 100 },
-			logger: pino({ enabled: false }),
-			onChange,
-			onError,
+		const other = join(f.base, "other");
+		await mkdir(other);
+		await writeFile(join(f.root, "keep.mkv"), "keep");
+		await writeFile(join(other, "remove.mkv"), "remove");
+		await updateResourceSettings(f.library, { resourceRoots: [f.root, other] });
+		await f.library.waitForCompletion();
+		const firstScope = resourceRootId(f.root);
+		const secondScope = resourceRootId(other);
+		expect(f.index.findPath("keep.mkv", firstScope)?.kind).toBe("file");
+		expect((await f.library.getStatus()).monitor?.status).toBe("polling");
+		expect(futureRefreshes()).toBe(1);
+		const refresh = async () => {
+			const schedules = futureRefreshes();
+			await vi.advanceTimersByTimeAsync(refreshMs);
+			await expect.poll(futureRefreshes).toBe(schedules + 1);
+		};
+		const revision = f.index.revision;
+		const published = vi.fn();
+		f.library.onSnapshotChanged(published);
+		await refresh();
+		expect(f.index.revision).toBe(revision);
+		expect(published).not.toHaveBeenCalled();
+
+		const away = join(f.base, "away");
+		await rename(f.root, away);
+		await rm(join(other, "remove.mkv"));
+		await writeFile(join(other, "new.mkv"), "new");
+		await refresh();
+		expect(f.index.findPath("keep.mkv", firstScope)?.kind).toBe("file");
+		expect(f.index.findPath("remove.mkv", secondScope)).toBeUndefined();
+		expect(f.index.findPath("new.mkv", secondScope)?.kind).toBe("file");
+		expect((await f.library.getStatus()).monitor?.status).toBe("degraded");
+
+		await writeFile(join(away, "recovered.mkv"), "recovered");
+		await rename(away, f.root);
+		await refresh();
+		expect(f.index.findPath("recovered.mkv", firstScope)?.kind).toBe("file");
+		expect((await f.library.getStatus()).monitor?.status).toBe("polling");
+
+		await writeFile(join(other, "manual.mkv"), "manual");
+		await f.library.startScan();
+		await f.library.waitForCompletion();
+		expect(f.index.findPath("manual.mkv", secondScope)?.kind).toBe("file");
+
+		const scans = vi.spyOn(LibraryScanner.prototype, "scan");
+		await updateResourceSettings(f.library, { resourceRoots: [other] });
+		await f.library.waitForCompletion();
+		expect(scans).toHaveBeenCalledTimes(1);
+		scans.mockClear();
+		await refresh();
+		expect(scans.mock.calls.map(([resources]) => resources.scopeId)).toEqual([
+			secondScope,
+		]);
+		await f.library.close();
+		scans.mockClear();
+		await vi.advanceTimersByTimeAsync(refreshMs * 2);
+		expect(scans).not.toHaveBeenCalled();
+		expect(watch).not.toHaveBeenCalled();
+	},
+);
+
+platformTest.runIf(process.platform === "win32")(
+	"scheduled refresh retries an unavailable initial root",
+	async () => {
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+		const f = await fixture();
+		const away = join(f.base, "away");
+		await rename(f.root, away);
+		await expect(f.library.startScan()).rejects.toMatchObject({
+			code: "RESOURCE_ROOT_UNAVAILABLE",
 		});
-		const path = join(f.root, "copy.mkv");
-		let writing = true;
-		const writer = (async () => {
-			while (writing) {
-				await appendFile(path, "chunk");
-				await delay(5);
-			}
-		})();
-		try {
-			for (let restart = 0; restart < 25; restart++) {
-				await watcher.start(f.root, true);
-				await delay(10);
-			}
-			writing = false;
-			await writer;
-			await writeFile(join(f.root, "after.mkv"), "complete");
-			await expect
-				.poll(() => onChange.mock.calls.flat())
-				.toContain("after.mkv");
-			expect(watcher.state.status).toBe("watching");
-			expect(onError).not.toHaveBeenCalled();
-		} finally {
-			writing = false;
-			await Promise.all([writer, watcher.close()]);
-		}
+		expect(f.index.scannedAt).toBeNull();
+		expect((await f.library.getStatus()).monitor?.status).toBe("degraded");
+
+		await writeFile(join(away, "recovered.mkv"), "recovered");
+		await rename(away, f.root);
+		await vi.advanceTimersByTimeAsync(refreshMs);
+		await expect
+			.poll(() => f.index.findPath("recovered.mkv", resourceRootId(f.root)))
+			.toMatchObject({ kind: "file" });
+		expect((await f.library.getStatus()).monitor?.status).toBe("polling");
 	},
 );

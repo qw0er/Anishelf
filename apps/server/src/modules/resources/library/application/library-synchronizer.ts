@@ -127,6 +127,7 @@ export class LibrarySynchronizer {
 					isBusy: () => this.isBusy,
 					apply: (root, paths) => this.applyChanges(root, paths),
 					reconcile: (root) => this.reconcile(root),
+					refresh: (roots, signal) => this.refreshRoots(roots, signal),
 				});
 				if (selection.issue)
 					throw new DomainError(selection.issue.code, selection.issue.message);
@@ -346,7 +347,7 @@ export class LibrarySynchronizer {
 			)
 				return;
 			this.options.monitoring.baselineCompleted(root.scopeId);
-			this.options.logger.info(
+			this.options.logger.debug(
 				{
 					event: "library.root_reconciled",
 					scopeId: root.scopeId,
@@ -357,6 +358,25 @@ export class LibrarySynchronizer {
 		});
 		if (!applied && !this.closed)
 			throw new DomainError("SETTINGS_BUSY", "The library is busy.");
+	}
+	private async refreshRoots(
+		roots: readonly ResourceRoot[],
+		signal: AbortSignal,
+	) {
+		if (signal.aborted || this.isBusy) return;
+		if (this.options.index.scannedAt === null) {
+			await this.startScan();
+			await this.waitForCompletion();
+			return;
+		}
+		for (const root of roots) {
+			if (signal.aborted || this.isBusy) return;
+			try {
+				await this.reconcile(root);
+			} catch (error) {
+				if (!signal.aborted) this.options.monitoring.fail(root.scopeId, error);
+			}
+		}
 	}
 	async withMutation<T>(
 		operation: (

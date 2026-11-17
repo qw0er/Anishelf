@@ -65,7 +65,10 @@ function source(relativePath: string): SourceIdentity {
 		sourceVersion: "v1",
 	};
 }
-async function fixture(paths = ["Frieren - 01.mkv"]) {
+async function fixture(
+	paths = ["Frieren - 01.mkv"],
+	periodicRefreshMs = libraryRuntimePolicy.library.periodicRefreshMs,
+) {
 	const base = await mkdtemp(join(tmpdir(), "anishelf-identification-"));
 	const requestedRoot = join(base, "media");
 	await mkdir(requestedRoot);
@@ -84,6 +87,7 @@ async function fixture(paths = ["Frieren - 01.mkv"]) {
 				...libraryRuntimePolicy.library,
 				changeDebounceMs: 20,
 				writeStabilityMs: 100,
+				periodicRefreshMs,
 			},
 		},
 	});
@@ -642,8 +646,11 @@ test("failed Metadata work is retried by a later scan without losing local evide
 	expect(search).toHaveBeenCalledTimes(2);
 });
 
-test("filesystem publications identify only affected directory contexts without enumerating the library", async () => {
-	const f = await fixture(["series/Frieren - 01.mkv", "other/Your Name.mkv"]);
+test("resource changes identify only affected directory contexts without enumerating the library", async () => {
+	const f = await fixture(
+		["series/Frieren - 01.mkv", "other/Your Name.mkv"],
+		200,
+	);
 	const engine = new IdentificationApplication({ parser });
 	const identify = vi.spyOn(engine, "identify");
 	const automatic = coordinator(f, engine);
@@ -673,7 +680,10 @@ test("filesystem publications identify only affected directory contexts without 
 }, 15000);
 
 test("unrelated directory changes queue behind active incremental recognition without cancelling it", async () => {
-	const f = await fixture(["series/Frieren - 01.mkv", "other/Your Name.mkv"]);
+	const f = await fixture(
+		["series/Frieren - 01.mkv", "other/Your Name.mkv"],
+		200,
+	);
 	const engine = new IdentificationApplication({ parser });
 	let block = false;
 	let entered = () => {};
@@ -703,9 +713,9 @@ test("unrelated directory changes queue behind active incremental recognition wi
 		await writeFile(join(f.root, "series/Frieren - 02.mkv"), "new");
 		await started;
 		const directories = vi.spyOn(f.library, "readDirectoryFiles");
-		await writeFile(join(f.root, "other/Your Name 2.mkv"), "other");
 		// Wait for the second resource publication, not merely the file write.
 		const before = (await f.library.getStatus()).revision;
+		await writeFile(join(f.root, "other/Your Name 2.mkv"), "other");
 		await expect
 			.poll(async () => (await f.library.getStatus()).revision, {
 				timeout: 6000,

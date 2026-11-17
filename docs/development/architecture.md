@@ -192,11 +192,13 @@ download handling, without buffering the complete file in JavaScript.
 ```mermaid
 flowchart LR
     Roots[Configured roots] --> Scan[Baseline scan]
-    Roots --> Watch[Native filesystem watchers]
+    Roots --> Watch[Chokidar on Linux and macOS]
+    Roots --> Refresh[Scheduled refresh on Windows]
     Watch --> Queue[Coalesce and wait for stability]
     Queue --> Patch[Path-scoped changes]
     Scan --> Gate[LibrarySynchronizer gate]
     Patch --> Gate
+    Refresh --> Gate
     Gate --> Index[Atomic index publication]
     Index --> Anime[Anime identification and Catalog]
     Index --> Cache[Media cache reconciliation]
@@ -210,6 +212,11 @@ flowchart LR
 | Root changes | Invalidate active references, retain unchanged identities, remount and scan |
 | Failure | Unavailable roots retain previous records; healthy roots can update; monitoring recovery reconciles drift |
 | Removal | Hides resources without deleting accepted Catalog decisions or playback history |
+
+On Windows, one timer waits 60 minutes between scheduled refresh rounds. It
+defers to active library work, revalidates each root through the scan path, and
+publishes changes only when the scope index changes. On Linux and macOS,
+Chokidar batches stable file events for incremental updates.
 
 Settings stores `resourceRoots` as absolute server paths, with a current limit of
 64 non-overlapping roots. Validation rejects canonical duplicates, nested roots
