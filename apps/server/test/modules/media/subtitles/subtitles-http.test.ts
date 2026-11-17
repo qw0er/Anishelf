@@ -2,6 +2,7 @@ import {
 	mkdir,
 	mkdtemp,
 	open,
+	realpath,
 	rm,
 	symlink,
 	truncate,
@@ -437,7 +438,7 @@ test("extracts styled subtitles only for the selected asset revision and stream"
 		fonts: [],
 	});
 	expect(extractAss).toHaveBeenCalledWith(
-		join(root, "season", `${video}.mkv`),
+		await realpath(join(root, "season", `${video}.mkv`)),
 		4,
 		maximumSubtitleBytes,
 		expect.any(AbortSignal),

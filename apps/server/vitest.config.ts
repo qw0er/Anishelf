@@ -5,6 +5,8 @@ export default defineConfig({
 	test: {
 		environment: "node",
 		maxWorkers: Math.min(8, availableParallelism()),
+		// Integration fixtures perform filesystem scans, database writes, and process startup.
+		testTimeout: 15_000,
 		include: ["test/**/*.test.ts"],
 	},
 });

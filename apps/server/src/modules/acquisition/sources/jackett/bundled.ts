@@ -83,7 +83,6 @@ export class BundledJackett {
 		let state = await this.store.read();
 		const native = await this.read();
 		this.shutdown.signal.throwIfAborted();
-		this.available = true;
 		const instance = createHash("sha256").update(native.APIKey).digest("hex");
 		if (!state) {
 			let authorized = false;
@@ -112,7 +111,8 @@ export class BundledJackett {
 				instance,
 				phase: authorized ? "pending" : "manual",
 			};
-			await this.update(state);
+			this.shutdown.signal.throwIfAborted();
+			await this.store.write(state);
 			this.options.logger.info(
 				{ event: "acquisition.jackett_setup_classified", phase: state.phase },
 				authorized
@@ -121,13 +121,13 @@ export class BundledJackett {
 			);
 		} else if (state.instance && state.instance !== instance) {
 			await this.update({ ...state, instance, phase: "manual" });
+			this.available = true;
 			this.options.logger.warn(
 				{ event: "acquisition.jackett_bootstrap_identity_changed" },
 				"Bundled credentials changed; select the connection explicitly and review site setup.",
 			);
 			return;
 		}
-		this.setup = state.phase === "attempted" ? "pending" : state.phase;
 		const connection = this.options.connection;
 		const indexers = connection.matchesBundled(this.url, native.APIKey)
 			? connection.settings().indexers
@@ -136,6 +136,9 @@ export class BundledJackett {
 				: [];
 		await connection.importBundled(this.value(native.APIKey, indexers));
 		this.shutdown.signal.throwIfAborted();
+		// Activation uses the generation that comes with the advertised setup state.
+		this.setup = state.phase === "attempted" ? "pending" : state.phase;
+		this.available = true;
 		if (!connection.matchesBundled(this.url, native.APIKey)) return;
 		if (state.phase === "attempted") {
 			this.options.logger.info(
@@ -144,7 +147,6 @@ export class BundledJackett {
 			);
 		}
 		if (state.phase !== "pending" && state.phase !== "attempted") return;
-		this.setup = "pending";
 		if (native.AdminPassword) {
 			await this.update({ ...state, phase: "manual" });
 			this.options.logger.warn(
@@ -286,7 +288,14 @@ export class BundledJackett {
 			this.failures = 0;
 			this.schedule(0);
 		} catch (error) {
-			if (error instanceof SourceError) throw error;
+			if (error instanceof SourceError) {
+				if (error.code === "source_conflict")
+					this.options.logger.debug(
+						{ event: "acquisition.jackett_activation_conflict" },
+						"Bundled Jackett activation conflicted with a connection change.",
+					);
+				throw error;
+			}
 			throw new SourceError("bundled_unavailable");
 		}
 	}

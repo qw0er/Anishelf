@@ -119,11 +119,16 @@ test("periodic cleanup preserves valid copies and retries unavailable roots", as
 		await taskId(f.preparation.create(await f.input())),
 	);
 	vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+	const schedule = vi.spyOn(globalThis, "setTimeout");
+	const scheduledSweeps = () =>
+		schedule.mock.calls.filter(
+			([, delay]) => delay === preparationPolicy.cleanupIntervalMs,
+		).length;
 	await f.restart();
 	await vi.advanceTimersByTimeAsync(preparationPolicy.cleanupIntervalMs);
 	// The timer starts an asynchronous filesystem sweep; wait for it to finish
 	// and schedule the next sweep before changing the source or its root.
-	await vi.waitFor(() => expect(vi.getTimerCount()).toBe(1));
+	await vi.waitFor(() => expect(scheduledSweeps()).toBe(2));
 	expect(
 		f.database.preparation.artifact(required(ready.artifactId)),
 	).toBeDefined();
@@ -134,7 +139,7 @@ test("periodic cleanup preserves valid copies and retries unavailable roots", as
 	await vi.advanceTimersByTimeAsync(preparationPolicy.cleanupIntervalMs);
 	await vi.waitFor(() => {
 		expect(open).toHaveBeenCalled();
-		expect(vi.getTimerCount()).toBe(1);
+		expect(scheduledSweeps()).toBe(3);
 	});
 	expect(
 		f.database.preparation.artifact(required(ready.artifactId)),

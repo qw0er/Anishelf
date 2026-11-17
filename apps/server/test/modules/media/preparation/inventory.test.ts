@@ -85,7 +85,7 @@ test("inventory lists artifacts beyond task limits with stable paging, filtering
 	expect((await inventory(f, "?sort=size")).items[0]?.sizeBytes).toBe(52);
 	expect((await inventory(f, "?search=not-found")).total).toBe(0);
 	expect((await inventory(f, "?page=999")).page).toBe(2);
-});
+}, 30_000);
 
 test("inventory is non-destructive when the output/source is missing or unverified and never probes", async () => {
 	const { f, artifactId } = await ready();

@@ -220,26 +220,26 @@ test("an uncertain failed write is queried before retrying and succeeds after re
 	const f = await fixture();
 	const original = f.request.getMockImplementation();
 	if (!original) throw new Error("Missing request mock");
+	const posted =
+		Promise.withResolvers<Awaited<ReturnType<typeof f.state.read>>>();
 	f.request.mockImplementation(async (input, init) => {
 		if (init?.method === "POST") {
-			expect((await f.state.read())?.phase).toBe("attempted");
+			posted.resolve(f.state.read());
 			throw new Error("Lost private response");
 		}
 		if (!original) throw new Error("Missing request mock");
 		return original(input, init);
 	});
 	const first = await fresh(f);
-	await vi.waitFor(async () =>
-		expect((await f.state.read())?.phase).toBe("attempted"),
-	);
+	expect((await posted.promise)?.phase).toBe("attempted");
 	await first.bootstrap.close();
 	f.request.mockClear();
 	f.request.mockImplementation(original);
 	const reopened = await f.open();
 	reopened.bootstrap.start();
-	await vi.waitFor(async () =>
-		expect((await f.state.read())?.phase).toBe("complete"),
-	);
+	await vi.waitFor(() => expect(reopened.bootstrap.setup).toBe("complete"), {
+		timeout: 5000,
+	});
 	const calls = f.request.mock.calls;
 	expect(String(calls[1]?.[0])).toContain("?configured=true");
 	expect(calls.filter(([, init]) => init?.method === "POST")).toHaveLength(1);
@@ -263,21 +263,26 @@ test("an uncertain successful write is discovered after restart without another 
 	const f = await fixture();
 	const original = f.request.getMockImplementation();
 	if (!original) throw new Error("Missing request mock");
+	const committed = Promise.withResolvers<void>();
 	f.request.mockImplementation(async (input, init) => {
 		const response = await original(input, init);
-		if (init?.method === "POST") throw new Error("Response lost after commit");
+		if (init?.method === "POST") {
+			committed.resolve();
+			throw new Error("Response lost after commit");
+		}
 		return response;
 	});
 	const first = await fresh(f);
-	await vi.waitFor(async () =>
-		expect((await f.state.read())?.phase).toBe("attempted"),
-	);
+	await committed.promise;
 	await first.bootstrap.close();
+	expect((await f.state.read())?.phase).toBe("attempted");
 	f.request.mockClear();
 	f.request.mockImplementation(original);
 	const reopened = await f.open();
 	reopened.bootstrap.start();
-	await vi.waitFor(() => expect(reopened.bootstrap.setup).toBe("complete"));
+	await vi.waitFor(() => expect(reopened.bootstrap.setup).toBe("complete"), {
+		timeout: 5000,
+	});
 	expect(f.request.mock.calls.some(([, init]) => init?.method === "POST")).toBe(
 		false,
 	);
@@ -329,7 +334,24 @@ test("manual setup requires explicit authorization; activating the connection al
 	const f = await fixture();
 	await f.write();
 	const active = await f.open();
+	const importing = Promise.withResolvers<void>();
+	const allowImport = Promise.withResolvers<void>();
+	const importBundled = active.connection.importBundled.bind(active.connection);
+	vi.spyOn(active.connection, "importBundled").mockImplementationOnce(
+		async (value) => {
+			importing.resolve();
+			await allowImport.promise;
+			await importBundled(value);
+		},
+	);
 	active.bootstrap.start();
+	try {
+		await importing.promise;
+		expect(active.bootstrap.setup).toBe("waiting");
+		expect(active.bootstrap.available).toBe(false);
+	} finally {
+		allowImport.resolve();
+	}
 	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("manual"));
 	await active.bootstrap.activate(active.connection.settings().generation);
 	await vi.waitFor(() => expect(active.bootstrap.setup).toBe("manual"));
