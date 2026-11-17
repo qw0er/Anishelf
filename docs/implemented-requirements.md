@@ -22,7 +22,7 @@ means no separate status is recorded, not that verification is implied.
 #### Delivery Notes (V)
 
 - **V01:** Original single-root setup; multiple persisted roots and per-root feedback are delivered under L12.
-- **V02:** Automatic scans at startup and after resource-root changes; native filesystem monitoring and manual rescans; recursive video discovery; repeated scans without duplicate paths; additions and removals reflected. **Release record:** 0.1.0; 0.4.1 (filesystem monitoring).
+- **V02:** Automatic scans at startup and after resource-root changes; filesystem monitoring or scheduled refresh and manual rescans; recursive video discovery; repeated scans without duplicate paths; additions and removals reflected. **Release record:** 0.1.0; 0.4.1 (filesystem monitoring).
 
 Original V1 delivered read-only originals, resource-root confinement, persistent root settings, and visible scan states. L13 and L19 add explicit confirmed moves and deletion. Subtitle loading, saved progress, and media preparation are V2 additions.
 
@@ -45,7 +45,7 @@ Original V1 delivered read-only originals, resource-root confinement, persistent
 
 #### Delivery Notes (L)
 
-- **L06:** Automatic updates for affected files and folders, with monitoring failure recovery.
+- **L06:** Linux and macOS use incremental filesystem events; Windows uses scheduled refreshes every 60 minutes. Failures preserve indexed entries and report degraded status. **Release record:** 0.4.1 (monitoring); upcoming 2.0.0 (Windows scheduled refresh).
 - **L08:** Clear-match automatic admission, manual Review and protection against conflicting corrections. Since 1.4.1, Review can re-identify an available pending resource's directory or all pending resources in the background, preserving confirmed and rejected decisions. Unavailable resources are excluded from pending Review but retain their history.
 - **L09:** Candidate-specific episode proposals, unresolved ambiguity and confirmed corrections.
 - **L12:** Multiple non-overlapping paths, separate Files entries, partial scan recovery and preserved settings/history.
@@ -119,7 +119,7 @@ for execution constraints and [deployment guidance](guide/deployment.md) for pre
 
 #### Filesystem Monitoring and Incremental Updates (L06)
 
-Watch the configured resource root recursively for file and directory additions, modifications, removals and moves. Use these changes to refresh affected library entries automatically, without waiting for a scheduled full scan. Avoid treating incomplete, actively written files as ready for identification or playback. Preserve resource-root restrictions, manual associations and viewing history.
+On Linux and macOS, watch configured roots recursively for file and directory changes and refresh affected entries incrementally. Avoid treating incomplete, actively written files as ready for identification or playback. On Windows, refresh configured roots on a 60-minute schedule instead. Preserve resource-root restrictions, manual associations and viewing history.
 
 Keep startup scanning and explicit manual rescans for initial discovery and reconciliation. Known monitoring failures must trigger recovery and reconciliation. Detect unavailable monitoring or lost events, report degraded monitoring and provide reconciliation and retry; an inaccessible root must not be treated as an empty library. See [Filesystem monitoring](development/architecture.md#resource-directory-isolation).
 
@@ -656,16 +656,9 @@ pruned while Catalog retains its confirmed decisions. **Release record:** 1.6.1.
 
 - **C01:** **Release record:** 0.2.0 (media URL); 0.2.1 (M3U).
 
-Desktop clients should provide library management and acquisition alongside playback;
-mobile clients prioritize touch-friendly browsing and playback. Both require an
-authenticated server connection for server-backed operations. Cross-client progress
-must account for concurrent and delayed updates (W12); native playback integrations
-must report progress before they can support reliable continuation (C05). Offline
-viewing and advanced playback capabilities are not part of the initial client scope.
-A TV application is outside the planned scope.
-
-The proposed implementation and staged validation are in the
-[future client design](development/clients.md).
+The desktop app uses the shared interface and player with a bundled backend or an
+external server. Desktop and mobile scope, platform validation and remaining work are
+tracked in [Requirements](requirements.md#27-desktop-and-other-clients).
 
 #### External-Player Media Links (C01)
 

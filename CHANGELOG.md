@@ -1,5 +1,42 @@
 # Changelog
 
+## 2.0.0
+
+### Added
+
+- Introduce the Electron desktop application with the shared library, acquisition,
+  settings and playback interface. Run the bundled local backend by default or
+  connect to an external Anishelf server. Remote connections require HTTPS; local
+  loopback connections can use HTTP. The desktop app uses device sessions for
+  external servers and an in-memory session for the bundled backend.
+- Add desktop command-based external players, a native directory picker for local
+  resource roots, native downloads, saved window state, optional close to tray and
+  launch at login. Desktop player settings are stored locally.
+- Package desktop builds for Linux, Windows and macOS. FFmpeg and FFprobe are
+  installed separately; see the [desktop guide](https://github.com/qw0er/Anishelf/blob/main/apps/desktop/README.md)
+  for setup and platform limitations. Windows and macOS behavior still needs
+  verification on those platforms.
+- Add an installer `--no-web` option for backend-only deployments, including
+  generated Compose and Quadlet configurations. Protect a remotely accessible
+  backend with HTTPS; see the [deployment guide](https://github.com/qw0er/Anishelf/blob/main/docs/guide/deployment.md).
+
+### Changed
+
+- Run the backend API independently of the Web application. Existing Web and
+  backend deployments should continue to use matching release versions.
+- On Windows, discover external resource changes through a scheduled refresh
+  every 60 minutes. Linux and macOS use filesystem events. Startup and manual
+  scans remain available on all platforms.
+- Use Node.js 26 for development and build workflows.
+
+### Fixed
+
+- Improve Windows handling of resource paths, download ingestion and media
+  publication. Improve resource monitor recovery when a root changes or becomes
+  unavailable, and preserve existing entries when a refresh fails.
+- Publish bundled Jackett availability after connection import, avoiding an
+  activation race when its connection changes.
+
 ## 1.7.0
 
 ### Added

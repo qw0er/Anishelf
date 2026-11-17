@@ -1,10 +1,8 @@
-# Future Desktop and Mobile Client Design
+# Desktop and Mobile Client Design
 
-This is a proposed design for the future requirements in [Desktop and Other
-Clients](../requirements.md#27-desktop-and-other-clients), not a description of
-implemented functionality or a committed release schedule. Desktop and mobile have
-separate hosts and playback integrations while sharing business behavior and the
-existing React interface where practical. A TV application is out of scope.
+This document describes the implemented desktop host and proposed mobile and
+future playback work in [Desktop and Other Clients](../requirements.md#27-desktop-and-other-clients).
+It is not a committed release schedule. A TV application is out of scope.
 
 ## Shared application available today
 
@@ -31,9 +29,8 @@ There is one active client runtime per renderer. Dispose it before initializing
 another connection and recreate the router with the new runtime. Disposal
 cancels requests and playback and clears the session and query cache. The host
 owns the authentication transition. Web keeps same-origin cookies and CSRF,
-and reloads the page on login, logout or session loss. Connecting a native host
-to a remote server still requires a client authentication adapter, a native
-transport, and authenticated media delivery.
+and reloads the page on login, logout or session loss. The desktop host provides
+its own authentication adapter and authenticated transport.
 
 Implement clipboard access, downloads, external links, preference storage and
 lifecycle events at the host boundary. React DOM layout and the current Movi
@@ -73,7 +70,7 @@ original media. External players can use that link without a device token.
 | --- | --- |
 | Server | Existing Fastify business services, media access, library, acquisition and playback/history APIs |
 | Shared Web UI | Library, detail, search, history and settings, adapted for desktop and touch layouts |
-| Desktop | Full application that connects to a separately running server |
+| Desktop | Electron application with a bundled backend or an external server connection |
 | Mobile | Remote-server client; no bundled server required |
 | Player adapter | Translate common playback commands and events to the active Web or native player |
 
@@ -89,12 +86,12 @@ clients; this document does not assume those interfaces already exist.
 The [desktop workspace guide](../../apps/desktop/README.md) describes how to run
 the shared interface in Electron and connect it to a server.
 
-The desktop client uses Electron with the shared React UI. It connects to a
-separately running Anishelf server on the same machine or over HTTPS. Test
-packaging on Windows, macOS and Linux before claiming platform support.
-
-Use the existing Web player for desktop playback, including track and subtitle
-selection, resume and progress reporting.
+The desktop client uses Electron with the shared React UI and player, including
+track and subtitle selection, resume and progress reporting. It starts a bundled
+backend by default and can instead connect to a separately running server over
+HTTPS or loopback HTTP. The [desktop guide](../../apps/desktop/README.md) covers
+platform integration and packaging. Real-device validation across Windows, macOS
+and Linux remains necessary; see the [Windows audit](windows-compatibility.md).
 
 ## Mobile
 
@@ -134,14 +131,14 @@ confirmed server state.
 
 ## Proposed stages and validation
 
-1. Deliver desktop connections to separately running servers with Web playback. Validate lifecycle,
+1. Validate the implemented desktop local and external connections, lifecycle,
    packaging, authentication and real media across the three desktop platforms.
 2. Deliver mobile remote connection and Web playback; validate touch layouts,
    authentication, lifecycle and real media on Android and iOS.
 3. Add mobile native playback after validating
    authentication, range requests, subtitle and audio tracks, seeking, errors,
    background transitions and progress reporting with representative media.
-4. Design cross-client conflict handling and continuation, then consider optional
+4. Validate cross-client conflict handling and continuation, then consider optional
    system integration and offline viewing as separately scoped work.
 
 The ordering is a proposal rather than a release commitment. Test original and

@@ -28,7 +28,7 @@ and the [Design system](development/design-system.md).
 
 Requirements describe outcomes rather than prescribing implementation. When code and
 documentation disagree, verify the intended behavior and update the affected documents.
-The current release is 1.6.3; 1.7.0 is upcoming.
+The current release is 1.7.0; 2.0.0 is upcoming.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -167,7 +167,7 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| W06 | Share playback history and progress across clients | Partial | Block | [Shared Web records; native client integration blocked](#delivery-notes-w) | 0.2.0 |
+| W06 | Share playback history and progress across clients | Partial | Block | [Web and desktop share server records; mobile remains](#delivery-notes-w) | 0.2.0 |
 | W07 | Record separate rewatch history | Not started | Optional | — | — |
 | W09 | Rate works | Not started | Optional | — | — |
 | W10 | Add personal tags to works | Not started | Optional | — | — |
@@ -175,7 +175,7 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 
 #### Delivery Notes (W)
 
-- **W06:** **Delivered:** Server-backed playback history and progress shared across Web devices. **Remaining:** Native client integration depends on desktop and mobile clients (C07 and C08). **Release record:** 0.2.0 (Web playback history and progress; partial).
+- **W06:** **Delivered:** Server-backed playback history and progress shared by Web and the desktop app when connected to the same server. **Remaining:** Mobile integration and validation of concurrent or delayed cross-client updates. External players do not report progress. **Release record:** 0.2.0 (Web); desktop planned for 2.0.0 (partial).
 
 ### 2.5 Subscriptions and Resource Discovery
 
@@ -206,11 +206,11 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 | --- | --- | --- | --- | --- | --- |
 | C03 | Read external-player state when the selected integration exposes it, including playing/paused state, position, and playback end | Not started | Optional | Browser invocation reads no native state | — |
 | C04 | Control desktop playback, pause, and seeking from the Web | Not started | Later | — | — |
-| C05 | Continue viewing between Web and desktop using saved positions | Not started | Later | — | — |
-| C06 | Manage multiple devices and transfer playback sessions | Not started | Optional | — | — |
-| C07 | Desktop application for Windows, macOS and Linux, with a complete local library and server or a connection to a remote Anishelf server | Not started | Later | — | — |
+| C05 | Continue viewing between Web and desktop using saved positions | Partial | Later | [Shared server playback; conflict handling remains](#desktop-delivery-notes) | Unreleased |
+| C06 | Manage multiple devices and transfer playback sessions | Partial | Optional | [Device sessions; playback transfer remains](#desktop-delivery-notes) | Unreleased |
+| C07 | Desktop application for Windows, macOS and Linux, with a complete local library and server or a connection to a remote Anishelf server | Partial | Later | [Implemented; cross-platform acceptance remains](#desktop-delivery-notes) | Unreleased |
 | C08 | Android and iOS applications for connecting to a remote Anishelf server, browsing the library and playing media | Not started | Later | — | — |
-| C09 | Desktop and mobile playback with resume, track and subtitle selection, and progress reporting consistent with Web | Not started | Later | — | — |
+| C09 | Desktop and mobile playback with resume, track and subtitle selection, and progress reporting consistent with Web | Partial | Later | [Desktop shared player; mobile remains](#desktop-delivery-notes) | Unreleased |
 | C10 | Prefer original media when compatible; offer an appropriate compatible version when available and explain playback failures or unavailable options | Not started | Later | — | — |
 | C11 | Mobile picture-in-picture playback | Not started | Optional | — | — |
 | C13 | Mobile background playback | Not started | Optional | — | — |
@@ -219,19 +219,28 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 | C16 | Adapt Web playback fullscreen for iPhone | Not started | Optional | — | — |
 | C12 | Casting | Not started | Optional | — | — |
 
-Desktop clients should provide library management and acquisition alongside playback;
-mobile clients prioritize touch-friendly browsing and playback. Both require an
-authenticated server connection for server-backed operations. Cross-client progress
-must account for concurrent and delayed updates (W12); native playback integrations
-must report progress before they can support reliable continuation (C05). Offline
-viewing and advanced playback capabilities are not part of the initial client scope.
-Desktop and mobile offline viewing should allow users to cache selected media for
-playback without a server connection. iPhone fullscreen playback should use the
-available platform behavior and keep playback controls usable.
-A TV application is outside the planned scope.
+#### Desktop Delivery Notes
 
-The proposed implementation and staged validation are in the
-[future client design](development/clients.md).
+- **C05, C09:** Desktop uses the shared Web player, including resume, track and
+  subtitle selection and server-backed progress. Web and desktop can resume from
+  the same server records. Session and sequence checks protect against stale updates;
+  cross-client behavior still needs device validation. External player launches do
+  not report progress.
+  Mobile playback remains future work.
+- **C06:** The device-session API supports listing and revocation. Transferring
+  a live playback session between devices remains future work.
+- **C07:** The Electron app starts a bundled local backend or connects to an
+  external server. It includes library management, acquisition and shared playback,
+  native external-player commands, a local directory picker, window persistence,
+  optional tray and launch-at-login settings. Packaging targets Linux, Windows and
+  macOS; real-device acceptance across platforms remains outstanding. See the
+  [desktop guide](../apps/desktop/README.md) and
+  [Windows compatibility audit](development/windows-compatibility.md).
+
+Mobile clients and offline viewing remain future work. Desktop and mobile offline
+viewing should allow selected media to be cached for playback without a server
+connection. iPhone fullscreen should keep playback controls usable. A TV application
+is outside the planned scope. See the [client design](development/clients.md).
 
 ### 2.8 External Tracking Services
 
