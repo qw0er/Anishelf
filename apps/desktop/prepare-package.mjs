@@ -73,6 +73,10 @@ for (const extension of ["png", "icns", "ico"]) {
 		join(stagingDir, `dist/icon.${extension}`),
 	);
 }
+await cp(
+	join(desktopDir, "assets/linux-icon.png"),
+	join(stagingDir, "dist/linux-icon.png"),
+);
 await writeFile(
 	join(stagingDir, "package.json"),
 	`${JSON.stringify(
@@ -99,15 +103,17 @@ await writeFile(
 					"dist/**/*",
 					"!dist/icon.icns",
 					"!dist/icon.ico",
+					"!dist/linux-icon.png",
 					"backend-process.mjs",
 					"assets/**/*",
 					"!assets/app-icon.*",
+					"!assets/linux-icon.png",
 				],
 				asarUnpack: ["**/*.node"],
 				linux: {
 					target: ["AppImage", "deb", "rpm"],
 					category: "AudioVideo",
-					icon: "dist/icon.png",
+					icon: "dist/linux-icon.png",
 					syncDesktopName: true,
 				},
 				win: { target: ["nsis"], icon: "dist/icon.ico" },

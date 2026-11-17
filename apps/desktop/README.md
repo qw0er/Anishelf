@@ -90,6 +90,8 @@ arm64. A manual release workflow run keeps the installers as Actions artifacts
 for seven days. For a version tag on `main`, the workflow also attaches them to
 the GitHub Release.
 
-The application icons in `assets/app-icon.png`, `app-icon.icns` and
-`app-icon.ico` are rendered from `apps/web/public/favicon.svg`. When the logo
-changes, re-render the 1024×1024 png and rebuild the icns and ico files from it.
+The application icons in `assets/app-icon.png`, `linux-icon.png`,
+`app-icon.icns` and `app-icon.ico` are rendered from
+`apps/web/public/favicon.svg`. When the logo changes, re-render the 1024×1024
+PNG and rebuild the 512×512 Linux icon, icns and ico files from it. The Linux
+package icon uses a size listed in standard hicolor icon themes.
