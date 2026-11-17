@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { parseDeploymentConfig } from "../../../src/modules/system/configuration/infrastructure/deployment.js";
 import { runTool } from "../../../src/platform/media/process.js";
@@ -27,14 +28,14 @@ afterAll(async () => {
 });
 
 test("configures executable overrides independently", () => {
+	const ffmpegPath = join(tmpdir(), "tools", "ffmpeg");
+	const ffprobePath = join(tmpdir(), "tools", "ffprobe");
 	expect(
-		parseDeploymentConfig({ ANISHELF_FFMPEG_PATH: "/opt/tools/ffmpeg" })
-			.mediaTools,
-	).toEqual({ ffmpegPath: "/opt/tools/ffmpeg", ffprobePath: "ffprobe" });
+		parseDeploymentConfig({ ANISHELF_FFMPEG_PATH: ffmpegPath }).mediaTools,
+	).toEqual({ ffmpegPath, ffprobePath: "ffprobe" });
 	expect(
-		parseDeploymentConfig({ ANISHELF_FFPROBE_PATH: "/opt/tools/ffprobe" })
-			.mediaTools,
-	).toEqual({ ffmpegPath: "ffmpeg", ffprobePath: "/opt/tools/ffprobe" });
+		parseDeploymentConfig({ ANISHELF_FFPROBE_PATH: ffprobePath }).mediaTools,
+	).toEqual({ ffmpegPath: "ffmpeg", ffprobePath });
 });
 
 test("normalizes optional metadata and preserves subtitle stream identity", () => {
@@ -149,8 +150,9 @@ test.skipIf(!ffmpeg.available || !ffprobe.available)(
 		const ass = join(fixture, "source.ass");
 		const vtt = join(fixture, "source.vtt");
 		const media = join(fixture, "video with spaces ; $.mkv");
-		const font = new URL("../../fixtures/fonts/fixture.ttf", import.meta.url)
-			.pathname;
+		const font = fileURLToPath(
+			new URL("../../fixtures/fonts/fixture.ttf", import.meta.url),
+		);
 		await writeFile(srt, "1\n00:00:00,200 --> 00:00:01,200\nHello SRT\n");
 		await runTool(ffmpeg.path, ["-nostdin", "-v", "error", "-i", srt, ass]);
 		await writeFile(

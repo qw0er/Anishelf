@@ -114,10 +114,11 @@ test("Jackett owns native config; fresh setup imports a private key and configur
 		AdminPassword: "",
 		Port: 9117,
 	});
-	expect(
-		(await stat(join(f.directory, "acquisition/jackett-bootstrap.json"))).mode &
-			0o777,
-	).toBe(0o600);
+	if (process.platform !== "win32")
+		expect(
+			(await stat(join(f.directory, "acquisition/jackett-bootstrap.json")))
+				.mode & 0o777,
+		).toBe(0o600);
 	await first.bootstrap.close();
 	f.request.mockClear();
 	const reopened = await f.open();

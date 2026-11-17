@@ -208,32 +208,35 @@ test("reflects additions, modifications and removals without rescanning or chang
 	expect((await discover()).tracks).toEqual([]);
 });
 
-test("rejects symlinks and oversized files while keeping usable candidates", async () => {
-	await sidecar(".srt");
-	await sidecar(".large.ass", "");
-	await truncate(
-		join(root, "season", `${video}.large.ass`),
-		maximumSubtitleBytes + 1,
-	);
-	await writeFile(join(fixture, "outside.ass"), "secret");
-	await symlink(
-		join(fixture, "outside.ass"),
-		join(root, "season", `${video}.outside.ass`),
-	);
-	const result = await discover();
-	expect(result.tracks.map((track) => track.name)).toEqual([`${video}.srt`]);
-	expect(result.warnings).toEqual([
-		{ name: `${video}.large.ass`, code: "SUBTITLE_TOO_LARGE" },
-		{ name: `${video}.outside.ass`, code: "RESOURCE_ACCESS_DENIED" },
-	]);
-	const media = await app.inject({ url: `/api/media/${fileId}`, headers });
-	expect(media.statusCode).toBe(200);
-	expect(media.body).toBe("video");
-	const resources = await ResourceAccess.create({ resourceRoots: [root] });
-	await expect(
-		resources.openFile(join("season", `${video}.srt`)),
-	).rejects.toMatchObject({ code: "RESOURCE_ACCESS_DENIED" });
-});
+test.skipIf(process.platform === "win32")(
+	"rejects symlinks and oversized files while keeping usable candidates",
+	async () => {
+		await sidecar(".srt");
+		await sidecar(".large.ass", "");
+		await truncate(
+			join(root, "season", `${video}.large.ass`),
+			maximumSubtitleBytes + 1,
+		);
+		await writeFile(join(fixture, "outside.ass"), "secret");
+		await symlink(
+			join(fixture, "outside.ass"),
+			join(root, "season", `${video}.outside.ass`),
+		);
+		const result = await discover();
+		expect(result.tracks.map((track) => track.name)).toEqual([`${video}.srt`]);
+		expect(result.warnings).toEqual([
+			{ name: `${video}.large.ass`, code: "SUBTITLE_TOO_LARGE" },
+			{ name: `${video}.outside.ass`, code: "RESOURCE_ACCESS_DENIED" },
+		]);
+		const media = await app.inject({ url: `/api/media/${fileId}`, headers });
+		expect(media.statusCode).toBe(200);
+		expect(media.body).toBe("video");
+		const resources = await ResourceAccess.create({ resourceRoots: [root] });
+		await expect(
+			resources.openFile(join("season", `${video}.srt`)),
+		).rejects.toMatchObject({ code: "RESOURCE_ACCESS_DENIED" });
+	},
+);
 
 test.each(["RESOURCE_UNREADABLE", "RESOURCE_MISSING"] as const)(
 	"returns safe per-file warnings for %s",

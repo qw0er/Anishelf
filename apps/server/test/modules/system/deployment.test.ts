@@ -7,7 +7,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { userDataDir, userLogDir } from "platformdirs";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { parse } from "yaml";
@@ -250,7 +250,7 @@ test("supports both output and explicit rotation limits", () => {
 	expect(
 		parseDeploymentConfig({
 			ANISHELF_LOG_DESTINATION: "both",
-			ANISHELF_LOG_PATH: "/tmp/anishelf.log",
+			ANISHELF_LOG_PATH: join(tmpdir(), "anishelf.log"),
 			ANISHELF_LOG_MAX_SIZE_BYTES: "1024",
 			ANISHELF_LOG_MAX_FILES: "3",
 			ANISHELF_LOG_ROTATE_INTERVAL: "1h",
@@ -258,7 +258,7 @@ test("supports both output and explicit rotation limits", () => {
 	).toEqual({
 		level: "info",
 		destination: "both",
-		path: "/tmp/anishelf.log",
+		path: join(tmpdir(), "anishelf.log"),
 		rotation: { maxSizeBytes: 1024, maxFiles: 3, interval: "1h" },
 	});
 });
@@ -272,7 +272,7 @@ test.each([
 	expect(() =>
 		parseDeploymentConfig({
 			ANISHELF_LOG_DESTINATION: "both",
-			ANISHELF_LOG_PATH: "/tmp/log",
+			ANISHELF_LOG_PATH: join(tmpdir(), "log"),
 			[name]: value,
 		}),
 	).toThrow(name);
@@ -341,18 +341,20 @@ test.each([
 	);
 });
 
-test("parses colon-separated resource roots and rejects empty or excessive entries", () => {
+test("parses platform-separated resource roots and rejects empty or excessive entries", () => {
+	const anime = join(tmpdir(), "anime");
+	const movies = join(tmpdir(), "movies");
 	expect(
 		parseDeploymentConfig({
-			ANISHELF_INITIAL_RESOURCE_ROOTS: " /media/anime : /media/movies ",
+			ANISHELF_INITIAL_RESOURCE_ROOTS: ` ${anime} ${delimiter} ${movies} `,
 		}).initialResourceRoots,
-	).toEqual(["/media/anime", "/media/movies"]);
+	).toEqual([anime, movies]);
 	for (const value of [
-		"/media:",
-		":/media",
-		"/media::/movies",
+		`${anime}${delimiter}`,
+		`${delimiter}${anime}`,
+		`${anime}${delimiter}${delimiter}${movies}`,
 		'["/media"]',
-		Array(65).fill("/media").join(":"),
+		Array(65).fill(anime).join(delimiter),
 	]) {
 		expect(() =>
 			parseDeploymentConfig({ ANISHELF_INITIAL_RESOURCE_ROOTS: value }),

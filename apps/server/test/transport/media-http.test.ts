@@ -188,7 +188,7 @@ test.each(["files", "media"])(
 	},
 );
 
-test.each(["files", "media"])(
+test.skipIf(process.platform === "win32").each(["files", "media"])(
 	"rejects symlink replacements in %s",
 	async (route) => {
 		const outside = join(fixture, "outside.mp4");

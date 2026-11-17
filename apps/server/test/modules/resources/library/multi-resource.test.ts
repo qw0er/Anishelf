@@ -9,7 +9,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
@@ -184,19 +184,22 @@ test.runIf(process.platform === "win32")(
 	},
 );
 
-test("incomplete directories cannot reach a watched root through a link", async () => {
-	const f = await fixture();
-	const scopeId = resourceRootId(f.roots[0] as string);
-	const watched = f.roots[1] as string;
-	const alias = join(f.base, "staging");
-	await symlink(watched, alias, "junction");
-	await expect(
-		f.library.validateDownloadRoot(scopeId, join(alias, "not-created-yet")),
-	).rejects.toMatchObject({ code: "INVALID_REQUEST" });
-	await expect(
-		f.library.validateDownloadRoot(scopeId, join(f.base, "incomplete")),
-	).resolves.toBeUndefined();
-});
+test.skipIf(process.platform === "win32")(
+	"incomplete directories cannot reach a watched root through a link",
+	async () => {
+		const f = await fixture();
+		const scopeId = resourceRootId(f.roots[0] as string);
+		const watched = f.roots[1] as string;
+		const alias = join(f.base, "staging");
+		await symlink(watched, alias, "junction");
+		await expect(
+			f.library.validateDownloadRoot(scopeId, join(alias, "not-created-yet")),
+		).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+		await expect(
+			f.library.validateDownloadRoot(scopeId, join(f.base, "incomplete")),
+		).resolves.toBeUndefined();
+	},
+);
 
 test("reordering, removing and restoring roots preserves identity and playback history", async () => {
 	const f = await fixture();
@@ -300,37 +303,40 @@ test("an unavailable root retains its snapshot while healthy roots update and re
 	expect(f.index.getFile(f.files[0]?.id as string)).toBeDefined();
 });
 
-test("settings reject duplicate, nested, aliased and data-overlapping roots without changing configuration", async () => {
-	const f = await fixture();
-	const alias = join(f.base, "alias");
-	await symlink(f.roots[0] as string, alias);
-	for (const roots of [
-		[f.roots[0], f.roots[0]],
-		[f.roots[0], join(f.roots[0] as string, "nested")],
-		[f.roots[0], alias],
-		[f.dataDir],
-		["relative"],
-	]) {
-		await expect(
-			f.configuration.update({ resourceRoots: roots as string[] }),
-		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+test.skipIf(process.platform === "win32")(
+	"settings reject duplicate, nested, aliased and data-overlapping roots without changing configuration",
+	async () => {
+		const f = await fixture();
+		const alias = join(f.base, "alias");
+		await symlink(f.roots[0] as string, alias);
+		for (const roots of [
+			[f.roots[0], f.roots[0]],
+			[f.roots[0], join(f.roots[0] as string, "nested")],
+			[f.roots[0], alias],
+			[f.dataDir],
+			["relative"],
+		]) {
+			await expect(
+				f.configuration.update({ resourceRoots: roots as string[] }),
+			).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+			expect(f.configuration.settings.resourceRoots).toEqual(f.roots);
+		}
+		const snapshot = f.configuration.settings;
+		snapshot.resourceRoots.push("/caller-owned");
 		expect(f.configuration.settings.resourceRoots).toEqual(f.roots);
-	}
-	const snapshot = f.configuration.settings;
-	snapshot.resourceRoots.push("/caller-owned");
-	expect(f.configuration.settings.resourceRoots).toEqual(f.roots);
-	await updateResourceSettings(f.library, { resourceRoots: [] });
-	expect(
-		f.index.readFilePage.bind(f.index, f.index.revision, 0, 100),
-	).toThrow();
-	expect(await f.library.getStatus()).toMatchObject({
-		ready: false,
-		error: { code: "RESOURCE_ROOT_NOT_CONFIGURED" },
-	});
-	expect(
-		f.records.some((record) => record.event === "scan.settings_start_failed"),
-	).toBe(false);
-});
+		await updateResourceSettings(f.library, { resourceRoots: [] });
+		expect(
+			f.index.readFilePage.bind(f.index, f.index.revision, 0, 100),
+		).toThrow();
+		expect(await f.library.getStatus()).toMatchObject({
+			ready: false,
+			error: { code: "RESOURCE_ROOT_NOT_CONFIGURED" },
+		});
+		expect(
+			f.records.some((record) => record.event === "scan.settings_start_failed"),
+		).toBe(false);
+	},
+);
 
 test("HTTP saves and browses multiple roots and reports directory availability without absolute paths", async () => {
 	const f = await fixture();
@@ -369,7 +375,7 @@ test("plural startup initialization validates all paths and preserves existing s
 	const dataDir = join(f.base, "fresh-data");
 	const service = await ConfigurationService.load({
 		ANISHELF_DATA_DIR: dataDir,
-		ANISHELF_INITIAL_RESOURCE_ROOTS: f.roots.join(":"),
+		ANISHELF_INITIAL_RESOURCE_ROOTS: f.roots.join(delimiter),
 	});
 	expect(service.settings.resourceRoots).toEqual(f.roots);
 	expect(
@@ -387,7 +393,7 @@ test("plural startup initialization validates all paths and preserves existing s
 			ANISHELF_INITIAL_RESOURCE_ROOTS: [
 				f.roots[0],
 				join(f.roots[0] as string, "nested"),
-			].join(";"),
+			].join(delimiter),
 		}),
 	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
 });
@@ -415,22 +421,27 @@ test("adding a path retains unchanged offline-root entries while invalidating ol
 	});
 });
 
-test("retargeting a configured root alias during access cannot cross source scopes", async () => {
-	const f = await fixture();
-	const alias = join(f.base, "selected-media");
-	await symlink(f.roots[0] as string, alias);
-	await updateResourceSettings(f.library, { resourceRoots: [alias] });
-	await f.library.waitForCompletion();
-	const open = ResourceAccess.create;
-	vi.spyOn(ResourceAccess, "create").mockImplementationOnce(async (...args) => {
-		await rm(alias);
-		await symlink(f.roots[1] as string, alias);
-		return open(...args);
-	});
-	await expect(
-		f.library.getFile(f.files[0]?.id as string),
-	).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
-});
+test.skipIf(process.platform === "win32")(
+	"retargeting a configured root alias during access cannot cross source scopes",
+	async () => {
+		const f = await fixture();
+		const alias = join(f.base, "selected-media");
+		await symlink(f.roots[0] as string, alias);
+		await updateResourceSettings(f.library, { resourceRoots: [alias] });
+		await f.library.waitForCompletion();
+		const open = ResourceAccess.create;
+		vi.spyOn(ResourceAccess, "create").mockImplementationOnce(
+			async (...args) => {
+				await rm(alias);
+				await symlink(f.roots[1] as string, alias);
+				return open(...args);
+			},
+		);
+		await expect(
+			f.library.getFile(f.files[0]?.id as string),
+		).rejects.toMatchObject({ code: "PLAYBACK_CONFLICT" });
+	},
+);
 
 test.each(["move", "delete"] as const)(
 	"resource %s retains durable playback records across roots",

@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cruise } from "dependency-cruiser";
 
@@ -30,10 +30,11 @@ export async function checkArchitecture(baseDir = process.cwd()) {
 		}
 		for (const file of files) {
 			if (!file.endsWith(".ts") && !file.endsWith(".tsx")) continue;
+			const normalizedFile = file.split(sep).join("/");
 			if (
 				relative.startsWith("apps/server/") &&
 				!/^(?:external-works\/(?:tracking|metadata)|anime-library|anime-catalog|identification)\/(?:application\/|domain\/|(?:ports|public|policy|defaults)\.ts$)/.test(
-					file,
+					normalizedFile,
 				)
 			)
 				continue;

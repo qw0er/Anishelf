@@ -96,10 +96,11 @@ test("credentials survive restart, remain private and never enter SQLite or publ
 	);
 	const file = (await readdir(join(dataDir, "tracking-credentials")))[0];
 	expect(file).toBeTruthy();
-	expect(
-		(await stat(join(dataDir, "tracking-credentials", file ?? ""))).mode &
-			0o777,
-	).toBe(0o600);
+	if (process.platform !== "win32")
+		expect(
+			(await stat(join(dataDir, "tracking-credentials", file ?? ""))).mode &
+				0o777,
+		).toBe(0o600);
 	const restarted = await createTrackingModule({
 		dataDir,
 		store: database.tracking,

@@ -122,7 +122,7 @@ test("stop escalates for a child ignoring termination and awaits close", async (
 	await handle.stop();
 	await expect(handle.completion).rejects.toMatchObject({
 		reason: "cancelled",
-		signal: "SIGKILL",
+		signal: process.platform === "win32" ? "SIGTERM" : "SIGKILL",
 	});
 });
 test("pre-cancelled signals never spawn and spawn failures settle", async () => {

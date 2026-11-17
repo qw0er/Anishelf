@@ -183,35 +183,41 @@ test("does not overwrite an existing destination", async () => {
 	).toBe("keep");
 });
 
-test("rejects traversal, symbolic-link parents and symbolic-link targets", async () => {
-	const access = await ResourceMutations.create(root);
-	await symlink(fixture, join(root, "escape"));
-	await expect(access.execute("../outside.mp4")).rejects.toMatchObject({
-		code: "RESOURCE_ACCESS_DENIED",
-	});
-	await expect(access.execute("escape/outside.mp4")).rejects.toMatchObject({
-		code: "RESOURCE_ACCESS_DENIED",
-	});
-	await expect(access.execute("escape")).rejects.toMatchObject({
-		code: "RESOURCE_ACCESS_DENIED",
-	});
-	await expect(
-		access.execute("Season", { access, path: "escape" }),
-	).rejects.toMatchObject({
-		code: "RESOURCE_ACCESS_DENIED",
-	});
-});
+test.skipIf(process.platform === "win32")(
+	"rejects traversal, symbolic-link parents and symbolic-link targets",
+	async () => {
+		const access = await ResourceMutations.create(root);
+		await symlink(fixture, join(root, "escape"));
+		await expect(access.execute("../outside.mp4")).rejects.toMatchObject({
+			code: "RESOURCE_ACCESS_DENIED",
+		});
+		await expect(access.execute("escape/outside.mp4")).rejects.toMatchObject({
+			code: "RESOURCE_ACCESS_DENIED",
+		});
+		await expect(access.execute("escape")).rejects.toMatchObject({
+			code: "RESOURCE_ACCESS_DENIED",
+		});
+		await expect(
+			access.execute("Season", { access, path: "escape" }),
+		).rejects.toMatchObject({
+			code: "RESOURCE_ACCESS_DENIED",
+		});
+	},
+);
 
-test("recursive deletion removes nested symlinks without deleting their targets", async () => {
-	const outside = join(fixture, "outside");
-	await mkdir(outside);
-	await writeFile(join(outside, "keep.txt"), "keep");
-	await symlink(outside, join(root, "Season", "escape"));
-	expect(
-		(await command({ id: find("Season").id, action: "delete" })).statusCode,
-	).toBe(200);
-	expect(await readFile(join(outside, "keep.txt"), "utf8")).toBe("keep");
-});
+test.skipIf(process.platform === "win32")(
+	"recursive deletion removes nested symlinks without deleting their targets",
+	async () => {
+		const outside = join(fixture, "outside");
+		await mkdir(outside);
+		await writeFile(join(outside, "keep.txt"), "keep");
+		await symlink(outside, join(root, "Season", "escape"));
+		expect(
+			(await command({ id: find("Season").id, action: "delete" })).statusCode,
+		).toBe(200);
+		expect(await readFile(join(outside, "keep.txt"), "utf8")).toBe("keep");
+	},
+);
 
 test("holds the scan/settings gate until the mutation and reconciliation finish", async () => {
 	const input = { id: find("Season").id, action: "delete" };

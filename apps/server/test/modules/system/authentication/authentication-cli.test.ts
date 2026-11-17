@@ -28,8 +28,8 @@ test("CLI reset recovers corrupt credentials without starting HTTP or media tool
 				env: {
 					...process.env,
 					ANISHELF_DATA_DIR: path,
-					ANISHELF_FFMPEG_PATH: "/nonexistent/ffmpeg",
-					ANISHELF_FFPROBE_PATH: "/nonexistent/ffprobe",
+					ANISHELF_FFMPEG_PATH: join(path, "nonexistent", "ffmpeg"),
+					ANISHELF_FFPROBE_PATH: join(path, "nonexistent", "ffprobe"),
 				},
 			},
 		);

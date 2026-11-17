@@ -51,34 +51,37 @@ afterEach(async () => {
 	await rm(fixture, { recursive: true, force: true });
 });
 
-test("scans nested directories and allowed video types, skipping symlinks and other files", async () => {
-	await mkdir(join(root, "中文 folder"));
-	await mkdir(join(root, "empty"));
-	await writeFile(join(root, "中文 folder", "episode 2.MP4"), "video");
-	await writeFile(join(root, "episode 10.mkv"), "video");
-	await writeFile(join(root, "episode.webm"), "video");
-	await writeFile(join(root, "episode.m4v"), "video");
-	await writeFile(join(root, "notes.txt"), "text");
-	await symlink(join(root, "中文 folder"), join(root, "link"), "dir");
-	expect(libraryApp.state).toBeNull();
-	expect((await libraryApp.startScan()).status).toBe("running");
-	expect(await libraryApp.waitForCompletion()).toMatchObject({
-		status: "completed",
-		visitedCount: 8,
-		matchedCount: 4,
-		warnings: { count: 0, messages: [] },
-	});
-	expect(index.revision).toBe(1);
-	expect(index.snapshot.entriesById.size).toBe(7);
-	expect(
-		index.getFile(
-			createResourceId("file", join("中文 folder", "episode 2.MP4"), scopeId),
-		),
-	).toMatchObject({ sizeBytes: 5, mimeType: "video/mp4" });
-	expect(
-		index.listChildren(createResourceId("directory", "empty", scopeId)),
-	).toEqual([]);
-});
+test.skipIf(process.platform === "win32")(
+	"scans nested directories and allowed video types, skipping symlinks and other files",
+	async () => {
+		await mkdir(join(root, "中文 folder"));
+		await mkdir(join(root, "empty"));
+		await writeFile(join(root, "中文 folder", "episode 2.MP4"), "video");
+		await writeFile(join(root, "episode 10.mkv"), "video");
+		await writeFile(join(root, "episode.webm"), "video");
+		await writeFile(join(root, "episode.m4v"), "video");
+		await writeFile(join(root, "notes.txt"), "text");
+		await symlink(join(root, "中文 folder"), join(root, "link"), "dir");
+		expect(libraryApp.state).toBeNull();
+		expect((await libraryApp.startScan()).status).toBe("running");
+		expect(await libraryApp.waitForCompletion()).toMatchObject({
+			status: "completed",
+			visitedCount: 8,
+			matchedCount: 4,
+			warnings: { count: 0, messages: [] },
+		});
+		expect(index.revision).toBe(1);
+		expect(index.snapshot.entriesById.size).toBe(7);
+		expect(
+			index.getFile(
+				createResourceId("file", join("中文 folder", "episode 2.MP4"), scopeId),
+			),
+		).toMatchObject({ sizeBytes: 5, mimeType: "video/mp4" });
+		expect(
+			index.listChildren(createResourceId("directory", "empty", scopeId)),
+		).toEqual([]);
+	},
+);
 
 test("an empty directory is a successful scan", async () => {
 	await libraryApp.startScan();

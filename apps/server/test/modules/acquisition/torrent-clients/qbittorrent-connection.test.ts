@@ -100,8 +100,12 @@ test("manual credentials persist privately across restart and never appear in pu
 		passwordConfigured: true,
 	});
 	expect(JSON.stringify(saved)).not.toContain(details.password);
-	expect((await stat(f.file)).mode & 0o777).toBe(0o600);
-	expect((await stat(join(f.dataDir, "acquisition"))).mode & 0o777).toBe(0o700);
+	if (process.platform !== "win32") {
+		expect((await stat(f.file)).mode & 0o777).toBe(0o600);
+		expect((await stat(join(f.dataDir, "acquisition"))).mode & 0o777).toBe(
+			0o700,
+		);
+	}
 	expect(JSON.parse(await readFile(f.file, "utf8")).connection.password).toBe(
 		details.password,
 	);

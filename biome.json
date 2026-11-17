@@ -1,5 +1,8 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
+	"formatter": {
+		"lineEnding": "auto"
+	},
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",

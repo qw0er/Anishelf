@@ -7,7 +7,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { parse } from "anitomy-ng";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
@@ -408,7 +408,10 @@ test("forced identification refreshes unchanged directory evidence and metadata 
 	await scan(f, automatic);
 	const first = automatic
 		.getResults()
-		.find((result) => result.source.relativePath === "series/Frieren - 01.mkv");
+		.find(
+			(result) =>
+				result.source.relativePath === join("series", "Frieren - 01.mkv"),
+		);
 	if (!first) throw new Error("Missing source");
 	search.mockClear().mockResolvedValue([work]);
 	identify.mockClear();
@@ -655,7 +658,7 @@ test("filesystem publications identify only affected directory contexts without 
 	expect(identify).toHaveBeenCalledTimes(1);
 	expect(
 		identify.mock.calls[0]?.[0].every((source) =>
-			source.relativePath.startsWith("series/"),
+			source.relativePath.startsWith(`series${sep}`),
 		),
 	).toBe(true);
 	expect(automatic.getStatus().revision).toBe(2);
@@ -664,7 +667,7 @@ test("filesystem publications identify only affected directory contexts without 
 		.poll(() => automatic.getResults().length, { timeout: 6000 })
 		.toBe(1);
 	expect(automatic.getResults()[0]?.source.relativePath).toBe(
-		"other/Your Name.mkv",
+		join("other", "Your Name.mkv"),
 	);
 	expect(enumerate).not.toHaveBeenCalled();
 }, 15000);
@@ -685,7 +688,7 @@ test("unrelated directory changes queue behind active incremental recognition wi
 	const automatic = coordinator(f, {
 		version: engine.version,
 		async identify(sources, signal) {
-			if (block && sources[0]?.relativePath.startsWith("series/")) {
+			if (block && sources[0]?.relativePath.startsWith(`series${sep}`)) {
 				activeSignal = signal;
 				entered();
 				await gate;

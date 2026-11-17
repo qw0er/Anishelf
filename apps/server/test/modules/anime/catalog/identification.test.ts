@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { expect, test, vi } from "vitest";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import { createHttpApp } from "../../../support/http.js";
@@ -269,7 +269,7 @@ test("bulk Review identification snapshots every pending page, deduplicates dire
 	const automatic = await enableAutomatic(f);
 	const initial = (await f.catalog.reviews()).items;
 	const rejected = required(
-		initial.find((item) => item.relativePath.startsWith("rejected/")),
+		initial.find((item) => item.relativePath.startsWith(`rejected${sep}`)),
 	);
 	await f.catalog.reject(rejected.id, rejected.revision, "Keep rejected");
 	await rm(join(f.root, "missing/Recovered - 05.mkv"));
@@ -340,7 +340,9 @@ test("bulk Review identification continues after one directory fails", async () 
 	const publish = f.catalog.publish.bind(f.catalog);
 	vi.spyOn(f.catalog, "publish").mockImplementation((results, ...args) => {
 		if (
-			results.some((result) => result.source.relativePath.startsWith("first/"))
+			results.some((result) =>
+				result.source.relativePath.startsWith(`first${sep}`),
+			)
 		)
 			return Promise.reject(new Error("Directory publication failed"));
 		return publish(results, ...args);

@@ -106,55 +106,66 @@ test("missing files and invalid parent directories use the missing-resource erro
 	).rejects.toMatchObject({ code: "RESOURCE_MISSING" });
 });
 
-test("rejects symlink files, directory escapes, and links inside the root", async () => {
-	const outside = join(fixture, "media-extra");
-	await mkdir(outside);
-	await writeFile(join(outside, "secret.mp4"), "outside");
-	await symlink(join(outside, "secret.mp4"), join(root, "link.mp4"));
-	await symlink(outside, join(root, "directory-link"), "dir");
-	await symlink(
-		join(root, "中文 folder", "episode 01.MP4"),
-		join(root, "internal-link.mp4"),
-	);
-	for (const path of [
-		"link.mp4",
-		"internal-link.mp4",
-		join("directory-link", "secret.mp4"),
-	])
+test.skipIf(process.platform === "win32")(
+	"rejects symlink files, directory escapes, and links inside the root",
+	async () => {
+		const outside = join(fixture, "media-extra");
+		await mkdir(outside);
+		await writeFile(join(outside, "secret.mp4"), "outside");
+		await symlink(join(outside, "secret.mp4"), join(root, "link.mp4"));
+		await symlink(outside, join(root, "directory-link"), "dir");
+		await symlink(
+			join(root, "中文 folder", "episode 01.MP4"),
+			join(root, "internal-link.mp4"),
+		);
+		for (const path of [
+			"link.mp4",
+			"internal-link.mp4",
+			join("directory-link", "secret.mp4"),
+		])
+			await expect(resources.openFile(path)).rejects.toMatchObject({
+				code: "RESOURCE_ACCESS_DENIED",
+			});
+		await expect(
+			resources.readDirectory("directory-link"),
+		).rejects.toMatchObject({ code: "RESOURCE_ACCESS_DENIED" });
+		expect(
+			(await resources.readDirectory()).filter((entry) =>
+				entry.isSymbolicLink(),
+			),
+		).toHaveLength(3);
+	},
+);
+
+test.skipIf(process.platform === "win32")(
+	"rechecks a previously inspected file after replacement by a symlink",
+	async () => {
+		const path = join("中文 folder", "episode 01.MP4");
+		await resources.inspectVideoFile(path);
+		await rm(join(root, path));
+		const outside = join(fixture, "outside.mp4");
+		await writeFile(outside, "outside");
+		await symlink(outside, join(root, path));
 		await expect(resources.openFile(path)).rejects.toMatchObject({
 			code: "RESOURCE_ACCESS_DENIED",
 		});
-	await expect(resources.readDirectory("directory-link")).rejects.toMatchObject(
-		{ code: "RESOURCE_ACCESS_DENIED" },
-	);
-	expect(
-		(await resources.readDirectory()).filter((entry) => entry.isSymbolicLink()),
-	).toHaveLength(3);
-});
+	},
+);
 
-test("rechecks a previously inspected file after replacement by a symlink", async () => {
-	const path = join("中文 folder", "episode 01.MP4");
-	await resources.inspectVideoFile(path);
-	await rm(join(root, path));
-	const outside = join(fixture, "outside.mp4");
-	await writeFile(outside, "outside");
-	await symlink(outside, join(root, path));
-	await expect(resources.openFile(path)).rejects.toMatchObject({
-		code: "RESOURCE_ACCESS_DENIED",
-	});
-});
-
-test("canonicalizes a configured root alias and rejects replacement of the canonical root", async () => {
-	const alias = join(fixture, "alias");
-	await symlink(root, alias, "dir");
-	const access = await ResourceAccess.create({ resourceRoots: [alias] });
-	expect(await access.readDirectory()).toHaveLength(1);
-	await rename(root, join(fixture, "old-root"));
-	await symlink(join(fixture, "old-root"), root, "dir");
-	await expect(access.readDirectory()).rejects.toMatchObject({
-		code: "RESOURCE_ACCESS_DENIED",
-	});
-});
+test.skipIf(process.platform === "win32")(
+	"canonicalizes a configured root alias and rejects replacement of the canonical root",
+	async () => {
+		const alias = join(fixture, "alias");
+		await symlink(root, alias, "dir");
+		const access = await ResourceAccess.create({ resourceRoots: [alias] });
+		expect(await access.readDirectory()).toHaveLength(1);
+		await rename(root, join(fixture, "old-root"));
+		await symlink(join(fixture, "old-root"), root, "dir");
+		await expect(access.readDirectory()).rejects.toMatchObject({
+			code: "RESOURCE_ACCESS_DENIED",
+		});
+	},
+);
 
 test("unavailable roots are recoverable by creating access again", async () => {
 	const missing = join(fixture, "missing");

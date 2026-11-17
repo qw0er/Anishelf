@@ -199,8 +199,10 @@ test("persists only opaque identities and creates private directories and files"
 		version: 1,
 		cooldowns: { [key]: 10_000 },
 	});
-	expect((await stat(f.path)).mode & 0o777).toBe(0o600);
-	expect((await stat(f.acquisition)).mode & 0o777).toBe(0o700);
+	if (process.platform !== "win32") {
+		expect((await stat(f.path)).mode & 0o777).toBe(0o600);
+		expect((await stat(f.acquisition)).mode & 0o777).toBe(0o700);
+	}
 });
 
 test("tightens permissions on an existing cooldown file", async () => {
@@ -208,7 +210,8 @@ test("tightens permissions on an existing cooldown file", async () => {
 	await f.seed(JSON.stringify({ version: 1, cooldowns: {} }));
 	const file = f.open();
 	await file.read();
-	expect((await stat(f.path)).mode & 0o777).toBe(0o600);
+	if (process.platform !== "win32")
+		expect((await stat(f.path)).mode & 0o777).toBe(0o600);
 	await file.close();
 });
 

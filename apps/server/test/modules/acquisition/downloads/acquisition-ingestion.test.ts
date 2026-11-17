@@ -221,25 +221,28 @@ test("manual associations survive acquisition retries for a different episode", 
 		(await f.catalog.source(identity.fileId)).associations[0]?.number,
 	).toBe("3");
 });
-test("confined completed-file access rejects symlinks, removed roots and incomplete paths within watched roots", async () => {
-	const f = await fixture();
-	const outside = join(f.base, "outside.mkv");
-	await writeFile(outside, "outside");
-	await symlink(outside, join(f.root, "escape.mkv"));
-	await expect(
-		f.library.inspectDownload(f.scopeId, "escape.mkv"),
-	).rejects.toThrow();
-	await expect(
-		f.library.refreshDownload(f.scopeId, "../outside.mkv"),
-	).rejects.toThrow();
-	await expect(
-		f.library.validateDownloadRoot(f.scopeId, join(f.root, "partial")),
-	).rejects.toThrow();
-	await f.config.update({ resourceRoots: [] });
-	await expect(
-		f.library.inspectDownload(f.scopeId, "file.mkv"),
-	).rejects.toThrow();
-});
+test.skipIf(process.platform === "win32")(
+	"confined completed-file access rejects symlinks, removed roots and incomplete paths within watched roots",
+	async () => {
+		const f = await fixture();
+		const outside = join(f.base, "outside.mkv");
+		await writeFile(outside, "outside");
+		await symlink(outside, join(f.root, "escape.mkv"));
+		await expect(
+			f.library.inspectDownload(f.scopeId, "escape.mkv"),
+		).rejects.toThrow();
+		await expect(
+			f.library.refreshDownload(f.scopeId, "../outside.mkv"),
+		).rejects.toThrow();
+		await expect(
+			f.library.validateDownloadRoot(f.scopeId, join(f.root, "partial")),
+		).rejects.toThrow();
+		await f.config.update({ resourceRoots: [] });
+		await expect(
+			f.library.inspectDownload(f.scopeId, "file.mkv"),
+		).rejects.toThrow();
+	},
+);
 
 test.each(["video.mkv", "Unknown - 09.mkv", "Frieren - 03.mkv"])(
 	"accepted downloads ingest %s without metadata requests",

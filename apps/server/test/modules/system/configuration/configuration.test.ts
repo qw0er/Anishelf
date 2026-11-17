@@ -86,29 +86,30 @@ test("initial resource root persists once and later UI changes survive reload", 
 	expect(await readFile(file, "utf8")).toBe(original);
 });
 
-test.each(["missing", "file", "nested", "same", "ancestor", "symlink"])(
-	"rejects invalid initial root (%s) without publishing settings",
-	async (kind) => {
-		let root = join(directory, "media");
-		if (kind === "file") await writeFile(root, "not a directory");
-		if (kind === "nested") root = join(dataDir, "media");
-		if (kind === "same") root = dataDir;
-		if (kind === "ancestor") root = directory;
-		if (kind === "symlink") {
-			await mkdir(dataDir);
-			await symlink(dataDir, root, "dir");
-		}
-		await expect(
-			ConfigurationService.load({
-				...environment(),
-				ANISHELF_INITIAL_RESOURCE_ROOTS: root,
-			}),
-		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
-		await expect(
-			readFile(join(dataDir, "settings.json")),
-		).rejects.toMatchObject({ code: "ENOENT" });
-	},
-);
+for (const kind of ["missing", "file", "nested", "same", "ancestor", "symlink"])
+	test.skipIf(kind === "symlink" && process.platform === "win32")(
+		`rejects invalid initial root (${kind}) without publishing settings`,
+		async () => {
+			let root = join(directory, "media");
+			if (kind === "file") await writeFile(root, "not a directory");
+			if (kind === "nested") root = join(dataDir, "media");
+			if (kind === "same") root = dataDir;
+			if (kind === "ancestor") root = directory;
+			if (kind === "symlink") {
+				await mkdir(dataDir);
+				await symlink(dataDir, root, "dir");
+			}
+			await expect(
+				ConfigurationService.load({
+					...environment(),
+					ANISHELF_INITIAL_RESOURCE_ROOTS: root,
+				}),
+			).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+			await expect(
+				readFile(join(dataDir, "settings.json")),
+			).rejects.toMatchObject({ code: "ENOENT" });
+		},
+	);
 
 test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
 	"rejects unreadable initial media without persisting settings",

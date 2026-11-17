@@ -515,9 +515,10 @@ test("private config survives restart; generations fence stale queries and unifi
 	await expect(connection.clear(first.generation)).rejects.toThrow(
 		expect.objectContaining({ code: "source_conflict" }),
 	);
-	expect(
-		(await stat(join(directory, "acquisition/jackett.json"))).mode & 0o777,
-	).toBe(0o600);
+	if (process.platform !== "win32")
+		expect(
+			(await stat(join(directory, "acquisition/jackett.json"))).mode & 0o777,
+		).toBe(0o600);
 	expect(
 		JSON.parse(
 			await readFile(join(directory, "acquisition/jackett.json"), "utf8"),

@@ -115,47 +115,56 @@ test.each(["same", "resource-in-data", "data-in-resource"])(
 	},
 );
 
-test("rejects overlap through a symlink", async () => {
-	const alias = join(fixture, "alias");
-	await symlink(dataDir, alias, "dir");
-	await settings(alias);
-	await expect(loadPersistentSettings(dataDir)).rejects.toThrow(
-		"separate directories",
-	);
-});
+test.skipIf(process.platform === "win32")(
+	"rejects overlap through a symlink",
+	async () => {
+		const alias = join(fixture, "alias");
+		await symlink(dataDir, alias, "dir");
+		await settings(alias);
+		await expect(loadPersistentSettings(dataDir)).rejects.toThrow(
+			"separate directories",
+		);
+	},
+);
 
-test("rejects missing nested roots under a symlink to the data directory", async () => {
-	const alias = join(fixture, "alias");
-	await symlink(dataDir, alias, "dir");
-	await settings(join(alias, "missing", "media"));
-	await expect(loadPersistentSettings(dataDir)).rejects.toThrow(
-		"separate directories",
-	);
-	await settings();
-	const manager = await PersistentConfiguration.load(dataDir);
-	await expect(
-		manager.update({ resourceRoots: [join(alias, "missing", "media")] }),
-	).rejects.toMatchObject({ code: "CONFIG_INVALID" });
-	expect(manager.settings).toEqual({ resourceRoots: [resourceRoots] });
-	expect(await loadPersistentSettings(dataDir)).toEqual({
-		resourceRoots: [resourceRoots],
-	});
-});
+test.skipIf(process.platform === "win32")(
+	"rejects missing nested roots under a symlink to the data directory",
+	async () => {
+		const alias = join(fixture, "alias");
+		await symlink(dataDir, alias, "dir");
+		await settings(join(alias, "missing", "media"));
+		await expect(loadPersistentSettings(dataDir)).rejects.toThrow(
+			"separate directories",
+		);
+		await settings();
+		const manager = await PersistentConfiguration.load(dataDir);
+		await expect(
+			manager.update({ resourceRoots: [join(alias, "missing", "media")] }),
+		).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+		expect(manager.settings).toEqual({ resourceRoots: [resourceRoots] });
+		expect(await loadPersistentSettings(dataDir)).toEqual({
+			resourceRoots: [resourceRoots],
+		});
+	},
+);
 
-test("a missing nested root under a separate symlink remains recoverable", async () => {
-	const separate = join(fixture, "separate");
-	const alias = join(fixture, "alias");
-	await mkdir(separate);
-	await symlink(separate, alias, "dir");
-	const root = join(alias, "missing", "media");
-	await settings(root);
-	expect(await loadPersistentSettings(dataDir)).toEqual({
-		resourceRoots: [root],
-	});
-	expect(await checkResourceRoot({ resourceRoots: [root] })).toMatchObject({
-		code: "RESOURCE_ROOT_UNAVAILABLE",
-	});
-});
+test.skipIf(process.platform === "win32")(
+	"a missing nested root under a separate symlink remains recoverable",
+	async () => {
+		const separate = join(fixture, "separate");
+		const alias = join(fixture, "alias");
+		await mkdir(separate);
+		await symlink(separate, alias, "dir");
+		const root = join(alias, "missing", "media");
+		await settings(root);
+		expect(await loadPersistentSettings(dataDir)).toEqual({
+			resourceRoots: [root],
+		});
+		expect(await checkResourceRoot({ resourceRoots: [root] })).toMatchObject({
+			code: "RESOURCE_ROOT_UNAVAILABLE",
+		});
+	},
+);
 
 test("missing root is recoverable and availability can be rechecked", async () => {
 	await settings();

@@ -1,5 +1,5 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { expect, test, vi } from "vitest";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import { DomainError } from "../../../../src/shared/errors.js";
@@ -215,7 +215,7 @@ test("scoped publications retain unrelated decisions, associations and playback 
 	const f = await fixture(["series/Anime - 01.mkv", "other/Anime - 02.mkv"]);
 	const before = (await f.catalog.reviews()).items;
 	const changed = required(
-		before.find((item) => item.relativePath.startsWith("series/")),
+		before.find((item) => item.relativePath.startsWith(`series${sep}`)),
 	);
 	const untouched = required(before.find((item) => item.id !== changed.id));
 	await f.catalog.reject(untouched.id, untouched.revision, "Manual decision");
