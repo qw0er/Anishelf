@@ -35,6 +35,7 @@ import {
 import { WindowStateStore } from "./window-state.js";
 
 const rendererUrl = `${desktopOrigin}/`;
+const titleBarHeight = 40;
 const iconPath = () =>
 	fileURLToPath(
 		new URL(
@@ -409,7 +410,7 @@ export class DesktopApplication {
 			...windowState.windowOptions(savedState),
 			show: !startHidden,
 			titleBarStyle: "hidden",
-			titleBarOverlay: { height: 32 },
+			titleBarOverlay: { height: titleBarHeight },
 			...(process.platform === "linux"
 				? {
 						icon: iconPath(),
@@ -460,6 +461,7 @@ export class DesktopApplication {
 		console.info("desktop.window_opened", {
 			hidden: startHidden,
 			titleBar: "overlay",
+			titleBarHeight,
 		});
 	}
 }

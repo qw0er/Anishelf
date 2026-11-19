@@ -69,7 +69,7 @@ export default function AppHeader({
 	return (
 		<header className="app-shell-header" inert={pending}>
 			<div className="app-brand-row">
-				<Link className="app-brand" to="/">
+				<Link className="app-brand" to="/" aria-label={t("app.name")}>
 					<Library size={22} aria-hidden="true" />
 					<span>{t("app.name")}</span>
 				</Link>

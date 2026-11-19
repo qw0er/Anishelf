@@ -3,6 +3,8 @@
 
 :root {
 	--desktop-titlebar-height: env(titlebar-area-height, 0px);
+	--desktop-titlebar-left: env(titlebar-area-x, 0px);
+	--desktop-titlebar-width: env(titlebar-area-width, 100%);
 }
 
 :root:fullscreen,
@@ -17,15 +19,15 @@ body {
 .desktop-titlebar {
 	position: fixed;
 	inset: 0 0 auto;
-	z-index: 60;
+	z-index: 29;
 	height: var(--desktop-titlebar-height);
 	background: var(--background);
 }
 
 .desktop-titlebar-drag {
 	position: absolute;
-	left: env(titlebar-area-x, 0px);
-	width: env(titlebar-area-width, 100%);
+	left: var(--desktop-titlebar-left);
+	width: var(--desktop-titlebar-width);
 	height: 100%;
 	app-region: drag;
 	user-select: none;
@@ -37,4 +39,58 @@ body {
 
 .app-shell-header {
 	top: var(--desktop-titlebar-height);
+}
+
+/* When the window controls disappear in fullscreen, use the in-page header. */
+@container not style(--desktop-titlebar-height: 0px) {
+	.app-shell-header .app-brand-row {
+		position: fixed;
+		top: 0;
+		left: var(--desktop-titlebar-left);
+		z-index: 30;
+		display: flex;
+		width: var(--desktop-titlebar-width);
+		height: var(--desktop-titlebar-height);
+		gap: 1.5rem;
+		padding-inline: 0.75rem;
+		container: desktop-brand / inline-size;
+		app-region: drag;
+		user-select: none;
+	}
+
+	.app-brand-row .app-brand {
+		min-width: 0;
+		padding: 0;
+		font-size: 1rem;
+		app-region: no-drag;
+	}
+
+	.app-brand-row .app-brand svg {
+		flex-shrink: 0;
+	}
+
+	.app-brand-row .app-preferences {
+		position: static;
+		height: 100%;
+		align-items: center;
+	}
+
+	.app-brand-row .app-preferences button {
+		max-height: 100%;
+		app-region: no-drag;
+	}
+
+	.app-shell-header .app-navigation {
+		padding-top: 0;
+	}
+
+	.app-shell-header .app-nav-settings {
+		margin-bottom: 0;
+	}
+}
+
+@container desktop-brand (width < 14rem) {
+	.app-brand span {
+		display: none;
+	}
 }
