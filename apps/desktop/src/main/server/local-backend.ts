@@ -28,8 +28,9 @@ export class LocalBackend {
 		this.child = utilityProcess.fork(
 			join(appPath, "backend-process.mjs"),
 			[backendPath, join(profileDir, "backend")],
-			{ serviceName: "Anishelf Backend", stdio: ["ignore", "inherit", "pipe"] },
+			{ serviceName: "Anishelf Backend", stdio: ["ignore", "pipe", "pipe"] },
 		);
+		this.child.stdout?.pipe(process.stdout, { end: false });
 		this.child.stderr?.setEncoding("utf8").on("data", (chunk: string) => {
 			this.stderr = (this.stderr + chunk).slice(-maximumDiagnosticLength);
 		});

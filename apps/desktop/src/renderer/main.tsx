@@ -15,6 +15,7 @@ import { DesktopExternalPlayerSettings } from "./settings/external-player-settin
 import { ServerConnectionSettings } from "./settings/server-connection-settings.js";
 import { StartupSettings } from "./settings/startup-settings.js";
 import { TraySettings } from "./settings/tray-settings.js";
+import { syncWindowControlsTheme } from "./window-controls-theme.js";
 import "./styles.css";
 
 declare const __ANISHELF_BUILD__: { buildInfo: BuildInfo; changelog: string };
@@ -30,6 +31,7 @@ document.documentElement.style.colorScheme = dark ? "dark" : "light";
 async function start() {
 	const desktop = window.desktop;
 	if (!desktop) throw new Error("Open Anishelf in Electron.");
+	syncWindowControlsTheme(desktop);
 
 	const session = new ClientSessionLifecycle({
 		name: "desktop",

@@ -55,6 +55,7 @@ export interface DesktopBridge {
 	setLaunchAtLogin(enabled: boolean): Promise<void>;
 	getCloseToTray(): Promise<boolean>;
 	setCloseToTray(enabled: boolean): Promise<void>;
+	setWindowControlsColors(color: string, symbolColor: string): Promise<void>;
 	getServerConnection(): Promise<{
 		kind: "local" | "external";
 		origin: string;

@@ -198,6 +198,21 @@ export class DesktopApplication {
 							throw new Error("Desktop tray unavailable.");
 						this.tray.setEnabled(enabled);
 					},
+					setWindowControlsColors: async (sender, color, symbolColor) => {
+						if (process.platform === "darwin") return;
+						const hexColor = /^#[0-9a-f]{6}$/i;
+						if (
+							typeof color !== "string" ||
+							typeof symbolColor !== "string" ||
+							!hexColor.test(color) ||
+							!hexColor.test(symbolColor)
+						)
+							throw new Error("Expected hex colors for the window controls.");
+						BrowserWindow.fromWebContents(sender)?.setTitleBarOverlay({
+							color,
+							symbolColor,
+						});
+					},
 					getServerConnection: async () => ({
 						kind: this.server.kind,
 						origin: this.server.origin,
@@ -393,6 +408,8 @@ export class DesktopApplication {
 		const window = new BrowserWindow({
 			...windowState.windowOptions(savedState),
 			show: !startHidden,
+			titleBarStyle: "hidden",
+			titleBarOverlay: { height: 32 },
 			...(process.platform === "linux"
 				? {
 						icon: iconPath(),
@@ -440,6 +457,9 @@ export class DesktopApplication {
 			if (!window.isDestroyed()) window.destroy();
 			throw error;
 		}
-		console.info("desktop.window_opened", { hidden: startHidden });
+		console.info("desktop.window_opened", {
+			hidden: startHidden,
+			titleBar: "overlay",
+		});
 	}
 }

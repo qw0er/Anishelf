@@ -9,6 +9,12 @@ const desktop: DesktopBridge = {
 		ipcRenderer.invoke("desktop:login-item:set", enabled),
 	getCloseToTray: () => ipcRenderer.invoke("desktop:tray:get"),
 	setCloseToTray: (enabled) => ipcRenderer.invoke("desktop:tray:set", enabled),
+	setWindowControlsColors: (color, symbolColor) =>
+		ipcRenderer.invoke(
+			"desktop:window-controls:set-colors",
+			color,
+			symbolColor,
+		),
 	checkForUpdates: () => ipcRenderer.invoke("desktop:check-for-updates"),
 	getServerConnection: () => ipcRenderer.invoke("desktop:server-connection"),
 	useLocalBackend: () => ipcRenderer.invoke("desktop:use-local-backend"),

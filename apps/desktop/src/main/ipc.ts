@@ -18,6 +18,11 @@ export interface DesktopIpcHandlers {
 	setLaunchAtLogin(enabled: unknown): Promise<void>;
 	getCloseToTray(): Promise<boolean>;
 	setCloseToTray(enabled: unknown): Promise<void>;
+	setWindowControlsColors(
+		sender: WebContents,
+		color: unknown,
+		symbolColor: unknown,
+	): Promise<void>;
 	getServerConnection: DesktopBridge["getServerConnection"];
 	useLocalBackend: DesktopBridge["useLocalBackend"];
 	signIn(origin: unknown, password: unknown): Promise<ServerSignInResult>;
@@ -80,6 +85,10 @@ export function registerDesktopIpc(
 		handle("desktop:tray:get", handlers.getCloseToTray);
 		handle("desktop:tray:set", (_, enabled) =>
 			handlers.setCloseToTray(enabled),
+		);
+		handle(
+			"desktop:window-controls:set-colors",
+			handlers.setWindowControlsColors,
 		);
 		handle("desktop:server-connection", handlers.getServerConnection);
 		handle("desktop:use-local-backend", handlers.useLocalBackend);
