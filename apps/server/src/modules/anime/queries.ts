@@ -5,7 +5,6 @@ import type { CatalogMetadata as MetadataApi } from "./anime-catalog/ports.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
 import type { MetadataIdentitiesApi } from "./external-works/metadata/public.js";
 import { MetadataError, workTitle } from "./external-works/metadata/public.js";
-import type { TrackingApi } from "./external-works/tracking/public.js";
 import type { AnimeApi, AnimeDetail } from "./public.js";
 
 /** Anime-only reads; cross-module acquisition composition belongs to app. */
@@ -16,7 +15,6 @@ export class AnimeQueries implements Queries {
 			| Pick<AnimeCatalogApi, "getLocalWorkDetail" | "findLocalWork">
 			| undefined,
 		private readonly metadata: Pick<MetadataApi, "get"> | undefined,
-		private readonly tracking: Pick<TrackingApi, "list" | "status">,
 		private readonly logger: Logger,
 		private readonly identities?: MetadataIdentitiesApi,
 		private readonly titleDisplayPreference: () => import("./external-works/metadata/public.js").TitleDisplayPreference = () =>
@@ -25,7 +23,6 @@ export class AnimeQueries implements Queries {
 	async detail(
 		input: { localWorkId: string } | { key: string },
 	): Promise<AnimeDetail> {
-		const tracking = this.tracking.list();
 		const localId =
 			"localWorkId" in input
 				? input.localWorkId
@@ -40,10 +37,7 @@ export class AnimeQueries implements Queries {
 				"Local Catalog is unavailable.",
 			);
 		const reference = local
-			? (this.identities?.externalReference(
-					local.work.reference,
-					tracking.provider.key,
-				) ?? this.identities?.externalReference(local.work.reference))
+			? this.identities?.externalReference(local.work.reference)
 			: this.reference("key" in input ? input.key : "");
 		if (!reference)
 			throw new DomainError(
@@ -68,17 +62,9 @@ export class AnimeQueries implements Queries {
 				metadataError = error.failure;
 			}
 		}
-		if (this.tracking.status().generation !== tracking.generation)
-			throw new DomainError(
-				"TRACKING_CONFLICT",
-				"Account changed while reading anime detail.",
-			);
-		const { entries, ...envelope } = tracking;
-		const entry = entries.find((entry) => entry.mediaId === key) ?? null;
-		const titles = metadata?.data.titles;
 		const displayTitle = workTitle(
-			titles ?? entry?.titleVariants ?? [],
-			local?.work.displayTitle ?? entry?.titles[0] ?? key,
+			metadata?.data.titles ?? [],
+			local?.work.displayTitle ?? key,
 			this.titleDisplayPreference(),
 		);
 		this.logger.trace(
@@ -87,7 +73,6 @@ export class AnimeQueries implements Queries {
 				key,
 				local: Boolean(local),
 				metadata: Boolean(metadata),
-				generation: tracking.generation,
 			},
 			"Anime detail projection read.",
 		);
@@ -97,7 +82,6 @@ export class AnimeQueries implements Queries {
 			metadata,
 			metadataError,
 			local,
-			viewing: { ...envelope, entry },
 		};
 	}
 	private projectReference(

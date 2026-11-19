@@ -14,7 +14,7 @@ import type { HttpInstance } from "../transport/instance.js";
 export function registerAnimeDetailRoutes(
 	app: HttpInstance,
 	anime: Pick<AnimeApi, "queries"> & {
-		tracking: Pick<AnimeApi["tracking"], "status" | "list">;
+		tracking: Pick<AnimeApi["tracking"], "list">;
 	},
 	acquisition: {
 		subscriptions: Pick<AcquisitionApi["subscriptions"], "get">;
@@ -25,10 +25,9 @@ export function registerAnimeDetailRoutes(
 	const read = async (input: { localWorkId: string } | { key: string }) => {
 		const detail = await anime.queries.detail(input);
 		const key = workKey(detail.reference);
-		const { viewing, ...description } = detail;
 		const local = detail.local;
 		const result = {
-			...description,
+			...detail,
 			local: local
 				? {
 						...local,
@@ -44,12 +43,6 @@ export function registerAnimeDetailRoutes(
 					}
 				: null,
 		};
-		// Revalidate account generation after every asynchronous detail read.
-		if (anime.tracking.status().generation !== viewing.generation)
-			throw new DomainError(
-				"TRACKING_CONFLICT",
-				"Account changed while reading anime detail.",
-			);
 		logger.trace(
 			{ event: "application.anime_detail_read", key, local: Boolean(local) },
 			"Unified anime detail read.",

@@ -369,8 +369,13 @@ query context and mounted playback state. Heavy candidate diagnostics load on de
 seed each other's cache using the original request timestamp; loaders and components
 share freshness policies. Download activity only drives lightweight status polling.
 Subscription commands invalidate the affected work rather than every detail.
-Account changes cancel and remove both detail and status queries; ordinary page
-refresh preserves playback sessions and versioned compatibility caches.
+The Library can read confirmed Catalog works while account lookup is pending or
+unavailable, or when the user has disconnected Tracking. This read skips the
+Tracking list and viewing filters. An account-scoped read adds viewing state and
+the selected list entries. Descriptive detail reads use Catalog and Metadata
+directly. Account changes clear status and Library queries and retain cached
+work descriptions. Ordinary page refresh preserves playback sessions and
+versioned compatibility caches.
 
 ### Resource publication and interface continuity
 

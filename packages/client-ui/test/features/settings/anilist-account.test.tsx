@@ -87,12 +87,8 @@ test.each([disconnected, connected])(
 			{ scope: "all" },
 		];
 		queryClient.setQueryData(oldLibraryKey, { private: true });
-		queryClient.setQueryData(
-			["catalog", "root", "local-work-detail", "work-1"],
-			{
-				public: true,
-			},
-		);
+		const detailKey = ["anime-detail", "root", "local", "work-1"];
+		queryClient.setQueryData(detailKey, { public: true });
 		render(<TrackingAccountSettings metadataProvider="anilist" />);
 		const connect = await screen.findByRole("button", {
 			name: "Connect AniList",
@@ -132,14 +128,7 @@ test.each([disconnected, connected])(
 			queryClient.getQueryData(["tracking", "old-account", "list"]),
 		).toBeUndefined();
 		expect(queryClient.getQueryData(oldLibraryKey)).toBeUndefined();
-		expect(
-			queryClient.getQueryData([
-				"catalog",
-				"root",
-				"local-work-detail",
-				"work-1",
-			]),
-		).toEqual({ public: true });
+		expect(queryClient.getQueryData(detailKey)).toEqual({ public: true });
 		expect(
 			JSON.stringify(
 				queryClient

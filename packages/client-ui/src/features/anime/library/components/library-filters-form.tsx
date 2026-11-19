@@ -22,18 +22,18 @@ import {
 } from "../../../../shared/components/ui/native-select.js";
 
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
-import type { LibraryFilters } from "../api.js";
+import type { activeLibraryFilters, LibraryFilters } from "../api.js";
 import { libraryFilters, librarySearch } from "../api.js";
 
 export function LibraryFiltersForm({
 	filters,
-	filtered,
+	active,
 	onFilters,
 	viewingEnabled,
 	actions,
 }: {
 	filters: LibraryFilters;
-	filtered: boolean;
+	active: ReturnType<typeof activeLibraryFilters>;
 	onFilters(value: string): void;
 	viewingEnabled: boolean;
 	actions: ReactNode;
@@ -60,9 +60,6 @@ export function LibraryFiltersForm({
 		next.delete("page");
 		commit(librarySearch(libraryFilters(next)));
 	}
-	const active = (
-		["query", "format", "year", "availability", "viewingStatus"] as const
-	).filter((key) => filters[key]);
 	return (
 		<div className="space-y-3">
 			<fieldset
@@ -157,7 +154,9 @@ export function LibraryFiltersForm({
 					/>
 					<FilterSelect
 						label={t("trackingList.viewingState")}
-						value={filters.viewingStatus ?? "watching"}
+						value={
+							viewingEnabled ? (filters.viewingStatus ?? "watching") : "all"
+						}
 						disabled={!viewingEnabled}
 						onChange={(value) => change("viewingStatus", value)}
 						options={[
@@ -230,7 +229,7 @@ export function LibraryFiltersForm({
 					/>
 				</div>
 			</div>
-			{filtered && (
+			{active.length > 0 && (
 				<fieldset
 					className="flex flex-wrap items-center gap-2"
 					aria-label={t("anime.activeFilters")}
@@ -250,16 +249,14 @@ export function LibraryFiltersForm({
 											: `anime.${key}`,
 								),
 							})}
-							onClick={() => change(key, "")}
+							onClick={() => change(key, key === "viewingStatus" ? "all" : "")}
 						>
 							<span className="truncate">
 								{key === "viewingStatus"
 									? t(
 											filters.viewingStatus === "untracked"
 												? "trackingList.untracked"
-												: filters.viewingStatus === "all"
-													? "trackingList.allStatuses"
-													: `trackingList.statuses.${filters.viewingStatus}`,
+												: `trackingList.statuses.${filters.viewingStatus}`,
 										)
 									: key === "availability"
 										? t(`anime.${filters.availability}`)
@@ -280,6 +277,7 @@ export function LibraryFiltersForm({
 								librarySearch({
 									sort: filters.sort,
 									page: 1,
+									viewingStatus: "all",
 									...(filters.scope ? { scope: filters.scope } : {}),
 								}),
 							)

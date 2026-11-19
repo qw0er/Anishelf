@@ -51,15 +51,12 @@ export function mockAnime(detail: ReturnType<typeof animeFixture>) {
 			return json(animeStatusFixture(await fixtureViewing(key)));
 		}
 
-		if (path === "/api/anime/details/local/work-1") {
-			const key = "anilist:anime:154587";
-			return json(animeDetailFixture(detail, await fixtureViewing(key)));
-		}
+		if (path === "/api/anime/details/local/work-1")
+			return json(animeDetailFixture(detail));
 		if (path.startsWith("/api/anime/details/works/")) {
 			const key = decodeURIComponent(
 				path.slice("/api/anime/details/works/".length),
 			);
-			const viewing = await fixtureViewing(key);
 			const id = decodeURIComponent(key.split(":")[2] ?? "");
 			const response = await requiredFetch(fetcher.getMockImplementation())(
 				id === "154587"
@@ -67,10 +64,10 @@ export function mockAnime(detail: ReturnType<typeof animeFixture>) {
 					: `/api/metadata/missing-${encodeURIComponent(id)}`,
 			);
 			return json({
-				...animeDetailFixture(detail, viewing),
+				...animeDetailFixture(detail),
 				reference: { provider: "anilist", mediaType: "anime", id },
 				local: null,
-				displayTitle: viewing?.entry?.titles[0] ?? key,
+				displayTitle: response.ok ? detail.work.displayTitle : key,
 				metadata: response.ok ? await response.json() : null,
 				metadataError: response.ok
 					? null

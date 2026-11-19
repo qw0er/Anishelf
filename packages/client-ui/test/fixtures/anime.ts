@@ -177,7 +177,6 @@ export function reviewFixture(confirmed = false): CatalogReviewItem {
 
 export function animeDetailFixture(
 	local: LocalWorkDetailResponse,
-	_viewing?: TrackingEntryResponse,
 ): AnimeDetailResponse {
 	return {
 		reference: {

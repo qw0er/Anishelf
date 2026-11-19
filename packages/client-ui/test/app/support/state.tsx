@@ -49,7 +49,7 @@ export const file: FileResponse = {
 	originalMediaUrl: "/api/media/file-1",
 };
 
-export const disconnectedList: AnimeLibraryResponse["tracking"] = {
+export const disconnectedList: NonNullable<AnimeLibraryResponse["tracking"]> = {
 	provider: trackingProvider,
 	accountId: null,
 	generation: "fixture",

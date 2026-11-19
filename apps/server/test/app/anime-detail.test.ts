@@ -3,11 +3,19 @@ import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { registerAnimeDetailRoutes } from "../../src/app/anime-detail.js";
 import { createHttpApp } from "../../src/app/bootstrap/http.js";
+import { AnimeLibraryQueries } from "../../src/modules/anime/anime-library/application/library.js";
 import { MetadataError } from "../../src/modules/anime/external-works/metadata/public.js";
 import type { TrackingListSnapshot } from "../../src/modules/anime/external-works/tracking/public.js";
 import { AnimeQueries } from "../../src/modules/anime/queries.js";
 import { DomainError } from "../../src/shared/errors.js";
+import {
+	fixture as catalogFixture,
+	confirm,
+	setupTestLifecycle,
+} from "../modules/anime/catalog/support/anime-catalog-fixture.js";
 import { fixtureIdentities } from "../support/metadata-identities.js";
+
+setupTestLifecycle();
 
 const logger = pino({ enabled: false });
 const reference = {
@@ -53,14 +61,6 @@ function tracking(): TrackingListSnapshot {
 }
 function fixture() {
 	const list = vi.fn(() => tracking());
-	const status = vi.fn(() => ({
-		generation: "generation",
-		provider: tracking().provider,
-		account: { id: "account", name: "Fixture" },
-		state: "connected" as const,
-		connectivity: "available" as const,
-		checkedAt: 1,
-	}));
 	const get = vi.fn(async () => {
 		throw new MetadataError({
 			code: "unavailable",
@@ -73,11 +73,10 @@ function fixture() {
 	const queries = new AnimeQueries(
 		{ findLocalWork, getLocalWorkDetail },
 		{ get },
-		{ list, status },
 		logger,
 		fixtureIdentities(),
 	);
-	return { queries, list, status, get, findLocalWork, getLocalWorkDetail };
+	return { queries, list, get, findLocalWork, getLocalWorkDetail };
 }
 test("detail and lightweight status remain independent during a metadata outage", async () => {
 	const f = fixture();
@@ -108,7 +107,7 @@ test("detail and lightweight status remain independent during a metadata outage"
 			(app) =>
 				registerAnimeDetailRoutes(
 					app,
-					{ queries: f.queries, tracking: { status: f.status, list: f.list } },
+					{ queries: f.queries, tracking: { list: f.list } },
 					{ subscriptions: discovery, downloads },
 					logger,
 				),
@@ -124,12 +123,13 @@ test("detail and lightweight status remain independent during a metadata outage"
 		expect(response.headers["cache-control"]).toBe("no-store");
 		expect(response.json()).toMatchObject({
 			reference,
-			displayTitle: "Cached title",
+			displayTitle: key,
 			local: null,
 			metadata: null,
 			metadataError: { code: "unavailable" },
 		});
 		expect(discovery.get).not.toHaveBeenCalled();
+		expect(f.list).not.toHaveBeenCalled();
 		expect(downloads.summary).not.toHaveBeenCalled();
 		expect(response.json()).not.toHaveProperty("viewing");
 		const status = await app.inject({
@@ -139,7 +139,7 @@ test("detail and lightweight status remain independent during a metadata outage"
 		expect(status.statusCode).toBe(200);
 		expect(status.headers["cache-control"]).toBe("no-store");
 		expect(status.json()).toMatchObject({
-			viewing: { entry: { progress: 4 } },
+			viewing: { entry: { progress: 4, titles: ["Cached title"] } },
 			subscription: { subscription: null },
 			downloads: { total: 3, active: 2, attention: 1 },
 		});
@@ -159,11 +159,48 @@ test("detail and lightweight status remain independent during a metadata outage"
 		await app.close();
 	}
 });
-test("an account change during an asynchronous read rejects the old aggregate", async () => {
-	const f = fixture();
-	f.status.mockReturnValue({ ...f.status(), generation: "new-generation" });
-	await expect(f.queries.detail({ key })).rejects.toMatchObject({
-		code: "TRACKING_CONFLICT",
+test("the signed-out wall lists only confirmed works and both detail links read their metadata", async () => {
+	const f = await catalogFixture();
+	const { workId } = await confirm(f);
+	const metadata = f.publicMetadata;
+	const cachedOnly = await metadata.get(metadata.resolveReference("2"));
+	const list = vi.fn(() => {
+		throw new Error("Unexpected tracking read");
+	});
+	const library = new AnimeLibraryQueries({
+		catalog: f.catalog,
+		identities: metadata.identities,
+		logger,
+		lists: { list, refreshList: vi.fn() },
+	});
+	const wall = await library.list({ scope: "all", includeTracking: false });
+	expect(wall.items.map((card) => card.localWorkId)).toEqual([workId]);
+	expect(wall.items[0]).toMatchObject({
+		displayTitle: "葬送のフリーレン",
+		availableEpisodes: 1,
+		viewing: null,
+	});
+	expect(list).not.toHaveBeenCalled();
+	const queries = new AnimeQueries(
+		f.catalog,
+		metadata,
+		logger,
+		metadata.identities,
+	);
+	const local = await queries.detail({ localWorkId: workId });
+	expect(local).toMatchObject({
+		displayTitle: "葬送のフリーレン",
+		metadata: { data: { description: "Original provider text" } },
+		local: { work: { id: workId, availableEpisodes: 1 } },
+	});
+	expect(
+		(await queries.detail({ key: workKey(local.reference) })).local?.work.id,
+	).toBe(workId);
+	await expect(
+		queries.detail({ key: workKey({ ...local.reference, id: "2" }) }),
+	).resolves.toMatchObject({
+		metadata: { snapshotId: cachedOnly.snapshotId },
+		local: null,
 	});
 });
 test("remote detail remains usable without configured local roots and rejects malformed identities", async () => {

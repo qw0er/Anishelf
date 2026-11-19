@@ -77,6 +77,16 @@ test("poster library filters local titles, preserves return context and selects 
 	mockAnime(detail);
 	renderApp("/?query=Frieren&sort=recent");
 	const card = await screen.findByRole("link", { name: "Frieren" });
+	expect(
+		fetcher.mock.calls.some(([path]) => {
+			const url = new URL(String(path), "http://localhost");
+			return (
+				url.pathname === "/api/anime/library" &&
+				url.searchParams.get("includeTracking") === "false" &&
+				!url.searchParams.has("viewingStatus")
+			);
+		}),
+	).toBe(true);
 	fireEvent.click(card);
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });
 	expect(screen.queryByRole("button", { name: "Show all titles" })).toBeNull();
@@ -171,9 +181,9 @@ test("search and immediate filters reset pagination and preserve applied criteri
 	).toBe(false);
 });
 
-test("the default Watching poster wall exposes a filtered empty state and access to Files", async () => {
+test("the signed-out poster wall shows the catalog empty state and access to Files", async () => {
 	renderApp("/");
-	await screen.findByText(/No anime match these filters/);
+	await screen.findByText(/No associated anime yet/);
 	expect(
 		screen
 			.getAllByRole("link", { name: "Files" })

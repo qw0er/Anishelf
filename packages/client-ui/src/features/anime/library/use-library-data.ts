@@ -8,25 +8,29 @@ import {
 import type { LibraryFilters } from "./api.js";
 import { animeLibraryQuery } from "./queries.js";
 
-/** One owner for the wall's account dependency, list reads and explicit refresh. */
+/** Only account-scoped reads include viewing filters and private list entries. */
 export function useLibraryData(filters: LibraryFilters, enabled: boolean) {
 	const account = useQuery(accountQuery());
+	const identity = account.data?.account
+		? trackingIdentity(account.data)
+		: undefined;
+	const appliedFilters = identity
+		? filters
+		: { ...filters, viewingStatus: "all" as const };
 	const query = useQuery({
-		...animeLibraryQuery(
-			filters,
-			useQueryScope(),
-			account.data ? trackingIdentity(account.data) : undefined,
-		),
+		...animeLibraryQuery(appliedFilters, useQueryScope(), identity),
 		enabled,
 	});
 	const refresh = useTrackingRefresh(account.data);
 	return {
 		account: account.data,
-		data: account.data ? query.data : undefined,
-		error: account.error ?? query.error,
-		isPending: account.isPending || query.isPending,
-		isFetching: account.isFetching || query.isFetching,
-		refetch: () => (account.isError ? account.refetch() : query.refetch()),
+		accountError: account.isError && !account.data,
+		retryAccount: account.refetch,
+		data: query.data,
+		error: query.error,
+		isPending: query.isPending,
+		isFetching: query.isFetching,
+		refetch: query.refetch,
 		refresh,
 	};
 }

@@ -52,37 +52,29 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			perPage > 50
 		)
 			throw new DomainError("INVALID_REQUEST", "Invalid library page.");
-		const tracking = this.options.lists.list(generation);
+		let tracking: LibraryResult["tracking"] = null;
+		let entries: TrackingListEntry[] = [];
+		if (query.includeTracking !== false)
+			({ entries, ...tracking } = this.options.lists.list(generation));
 		const index = await this.localIndex();
-		this.options.lists.list(tracking.generation, false);
-		const tracked = new Map(
-			tracking.entries.map((entry) => [entry.mediaId, entry]),
-		);
+		if (tracking) this.options.lists.list(tracking.generation, false);
+		const tracked = new Map(entries.map((entry) => [entry.mediaId, entry]));
+		const viewingStatus = tracking?.accountId ? query.viewingStatus : undefined;
 		const sort = query.sort ?? "unwatched";
 		const addedAt = new Map<string, number>();
 		const cards = new Map<string, LibraryCard>();
 		const fallbackTitles = new Map<string, readonly MetadataTitle[]>();
 		const searchEvidence = new Map<string, readonly string[]>();
 		const preference = this.options.titleDisplayPreference?.() ?? "native";
-		const localKeys = new Set(
-			index?.items.flatMap((work) => {
-				const ref = this.options.identities?.externalReference(
-					work.reference,
-					tracking.provider.key,
-				);
-				return ref ? [workKey(ref)] : [];
-			}) ?? [],
-		);
+		const localKeys = new Set<string>();
 		for (const work of index?.items ?? []) {
-			const mapped = this.options.identities?.externalReference(
+			const reference = this.options.identities?.externalReference(
 				work.reference,
-				tracking.provider.key,
 			);
-			const reference =
-				mapped ?? this.options.identities?.externalReference(work.reference);
 			if (!reference) continue;
-			const viewing = mapped ? tracked.get(workKey(mapped)) : undefined;
 			const key = workKey(reference);
+			localKeys.add(key);
+			const viewing = tracked.get(key);
 			if (
 				(query.availability === "available" && !work.available) ||
 				(query.availability === "unavailable" && work.available) ||
@@ -115,17 +107,19 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				remoteCoverUrl: null,
 				nextPlayback: null,
 				viewing: viewing ? viewingState(viewing) : null,
-				viewingAvailability: !mapped
-					? "unsupported"
-					: tracking.fetchedAt === null
-						? "unknown"
-						: viewing
-							? "tracked"
-							: "untracked",
+				viewingAvailability: viewingAvailability(
+					tracking,
+					reference.provider,
+					viewing,
+				),
 			});
 		}
-		if (query.scope === "all" && query.availability !== "available")
-			for (const entry of tracking.entries) {
+		if (
+			tracking?.accountId &&
+			query.scope === "all" &&
+			query.availability !== "available"
+		)
+			for (const entry of entries) {
 				const key = entry.mediaId;
 				if (localKeys.has(key) || !matches(entry, query)) continue;
 				fallbackTitles.set(key, entry.titleVariants ?? []);
@@ -177,12 +171,12 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			})
 			.filter(
 				(card) =>
-					!query.viewingStatus ||
-					(query.viewingStatus === "untracked"
+					!viewingStatus ||
+					(viewingStatus === "untracked"
 						? card.viewingAvailability === "untracked"
-						: query.viewingStatus === "watching"
+						: viewingStatus === "watching"
 							? isActiveViewing(card.viewing?.status)
-							: card.viewing?.status === query.viewingStatus),
+							: card.viewing?.status === viewingStatus),
 			);
 		const hydrated =
 			sort === "unwatched"
@@ -237,14 +231,13 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			items.map((card) => card.reference),
 			preference,
 		);
-		this.options.lists.list(tracking.generation, false);
-		const { entries: _, ...envelope } = tracking;
+		if (tracking) this.options.lists.list(tracking.generation, false);
 		this.options.logger.trace(
 			{
 				event: "anime.library_read",
 				titlesRefreshing: titlesRefreshing ?? false,
 				titleDisplayPreference: preference,
-				viewingStatus: query.viewingStatus ?? null,
+				viewingStatus: viewingStatus ?? null,
 				activeViewingCount: items.filter((card) =>
 					isActiveViewing(card.viewing?.status),
 				).length,
@@ -254,7 +247,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 				totalCount: filtered.length,
 				localCount: localIds.length,
 				remoteCount: items.length - localIds.length,
-				trackingState: tracking.state,
+				trackingState: tracking?.state ?? "omitted",
 				localState: index ? "available" : "unavailable",
 				nextPlaybackCount: items.filter((card) => card.nextPlayback).length,
 			},
@@ -267,7 +260,7 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			perPage,
 			hasNextPage: filtered.length > page * perPage,
 			localState: index ? "available" : "unavailable",
-			tracking: envelope,
+			tracking,
 		};
 	}
 	private async hydrate(
@@ -305,6 +298,16 @@ export class AnimeLibraryQueries implements AnimeLibraryApi {
 			throw error;
 		}
 	}
+}
+function viewingAvailability(
+	tracking: LibraryResult["tracking"],
+	provider: string,
+	entry: TrackingListEntry | undefined,
+): LibraryCard["viewingAvailability"] {
+	if (!tracking?.accountId) return "unknown";
+	if (provider !== tracking.provider.key) return "unsupported";
+	if (tracking.fetchedAt === null) return "unknown";
+	return entry ? "tracked" : "untracked";
 }
 function viewingState(entry: TrackingListEntry) {
 	return {

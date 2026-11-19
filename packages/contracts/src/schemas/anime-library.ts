@@ -26,6 +26,9 @@ export const AnimeLibraryQuerySchema = Type.Object(
 			Type.Union([ViewingStatusSchema, Type.Literal("untracked")]),
 		),
 		generation: Type.Optional(Type.String({ format: "uuid" })),
+		includeTracking: Type.Optional(
+			Type.Union([Type.Literal("true"), Type.Literal("false")]),
+		),
 	},
 	{ additionalProperties: false },
 );
@@ -77,5 +80,5 @@ export const AnimeLibrarySchema = Type.Object({
 		Type.Literal("available"),
 		Type.Literal("unavailable"),
 	]),
-	tracking: TrackingListEnvelopeSchema,
+	tracking: Type.Union([TrackingListEnvelopeSchema, Type.Null()]),
 });

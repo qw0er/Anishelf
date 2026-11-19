@@ -22,7 +22,7 @@ export function useDetailViewing(
 		mediaId,
 		visible: true,
 		unmapped:
-			snapshot !== undefined &&
+			snapshot?.accountId != null &&
 			!mediaId.startsWith(
 				`${encodeURIComponent(snapshot.provider.key)}:anime:`,
 			),

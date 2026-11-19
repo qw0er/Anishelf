@@ -24,10 +24,12 @@ export function registerAnimeLibraryRoutes(
 			},
 		},
 		async (request) => {
-			const { generation, page, perPage, year, ...filters } = request.query;
+			const { generation, includeTracking, page, perPage, year, ...filters } =
+				request.query;
 			const result = await library.list(
 				{
 					...filters,
+					includeTracking: includeTracking !== "false",
 					...(page ? { page: Number(page) } : {}),
 					...(perPage ? { perPage: Number(perPage) } : {}),
 					...(year ? { year: Number(year) } : {}),

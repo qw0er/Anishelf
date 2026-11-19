@@ -9,6 +9,7 @@ import { disposeAppRouters } from "./render-app.js";
 import { appFixture, completedScan, fetcher, file } from "./state.js";
 export function setupAppTest() {
 	beforeEach(async () => {
+		window.sessionStorage.clear();
 		queryClient.removeQueries({ queryKey: ["compatibility"] });
 		appFixture.preparationTasks = [];
 		appFixture.library = {

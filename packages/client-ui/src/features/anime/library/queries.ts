@@ -1,4 +1,4 @@
-import { hashKey, queryOptions, skipToken } from "@tanstack/react-query";
+import { hashKey, queryOptions } from "@tanstack/react-query";
 import type { AnimeLibraryResponse } from "../../../shared/api/contracts.js";
 import {
 	boundedSignal,
@@ -25,28 +25,26 @@ export const animeLibraryQuery = (
 			identity?.generation ?? null,
 			filters,
 		],
-		queryFn: identity
-			? async ({ signal, client, queryKey }) => {
-					try {
-						const result = await getAnimeLibrary(filters, identity.generation, {
-							signal: boundedSignal(signal),
-						});
-						signal.throwIfAborted();
-						reportTrackingRefresh(client, result.tracking);
-						return result;
-					} catch (error) {
-						const cached = client.getQueryData<AnimeLibraryResponse>(queryKey);
-						if (cached)
-							reportTrackingReadFailure(
-								client,
-								identity.generation,
-								error,
-								cached.tracking.fetchedAt,
-							);
-						throw error;
-					}
-				}
-			: skipToken,
+		queryFn: async ({ signal, client, queryKey }) => {
+			try {
+				const result = await getAnimeLibrary(filters, identity?.generation, {
+					signal: boundedSignal(signal),
+				});
+				signal.throwIfAborted();
+				if (result.tracking) reportTrackingRefresh(client, result.tracking);
+				return result;
+			} catch (error) {
+				const cached = client.getQueryData<AnimeLibraryResponse>(queryKey);
+				if (identity && cached?.tracking)
+					reportTrackingReadFailure(
+						client,
+						identity.generation,
+						error,
+						cached.tracking.fetchedAt,
+					);
+				throw error;
+			}
+		},
 		placeholderData: (previous, query) => {
 			if (
 				!query ||
@@ -66,7 +64,7 @@ export const animeLibraryQuery = (
 		gcTime: 15 * 60_000,
 		refetchOnWindowFocus: true,
 		refetchInterval: (query) =>
-			query.state.data?.tracking.refreshing ||
+			query.state.data?.tracking?.refreshing ||
 			query.state.data?.titlesRefreshing
 				? 1500
 				: 5 * 60_000,

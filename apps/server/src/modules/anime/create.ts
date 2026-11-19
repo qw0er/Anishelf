@@ -76,7 +76,6 @@ export async function createAnimeModule(options: {
 		queries: new AnimeQueries(
 			catalog,
 			metadata,
-			tracking,
 			logger,
 			metadata?.identities,
 			titleDisplayPreference,

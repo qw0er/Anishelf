@@ -10,6 +10,7 @@ import type {
 export interface AnimeLibraryQuery extends Omit<CatalogQuery, "sort"> {
 	sort?: "title" | "recent" | "updated" | "unwatched";
 	scope?: "local" | "all";
+	includeTracking?: boolean;
 	viewingStatus?: ViewingStatus | "untracked";
 }
 interface LibraryPlaybackTarget {
@@ -52,7 +53,7 @@ export interface LibraryResult {
 	perPage: number;
 	hasNextPage: boolean;
 	localState: "available" | "unavailable";
-	tracking: Omit<TrackingListSnapshot, "entries">;
+	tracking: Omit<TrackingListSnapshot, "entries"> | null;
 }
 export type LocalIndex = {
 	items: (LocalWork & {

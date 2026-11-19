@@ -124,7 +124,7 @@ test.each([false, undefined])(
 test("Tracking refresh still uses the short polling interval without title enrichment", async () => {
 	const options = animeLibraryQuery(filters, "root", identity);
 	const initial = library(false);
-	initial.tracking = { ...initial.tracking, refreshing: true };
+	initial.tracking = { ...disconnectedList, refreshing: true };
 	cache.setQueryData(options.queryKey, initial);
 	fetcher.mockImplementation(async () => json(library(false)));
 	const observer = new QueryObserver(cache, options);

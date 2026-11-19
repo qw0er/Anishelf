@@ -9,7 +9,7 @@ import { Button } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { TrackingFeedback } from "../../tracking/public.js";
-import { libraryFilters, librarySearch } from "../api.js";
+import { activeLibraryFilters, libraryFilters, librarySearch } from "../api.js";
 import { useLibraryData } from "../use-library-data.js";
 import { LibraryFiltersForm } from "./library-filters-form.js";
 import { LibraryPagination } from "./library-pagination.js";
@@ -92,13 +92,9 @@ export function AnimeLibrary({
 			document.getElementById(`work-${id}`)?.focus({ preventScroll: true });
 		}
 	}, [location.key, location.state, query.data]);
-	const filtered = Boolean(
-		filters.query ||
-			filters.format ||
-			filters.year ||
-			filters.availability ||
-			filters.viewingStatus,
-	);
+	const viewingEnabled = Boolean(query.account?.account);
+	const activeFilters = activeLibraryFilters(filters, viewingEnabled);
+	const filtered = activeFilters.length > 0;
 	return (
 		<section
 			className="stack-page library-page"
@@ -110,18 +106,26 @@ export function AnimeLibrary({
 			/>
 			<LibraryFiltersForm
 				filters={filters}
-				filtered={filtered}
+				active={activeFilters}
 				onFilters={setLibrarySearch}
-				viewingEnabled={Boolean(query.account?.account)}
+				viewingEnabled={viewingEnabled}
 				actions={
-					<LibraryTrackingAction
-						account={query.account}
-						snapshot={query.data?.tracking}
-						refresh={query.refresh}
-					/>
+					query.accountError ? (
+						<Button variant="outline" onClick={() => void query.retryAccount()}>
+							{t("trackingAccount.refresh")}
+						</Button>
+					) : (
+						<LibraryTrackingAction
+							account={query.account}
+							snapshot={query.data?.tracking ?? undefined}
+							refresh={query.refresh}
+						/>
+					)
 				}
 			/>
-			{query.data && <TrackingFeedback snapshot={query.data.tracking} />}
+			{query.data?.tracking && (
+				<TrackingFeedback snapshot={query.data.tracking} />
+			)}
 			{!configured && filters.scope !== "all" ? (
 				<EmptyState
 					icon={<FolderPlus size={24} />}
@@ -194,6 +198,7 @@ export function AnimeLibrary({
 														librarySearch({
 															sort: "unwatched",
 															page: 1,
+															viewingStatus: "all",
 															...(filters.scope
 																? { scope: filters.scope }
 																: {}),
@@ -213,7 +218,7 @@ export function AnimeLibrary({
 							) : (
 								<LibraryResults
 									items={query.data.items}
-									viewingKnown={query.data.tracking.fetchedAt !== null}
+									viewingKnown={query.data.tracking?.fetchedAt != null}
 									librarySearch={location.search}
 								/>
 							)}

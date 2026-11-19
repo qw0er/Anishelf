@@ -15,7 +15,7 @@ export function LibraryTrackingAction({
 	refresh,
 }: {
 	account: TrackingAccountResponse | undefined;
-	snapshot: AnimeLibraryResponse["tracking"] | undefined;
+	snapshot: NonNullable<AnimeLibraryResponse["tracking"]> | undefined;
 	refresh: { isPending: boolean; mutate(): void };
 }) {
 	const { t } = useTranslation();

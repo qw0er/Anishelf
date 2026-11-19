@@ -408,6 +408,20 @@ test("unified Library HTTP validates filters and serializes merged cards", async
 		expect(response.json().items[0].viewing.progress).toBe(3);
 		expect(response.json().items[0]).toHaveProperty("coverUrl");
 		expect(response.json().items[0]).not.toHaveProperty("remoteCoverUrl");
+		const local = await http.inject({
+			url: "/api/anime/library?scope=all&includeTracking=false&viewingStatus=planned",
+			headers: { host: "127.0.0.1:3000" },
+		});
+		expect(local.statusCode).toBe(200);
+		expect(local.json().tracking).toBeNull();
+		expect(local.json().items).toHaveLength(1);
+		expect(local.json().items[0]).toMatchObject({
+			id: "local",
+			displayTitle: "Local title",
+			viewing: null,
+			viewingAvailability: "unknown",
+			nextPlayback: null,
+		});
 		for (const sort of ["updated", "unwatched", "title", "recent"])
 			expect(
 				(
@@ -423,6 +437,7 @@ test("unified Library HTTP validates filters and serializes merged cards", async
 			"viewingStatus=bad",
 			"perPage=51",
 			"generation=bad",
+			"includeTracking=bad",
 		])
 			expect(
 				(

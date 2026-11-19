@@ -19,6 +19,19 @@ export interface LibraryFilters {
 	sort: "title" | "recent" | "updated" | "unwatched";
 	page: number;
 }
+export function activeLibraryFilters(
+	filters: LibraryFilters,
+	viewingEnabled: boolean,
+) {
+	return (
+		["query", "format", "year", "availability", "viewingStatus"] as const
+	).filter(
+		(key) =>
+			filters[key] &&
+			(key !== "viewingStatus" ||
+				(viewingEnabled && filters.viewingStatus !== "all")),
+	);
+}
 export function libraryFilters(params: URLSearchParams): LibraryFilters {
 	const year = params.get("year") ?? "";
 	const page = params.get("page") ?? "1";
@@ -73,12 +86,13 @@ export function librarySearch(filters: LibraryFilters): string {
 }
 export function getAnimeLibrary(
 	filters: LibraryFilters,
-	generation: string,
+	generation: string | undefined,
 	options?: RequestOptions,
 ): Promise<AnimeLibraryResponse> {
 	const params = new URLSearchParams(librarySearch(filters));
 	if (filters.viewingStatus === "all") params.delete("viewingStatus");
 	params.set("perPage", "24");
-	params.set("generation", generation);
+	if (generation) params.set("generation", generation);
+	else params.set("includeTracking", "false");
 	return request(`/api/anime/library?${params}`, "GET", options);
 }

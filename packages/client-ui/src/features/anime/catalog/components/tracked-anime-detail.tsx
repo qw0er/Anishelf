@@ -112,7 +112,9 @@ function TrackedDetail({
 			: (data.metadata?.data.bannerUrl ?? null);
 	const info = data.metadata?.data;
 	const summary = viewing.snapshot?.entry;
-	const title = data.displayTitle;
+	const title = info
+		? data.displayTitle
+		: (summary?.titles[0] ?? data.displayTitle);
 	return (
 		<section className="stack-page">
 			<Link

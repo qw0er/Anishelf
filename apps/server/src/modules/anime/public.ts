@@ -120,12 +120,4 @@ export interface AnimeDetail {
 		| import("./external-works/metadata/public.js").MetadataFailure
 		| null;
 	local: import("./anime-catalog/public.js").LocalWorkDetail | null;
-	viewing: Omit<
-		import("./external-works/tracking/public.js").TrackingListSnapshot,
-		"entries"
-	> & {
-		entry:
-			| import("./external-works/tracking/public.js").TrackingListEntry
-			| null;
-	};
 }

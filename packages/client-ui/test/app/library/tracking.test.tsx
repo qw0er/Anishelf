@@ -211,44 +211,65 @@ test("AniList library shows status and remote-only details, keeps filters and re
 	).toBe(false);
 });
 
-test("account lookup failure keeps Library filters and retries without falling back to Catalog", async () => {
+test("posters load during an account lookup failure and restore the saved viewing filter on reconnection", async () => {
 	mockAnime(animeFixture());
 	const fallback = fetcher.getMockImplementation();
 	let failed = true;
 	fetcher.mockImplementation(async (input, init) => {
-		if (String(input) === "/api/tracking/account" && failed)
-			return json(
-				{ error: { code: "TRACKING_UNAVAILABLE", message: "Unavailable" } },
-				503,
-			);
+		if (String(input) === "/api/tracking/account") {
+			if (failed)
+				return json(
+					{ error: { code: "TRACKING_UNAVAILABLE", message: "Unavailable" } },
+					503,
+				);
+			return json({
+				provider: trackingProvider,
+				generation: "fixture",
+				account: { id: "anilist:7", name: "Fixture" },
+				state: "connected",
+				connectivity: "available",
+				checkedAt: 1,
+			});
+		}
 		return requiredFetch(fallback)(input, init);
 	});
 	renderApp("/?scope=all&viewingStatus=planned&query=Frieren&page=2");
-	const retry = await screen.findByRole("button", { name: "Retry" });
+	const retry = await screen.findByRole("button", {
+		name: "Refresh connection",
+	});
+	await screen.findByRole("link", { name: "Frieren" });
 	expect(screen.getByTestId("location").textContent).toContain(
 		"viewingStatus=planned",
 	);
-	expect(
-		fetcher.mock.calls.some(([path]) =>
-			String(path).startsWith("/api/catalog/works?"),
-		),
-	).toBe(false);
-	failed = false;
-	fireEvent.click(retry);
-	await screen.findByRole("link", { name: "Frieren" });
 	expect(
 		fetcher.mock.calls.some(([path]) => {
 			const url = new URL(String(path), "http://localhost");
 			return (
 				url.pathname === "/api/anime/library" &&
-				url.searchParams.get("scope") === "all" &&
-				url.searchParams.get("viewingStatus") === "planned" &&
-				url.searchParams.get("query") === "Frieren" &&
-				url.searchParams.get("page") === "2" &&
-				url.searchParams.get("generation") === "fixture"
+				url.searchParams.get("includeTracking") === "false" &&
+				!url.searchParams.has("viewingStatus") &&
+				!url.searchParams.has("generation") &&
+				url.searchParams.get("query") === "Frieren"
 			);
 		}),
 	).toBe(true);
+	failed = false;
+	fireEvent.click(retry);
+	await waitFor(() =>
+		expect(
+			fetcher.mock.calls.some(([path]) => {
+				const url = new URL(String(path), "http://localhost");
+				return (
+					url.pathname === "/api/anime/library" &&
+					url.searchParams.get("scope") === "all" &&
+					url.searchParams.get("viewingStatus") === "planned" &&
+					url.searchParams.get("query") === "Frieren" &&
+					url.searchParams.get("page") === "2" &&
+					url.searchParams.get("generation") === "fixture"
+				);
+			}),
+		).toBe(true),
+	);
 	expect(
 		fetcher.mock.calls.some(([path]) =>
 			String(path).startsWith("/api/catalog/works?"),
@@ -266,6 +287,7 @@ test("Library filters allow All works before local setup and disable viewing sta
 		name: "the tracking service viewing state",
 	});
 	expect(viewing.hasAttribute("disabled")).toBe(true);
+	expect((viewing as HTMLSelectElement).value).toBe("all");
 	expect(
 		(
 			screen.getByRole("combobox", {
@@ -284,7 +306,7 @@ test("Library filters allow All works before local setup and disable viewing sta
 			}),
 		).toBe(true),
 	);
-	await screen.findByText(/No anime match these filters/);
+	await screen.findByText(/No associated anime yet/);
 });
 
 test("the Library AniList connection button opens Settings", async () => {
