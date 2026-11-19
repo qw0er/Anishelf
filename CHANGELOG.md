@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.1
+
+### Changed
+
+- Integrate the desktop app header and window controls into the title bar.
+
+### Fixed
+
+- Allow browsing local library works and their details without a tracking account,
+  including when the account connection cannot be loaded. Viewing-status filters
+  become available when an account is connected.
+- Install the Linux desktop icon at a supported size.
+
 ## 2.0.0
 
 ### Added

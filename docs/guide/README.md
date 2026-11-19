@@ -17,11 +17,13 @@
 | 1. Sign in | Read the initial password from Backend logs |
 | 2. Add media | Configure Settings resource roots; containers initially use `/data/media` |
 | 3. Review Library | Browse posters/files and resolve uncertain matches in Review |
-| 4. Connect a tracking account | Choose the default metadata source in Library settings. In Account settings, paste its access token and connect. Confirm when switching accounts. |
+| 4. Connect a tracking account (optional) | Choose the default metadata source in Library settings. In Account settings, paste its access token and connect. Confirm when switching accounts. |
 | 5. Add downloads | Configure Sources, qBittorrent and a validated destination; Subscribe on a work |
 | 6. Follow progress | Use Activity/Diagnostics; manage transfers in qBittorrent WebUI |
 
-Watching creation is optional and off by default. Viewing progress and download
+You can browse local library works without a tracking account. Connecting an account
+adds its collection and viewing-status filters. Watching creation is optional and off
+by default. Viewing progress and download
 state are independent. See [Development](../development/README.md) for contributor
 work, [Requirements](../requirements.md) for scope and [History](../history.md) for
 completed iterations.

@@ -28,7 +28,7 @@ and the [Design system](development/design-system.md).
 
 Requirements describe outcomes rather than prescribing implementation. When code and
 documentation disagree, verify the intended behavior and update the affected documents.
-The current release is 1.7.0; 2.0.0 is upcoming.
+The current release is 2.0.0; 2.0.1 is upcoming.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -175,7 +175,7 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 
 #### Delivery Notes (W)
 
-- **W06:** **Delivered:** Server-backed playback history and progress shared by Web and the desktop app when connected to the same server. **Remaining:** Mobile integration and validation of concurrent or delayed cross-client updates. External players do not report progress. **Release record:** 0.2.0 (Web); desktop planned for 2.0.0 (partial).
+- **W06:** **Delivered:** Server-backed playback history and progress shared by Web and the desktop app when connected to the same server. **Remaining:** Mobile integration and validation of concurrent or delayed cross-client updates. External players do not report progress. **Release record:** 0.2.0 (Web); 2.0.0 (desktop; partial).
 
 ### 2.5 Subscriptions and Resource Discovery
 

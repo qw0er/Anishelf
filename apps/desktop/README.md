@@ -28,7 +28,8 @@ backend keeps its database, settings and logs in the profile's `backend/`
 subdirectory. Electron holds local device credentials in memory and encrypts
 external device tokens on disk when secure storage is available.
 
-The window's normal size and position, maximized state, and fullscreen state are
+The application header shares the desktop title bar with the window controls. The
+window's normal size and position, maximized state, and fullscreen state are
 saved in `window-state.json` in the desktop profile. If the saved position is no
 longer visible on a connected display, the window opens at a default position.
 On Wayland, the compositor controls window positioning.

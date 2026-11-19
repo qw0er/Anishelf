@@ -45,7 +45,7 @@ Original V1 delivered read-only originals, resource-root confinement, persistent
 
 #### Delivery Notes (L)
 
-- **L06:** Linux and macOS use incremental filesystem events; Windows uses scheduled refreshes every 60 minutes. Failures preserve indexed entries and report degraded status. **Release record:** 0.4.1 (monitoring); upcoming 2.0.0 (Windows scheduled refresh).
+- **L06:** Linux and macOS use incremental filesystem events; Windows uses scheduled refreshes every 60 minutes. Failures preserve indexed entries and report degraded status. **Release record:** 0.4.1 (monitoring); 2.0.0 (Windows scheduled refresh).
 - **L08:** Clear-match automatic admission, manual Review and protection against conflicting corrections. Since 1.4.1, Review can re-identify an available pending resource's directory or all pending resources in the background, preserving confirmed and rejected decisions. Unavailable resources are excluded from pending Review but retain their history.
 - **L09:** Candidate-specific episode proposals, unresolved ambiguity and confirmed corrections.
 - **L12:** Multiple non-overlapping paths, separate Files entries, partial scan recovery and preserved settings/history.
