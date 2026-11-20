@@ -32,7 +32,7 @@ __pycache__/
 .codex
 .aws
 .agents
-temp
+.temp
 
 # Local deployment configuration
 .env

@@ -22,6 +22,12 @@ npm run dev
 Open `http://localhost:5173`. The first Backend startup prints the login password.
 Vite proxies `/api` to Backend at `127.0.0.1:3000`.
 
+Web and standalone backend development store runtime data in `.temp/backend/`
+at the repository root. Set `ANISHELF_DATA_DIR` to use a different absolute path.
+Desktop development stores its Electron profile in `.temp/desktop/` and its
+bundled backend data in `.temp/desktop/backend/`. Each development checkout has
+its own data, separate from the installed application and regular start commands.
+
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` / `npm run dev:web` | Start the local backend watcher and Web Vite server |

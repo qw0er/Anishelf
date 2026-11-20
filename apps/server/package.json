@@ -6,7 +6,7 @@
 	"type": "module",
 	"main": "dist/index.js",
 	"scripts": {
-		"dev": "NODE_ENV=development tsx watch src/index.ts | pino-pretty --colorize --translateTime SYS:standard",
+		"dev": "ANISHELF_DATA_DIR=\"${ANISHELF_DATA_DIR-$(cd ../.. && pwd)/.temp/backend}\" NODE_ENV=development tsx watch src/index.ts | pino-pretty --colorize --translateTime SYS:standard",
 		"typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
 		"test": "vitest run",
 		"build": "tsc",

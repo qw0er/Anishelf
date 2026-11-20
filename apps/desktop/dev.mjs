@@ -1,8 +1,12 @@
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import electron from "electron";
 import ts from "typescript";
 import { createServer } from "vite";
 
+const profileDir = fileURLToPath(
+	new URL("../../.temp/desktop", import.meta.url),
+);
 const server = await createServer();
 await server.listen();
 console.info("desktop.dev.renderer_ready", { url: "http://127.0.0.1:5174" });
@@ -14,7 +18,7 @@ let restartRequested = false;
 
 function launch() {
 	console.info("desktop.dev.electron_starting");
-	child = spawn(electron, ["."], {
+	child = spawn(electron, [".", `--user-data-dir=${profileDir}`], {
 		stdio: "inherit",
 		env: { ...process.env, ANISHELF_DESKTOP_DEV: "1" },
 	});

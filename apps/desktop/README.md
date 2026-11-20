@@ -21,8 +21,9 @@ directories** offers **Choose directory** to select a folder with the system
 dialog. External servers use the text field because their paths refer to the
 server machine.
 
-The profile is stored in the `desktop` subdirectory of the platform user data
-directory for `anishelf`. On Linux this defaults to
+`npm run dev:desktop` stores its profile in `.temp/desktop/` at the repository
+root. For regular launches, the profile is stored in the `desktop` subdirectory
+of the platform user data directory for `anishelf`. On Linux this defaults to
 `~/.local/share/anishelf/desktop` and respects `XDG_DATA_HOME`. The bundled
 backend keeps its database, settings and logs in the profile's `backend/`
 subdirectory. Electron holds local device credentials in memory and encrypts
