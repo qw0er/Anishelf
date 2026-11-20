@@ -38,7 +38,27 @@ function launchedAtLogin(): boolean {
 	}
 }
 
+function configureNvidiaVaapi() {
+	if (process.platform !== "linux") return;
+	const feature = "VaapiOnNvidiaGPUs";
+	const { commandLine } = app;
+	const enabledFeatures = commandLine.getSwitchValue("enable-features");
+	const disabledFeatures = commandLine.getSwitchValue("disable-features");
+	const includesFeature = (features: string) =>
+		features
+			.split(",")
+			.some((entry) => entry.trim().split(/[<:]/, 1)[0] === feature);
+	if (includesFeature(disabledFeatures) || includesFeature(enabledFeatures))
+		return;
+	commandLine.appendSwitch(
+		"enable-features",
+		[enabledFeatures, feature].filter(Boolean).join(","),
+	);
+	console.info("desktop.chromium_feature_enabled_by_default", { feature });
+}
+
 function startApplication() {
+	configureNvidiaVaapi();
 	registerRendererScheme();
 	let desktop: DesktopApplication | undefined;
 	let backend: LocalBackend | undefined;
