@@ -7,6 +7,12 @@ export interface DeviceSession {
 
 export interface AuthenticationStore {
 	saveSession(id: string, data: string, expiresAt: number): void;
+	compareAndSetSession(
+		id: string,
+		expectedGeneration: string,
+		data: string,
+		expiresAt: number,
+	): boolean;
 	readSession(id: string, now: number): string | undefined;
 	deleteSession(id: string): void;
 	clear(): void;

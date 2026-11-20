@@ -36,6 +36,7 @@ export const authSessions = sqliteTable(
 	"auth_sessions",
 	{
 		id: text("id").primaryKey().notNull(),
+		generation: text("generation"),
 		expiresAt: integer("expires_at").notNull(),
 		authFingerprint: text("auth_fingerprint"),
 		authExpiresAt: integer("auth_expires_at"),

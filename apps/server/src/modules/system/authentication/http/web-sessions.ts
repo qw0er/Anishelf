@@ -28,6 +28,10 @@ const sessionCookie = {
 	secure: "auto",
 } as const;
 
+function sessionStoreExpiry(data: Session): number {
+	return data.authExpiresAt ?? Date.now() + 15 * 60 * 1000;
+}
+
 export async function registerWebSessionStore(
 	app: HttpInstance,
 	options: {
@@ -63,11 +67,7 @@ export async function registerWebSessionStore(
 		store: {
 			set(id, data, callback) {
 				try {
-					store.saveSession(
-						id,
-						JSON.stringify(data),
-						data.authExpiresAt ?? Date.now() + 15 * 60 * 1000,
-					);
+					store.saveSession(id, JSON.stringify(data), sessionStoreExpiry(data));
 					callback();
 				} catch (error) {
 					callback(sessionFailure("save_session", error));
@@ -80,6 +80,36 @@ export async function registerWebSessionStore(
 				} catch (error) {
 					callback(sessionFailure("read_session", error));
 				}
+			},
+			compareAndSet(id, expectedGeneration, data, callback) {
+				let updated: boolean;
+				try {
+					updated = store.compareAndSetSession(
+						id,
+						expectedGeneration,
+						JSON.stringify(data),
+						sessionStoreExpiry(data),
+					);
+				} catch (error) {
+					callback(sessionFailure("compare_and_set_session", error));
+					return;
+				}
+				if (!updated) {
+					options.logger.debug(
+						{ event: "auth.session_update_rejected" },
+						"Authentication session is missing, expired, or has changed.",
+					);
+					callback(
+						Object.assign(
+							new Error("The session does not exist or has changed."),
+							{
+								code: "ENOENT",
+							},
+						),
+					);
+					return;
+				}
+				callback();
 			},
 			destroy(id, callback) {
 				try {

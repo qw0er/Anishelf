@@ -1,6 +1,7 @@
 export interface SessionRecord {
 	id: string;
 	expiresAt: number;
+	__fastifySessionMetadata?: { generation: string };
 	authFingerprint?: string;
 	authExpiresAt?: number;
 	csrfToken?: string;

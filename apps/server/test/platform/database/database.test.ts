@@ -32,6 +32,46 @@ afterEach(async () => {
 	await rm(directory, { recursive: true, force: true });
 });
 
+it("updates legacy web sessions and rejects writes after rotation, expiry, or deletion", () => {
+	const sessions = database.authentication;
+	const id = "legacy-session-id";
+	const now = Date.now();
+	const expiresAt = now + 60_000;
+	const legacy = {
+		csrfToken: "legacy-token",
+		cookie: { path: "/", httpOnly: true },
+	};
+	sessions.saveSession(id, JSON.stringify(legacy), expiresAt);
+
+	const generation = "rotated-generation";
+	const rotated = JSON.stringify({
+		...legacy,
+		csrfToken: "rotated-token",
+		__fastifySessionMetadata: { generation },
+	});
+	expect(sessions.compareAndSetSession(id, id, rotated, expiresAt)).toBe(true);
+	expect(
+		sessions.compareAndSetSession(id, id, JSON.stringify(legacy), expiresAt),
+	).toBe(false);
+	expect(JSON.parse(sessions.readSession(id, now) ?? "null")).toMatchObject({
+		csrfToken: "rotated-token",
+		__fastifySessionMetadata: { generation },
+	});
+
+	expect(sessions.compareAndSetSession(id, generation, rotated, now)).toBe(
+		true,
+	);
+	expect(
+		sessions.compareAndSetSession(id, generation, rotated, expiresAt),
+	).toBe(false);
+	sessions.saveSession(id, rotated, expiresAt);
+	sessions.deleteSession(id);
+	expect(
+		sessions.compareAndSetSession(id, generation, rotated, expiresAt),
+	).toBe(false);
+	expect(sessions.readSession(id, now)).toBeUndefined();
+});
+
 describe("playback persistence", () => {
 	it("applies migrations once, persists across reopen, and isolates roots and versions", () => {
 		const source = database.playback.registerSource(identity, 1);

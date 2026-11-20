@@ -1,7 +1,11 @@
-import { and, desc, eq, gt, lte, ne, or } from "drizzle-orm";
+import { and, desc, eq, gt, lte, ne, or, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import type { AuthenticationStore } from "../ports.js";
-import { readAuthSessions, writeAuthSessions } from "./records.js";
+import {
+	authSessionRow,
+	readAuthSessions,
+	writeAuthSessions,
+} from "./records.js";
 import { authSessions, deviceSessions, mediaAccessLinks } from "./schema.js";
 import type { SessionRecord } from "./session-record.js";
 
@@ -23,6 +27,31 @@ export class AuthenticationRepository implements AuthenticationStore {
 		const value = JSON.parse(data) as Omit<SessionRecord, "id" | "expiresAt">;
 		writeAuthSessions(this.store, { ...value, id, expiresAt });
 	}
+
+	compareAndSetSession(
+		id: string,
+		expectedGeneration: string,
+		data: string,
+		expiresAt: number,
+	) {
+		const value = JSON.parse(data) as Omit<SessionRecord, "id" | "expiresAt">;
+		const { id: _id, ...row } = authSessionRow({ ...value, id, expiresAt });
+		// Fastify uses the store ID as the generation for legacy sessions.
+		const generation = sql`coalesce(${authSessions.generation}, ${authSessions.id})`;
+		const result = this.store
+			.update(authSessions)
+			.set(row)
+			.where(
+				and(
+					eq(authSessions.id, id),
+					eq(generation, expectedGeneration),
+					gt(authSessions.expiresAt, Date.now()),
+				),
+			)
+			.run();
+		return result.changes > 0;
+	}
+
 	readSession(id: string, now: number) {
 		const row = this.store
 			.select()

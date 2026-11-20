@@ -9,6 +9,9 @@ export function readAuthSessions(
 	return {
 		id: row.id,
 		expiresAt: row.expiresAt,
+		...(row.generation !== null
+			? { __fastifySessionMetadata: { generation: row.generation } }
+			: {}),
 		...(row.authFingerprint !== null
 			? {
 					authFingerprint:
@@ -56,27 +59,30 @@ export function writeAuthSessions(
 	connection: Store,
 	value: SessionRecord,
 ): void {
-	connection.transaction((store) => {
-		const row0 = {
-			id: value?.id,
-			expiresAt: value?.expiresAt,
-			authFingerprint: value?.authFingerprint ?? null,
-			authExpiresAt: value?.authExpiresAt ?? null,
-			csrfToken: value?.csrfToken ?? null,
-			cookieExpires: value?.cookie?.expires ?? null,
-			cookieOriginalMaxAge: value?.cookie?.originalMaxAge ?? null,
-			cookieOriginalExpires: value?.cookie?.originalExpires ?? null,
-			cookieSameSite: value?.cookie?.sameSite ?? null,
-			cookieSecure: value?.cookie?.secure ?? null,
-			cookiePath: value?.cookie?.path,
-			cookieHttpOnly: value?.cookie?.httpOnly,
-			cookieDomain: value?.cookie?.domain ?? null,
-			cookiePartitioned: value?.cookie?.partitioned ?? null,
-		};
-		store
-			.insert(s.authSessions)
-			.values(row0)
-			.onConflictDoUpdate({ target: s.authSessions.id, set: row0 })
-			.run();
-	});
+	const row = authSessionRow(value);
+	connection
+		.insert(s.authSessions)
+		.values(row)
+		.onConflictDoUpdate({ target: s.authSessions.id, set: row })
+		.run();
+}
+
+export function authSessionRow(value: SessionRecord) {
+	return {
+		id: value.id,
+		generation: value.__fastifySessionMetadata?.generation ?? null,
+		expiresAt: value.expiresAt,
+		authFingerprint: value.authFingerprint ?? null,
+		authExpiresAt: value.authExpiresAt ?? null,
+		csrfToken: value.csrfToken ?? null,
+		cookieExpires: value.cookie?.expires ?? null,
+		cookieOriginalMaxAge: value.cookie?.originalMaxAge ?? null,
+		cookieOriginalExpires: value.cookie?.originalExpires ?? null,
+		cookieSameSite: value.cookie?.sameSite ?? null,
+		cookieSecure: value.cookie?.secure ?? null,
+		cookiePath: value.cookie?.path,
+		cookieHttpOnly: value.cookie?.httpOnly,
+		cookieDomain: value.cookie?.domain ?? null,
+		cookiePartitioned: value.cookie?.partitioned ?? null,
+	};
 }

@@ -18,24 +18,24 @@
 		"@anishelf/client-core": "1.0.0",
 		"@anishelf/client-ui": "1.0.0",
 		"@anishelf/contracts": "1.0.0",
-		"@tailwindcss/vite": "^4.3.3",
+		"@tailwindcss/vite": "^4.3.5",
 		"react": "^19.3.1",
 		"react-dom": "^19.3.1",
-		"react-i18next": "^17.0.16",
-		"react-router": "^8.4.0"
+		"react-i18next": "^18.0.3",
+		"react-router": "^8.5.2"
 	},
 	"devDependencies": {
-		"@babel/core": "^8.0.7",
-		"@rolldown/plugin-babel": "^0.2.4",
+		"@babel/core": "^8.1.2",
+		"@rolldown/plugin-babel": "^0.3.1",
 		"@types/babel__core": "^7.20.5",
-		"@types/node": "^26.6.5",
+		"@types/node": "^26.6.6",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
-		"@vitejs/plugin-react": "^6.1.2",
+		"@vitejs/plugin-react": "^6.3.0",
 		"babel-plugin-react-compiler": "^1.0.0",
-		"vite": "^8.3.4",
+		"vite": "^8.3.8",
 		"vite-plugin-pwa": "^2.0.0",
-		"happy-dom": "^21.0.1",
-		"vitest": "^5.0.4"
+		"happy-dom": "^21.0.4",
+		"vitest": "^5.1.1"
 	}
 }

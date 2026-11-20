@@ -428,6 +428,7 @@ test("migration preserves an AniList connection from the singleton schema", asyn
 				ALTER TABLE tracking_operations DROP COLUMN attempt_episode_baseline;
 				ALTER TABLE tracking_operations DROP COLUMN attempt_automatic;
 				DROP TABLE auth_device_sessions;
+				ALTER TABLE auth_sessions DROP COLUMN generation;
 				DELETE FROM __drizzle_migrations WHERE created_at >= 1794464479524;
 			`);
 		} finally {
