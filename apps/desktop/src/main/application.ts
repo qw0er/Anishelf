@@ -11,7 +11,7 @@ import {
 } from "electron";
 import type { ServerSignInResult } from "../ipc/desktop.js";
 import { registerDesktopIpc } from "./ipc.js";
-import { downloadMedia } from "./native/download.js";
+import { downloadMedia, revealDownload } from "./native/download.js";
 import { createExternalPlayerService } from "./native/external-players.js";
 import { openExternal } from "./native/links.js";
 import {
@@ -240,8 +240,9 @@ export class DesktopApplication {
 						);
 					},
 					openExternal,
-					downloadFile: async (sender, url, filename) =>
-						downloadMedia(sender, this.server.origin, url, filename),
+					downloadFile: async (sender, url, filename, id) =>
+						downloadMedia(sender, this.server.origin, url, filename, id),
+					revealDownload,
 					listExternalPlayers: () => externalPlayers.list(),
 					addExternalPlayer: (draft) => externalPlayers.add(draft),
 					removeExternalPlayer: (id) => externalPlayers.remove(id),

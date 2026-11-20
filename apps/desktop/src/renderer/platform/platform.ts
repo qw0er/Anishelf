@@ -4,6 +4,7 @@ import {
 } from "@anishelf/client-ui/browser-platform";
 import type { DesktopBridge } from "../../ipc/desktop.js";
 import { createDesktopExternalPlayers } from "./external-players.js";
+import { createVideoDownloads } from "./video-downloads.js";
 
 export async function createDesktopPlatform(
 	desktop: DesktopBridge,
@@ -22,6 +23,7 @@ export async function createDesktopPlatform(
 			return browserPlatform.device;
 		},
 		externalPlayers,
+		videoDownloads: createVideoDownloads(desktop),
 		copyText: (text) => desktop.copyText(text),
 		...(options.canChooseDirectories
 			? { chooseDirectory: () => desktop.chooseDirectory() }

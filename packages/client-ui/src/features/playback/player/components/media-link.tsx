@@ -22,6 +22,7 @@ import { Spinner } from "../../../../shared/components/ui/spinner.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
+import { useVideoDownload } from "../hooks/use-video-download.js";
 import {
 	createMediaLink,
 	createMediaPlaylist,
@@ -55,6 +56,7 @@ export default function MediaLink({
 	const request = useRef<AbortController | null>(null);
 	const [pending, setPending] = useState(false);
 	const [link, setLink] = useState<string | null>(null);
+	const videoDownload = useVideoDownload(fileId, download);
 	useEffect(() => () => request.current?.abort(), []);
 
 	async function copyLink() {
@@ -107,13 +109,22 @@ export default function MediaLink({
 		}
 	}
 
-	const label = t(
+	let label = t(
 		download
 			? "player.downloadVideo"
 			: playlist
 				? "player.downloadPlaylist"
 				: "player.copyMediaLink",
 	);
+	const progress = videoDownload?.progress;
+	if (progress?.status === "preparing")
+		label = t("player.videoDownloadPreparing");
+	if (progress?.status === "downloading")
+		label =
+			progress.percent === null
+				? t("player.videoDownloadActive")
+				: t("player.videoDownloadProgress", { percent: progress.percent });
+	const busy = pending || progress !== undefined;
 	const ActionIcon = playlist || download ? Download : Copy;
 
 	const trigger = (
@@ -130,14 +141,16 @@ export default function MediaLink({
 								: undefined
 					}
 					aria-label={iconOnly ? label : undefined}
-					disabled={pending}
+					disabled={busy}
 					focusableWhenDisabled={iconOnly}
-					aria-busy={pending}
-					onClick={() => void copyLink()}
+					aria-busy={busy}
+					onClick={() =>
+						void (videoDownload ? videoDownload.start() : copyLink())
+					}
 				/>
 			}
 		>
-			{pending && iconOnly ? (
+			{progress || (pending && iconOnly) ? (
 				<Spinner />
 			) : (
 				<ActionIcon size={16} aria-hidden="true" />
@@ -165,7 +178,7 @@ export default function MediaLink({
 						<DropdownMenuItem
 							closeOnClick={false}
 							nativeButton
-							disabled={pending}
+							disabled={busy}
 							render={trigger}
 						/>
 					) : iconOnly ? (

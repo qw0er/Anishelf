@@ -32,9 +32,11 @@ export interface DesktopIpcHandlers {
 	openExternal(url: string): Promise<void>;
 	downloadFile(
 		sender: WebContents,
-		url: string,
-		filename: string,
-	): Promise<void>;
+		url: unknown,
+		filename: unknown,
+		id: unknown,
+	): Promise<boolean>;
+	revealDownload(sender: WebContents, id: unknown): Promise<void>;
 	listExternalPlayers(): Promise<ExternalPlayerListResponse>;
 	addExternalPlayer(draft: unknown): Promise<void>;
 	removeExternalPlayer(id: unknown): Promise<void>;
@@ -106,6 +108,7 @@ export function registerDesktopIpc(
 			handlers.openExternal(url),
 		);
 		handle("desktop:download-file", handlers.downloadFile);
+		handle("desktop:reveal-download", handlers.revealDownload);
 		handle("desktop:external-players:list", () =>
 			handlers.listExternalPlayers(),
 		);

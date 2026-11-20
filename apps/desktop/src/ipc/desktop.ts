@@ -66,7 +66,11 @@ export interface DesktopBridge {
 	copyText(text: string): Promise<void>;
 	chooseDirectory(): Promise<string | null>;
 	openExternal(url: string): Promise<void>;
-	downloadFile(url: string, filename: string): Promise<void>;
+	downloadFile(url: string, filename: string, id?: string): Promise<boolean>;
+	onDownloadProgress(
+		listener: (id: string, percent: number | null) => void,
+	): () => void;
+	revealDownload(id: string): Promise<void>;
 	listExternalPlayers(): Promise<ExternalPlayerListResponse>;
 	addExternalPlayer(draft: CommandPlayerDraft): Promise<void>;
 	removeExternalPlayer(id: string): Promise<void>;

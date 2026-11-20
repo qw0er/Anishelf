@@ -10,6 +10,7 @@ import {
 	createMediaPlaylist,
 } from "../../../src/features/playback/player/media-link.js";
 import { Toaster, toast } from "../../../src/shared/components/ui/toast.js";
+import type { VideoDownloadProgress } from "../../../src/shared/platform.js";
 import "../../../src/shared/i18n.js";
 import { testPlatform } from "../../setup.js";
 import {
@@ -56,6 +57,7 @@ beforeEach(() => {
 afterEach(() => {
 	act(() => toast.close());
 	cleanup();
+	delete testPlatform.videoDownloads;
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 });
@@ -108,6 +110,52 @@ test("does not start a download when the file access check fails", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "Download video" }));
 	await screen.findByRole("alert");
 	expect(click).not.toHaveBeenCalled();
+});
+
+test("restores native download progress when the action remounts and reports the saved file", async () => {
+	const listeners = new Set<() => void>();
+	let progress: VideoDownloadProgress | undefined;
+	function update(next: VideoDownloadProgress | undefined) {
+		progress = next;
+		for (const listener of listeners) listener();
+	}
+	const saved = Promise.withResolvers<void>();
+	const reveal = vi.fn().mockResolvedValue(undefined);
+	testPlatform.videoDownloads = {
+		getProgress: () => progress,
+		subscribe(listener) {
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		},
+		async start(_key, resolve) {
+			update({ status: "preparing" });
+			const { name } = await resolve();
+			await saved.promise;
+			update(undefined);
+			return { name, reveal };
+		},
+	};
+	function view(show: boolean) {
+		return <Toaster>{show && <MediaLink fileId={fileId} download />}</Toaster>;
+	}
+	const { rerender } = render(view(true));
+	fireEvent.click(screen.getByRole("button", { name: "Download video" }));
+	expect(
+		screen.getByRole("button", { name: "Preparing download" }),
+	).toHaveProperty("disabled", true);
+
+	rerender(view(false));
+	act(() => update({ status: "downloading", percent: 42 }));
+	rerender(view(true));
+	expect(
+		screen.getByRole("button", { name: "Downloading 42%" }),
+	).toHaveProperty("disabled", true);
+
+	rerender(view(false));
+	await act(async () => saved.resolve());
+	await screen.findByText("Video saved");
+	fireEvent.click(screen.getByRole("button", { name: "Show in folder" }));
+	expect(reveal).toHaveBeenCalledOnce();
 });
 
 test("uses the configured application origin without leaking the filename", async () => {

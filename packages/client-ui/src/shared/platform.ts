@@ -56,6 +56,10 @@ export interface ExternalPlayerHost {
 	subscribe(listener: () => void): () => void;
 }
 
+export type VideoDownloadProgress =
+	| { status: "preparing" }
+	| { status: "downloading"; percent: number | null };
+
 export interface ClientPlatform {
 	updates: {
 		kind: "web" | "desktop";
@@ -78,6 +82,14 @@ export interface ClientPlatform {
 	chooseDirectory?: () => Promise<string | null>;
 	downloadFile(url: string, filename: string): void;
 	downloadText(content: string, filename: string, mediaType: string): void;
+	videoDownloads?: {
+		getProgress(key: string): VideoDownloadProgress | undefined;
+		subscribe(listener: () => void): () => void;
+		start(
+			key: string,
+			resolve: () => Promise<{ url: string; name: string }>,
+		): Promise<{ name: string; reveal(): Promise<void> } | undefined>;
+	};
 	isVisible(): boolean;
 	isOnline(): boolean;
 	onForegroundChange(callback: () => void): () => void;

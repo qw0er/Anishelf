@@ -25,8 +25,20 @@ const desktop: DesktopBridge = {
 	copyText: (text) => ipcRenderer.invoke("desktop:copy-text", text),
 	chooseDirectory: () => ipcRenderer.invoke("desktop:choose-directory"),
 	openExternal: (url) => ipcRenderer.invoke("desktop:open-external", url),
-	downloadFile: (url, filename) =>
-		ipcRenderer.invoke("desktop:download-file", url, filename),
+	downloadFile: (url, filename, id) =>
+		ipcRenderer.invoke("desktop:download-file", url, filename, id),
+	onDownloadProgress(listener) {
+		const receive = (
+			_event: Electron.IpcRendererEvent,
+			id: string,
+			percent: number | null,
+		) => listener(id, percent);
+		ipcRenderer.on("desktop:download-progress", receive);
+		return () => {
+			ipcRenderer.off("desktop:download-progress", receive);
+		};
+	},
+	revealDownload: (id) => ipcRenderer.invoke("desktop:reveal-download", id),
 	listExternalPlayers: () =>
 		ipcRenderer.invoke("desktop:external-players:list"),
 	addExternalPlayer: (draft) =>
