@@ -411,7 +411,7 @@ The frontend adapter exposes milliseconds and lifecycle events without requiring
 video element. Explicit file/version selection, audio source/output mapping, source
 time, progress retry/order and completion observations remain application behavior.
 Runtime failures retain the selected resource; users retry or choose another file.
-See [playback](playback.md) and the [libmedia migration and acceptance record](libmedia-player-migration.md).
+See the [playback design and validation scope](playback.md#runtime-distribution-and-validation).
 
 ## Playback Completion Observation
 

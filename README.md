@@ -14,9 +14,11 @@ from a browser or desktop client.
 - **Organize your library.** Scan multiple media directories, browse files and
   posters, and automatically identify anime and episodes. Review uncertain matches
   and choose between available versions.
-- **Watch your way.** Play supported media with Movi Player, select audio and
-  subtitle tracks, and resume from saved progress. Use styled ASS/SSA subtitles,
-  prepare a compatible copy, or open the original in an external player.
+- **Watch your way.** Play supported media in Web and desktop with
+  libmedia-react-player and its bundled software decoding fallback. Select audio
+  and subtitle tracks, jump to chapters, and resume from saved progress. Use
+  styled ASS/SSA subtitles, prepare a compatible copy, or open the original in
+  an external player.
 - **Keep track of viewing.** Connect an AniList or Bangumi account to see your
   collection and synchronize viewing status and eligible episode progress.
   Playback history is shared by clients connected to the same server.
@@ -27,8 +29,8 @@ from a browser or desktop client.
   account's Watching list. Monitor activity and review items that need attention.
 
 Anishelf supports one connected tracking account at a time. Playback compatibility
-depends on the media and player; see the [user guide](docs/guide/README.md) for
-setup and details.
+depends on the media and client. See the [playback guide](docs/guide/README.md#playback)
+for details.
 
 ## Desktop app
 

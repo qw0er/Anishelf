@@ -28,7 +28,7 @@ and the [Design system](development/design-system.md).
 
 Requirements describe outcomes rather than prescribing implementation. When code and
 documentation disagree, verify the intended behavior and update the affected documents.
-The current release is 2.0.0; 2.0.1 is upcoming.
+The current release is 2.0.1. Version 2.1.0 is upcoming.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -384,32 +384,24 @@ behavior, impact, reproduction conditions and verification evidence as they beco
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| B01 | An active embedded subtitle cue can be missing after resume and track selection | Partial | Block | [ASS/SSA workaround verified. Movi's built-in path awaits an upstream fix.](#missing-embedded-subtitle-after-resume-b01) | — |
+| B01 | An active embedded subtitle cue can be missing after resume and track selection | Partial | Block | [Basic caption rendering can miss an active embedded ASS/SSA cue.](#missing-embedded-subtitle-after-resume-b01) | — |
 
 ### Missing embedded subtitle after resume (B01)
 
-Resume Web playback at a saved position within an embedded subtitle cue, then
+Resume playback at a saved position within an embedded subtitle cue, then
 select that subtitle track. The cue already in progress can be missing for the
 rest of its display interval. The expected behavior is to show the active cue
 after track selection and keep it visible until its scheduled end.
 
-The Chromium smoke test with Movi 0.4.1 reproduced this with an embedded ASS cue
-spanning a 20-second file. Seeking back to the start also failed to restore that
-cue in the same test. A separate fixture displayed later cues after track selection
-and seeking. See the [recorded smoke validation](development/movi.md#recorded-smoke-validation).
+In 2.1.0, libmedia-react-player can show basic ASS/SSA captions while the styled
+track loads or when styled rendering fails. Basic rendering can miss the cue
+already active at the resume position. Player-level tests exercised seeking into
+an active styled ASS cue and paused seeking with embedded PGS. The
+[playback validation notes](development/playback.md#runtime-distribution-and-validation)
+describe the integration coverage.
 
-Anishelf's JASSUB path works around B01 for ASS/SSA by rendering the complete
-track at the current playback time. The Chromium browser test showed the active
-cue after seeking to three seconds and selecting the track, with playback
-continuing normally.
-
-Standalone Movi 0.4.1 tests also reproduced missing active cues in MKV samples
-with embedded SRT, WebVTT, PGS, VobSub and DVB. Playback resumed inside the cue
-before the track was enabled. The same steps displayed the active cues in
-external SRT and WebVTT samples. These results also covered the built-in ASS/SSA fallback in Movi.
-See the [libmedia acceptance record](development/libmedia-player-migration.md)
-for current playback results.
-See [Movi Player issue #33](https://github.com/MrUjjwalG/movi-player/issues/33).
+For earlier results with Movi 0.4.1, see the
+[2.0.1 smoke tests](https://github.com/qw0er/Anishelf/blob/v2.0.1/docs/development/movi.md#recorded-smoke-validation).
 
 ## Client playback and manual preparation
 
@@ -419,6 +411,5 @@ reads embedded tracks and attached fonts from the selected asset and uses
 JASSUB for styled ASS/SSA. The server probes preparation input and output,
 validates tools, container constraints and source access, and delivers
 version-bound sidecars. New copies preserve subtitles, fonts and chapters,
-using Matroska by default. The
-[playback validation record](development/libmedia-player-migration.md) lists
-the formats and runtime versions exercised.
+using Matroska by default. See the
+[playback design and validation notes](development/playback.md#runtime-distribution-and-validation).

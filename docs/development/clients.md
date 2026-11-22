@@ -33,8 +33,8 @@ and reloads the page on login, logout or session loss. The desktop host provides
 its own authentication adapter and authenticated transport.
 
 Implement clipboard access, downloads, external links, preference storage and
-lifecycle events at the host boundary. React DOM layout and the current Movi
-player remain in the shared renderer. The Web host also owns service worker
+lifecycle events at the host boundary. React DOM layout and libmedia-react-player
+remain in the shared renderer. The Web host also owns service worker
 registration and browser build configuration.
 
 ## Device session API

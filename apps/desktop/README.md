@@ -59,6 +59,15 @@ Anishelf asks for confirmation before every launch and starts the process detach
 without a shell. No URL protocol handler is needed. Custom player settings are
 stored on this computer.
 
+Choose **Download video** in the playback menu and select a save location.
+The menu shows progress while the file downloads. Choose **Show in folder**
+from the success notification to find the saved video, or **Retry** from a
+failure notification to start the download again.
+
+On Linux, Anishelf enables Chromium's `VaapiOnNvidiaGPUs` feature by default.
+Hardware decoding depends on the driver and media format. To disable the
+feature, launch Anishelf with `--disable-features=VaapiOnNvidiaGPUs`.
+
 ## Packaging
 
 Run `npm ci` and then `npm run package:desktop` from the repository root.

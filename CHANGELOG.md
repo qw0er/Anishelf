@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+
+- Show video download progress in the desktop playback menu. When a video is
+  saved, the notification can reveal it in its folder. Failed downloads can
+  be retried from the notification.
+
+### Changed
+
+- Switch Web and desktop playback to libmedia-react-player with a bundled
+  WebAssembly SIMD decoding fallback. The player handles audio and chapter
+  selection, styled ASS/SSA with attached fonts, and embedded PGS, VobSub
+  and DVB subtitles in Matroska. Playback support depends on the file and client.
+  See the [playback guide](https://github.com/qw0er/Anishelf/blob/main/docs/guide/README.md#playback).
+- Load embedded subtitles and attached fonts in the player from the selected
+  media file. The backend continues to serve matching text sidecars.
+- Store development data per checkout in `.temp/backend/` for standalone backend
+  and Web development and `.temp/desktop/` for desktop development.
+
+### Fixed
+
+- Enable Chromium's NVIDIA VA-API feature by default in the Linux desktop app.
+  Hardware decoding depends on the driver and media format.
+- Guard Web session updates against concurrent changes and session deletion.
+
 ## 2.0.1
 
 ### Changed

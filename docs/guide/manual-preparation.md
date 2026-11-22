@@ -19,9 +19,9 @@ work starts; choose Matroska rather than losing subtitles silently.
 streams may be copied according to profile rules and container constraints, without
 browser capability checks. FFmpeg encoders and filters must exist on the server.
 
-The Web player uses JASSUB to render selected ASS/SSA tracks with styles, effects
-and supported TTF/OTF attachments from the selected copy. If styled rendering
-fails, the player falls back to basic subtitles.
+On Web and desktop, the player uses JASSUB to render selected ASS/SSA tracks
+with styles, effects and supported TTF/OTF attachments from the active file.
+If styled rendering fails, the player falls back to basic subtitles.
 
 Existing copies survive profile changes/removal. Older copies created without
 embedded subtitles remain unchanged; use the original or explicitly prepare a new

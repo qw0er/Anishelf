@@ -209,15 +209,15 @@ Available episode versions expose Show in Files through their file action menu. 
 ### 2.3 Web Playback and Subtitles
 
 The release records below describe delivered capabilities at their first release.
-Current playback uses Movi controls and JASSUB for styled ASS/SSA. Selected
-embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
+As of 2.1.0, Web and desktop use libmedia-react-player. The player reads selected
+embedded subtitle tracks and their fonts from the active media file. See the
 [current playback direction](requirements.md#client-playback-and-manual-preparation).
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
 | P03 | Select or disable external VTT/SRT/ASS/SSA subtitles | Complete | Completed | — | 0.2.0 |
-| P08 | Discover and select embedded subtitles and extract ASS/SSA tracks on demand | Complete | Completed | [Embedded selection and cached extraction](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
-| P09 | Render styled ASS/SSA with fonts and support embedded bitmap subtitles | Complete | Completed | [JASSUB rendering and Movi bitmap playback](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
+| P08 | Discover and select embedded subtitles and load ASS/SSA tracks on demand | Complete | Completed | [Embedded track selection and loading](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
+| P09 | Render styled ASS/SSA with fonts and support embedded bitmap subtitles | Complete | Completed | [Styled and bitmap rendering](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 0.2.0 |
 | P16 | Play embedded bitmap subtitles in the Web player | Complete | Completed | [Direct PGS and VobSub playback in MKV](#subtitles-and-embedded-extraction-p03-p08-p09-p16) | 1.6.0 |
 | P06 | Remux matching streams during manual preparation | Complete | Completed | Subject to profile and container constraints | 0.2.0 |
 | P07 | Prepare full-file Web-compatible copies with seeking and avoid unnecessary re-encoding | Complete | Completed | Completed-file preparation, reuse, cancellation, retry and recovery | 0.2.0 |
@@ -229,7 +229,7 @@ embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
 | P27 | Improve prepared-media file management | Complete | Completed | [Files inventory, storage usage and explicit cleanup](#prepared-media-file-management-p27) | 1.5.0 |
 | P11 | Next-episode navigation | Complete | Completed | [Next-episode navigation](#delivery-notes-p) | 1.3.1 |
 | P13 | Chapter navigation | Complete | Completed | Chapter discovery and navigation aligned with the original timeline | 0.2.6 |
-| P28 | Validate Movi Player for broader browser container and codec playback | Complete | Completed | [Integration and recorded smoke validation](development/movi.md#recorded-smoke-validation) | 1.6.0 |
+| P28 | Validate Movi Player for broader browser container and codec playback | Complete | Completed | [Historical Movi smoke tests](https://github.com/qw0er/Anishelf/blob/v2.0.1/docs/development/movi.md#recorded-smoke-validation) | 1.6.0 |
 
 #### Delivery Notes (P)
 
@@ -300,9 +300,9 @@ reflect the active task and can cancel it. **Release record:** 1.5.0.
 
 #### Subtitles and Embedded Extraction (P03, P08, P09, P16)
 
-- **P08:** Movi discovers embedded tracks and lets users select them. Anishelf extracts selected embedded ASS/SSA tracks and eligible fonts from the active original or prepared copy. Successful track extractions are cached in memory by asset revision and stream index. **Release record:** 0.2.0 (text subtitles), 0.2.6 (embedded fonts in the former renderer), 1.6.0 (transition to client rendering), 1.6.2 (on-demand ASS/SSA extraction and caching).
-- **P09:** JASSUB renders external and embedded ASS/SSA with styles, positioning, drawings and effects. Embedded tracks can use validated TTF/OTF attachments, with Movi supplying a basic rendering fallback. **Release record:** 0.2.0 (styled rendering), 0.2.6 (embedded fonts), 1.6.0 (basic Movi rendering), 1.6.2 (JASSUB rendering). See the [browser smoke tests](development/movi.md#recorded-smoke-validation).
-- **P16:** Movi renders embedded bitmap tracks directly in the browser. MKV samples with PGS, VobSub and DVB displayed successfully in desktop Chrome. Container and browser compatibility varies. The [B01 bug record](requirements.md#missing-embedded-subtitle-after-resume-b01) covers the active cue that can be missed after resuming and selecting an embedded track. **Release record:** 1.6.0 (Movi 0.4.1 integration).
+- **P08:** libmedia-react-player discovers embedded tracks, reads selected ASS/SSA tracks and their fonts on demand, and caches them for the current playback session. **Release record:** 0.2.0 (text subtitles), 0.2.6 (embedded fonts), 1.6.0 (client rendering), 1.6.2 (on-demand server extraction), 2.1.0 (on-demand client reads).
+- **P09:** JASSUB renders external and embedded ASS/SSA with styles, positioning, drawings and effects. Embedded tracks can use TTF/OTF attachments. If JASSUB fails, libmedia supplies basic captions. **Release record:** 0.2.0 (styled rendering), 0.2.6 (embedded fonts), 1.6.0 (basic Movi rendering), 1.6.2 (JASSUB rendering), 2.1.0 (libmedia rendering fallback).
+- **P16:** libmedia-react-player renders embedded PGS, VobSub and DVB bitmap tracks in Matroska. See the [playback validation notes](development/playback.md#runtime-distribution-and-validation). **Release record:** 1.6.0 (Movi integration), 2.1.0 (libmedia integration).
 
 See the [archived V2 requirements and design](history.md#v2-requirements) for the earlier extraction proposals.
 
@@ -811,7 +811,7 @@ for media access. Technical authentication and proxy design belong in
 
 #### Embedded fonts (P15)
 
-P15 delivered embedded TTF/OTF fonts for ASS/SSA. After the 1.6.0 renderer
-transition, the 1.6.2 JASSUB integration restored on-demand font extraction and
-rendering for selected embedded ASS/SSA tracks. See the
-[Movi integration](development/movi.md#subtitle-rendering).
+P15 delivered embedded TTF/OTF fonts for ASS/SSA. The 1.6.2 JASSUB integration
+restored on-demand server extraction after the 1.6.0 renderer transition. As of
+2.1.0, the player reads fonts directly from the active media file. See the
+[subtitle design](development/playback.md#subtitles).

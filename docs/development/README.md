@@ -5,13 +5,13 @@
 The npm workspaces live in `apps/desktop/` (Electron shell), `apps/server/` (Fastify backend), `apps/web/`
 (browser entry and PWA), `packages/client-ui/` (React app and tests),
 `packages/client-core/` (shared API client), and `packages/contracts/`
-(shared HTTP protocol). The packages export TypeScript directly. Node.js 24
+(shared HTTP protocol). The packages export TypeScript directly. Node.js 26
 loads server-side contract exports at runtime and Vite bundles the shared code
 used by the Web app.
 
 ## Local development
 
-Use Node.js 24 (`.nvmrc`) and FFmpeg/FFprobe for media integration work. From the
+Use Node.js 26 (`.nvmrc`) and FFmpeg/FFprobe for media integration work. From the
 repository root:
 
 ```sh

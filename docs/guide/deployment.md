@@ -451,8 +451,8 @@ unless intentionally deleting it. Use script removal for installer-managed folde
 
 ## Source installation
 
-With Node.js 24, npm and FFmpeg/FFprobe installed, start the standalone API and
-media server:
+Install the Node.js version in `.nvmrc` and make FFmpeg and FFprobe available.
+From the repository root, build and start the standalone API and media server.
 
 ```sh
 npm ci

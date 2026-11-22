@@ -2,8 +2,6 @@
 
 [Architecture](architecture.md) · [UI design](design-system.md) · [Manual preparation](../guide/manual-preparation.md)
 
-See the [libmedia migration and acceptance record](libmedia-player-migration.md).
-
 ## Ownership
 
 Resources owns original-file identities, source versions and confined reads. Media owns
@@ -64,7 +62,8 @@ The player reads embedded tracks from the selected media asset. It renders
 embedded PGS, VobSub and DVB in Matroska, and uses JASSUB for styled ASS/SSA with
 attached fonts. Selecting an embedded bitmap or styled track starts a separate
 reader with the same media credentials. The player caches the result for the
-current session.
+current session. JASSUB failures leave the selected ASS/SSA track available
+through the player's basic subtitle renderer.
 
 Anishelf reads matching SRT, WebVTT, ASS and SSA sidecars through the existing
 version-bound subtitle API. It passes each complete file as a Blob and applies
@@ -96,12 +95,18 @@ Retired generated subtitle/font directories are cleaned on startup.
 
 ## Runtime distribution and validation
 
-The shared client pins `libmedia-react-player@1.4.0`. The playback route loads
+The shared client pins `libmedia-react-player@1.4.1`. The playback route loads
 the package on demand. Vite emits the decoder, renderers and Workers as
 same-origin assets and excludes those assets from the Web shell's precache.
 The desktop renderer uses the standard application scheme, CSP and device
 authentication.
-Acceptance covers real file playback, Range/seek, audio identity, sidecars, progress,
-manual preparation/recovery and preservation of subtitle/font/chapter data.
-Native browser prediction APIs are not acceptance evidence. Validate real media and
-record browser/device limitations rather than claiming universal compatibility.
+
+The player package reports HEVC Main 10 with AAC in Matroska verified in Chrome
+and packaged Electron. Player-level tests also exercised styled ASS with attached
+fonts, timed text sidecars and embedded PGS. Full Anishelf validation in the
+packaged desktop client, including authenticated HTTP range seeks, remains pending.
+
+Exercise real files in both clients when validating release builds. Cover
+authenticated range reads and seeking, same-language audio selection, embedded and
+sidecar subtitles, progress restoration, and preparation and retry. Inspect
+prepared files for preserved subtitles, fonts and chapters.

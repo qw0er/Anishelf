@@ -8,6 +8,7 @@
 | Subscribe, enable Watching or recover downloads | [Subscriptions and Watching](watching-automation.md) |
 | Set release preferences | [Acquisition profiles](acquisition-profiles.md) |
 | Customize preparation output | [Transcode profiles](transcode-profiles.md) |
+| Play files and select subtitles | [Playback](#playback) |
 | Configure Web URL templates and desktop command players | [External players](external-players.md) |
 
 ## First use
@@ -27,6 +28,26 @@ by default. Viewing progress and download
 state are independent. See [Development](../development/README.md) for contributor
 work, [Requirements](../requirements.md) for scope and [History](../history.md) for
 completed iterations.
+
+## Playback
+
+Anishelf uses libmedia-react-player on Web and desktop. It includes a
+WebAssembly SIMD software decoding fallback for codecs such as H.264, HEVC
+and AV1. Playback depends on the file's container and codec profile, the
+browser or desktop runtime, and the device.
+
+Use the player settings to select an audio track, select a subtitle track or
+adjust subtitle timing. Open the time display when it shows a chevron to jump
+to a chapter. The player can render styled ASS/SSA with fonts attached to the
+selected Matroska file and embedded PGS, VobSub and DVB bitmap subtitles.
+Matching SRT, WebVTT, ASS and SSA sidecars are also available. If styled
+rendering fails, playback continues with basic subtitles for that track.
+
+Playback starts with the original file by default. Use **Playback options** to
+select an existing prepared copy, or [prepare a compatible copy](manual-preparation.md)
+manually. You can also [open the original in an external player](external-players.md).
+In the desktop app, **Download video** saves the original and shows progress in
+the playback menu.
 
 ## Bangumi viewing progress
 

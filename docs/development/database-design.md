@@ -57,7 +57,7 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `playback_progress` | Existing source identity, position/duration/generation/sequence checks and history index; no representation change |
 | `resource_roots` | Opaque scope identity and creation time; obsolete `canonical_path` removed |
 | `media_sources` | Existing scoped source identity, resource-root foreign key and lookup indexes; no representation change |
-| `auth_sessions` | Explicit authentication, CSRF, cookie and expiry attributes |
+| `auth_sessions` | Authentication, CSRF, cookie and expiry attributes, plus a generation for conditional updates |
 | `auth_device_sessions` | Device ID and label, hashed bearer credential, password fingerprint and expiry |
 | `media_access_links` | Existing hashed capability, source version, fingerprint and expiry index; no representation change |
 
