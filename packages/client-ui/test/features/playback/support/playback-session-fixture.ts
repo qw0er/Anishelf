@@ -1,11 +1,17 @@
+import {
+	type MediaTimeline,
+	originalTimeline,
+} from "@anishelf/contracts/media";
 import { afterEach, beforeEach, vi } from "vitest";
 import * as playbackApi from "../../../../src/features/playback/player/api.js";
 import { playbackPolicy } from "../../../../src/features/playback/player/policy.js";
 import {
+	type PlaybackBinding,
 	PlaybackSessionController,
 	type PlaybackSessionState,
 } from "../../../../src/features/playback/player/session.js";
 import type { PlaybackSessionResponse } from "../../../../src/shared/api/contracts.js";
+import { playerEvents } from "../../../support/player-events.js";
 
 export const session: PlaybackSessionResponse = {
 	token: "token",
@@ -32,35 +38,55 @@ let controllers: PlaybackSessionController[];
 
 export function create(ready = true, policy = playbackPolicy) {
 	let state: PlaybackSessionState | null = null;
+	let token: string | undefined;
+	let current: HTMLVideoElement | null = document.createElement("video");
+	const video = current;
+	let timeline = originalTimeline();
+	let binding: PlaybackBinding | null = null;
+	let player: ReturnType<typeof playerEvents> | undefined;
 	const controller = new PlaybackSessionController(
 		"file",
 		(next) => {
 			state = next;
+			if (next.session?.token === token) return;
+			token = next.session?.token;
+			connect();
 		},
 		policy,
 	);
 	controllers.push(controller);
-	const video = document.createElement("video");
 	Object.defineProperty(video, "duration", { value: 100, configurable: true });
 	Object.defineProperty(video, "readyState", {
 		value: ready ? 1 : 0,
 		configurable: true,
 	});
-	Object.defineProperty(video, "currentTimeMs", {
-		configurable: true,
-		get: () => video.currentTime * 1000,
-		set: (value: number) => {
-			video.currentTime = value / 1000;
+	function connect() {
+		player?.close();
+		binding?.dispose();
+		const version = state?.session?.sourceVersion;
+		if (!current || !version) return;
+		const next = controller.bind(timeline, version);
+		if (!next) throw new Error("Missing playback binding.");
+		binding = next;
+		player = playerEvents(current, () => ({
+			...next.events,
+			initialPositionMs: next.initialPositionMs,
+		}));
+		if (current.readyState) player.ready();
+	}
+	return {
+		controller,
+		video,
+		state: () => state,
+		attach(
+			next: HTMLVideoElement | null,
+			assetTimeline: MediaTimeline = originalTimeline(),
+		) {
+			current = next;
+			timeline = assetTimeline;
+			connect();
 		},
-	});
-	Object.defineProperty(video, "durationMs", {
-		configurable: true,
-		get: () => video.duration * 1000,
-	});
-	controller.attach(
-		video as typeof video & { currentTimeMs: number; durationMs: number },
-	);
-	return { controller, video, state: () => state };
+	};
 }
 
 export async function tick() {
@@ -96,19 +122,4 @@ export function setupTestLifecycle() {
 		vi.useRealTimers();
 		vi.restoreAllMocks();
 	});
-}
-
-export function clockFor(video: HTMLVideoElement) {
-	Object.defineProperty(video, "currentTimeMs", {
-		configurable: true,
-		get: () => video.currentTime * 1000,
-		set: (v: number) => {
-			video.currentTime = v / 1000;
-		},
-	});
-	Object.defineProperty(video, "durationMs", {
-		configurable: true,
-		get: () => video.duration * 1000,
-	});
-	return video as typeof video & { currentTimeMs: number; durationMs: number };
 }

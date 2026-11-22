@@ -1,6 +1,5 @@
 import { type MediaTimeline, sourceTimeMs } from "@anishelf/contracts/media";
 import type { SavePlaybackProgressRequest } from "../../../shared/api/contracts.js";
-import type { PlaybackClock } from "./engine.js";
 
 export type Position = Pick<
 	SavePlaybackProgressRequest,
@@ -8,7 +7,7 @@ export type Position = Pick<
 >;
 
 export function capturePlaybackPosition(
-	video: Pick<PlaybackClock, "durationMs" | "currentTimeMs">,
+	progress: { durationMs: number | null; positionMs: number },
 	timeline: MediaTimeline,
 	ended: boolean,
 ): Position | null {
@@ -16,14 +15,14 @@ export function capturePlaybackPosition(
 		timeline.sourceDurationMs ??
 		(timeline.sourceOriginMs === 0 &&
 		timeline.mediaOriginMs === 0 &&
-		Number.isFinite(video.durationMs) &&
-		video.durationMs > 0
-			? Math.round(video.durationMs)
+		progress.durationMs !== null &&
+		Number.isFinite(progress.durationMs) &&
+		progress.durationMs > 0
+			? Math.round(progress.durationMs)
 			: null);
-	const localPosition =
-		ended && Number.isFinite(video.durationMs)
-			? video.durationMs
-			: video.currentTimeMs;
+	const localPosition = ended
+		? (progress.durationMs ?? progress.positionMs)
+		: progress.positionMs;
 	const positionMs = sourceTimeMs(localPosition, timeline);
 	if (
 		!Number.isSafeInteger(positionMs) ||

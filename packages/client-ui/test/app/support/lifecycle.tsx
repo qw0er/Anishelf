@@ -1,4 +1,4 @@
-import "../../support/mock-movi.js";
+import "../../support/mock-libmedia.js";
 import { afterEach, beforeEach, vi } from "vitest";
 import { toast } from "../../../src/shared/components/ui/toast.js";
 import { queryClient } from "../../setup.js";

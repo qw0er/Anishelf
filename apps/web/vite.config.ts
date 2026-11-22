@@ -10,29 +10,24 @@ import { VitePWA } from "vite-plugin-pwa";
 import { loadClientBuild } from "../../scripts/client-build.mts";
 
 // https://vite.dev/config/
+const playerPackage = "node_modules/libmedia-react-player/";
 const apiTarget = `http://${serverDefaults.host}:${serverDefaults.port}`;
 export default defineConfig({
 	define: {
 		__ANISHELF_BUILD__: JSON.stringify(loadClientBuild(import.meta.url)),
 	},
 	resolve: { tsconfigPaths: true },
-	worker: {
-		rolldownOptions: {
-			output: {
-				entryFileNames: "assets/playback-worker-[name]-[hash].js",
-				chunkFileNames: "assets/playback-worker-[name]-[hash].js",
-			},
-		},
-	},
 	build: {
 		rolldownOptions: {
 			output: {
-				// Keep the lazy decoder out of the application shell's precache.
+				// Both dynamic chunks and URL assets belong outside the offline shell.
+				assetFileNames: (asset) =>
+					asset.originalFileNames.some((name) => name.includes(playerPackage))
+						? "assets/libmedia-player-[name]-[hash][extname]"
+						: "assets/[name]-[hash][extname]",
 				chunkFileNames: (chunk) =>
-					chunk.moduleIds.some((id) =>
-						id.includes("/node_modules/movi-player/"),
-					)
-						? "assets/movi-player-[name]-[hash].js"
+					chunk.moduleIds.some((id) => id.includes(playerPackage))
+						? "assets/libmedia-player-[name]-[hash].js"
 						: "assets/[name]-[hash].js",
 			},
 		},
@@ -77,12 +72,7 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-				globIgnores: [
-					"**/movi-player-*.js",
-					"**/jassub-*.js",
-					"**/playback-worker-*.js",
-					"**/default-*.woff2",
-				],
+				globIgnores: ["**/libmedia-player-*.js"],
 				skipWaiting: true,
 				clientsClaim: true,
 				navigateFallback: null,

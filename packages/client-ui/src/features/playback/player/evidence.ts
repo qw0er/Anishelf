@@ -1,4 +1,3 @@
-import type { PlaybackClock } from "./engine.js";
 /** Cooperative normal-play time for one session. Seeks, pauses and buffering break continuity. */
 export class PlaybackEvidence {
 	private anchor: { position: number; time: number; rate: number } | null =
@@ -7,15 +6,9 @@ export class PlaybackEvidence {
 	reset() {
 		this.anchor = null;
 	}
-	sample(
-		video: PlaybackClock,
-		playing: boolean,
-		now = performance.now(),
-	): void {
-		const position = video.currentTimeMs,
-			rate = video.playbackRate;
+	sample(position: number, rate: number, now = performance.now()): void {
 		const previous = this.anchor;
-		if (previous && playing && !video.seeking) {
+		if (previous) {
 			const elapsed = now - previous.time,
 				delta = position - previous.position;
 			if (
@@ -27,8 +20,7 @@ export class PlaybackEvidence {
 			)
 				this.normalMs += elapsed;
 		}
-		this.anchor =
-			playing && !video.seeking ? { position, time: now, rate } : null;
+		this.anchor = { position, time: now, rate };
 	}
 	get normalPlayedMs(): number {
 		return Math.floor(this.normalMs);

@@ -1,6 +1,3 @@
-import { clockFor } from "../playback/support/playback-session-fixture.js";
-// @vitest-environment happy-dom
-
 import { expect, test } from "vitest";
 import {
 	episodeViewing,
@@ -8,31 +5,20 @@ import {
 } from "../../../src/features/anime/tracking/episode-viewing.js";
 import { PlaybackEvidence } from "../../../src/features/playback/player/evidence.js";
 
-test("normal time excludes resume, seeks, buffering and long gaps, and uses wall time at double speed", () => {
-	const video = document.createElement("video");
+test("normal time excludes jumps and long gaps, resets on interruption, and uses wall time at double speed", () => {
 	const evidence = new PlaybackEvidence();
-	video.currentTime = 40;
-	evidence.sample(clockFor(video), false, 0);
-	video.currentTime = 90;
-	evidence.sample(clockFor(video), true, 1000);
-	video.currentTime = 91;
-	evidence.sample(clockFor(video), true, 2000);
+	evidence.sample(90000, 1, 1000);
+	evidence.sample(91000, 1, 2000);
 	expect(evidence.normalPlayedMs).toBe(1000);
-	video.currentTime = 150;
-	evidence.sample(clockFor(video), true, 3000);
+	evidence.sample(150000, 1, 3000);
 	expect(evidence.normalPlayedMs).toBe(1000);
 	evidence.reset();
-	video.playbackRate = 2;
-	evidence.sample(clockFor(video), true, 4000);
-	video.currentTime = 152;
-	evidence.sample(clockFor(video), true, 5000);
+	evidence.sample(150000, 2, 4000);
+	evidence.sample(152000, 2, 5000);
 	expect(evidence.normalPlayedMs).toBe(2000);
-	evidence.sample(clockFor(video), false, 6000);
-	video.currentTime = 154;
-	evidence.sample(clockFor(video), true, 7000);
-	expect(evidence.normalPlayedMs).toBe(2000);
-	video.currentTime = 180;
-	evidence.sample(clockFor(video), true, 20000);
+	evidence.reset();
+	evidence.sample(154000, 2, 7000);
+	evidence.sample(180000, 2, 20000);
 	expect(evidence.normalPlayedMs).toBe(2000);
 });
 

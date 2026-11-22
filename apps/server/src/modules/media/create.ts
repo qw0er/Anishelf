@@ -32,7 +32,6 @@ import {
 	validatePreparationPolicy,
 } from "./preparation/policy.js";
 import type { MediaApi } from "./public.js";
-import { EmbeddedSubtitles } from "./subtitles/application/embedded.js";
 import { createSubtitleApplication } from "./subtitles/create.js";
 import { subtitlePolicy, validateSubtitlePolicy } from "./subtitles/policy.js";
 
@@ -169,23 +168,10 @@ export async function createMediaModule(options: {
 		sources: library.sources,
 		logger,
 	});
-	const embeddedSubtitles = new EmbeddedSubtitles({
-		sources: library.sources,
-		catalog: assets,
-		inspection,
-		preparation,
-		tools,
-		maximumBytes: policy.subtitles.maximumBytes,
-		logger,
-	});
 	const api: MediaApi = { listPlaybackAssets: assets.list.bind(assets) };
 	let stopped: Promise<void> | undefined;
 	let closed: Promise<void> | undefined;
-	const quiesce = () =>
-		(stopped ??= (async () => {
-			embeddedSubtitles.close();
-			await preparation.close();
-		})());
+	const quiesce = () => (stopped ??= preparation.close());
 	return {
 		api,
 		registerHttp: (app: import("../../transport/instance.js").HttpInstance) =>
@@ -193,7 +179,6 @@ export async function createMediaModule(options: {
 				inspection,
 				preparation,
 				subtitles,
-				embeddedSubtitles,
 			}),
 		quiesce,
 		close: () =>

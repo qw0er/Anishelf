@@ -69,9 +69,6 @@ export type HistoryResponse = Static<typeof schemas.HistoryResponseSchema>;
 export type SubtitleDiscoveryResponse = Static<
 	typeof schemas.SubtitleDiscoveryResponseSchema
 >;
-export type EmbeddedSubtitleResponse = Static<
-	typeof schemas.EmbeddedSubtitleResponseSchema
->;
 
 export type CompatibilityVideoStream = Static<
 	typeof schemas.VideoStreamDescriptionSchema

@@ -33,8 +33,8 @@ test("runtime failure retains the binding and does not select a fallback", async
 		usePlaybackSelection("file", undefined, "root"),
 	);
 	await waitFor(() => expect(result.current.loading).toBe(false));
-	act(() => result.current.failed({ kind: "decode", code: 3 }));
-	expect(result.current.runtimeFailure?.kind).toBe("decode");
+	act(() => result.current.failed({ reason: "engine" }));
+	expect(result.current.runtimeFailure?.reason).toBe("engine");
 	expect(result.current.selection?.active).toEqual(originalActive);
 	expect(api.selectPlayback).toHaveBeenCalledTimes(1);
 });

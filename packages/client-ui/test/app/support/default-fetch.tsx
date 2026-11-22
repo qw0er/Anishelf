@@ -201,6 +201,8 @@ export const defaultAppFetch: typeof fetch = async (input, init) => {
 		});
 	}
 
+	if (/^\/api\/files\/[^/]+\/subtitles$/.test(path))
+		return json({ sourceVersion: "version", tracks: [], warnings: [] });
 	if (path === "/api/playback/sessions") {
 		return json(
 			{

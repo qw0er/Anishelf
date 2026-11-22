@@ -2,6 +2,7 @@
 
 import { expect, test, vi } from "vitest";
 import { queryClient } from "../../setup.js";
+import { mockPlayer } from "../../support/mock-libmedia.js";
 import {
 	act,
 	fireEvent,
@@ -200,13 +201,21 @@ test.each([false, true])(
 		const video = await screen.findByLabelText("Video: Episode 01.mp4");
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 		appFixture.fileError = missing;
-		Object.defineProperty(video, "error", {
-			value: { code: 3, message: "Decode failed" },
-		});
-		fireEvent.error(video);
+		const player = mockPlayer.instances.find(
+			(instance) => instance.video === video,
+		);
+		if (!player) throw new Error("Missing player fixture.");
+		await act(() =>
+			player.error({
+				operation: "playback",
+				reason: "engine",
+				message: "Decode failed.",
+				fatal: true,
+			}),
+		);
 		await screen.findByText(
 			"This media version could not be decoded. Try another version or prepare a new copy.",
-			{ selector: "[data-slot=toast-title]" },
+			{ selector: "[role=alert]" },
 		);
 		await waitFor(() =>
 			expect(

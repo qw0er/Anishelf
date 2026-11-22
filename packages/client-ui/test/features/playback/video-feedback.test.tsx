@@ -2,337 +2,212 @@
 
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import * as media from "../../../src/features/media/subtitles/api.js";
+import * as api from "../../../src/features/playback/player/api.js";
 import VideoPlayer from "../../../src/features/playback/player/components/video-player.js";
-import * as engine from "../../../src/features/playback/player/movi.js";
-import { MockMoviCore, MockMoviElement } from "../../support/mock-movi.js";
+import { playbackPolicy } from "../../../src/features/playback/player/policy.js";
+import { PlaybackSessionController } from "../../../src/features/playback/player/session.js";
+import { getClientRuntime } from "../../../src/shared/api/connection.js";
+import { mockPlayer } from "../../support/mock-libmedia.js";
 import { preparedActive } from "../../support/playback-fixture.js";
 import {
 	act,
 	cleanup,
+	fireEvent,
 	render,
 	waitFor,
 } from "../../support/query-test-utils.js";
+import { session } from "./support/playback-session-fixture.js";
 import "../../../src/shared/i18n.js";
 
-beforeEach(() => {
-	MockMoviElement.instances = [];
-	vi.spyOn(engine, "loadPlayer").mockResolvedValue({
-		MoviElement: MockMoviElement,
-	} as unknown as Awaited<ReturnType<typeof engine.loadPlayer>>);
+let controller: PlaybackSessionController;
+beforeEach(async () => {
+	mockPlayer.restored = true;
 	vi.spyOn(media, "getSubtitles").mockResolvedValue({
-		sourceVersion: "v1",
+		sourceVersion: session.sourceVersion,
 		tracks: [],
 		warnings: [],
 	});
-	vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
-	vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+	vi.spyOn(api, "openPlaybackSession").mockResolvedValue(session);
+	vi.spyOn(api, "releasePlaybackSession").mockResolvedValue();
+	vi.spyOn(api, "savePlaybackProgress").mockResolvedValue({
+		status: "saved",
+		progress: session.progress,
+	});
+	controller = new PlaybackSessionController("file", () => {}, playbackPolicy);
+	await controller.open();
 });
-afterEach(() => {
+afterEach(async () => {
 	cleanup();
+	await controller.dispose();
 	vi.restoreAllMocks();
 });
-const props = {
-	fileId: "file",
-	displayTitle: "Episode",
-	sourceVersion: "v1",
-	active: preparedActive,
-};
-const firstAudioStream = preparedActive.asset.audioTracks[0]?.stream;
-if (!firstAudioStream) throw new Error("Missing audio fixture");
-const twoAudioActive = {
-	...preparedActive,
-	asset: {
-		...preparedActive.asset,
-		audioTracks: [
-			...preparedActive.asset.audioTracks,
-			{
-				stream: {
-					...firstAudioStream,
-					kind: "audio" as const,
-					index: 2,
-					codec: "aac",
-					language: "jpn",
-				},
-				sourceStreamIndex: 7,
-			},
-		],
-	},
-};
+function props() {
+	return {
+		fileId: "file",
+		displayTitle: "Episode",
+		sourceVersion: session.sourceVersion,
+		active: preparedActive,
+		silent: false,
+		bind: controller.bind.bind(controller),
+		startContinuation: vi.fn(async () => {}),
+		onAudioChange: vi.fn(),
+		onPlaybackFailure: vi.fn(),
+		onPlaybackRecovered: vi.fn(),
+		onReselect: vi.fn(),
+	};
+}
 async function mounted() {
-	await waitFor(() => expect(MockMoviElement.instances).toHaveLength(1));
-	const element = MockMoviElement.instances[0];
-	if (!element?.player) throw new Error("Missing player fixture");
-	await waitFor(() => expect(element.isConnected).toBe(true));
-	return { element, core: element.player };
+	await waitFor(() => expect(mockPlayer.instances).toHaveLength(1));
+	const instance = mockPlayer.instances[0];
+	if (!instance) throw Error("Missing playback fixture.");
+	return instance;
 }
 
-test("loads selected bytes and packaged WASM with upstream controls and app-owned history", async () => {
-	const onMedia = vi.fn();
-	render(<VideoPlayer {...props} onMedia={onMedia} />);
-	const { element, core } = await mounted();
-	await waitFor(() => expect(onMedia).toHaveBeenCalled());
-	expect(element.src).toBe(
-		new URL(preparedActive.resource.url, location.origin).href,
-	);
-	expect(element.hasAttribute("controls")).toBe(true);
-	expect(element.hasAttribute("playsinline")).toBe(true);
-	expect(element.hasAttribute("resume")).toBe(false);
-	expect(element.hasAttribute("autoplay")).toBe(false);
-	expect(element.hasAttribute("autoadvance")).toBe(false);
-	expect(element.getAttribute("wasmurl")).toBeTruthy();
-	expect(element.getAttribute("wasmurl")).not.toMatch(/^https?:/);
-	expect(core.activeAudioId).toBe(1);
+test("loads the selected resource at restored source time with the selected audio", async () => {
+	const input = props();
+	const view = render(<VideoPlayer {...input} />);
+	const player = await mounted();
+	expect(player.props()).toMatchObject({
+		src: new URL(preparedActive.resource.url, location.origin).href,
+		initialAudio: preparedActive.audio?.streamIndex,
+		initialPositionMs: 40000,
+		mediaRequest: { credentials: "include" },
+	});
+	view.rerender(<VideoPlayer {...input} displayTitle="Revised title" />);
+	expect(view.getByRole("region", { name: "Revised title" })).toBeTruthy();
+	expect(await mounted()).toBe(player);
 });
 
-test("title changes preserve the engine and update the accessible region", async () => {
-	const view = render(<VideoPlayer {...props} />);
-	const { element } = await mounted();
-	view.rerender(<VideoPlayer {...props} displayTitle="Corrected title" />);
-	expect(view.getByRole("region", { name: "Corrected title" })).toBeTruthy();
-	expect(MockMoviElement.instances).toEqual([element]);
-});
-
-test("selects non-default audio by numeric ID even when audio languages are identical", async () => {
-	render(
+test("maps same-language asset tracks and silence back to source audio without reopening media", async () => {
+	const input = props();
+	const first = input.active.asset.audioTracks[0];
+	if (!first || !input.active.audio) throw new Error("Missing audio tracks.");
+	const active = {
+		...input.active,
+		asset: {
+			...input.active.asset,
+			audioTracks: [
+				...input.active.asset.audioTracks,
+				{ stream: { ...first.stream, index: 2 }, sourceStreamIndex: 7 },
+			],
+		},
+	};
+	const view = render(<VideoPlayer {...input} active={active} />);
+	const player = await mounted();
+	await waitFor(() => expect(input.onPlaybackRecovered).toHaveBeenCalledOnce());
+	await act(() => {
+		player.track(first.stream.index);
+		player.track(2);
+	});
+	expect(input.onAudioChange).toHaveBeenCalledExactlyOnceWith(7);
+	view.rerender(
 		<VideoPlayer
-			{...props}
+			{...input}
 			active={{
-				...twoAudioActive,
+				...active,
 				audio: { streamIndex: 2, sourceStreamIndex: 7, position: 1 },
 			}}
 		/>,
 	);
-	const { core } = await mounted();
-	await waitFor(() => expect(core.selectAudioTrack).toHaveBeenCalledWith(2));
-	expect(core.activeAudioId).toBe(2);
+	expect(await mounted()).toBe(player);
+	expect(player.selectAudio).not.toHaveBeenCalled();
+	await act(() => player.track(null));
+	expect(input.onAudioChange).toHaveBeenLastCalledWith(null);
 });
 
-test("audio changes preserve the engine and translate selected asset IDs back to source IDs", async () => {
-	const onAudioChange = vi.fn();
-	const view = render(
-		<VideoPlayer
-			{...props}
-			active={twoAudioActive}
-			onAudioChange={onAudioChange}
-		/>,
+test("reports structured failures, then reloads at the last settled position", async () => {
+	const input = props();
+	const view = render(<VideoPlayer {...input} />);
+	const first = await mounted();
+	await waitFor(() =>
+		expect(input.onPlaybackRecovered).toHaveBeenCalledTimes(1),
 	);
-	const { element, core } = await mounted();
-	await act(async () => {
-		core.activeAudioId = 2;
-		element.dispatchEvent(new Event("audiotrackchange"));
-	});
-	expect(onAudioChange).toHaveBeenLastCalledWith(7);
-	view.rerender(
-		<VideoPlayer
-			{...props}
-			active={{
-				...twoAudioActive,
-				audio: { streamIndex: 2, sourceStreamIndex: 7, position: 1 },
-			}}
-			onAudioChange={onAudioChange}
-		/>,
+	first.video.currentTime = 55;
+	await act(() =>
+		first.error({
+			fatal: true,
+			operation: "playback",
+			reason: "server",
+			httpStatus: 503,
+			message: "HTTP error.",
+		}),
 	);
-	expect(MockMoviElement.instances).toEqual([element]);
-});
-
-test("selecting audio after silence restores the viewer's volume", async () => {
-	const view = render(<VideoPlayer {...props} />);
-	const { element } = await mounted();
-	await act(async () => {
-		element.volume = 0.7;
+	expect(input.onPlaybackFailure).toHaveBeenCalledWith({
+		reason: "server",
+		httpStatus: 503,
 	});
-	view.rerender(
-		<VideoPlayer {...props} active={{ ...preparedActive, audio: null }} />,
-	);
-	await waitFor(() => expect(element.volume).toBe(0));
-	view.rerender(<VideoPlayer {...props} />);
-	await waitFor(() => expect(element.volume).toBe(0.7));
-	expect(MockMoviElement.instances).toEqual([element]);
-});
-
-test("playback interaction stays inert until the application session finishes restoring", async () => {
-	const view = render(<VideoPlayer {...props} playbackReady={false} />);
-	const { element } = await mounted();
-	expect(element.inert).toBe(true);
-	view.rerender(<VideoPlayer {...props} playbackReady />);
-	await waitFor(() => expect(element.inert).toBe(false));
-});
-
-test("leaves fullscreen requests to the player without changing the app surface", async () => {
-	const view = render(<VideoPlayer {...props} />);
-	const { element } = await mounted();
-	const request = new CustomEvent("movi-fullscreen-request", {
-		cancelable: true,
-		bubbles: true,
-		composed: true,
-		detail: { active: false },
-	});
-	await act(async () => {
-		element.dispatchEvent(request);
-	});
-	expect(request.defaultPrevented).toBe(false);
-	expect(element.setHostFullscreen).not.toHaveBeenCalled();
-	expect(
-		view
-			.getByRole("region", { name: "Episode" })
-			.hasAttribute("data-viewport-fullscreen"),
-	).toBe(false);
-});
-
-test("a core replacement detaches the old clock and binds the new generation", async () => {
-	const onMedia = vi.fn();
-	render(<VideoPlayer {...props} onMedia={onMedia} />);
-	const { element, core } = await mounted();
-	await waitFor(() => expect(onMedia).toHaveBeenCalled());
-	const firstClock = onMedia.mock.calls.at(-1)?.[0];
-	await act(async () => {
-		element.dispatchEvent(new Event("loadstart"));
-		element.player = new MockMoviCore(element);
-		element.dispatchEvent(new Event("loadeddata"));
-	});
+	fireEvent.click(view.getByRole("button", { name: "Retry" }));
 	await waitFor(() => {
-		const rebound = onMedia.mock.calls.at(-1)?.[0];
-		expect(rebound).toBeTruthy();
-		expect(rebound).not.toBe(firstClock);
+		expect(mockPlayer.instances[0]).not.toBe(first);
+		expect(mockPlayer.instances[0]?.props().initialPositionMs).toBe(55000);
 	});
-	expect([...core.listeners.values()].every((set) => set.size === 0)).toBe(
-		true,
-	);
 });
 
-test("unmount clears the source and detaches the clock", async () => {
-	const onMedia = vi.fn();
-	const view = render(<VideoPlayer {...props} onMedia={onMedia} />);
-	const { element, core } = await mounted();
-	await waitFor(() => expect(onMedia).toHaveBeenCalled());
-	view.unmount();
-	expect(onMedia).toHaveBeenLastCalledWith(
-		null,
-		preparedActive.resource.timeline,
+test("expired media credentials use the host sign-in flow before retrying", async () => {
+	const runtime = getClientRuntime();
+	const checkSession = vi
+		.spyOn(runtime.authentication, "getSession")
+		.mockResolvedValue({ authenticated: false });
+	const signIn = vi
+		.spyOn(runtime, "onAuthRequired")
+		.mockImplementation(() => {});
+	const input = props();
+	const view = render(<VideoPlayer {...input} />);
+	const first = await mounted();
+	await act(() =>
+		first.error({
+			fatal: true,
+			operation: "load",
+			reason: "credentials",
+			httpStatus: 401,
+			message: "Sign in required.",
+		}),
 	);
-	expect(element.src).toBeNull();
-	expect(element.player).toBeNull();
-	expect(element.isConnected).toBe(false);
-	expect([...core.listeners.values()].every((set) => set.size === 0)).toBe(
-		true,
-	);
+	fireEvent.click(view.getByRole("button", { name: "Retry" }));
+	await waitFor(() => expect(signIn).toHaveBeenCalledOnce());
+	expect(checkSession).toHaveBeenCalledOnce();
+	expect(mockPlayer.instances).toEqual([first]);
 });
 
-test("changing the requested audio selects the same core without reloading media", async () => {
-	const view = render(<VideoPlayer {...props} active={twoAudioActive} />);
-	const { element, core } = await mounted();
-	view.rerender(
-		<VideoPlayer
-			{...props}
-			active={{
-				...twoAudioActive,
-				audio: { streamIndex: 2, sourceStreamIndex: 7, position: 1 },
-			}}
-		/>,
+test("a failed initial seek disables playback and preserves the saved position on retry", async () => {
+	mockPlayer.restored = false;
+	const input = props();
+	const view = render(<VideoPlayer {...input} />);
+	await view.findByText(
+		"Your saved position could not be restored. Retry to resume playback.",
 	);
-	await waitFor(() => expect(core.selectAudioTrack).toHaveBeenCalledWith(2));
-	expect(MockMoviElement.instances).toEqual([element]);
+	const first = await mounted();
+	expect(first.video.closest("[inert]")).toBeTruthy();
+	expect(input.startContinuation).not.toHaveBeenCalled();
+	await controller.flush();
+	expect(api.savePlaybackProgress).not.toHaveBeenCalled();
+	mockPlayer.restored = true;
+	fireEvent.click(view.getByRole("button", { name: "Retry" }));
+	await waitFor(() => {
+		expect(mockPlayer.instances[0]).not.toBe(first);
+		expect(mockPlayer.instances[0]?.video.currentTime).toBe(40);
+		expect(input.onPlaybackRecovered).toHaveBeenCalledOnce();
+	});
 });
 
-test("leaving during subtitle discovery prevents a stale player from mounting", async () => {
-	let finish!: (value: Awaited<ReturnType<typeof media.getSubtitles>>) => void;
+test("detaching during sidecar discovery prevents a stale player from starting", async () => {
+	let finish:
+		| ((result: Awaited<ReturnType<typeof media.getSubtitles>>) => void)
+		| undefined;
 	vi.mocked(media.getSubtitles).mockReturnValue(
 		new Promise((resolve) => {
 			finish = resolve;
 		}),
 	);
-	const onMedia = vi.fn();
-	const view = render(<VideoPlayer {...props} onMedia={onMedia} />);
-	await waitFor(() => expect(media.getSubtitles).toHaveBeenCalled());
+	const view = render(<VideoPlayer {...props()} />);
+	await waitFor(() => expect(finish).toBeDefined());
 	view.unmount();
-	await act(async () => {
-		finish({ sourceVersion: "v1", tracks: [], warnings: [] });
-	});
-	expect(MockMoviElement.instances).toEqual([]);
-	expect(onMedia).toHaveBeenLastCalledWith(
-		null,
-		preparedActive.resource.timeline,
+	await act(() =>
+		finish?.({
+			sourceVersion: session.sourceVersion,
+			tracks: [],
+			warnings: [],
+		}),
 	);
-});
-
-test("upstream format errors notify the app even when no runtime error event fires", async () => {
-	const onPlaybackFailure = vi.fn();
-	render(<VideoPlayer {...props} onPlaybackFailure={onPlaybackFailure} />);
-	const { element } = await mounted();
-	await act(async () => {
-		element.dispatchEvent(
-			new CustomEvent("errordisplay", {
-				detail: {
-					title: "Unsupported format",
-					message: "This codec is not supported.",
-				},
-			}),
-		);
-	});
-	expect(onPlaybackFailure).toHaveBeenCalledWith({
-		kind: "unsupported",
-		code: null,
-	});
-});
-
-test("software recovery rebinds a replacement core announced only through statechange", async () => {
-	const onMedia = vi.fn();
-	render(<VideoPlayer {...props} onMedia={onMedia} />);
-	const { element, core } = await mounted();
-	await waitFor(() => expect(onMedia.mock.calls.at(-1)?.[0]).toBeTruthy());
-	const firstClock = onMedia.mock.calls.at(-1)?.[0];
-	await act(async () => {
-		element.player = new MockMoviCore(element);
-		element.dispatchEvent(new CustomEvent("statechange", { detail: "ready" }));
-	});
-	await waitFor(() => {
-		const replacement = onMedia.mock.calls.at(-1)?.[0];
-		expect(replacement).toBeTruthy();
-		expect(replacement).not.toBe(firstClock);
-	});
-	expect([...core.listeners.values()].every((set) => set.size === 0)).toBe(
-		true,
-	);
-});
-
-test("session restoration wins over the opening poster seek after loadeddata", async () => {
-	const onMedia = vi.fn();
-	render(<VideoPlayer {...props} onMedia={onMedia} />);
-	const { element } = await mounted();
-	await waitFor(() => expect(onMedia.mock.calls.at(-1)?.[0]).toBeTruthy());
-	const replacement = new MockMoviCore(element);
-	await act(async () => {
-		element.dispatchEvent(new Event("loadstart"));
-		element.player = replacement;
-		onMedia.mockImplementation((clock) => {
-			if (clock) clock.currentTimeMs = 40000;
-		});
-		element.dispatchEvent(new Event("loadeddata"));
-		// Movi starts this opening seek synchronously after dispatching loadeddata.
-		await replacement.seek(0);
-	});
-	await waitFor(() => expect(replacement.seek).toHaveBeenLastCalledWith(40));
-	expect(element.currentTime).toBe(40);
-});
-
-test("successful recovery clears the application failure without replacing the source", async () => {
-	const onPlaybackFailure = vi.fn();
-	const onPlaybackRecovered = vi.fn();
-	render(
-		<VideoPlayer
-			{...props}
-			onPlaybackFailure={onPlaybackFailure}
-			onPlaybackRecovered={onPlaybackRecovered}
-		/>,
-	);
-	const { element, core } = await mounted();
-	await act(async () => {
-		element.dispatchEvent(
-			new CustomEvent("error", { detail: new Error("Decode failed") }),
-		);
-	});
-	expect(onPlaybackFailure).toHaveBeenCalled();
-	await act(async () => core.setState("playing"));
-	expect(onPlaybackRecovered).toHaveBeenCalledTimes(1);
-	expect(MockMoviElement.instances).toEqual([element]);
+	expect(mockPlayer.instances).toHaveLength(0);
 });

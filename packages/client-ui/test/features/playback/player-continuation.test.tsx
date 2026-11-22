@@ -64,7 +64,17 @@ function Harness() {
 			</output>
 			<output data-testid="autoplay">{String(location.state?.autoPlay)}</output>
 			{location.pathname === "/files/file-1" && (
-				<PlayerContinuation fileId="file-1" sourceVersion="v1" />
+				<PlayerContinuation
+					fileId="file-1"
+					sourceVersion="v1"
+					renderPlayer={(next) =>
+						next ? (
+							<button type="button" onClick={next.run}>
+								{next.label}
+							</button>
+						) : null
+					}
+				/>
 			)}
 		</>
 	);
@@ -135,17 +145,10 @@ test("manual navigation preserves library context, chooses the correct episode a
 	expect(screen.getByTestId("autoplay").textContent).toBe("true");
 });
 
-test("missing episodes disable navigation without a separate availability explanation", () => {
+test("missing episodes omit the player continuation action", () => {
 	seed(0);
 	render(tree());
-	expect(
-		screen
-			.getByRole("button", { name: "Next: Episode 2" })
-			.hasAttribute("disabled"),
-	).toBe(true);
-	expect(screen.getByRole("region", { name: "Next episode" }).textContent).toBe(
-		"Next: Episode 2",
-	);
+	expect(screen.queryByRole("button", { name: "Next: Episode 2" })).toBeNull();
 });
 
 test("multiple available versions require explicit choice", () => {

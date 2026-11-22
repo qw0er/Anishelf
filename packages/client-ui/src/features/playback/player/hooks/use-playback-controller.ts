@@ -41,15 +41,16 @@ export function usePlaybackController(data: FileResponse, autoPlay = false) {
 		() => () => toast.close(`video-playback:${data.file.id}`),
 		[data.file.id],
 	);
-	function selectAudio(value: string) {
+	function selectAudio(sourceIndex: number | null) {
 		const active = selection.selection?.active;
 		if (!active) return;
 		const next = new URLSearchParams(searchParams);
-		next.set("audio", value);
+		next.set("audio", sourceIndex === null ? "none" : String(sourceIndex));
+		selection.retainAudio(sourceIndex);
 		next.set("asset", active.asset.id);
 		console.info("[playback] Current asset audio selected.", {
 			assetId: active.asset.id,
-			sourceAudioStreamIndex: Number(value),
+			sourceAudioStreamIndex: sourceIndex,
 		});
 		setSearchParams(next, { replace: true });
 	}

@@ -40,7 +40,9 @@ test("detail next playback navigates directly when the target has one version", 
 	const detail = animeFixture();
 	const episode = detail.episodes[0];
 	if (!episode) throw new Error("Missing fixture episode");
-	episode.versions = episode.versions.slice(0, 1);
+	episode.versions = episode.versions
+		.slice(0, 1)
+		.map((version) => ({ ...version, sourceVersion: "version" }));
 	mockAnime(detail);
 	connectAnimeViewing(0);
 	renderApp("/anime/work-1");

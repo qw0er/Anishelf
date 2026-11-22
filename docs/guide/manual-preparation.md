@@ -1,7 +1,7 @@
 # Manual preparation
 
-Play the original file with Movi Player, or explicitly choose a completed copy from
-playback options. Playback never starts a preparation job or chooses a copy from a
+Play the original file in Anishelf or choose a completed copy from playback
+options. Playback never starts a preparation job or chooses a copy from a
 browser compatibility prediction.
 
 Choose **Pre-transcode** in a file's actions or playback options. Select the

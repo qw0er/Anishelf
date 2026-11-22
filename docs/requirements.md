@@ -406,19 +406,19 @@ continuing normally.
 Standalone Movi 0.4.1 tests also reproduced missing active cues in MKV samples
 with embedded SRT, WebVTT, PGS, VobSub and DVB. Playback resumed inside the cue
 before the track was enabled. The same steps displayed the active cues in
-external SRT and WebVTT samples. The built-in Movi path, including the ASS/SSA
-fallback, remains deferred pending an upstream fix.
+external SRT and WebVTT samples. These results also covered the built-in ASS/SSA fallback in Movi.
+See the [libmedia acceptance record](development/libmedia-player-migration.md)
+for current playback results.
 See [Movi Player issue #33](https://github.com/MrUjjwalG/movi-player/issues/33).
 
-## Movi Player and manual preparation direction
+## Client playback and manual preparation
 
-The current implementation uses Movi Player for client playback without browser
-compatibility negotiation. Users explicitly choose original files or prepared copies.
-Preparation is manual. Selected embedded ASS/SSA tracks and eligible font
-attachments are extracted on demand. The server probes preparation input/output
-and validates tools, container constraints and source access. New copies preserve
-subtitles, fonts and chapters, using Matroska by default. Browser/device performance
-and subtitle fidelity require actual sample validation; support lists do not certify
-universal playback. JASSUB renders styled ASS/SSA from either subtitle source. This
-direction supersedes earlier compatibility-driven preparation,
-automatic-processing-window and full client-font-rendering requirements.
+Anishelf uses `libmedia-react-player` for client playback. Users explicitly
+choose original files or prepared copies. Preparation is manual. The player
+reads embedded tracks and attached fonts from the selected asset and uses
+JASSUB for styled ASS/SSA. The server probes preparation input and output,
+validates tools, container constraints and source access, and delivers
+version-bound sidecars. New copies preserve subtitles, fonts and chapters,
+using Matroska by default. The
+[playback validation record](development/libmedia-player-migration.md) lists
+the formats and runtime versions exercised.

@@ -4,7 +4,6 @@ import * as playbackApi from "../../../src/features/playback/player/api.js";
 import { playbackPolicy } from "../../../src/features/playback/player/policy.js";
 import { ApiClientError } from "../../../src/shared/api/client.js";
 import {
-	clockFor,
 	create,
 	session,
 	setupTestLifecycle,
@@ -14,14 +13,14 @@ import {
 setupTestLifecycle();
 
 test("switching to prepared media retains the original session and captured source-time position", async () => {
-	const { controller, video } = create();
+	const { controller, video, attach } = create();
 	await controller.open();
 	video.currentTime = 61;
-	controller.attach(null);
+	attach(null);
 	const preparedVideo = document.createElement("video");
 	Object.defineProperty(preparedVideo, "readyState", { value: 1 });
 	Object.defineProperty(preparedVideo, "duration", { value: 100 });
-	controller.attach(clockFor(preparedVideo));
+	attach(preparedVideo);
 	expect(preparedVideo.currentTime).toBe(61);
 	preparedVideo.currentTime = 65;
 	preparedVideo.dispatchEvent(new Event("pause"));
@@ -43,8 +42,8 @@ test("switching to prepared media retains the original session and captured sour
 });
 
 test("offset media restores and persists source time rather than the local segment clock", async () => {
-	const { controller, video } = create();
-	controller.attach(clockFor(video), {
+	const { controller, video, attach } = create();
+	attach(video, {
 		sourceOriginMs: 30000,
 		mediaOriginMs: 2000,
 		sourceDurationMs: 200000,
@@ -61,8 +60,8 @@ test("offset media restores and persists source time rather than the local segme
 });
 
 test("an offset stream ending does not mark the whole source watched", async () => {
-	const { controller, video } = create();
-	controller.attach(clockFor(video), {
+	const { controller, video, attach } = create();
+	attach(video, {
 		sourceOriginMs: 30000,
 		mediaOriginMs: 0,
 		sourceDurationMs: 200000,
@@ -79,18 +78,18 @@ test("an offset stream ending does not mark the whole source watched", async () 
 
 test("switching assets during a save outage restores the captured source position and retries", async () => {
 	vi.useFakeTimers();
-	const { controller, video, state } = create();
+	const { controller, video, state, attach } = create();
 	await controller.open();
 	vi.mocked(playbackApi.savePlaybackProgress).mockRejectedValueOnce(
 		new ApiClientError({ kind: "network", message: "offline" }),
 	);
 	video.currentTime = 61;
 	await controller.flush();
-	controller.attach(null);
+	attach(null);
 	const prepared = document.createElement("video");
 	Object.defineProperty(prepared, "readyState", { value: 1 });
 	Object.defineProperty(prepared, "duration", { value: 100 });
-	controller.attach(clockFor(prepared));
+	attach(prepared);
 	expect(prepared.currentTime).toBe(61);
 	expect(state()?.restored).toBe(true);
 	prepared.currentTime = 65;

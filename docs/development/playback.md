@@ -2,12 +2,15 @@
 
 [Architecture](architecture.md) · [UI design](design-system.md) · [Manual preparation](../guide/manual-preparation.md)
 
+See the [libmedia migration and acceptance record](libmedia-player-migration.md).
+
 ## Ownership
 
 Resources owns original-file identities, source versions and confined reads. Media owns
 inspection, explicit preparation commands and published files. Playback owns the
 selected resource binding, source-level progress, sessions and completion observations.
-Movi Player owns browser decoding, rendering, audio/subtitle tracks and controls.
+`libmedia-react-player` owns client decoding, rendering, track selection and
+player controls.
 
 Media contains `inspection`, `preparation/planning`, `preparation/execution`,
 `artifacts`, `subtitles` and a catalog read model. Planning compiles user intent; it
@@ -28,9 +31,9 @@ unverified original trial. Access/version failures still prevent delivery.
 
 Each completed asset describes actual inspected bytes, independent of current
 profile settings. Output audio positions map back to source stream indices.
-Movi's core audio track IDs identify FFmpeg stream indices in the loaded asset;
-the adapter maps those through the asset's audio inventory back to source indices.
-Language-keyed selection is not used, so same-language tracks remain distinct.
+The player reports the loaded file's stream index. Anishelf uses the asset's
+audio inventory to map that index back to the source and to distinguish tracks
+with the same language. An explicit silent selection is stored as `audio=none`.
 Version links remain source/version-bound.
 
 Runtime failures retain the selected binding and show an explicit retry action.
@@ -40,12 +43,13 @@ its own inventory when opened, and users explicitly choose newly prepared copies
 
 ## Frontend lifecycle
 
-`PlaybackClock` exposes time and duration in milliseconds, playback state, events
-and play/seek operations without an HTMLVideoElement dependency. Movi's core uses
-seconds; the adapter converts at this boundary and translates its state and seek
-events into the application lifecycle. Source/media time mappings preserve
-one resume history across originals and prepared copies. Title and audio changes do
-not recreate the selected file's player; navigation detaches listeners and destroys it.
+Anishelf opens a progress session and resolves the selected asset before starting
+the player. It maps the last source position to the asset clock and passes it as
+`initialPositionMs`. The restore result and ready event must come from the same
+player session before autoplay or progress saving can begin. A failed restore
+keeps the last confirmed position available for retry. Title and audio changes
+reuse the selected asset's player. A different asset or a manual media retry
+starts a new player binding, while callbacks from the previous binding are ignored.
 
 Normal-play evidence is sampled independently of network saves. Pauses, buffering,
 seeks and rate changes break continuity. Saves occur every 15 seconds; seeks are
@@ -56,17 +60,16 @@ Only natural source completion can mark the whole source watched.
 
 ## Subtitles
 
-Movi owns track selection and renders supported SRT, WebVTT and bitmap tracks.
-JASSUB renders selected ASS/SSA tracks with their styles, positioning and effects.
-The backend reads complete sidecar text and extracts embedded ASS/SSA with eligible
-font attachments from the selected asset on demand. The browser uses a bundled
-fallback font when the requested font is unavailable. See the
-[Movi integration](movi.md#subtitle-rendering).
+The player reads embedded tracks from the selected media asset. It renders
+embedded PGS, VobSub and DVB in Matroska, and uses JASSUB for styled ASS/SSA with
+attached fonts. Selecting an embedded bitmap or styled track starts a separate
+reader with the same media credentials. The player caches the result for the
+current session.
 
-Sidecar URLs carry video and subtitle versions. Embedded reads also carry the
-asset ID and revision. Legacy prepared copies without subtitle tracks still
-support matching sidecars. The styled path renders the complete ASS/SSA track
-at the current time, including cues that started before a seek.
+Anishelf reads matching SRT, WebVTT, ASS and SSA sidecars through the existing
+version-bound subtitle API. It passes each complete file as a Blob and applies
+the asset's media origin minus the source origin as the subtitle offset. A
+failed or timed-out sidecar read leaves the other tracks available.
 
 ## Manual preparation
 
@@ -93,7 +96,11 @@ Retired generated subtitle/font directories are cleaned on startup.
 
 ## Runtime distribution and validation
 
-See [Movi Player integration](movi.md) for pinned resources and build instructions.
+The shared client pins `libmedia-react-player@1.4.0`. The playback route loads
+the package on demand. Vite emits the decoder, renderers and Workers as
+same-origin assets and excludes those assets from the Web shell's precache.
+The desktop renderer uses the standard application scheme, CSP and device
+authentication.
 Acceptance covers real file playback, Range/seek, audio identity, sidecars, progress,
 manual preparation/recovery and preservation of subtitle/font/chapter data.
 Native browser prediction APIs are not acceptance evidence. Validate real media and

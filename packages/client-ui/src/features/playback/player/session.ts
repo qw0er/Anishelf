@@ -1,9 +1,13 @@
 import {
 	type MediaTimeline,
 	mediaTimeMs,
-	originalTimeline,
 	sourceTimeMs,
 } from "@anishelf/contracts/media";
+import type {
+	LibmediaPlaybackProgress,
+	LibmediaPlaybackState,
+	LibmediaPlayerEvents,
+} from "libmedia-react-player";
 import {
 	ApiClientError,
 	isRequestCancelled,
@@ -19,8 +23,9 @@ import {
 	releasePlaybackSession,
 	savePlaybackProgress,
 } from "./api.js";
-import type { PlaybackClock } from "./engine.js";
+import { PlaybackEvidence } from "./evidence.js";
 import type { PlaybackPolicy } from "./policy.js";
+import { capturePlaybackPosition, type Position } from "./progress-position.js";
 
 export interface PlaybackSessionState {
 	session: PlaybackSessionResponse | null;
@@ -30,9 +35,20 @@ export interface PlaybackSessionState {
 	error: { operation: "load" | "save"; cause: unknown } | null;
 }
 
-import { PlaybackEvidence } from "./evidence.js";
-
-import { capturePlaybackPosition, type Position } from "./progress-position.js";
+export interface PlaybackBinding {
+	initialPositionMs: number;
+	events: Pick<
+		LibmediaPlayerEvents,
+		| "onPlaybackStateChange"
+		| "onInitialPositionResult"
+		| "onReady"
+		| "onTimeUpdate"
+		| "onSeeked"
+		| "onEnded"
+	>;
+	accepts(sessionId: string): boolean;
+	dispose(): void;
+}
 
 export function isRetryablePlaybackError(cause: unknown): boolean {
 	if (isRequestCancelled(cause)) return true;
@@ -57,10 +73,7 @@ export class PlaybackSessionController {
 	};
 	private evidence = new PlaybackEvidence();
 	private naturalEnd = false;
-	private playing = false;
-	private video: PlaybackClock | null = null;
-	private timeline: MediaTimeline = originalTimeline();
-	private metadataReady = false;
+	private binding: PlaybackBinding | null = null;
 	private position: Position | null = null;
 	private sequence = 0;
 	private pending: SavePlaybackProgressRequest | null = null;
@@ -73,7 +86,6 @@ export class PlaybackSessionController {
 	private retryTimer: ReturnType<typeof setTimeout> | undefined;
 	private seekTimer: ReturnType<typeof setTimeout> | undefined;
 	private retryDelayMs = 0;
-	private detachEvents: (() => void) | undefined;
 	private lastSaved: SavePlaybackProgressRequest | null = null;
 	private readonly fileId: string;
 	private readonly notify: (state: PlaybackSessionState) => void;
@@ -112,7 +124,6 @@ export class PlaybackSessionController {
 				this.pending = null;
 				this.lastSaved = null;
 				this.publish({ session, loading: false });
-				if (!this.closed) this.restore();
 			} catch (cause) {
 				this.publish({ loading: false, error: { operation: "load", cause } });
 			}
@@ -122,95 +133,147 @@ export class PlaybackSessionController {
 		return this.opening;
 	}
 
-	attach(
-		video: PlaybackClock | null,
-		timeline: MediaTimeline = originalTimeline(),
-	): void {
-		this.sampleEvidence();
-		this.evidence.reset();
-		this.playing = false;
-		this.capture();
-		this.detachEvents?.();
-		clearInterval(this.timer);
-		clearTimeout(this.seekTimer);
-		this.video = video;
-		this.timeline = timeline;
-		this.metadataReady = (video?.readyState ?? 0) >= 1;
-		if (!video || this.closed) return;
-		this.publish({ restored: false });
-		const metadata = () => {
-			this.metadataReady = true;
-			this.restore();
-		};
-		const seeked = () => {
-			this.evidence.reset();
-			this.playing = !video.paused && !video.ended;
-			this.sampleEvidence();
-			if (!this.state.restored) this.finishRestore();
-			else {
-				this.capture();
-				clearTimeout(this.seekTimer);
-				this.seekTimer = setTimeout(
-					() => this.queueSave(),
-					this.policy.progressSeekDelayMs,
-				);
+	bind(timeline: MediaTimeline, sourceVersion: string): PlaybackBinding | null {
+		const { session } = this.state;
+		if (!session || this.closed || session.sourceVersion !== sourceVersion)
+			return null;
+
+		this.binding?.dispose();
+		if (this.position && this.state.restored) this.queueSave();
+		const previous = this.position ?? session.progress;
+		const duration = timeline.sourceDurationMs ?? previous.durationMs;
+		const initialPositionMs =
+			duration !== null && previous.positionMs >= duration - 100
+				? 0
+				: mediaTimeMs(previous.positionMs, timeline);
+
+		let state: LibmediaPlaybackState | undefined;
+		const retired = new Set<string>();
+		let mediaPositionMs: number | undefined;
+		let restoredAttempt: string | undefined;
+		let ended = false;
+		const active = () => !this.closed && this.binding === binding;
+		const accepts = (id: string) => active() && state?.sessionId === id;
+		const capture = (progress: LibmediaPlaybackProgress, atEnd = false) => {
+			const position = capturePlaybackPosition(progress, timeline, atEnd);
+			if (position) {
+				this.position = position;
+				mediaPositionMs = atEnd
+					? (progress.durationMs ?? progress.positionMs)
+					: progress.positionMs;
 			}
 		};
-		const sample = () => this.sampleEvidence();
-		const playing = () => {
-			if (!video.ended) this.naturalEnd = false;
-			this.evidence.reset();
-			this.playing = true;
-			sample();
+		const playing = () =>
+			state?.status === "playing" && !state.buffering && !state.seeking;
+		const sample = () => {
+			if (playing() && state && mediaPositionMs !== undefined)
+				this.evidence.sample(mediaPositionMs, state.playbackRate);
 		};
-		const interrupt = () => {
-			this.naturalEnd = false;
-			this.playing = false;
-			this.evidence.reset();
+		const binding: PlaybackBinding = {
+			initialPositionMs,
+			accepts,
+			events: {
+				onPlaybackStateChange: (next) => {
+					if (!active() || retired.has(next.sessionId)) return;
+					if (state && next.sessionId !== state.sessionId) {
+						if (next.status !== "loading") return;
+						// React can restart the player's effects while keeping this binding.
+						retired.add(state.sessionId);
+						if (restoredAttempt !== next.sessionId) restoredAttempt = undefined;
+						ended = false;
+						this.evidence.reset();
+						this.publish({ restored: false });
+					}
+					const wasPlaying = playing();
+					const changedRate = next.playbackRate !== state?.playbackRate;
+					const isPaused =
+						next.status === "paused" && state?.status !== "paused";
+					if (
+						next.status !== "playing" ||
+						next.seeking ||
+						next.buffering ||
+						changedRate
+					)
+						this.evidence.reset();
+					if (next.status === "playing" && state?.status !== "playing") {
+						ended = false;
+						this.naturalEnd = false;
+					}
+					state = next;
+					if (this.state.restored && (!wasPlaying || changedRate)) sample();
+					if (isPaused && this.state.restored) this.queueSave();
+				},
+				onInitialPositionResult: (result) => {
+					if (active() && !retired.has(result.sessionId))
+						restoredAttempt = result.restored ? result.sessionId : undefined;
+				},
+				onReady: (progress) => {
+					if (
+						!accepts(progress.sessionId) ||
+						restoredAttempt !== progress.sessionId ||
+						this.state.restored
+					)
+						return;
+					capture(progress);
+					this.publish({ restored: true });
+				},
+				onTimeUpdate: (progress) => {
+					if (
+						!accepts(progress.sessionId) ||
+						!this.state.restored ||
+						state?.seeking
+					)
+						return;
+					capture(progress);
+					sample();
+				},
+				onSeeked: (progress) => {
+					if (!accepts(progress.sessionId) || !this.state.restored) return;
+					ended = false;
+					this.naturalEnd = false;
+					this.evidence.reset();
+					capture(progress);
+					sample();
+					clearTimeout(this.seekTimer);
+					this.seekTimer = setTimeout(
+						() => this.queueSave(),
+						this.policy.progressSeekDelayMs,
+					);
+				},
+				onEnded: (progress) => {
+					if (!accepts(progress.sessionId) || !this.state.restored || ended)
+						return;
+					ended = true;
+					this.evidence.reset();
+					const duration = timeline.sourceDurationMs;
+					const end = progress.durationMs ?? progress.positionMs;
+					this.naturalEnd =
+						duration === null
+							? timeline.sourceOriginMs === 0 && timeline.mediaOriginMs === 0
+							: sourceTimeMs(end, timeline) >= duration - 1000;
+					capture(progress, true);
+					this.queueSave();
+				},
+			},
+			dispose: () => {
+				if (!active()) return;
+				this.clearBinding();
+			},
 		};
-		const stop = () => {
-			sample();
-			interrupt();
-		};
-		const save = () => {
-			stop();
-			this.queueSave();
-		};
-		const ended = () => {
-			stop();
-			const duration = this.timeline.sourceDurationMs;
-			this.naturalEnd =
-				duration === null
-					? this.timeline.sourceOriginMs === 0 &&
-						this.timeline.mediaOriginMs === 0
-					: sourceTimeMs(video.currentTimeMs, this.timeline) >= duration - 1000;
-			this.queueSave(true);
-		};
-		const events: [string, () => void][] = [
-			["playing", playing],
-			["timeupdate", sample],
-			["seeking", interrupt],
-			["waiting", interrupt],
-			["stalled", interrupt],
-			["ratechange", playing],
-		];
-		for (const [name, handler] of events) video.addEventListener(name, handler);
-		video.addEventListener("loadedmetadata", metadata);
-		video.addEventListener("seeked", seeked);
-		video.addEventListener("pause", save);
-		video.addEventListener("ended", ended);
-		this.detachEvents = () => {
-			for (const [name, handler] of events)
-				video.removeEventListener(name, handler);
-			video.removeEventListener("loadedmetadata", metadata);
-			video.removeEventListener("seeked", seeked);
-			video.removeEventListener("pause", save);
-			video.removeEventListener("ended", ended);
-		};
+		this.binding = binding;
+		this.naturalEnd = false;
+		this.publish({ restored: false });
 		this.timer = setInterval(() => {
-			if (!video.paused && !video.ended) this.queueSave();
+			if (this.state.restored && playing()) this.queueSave();
 		}, this.policy.progressSaveIntervalMs);
-		this.restore();
+		return binding;
+	}
+
+	private clearBinding(): void {
+		this.binding = null;
+		this.evidence.reset();
+		clearInterval(this.timer);
+		clearTimeout(this.seekTimer);
 	}
 
 	async retry(): Promise<void> {
@@ -222,10 +285,12 @@ export class PlaybackSessionController {
 			(error?.cause instanceof ApiClientError &&
 				error.cause.code === "PLAYBACK_CONFLICT")
 		) {
+			this.clearBinding();
+			if (this.sending) await this.sending;
 			if (this.state.session) await this.release();
 			await this.open();
 		} else {
-			this.queueSave(false, true);
+			this.queueSave(true);
 			await this.sending;
 		}
 	}
@@ -236,100 +301,39 @@ export class PlaybackSessionController {
 			this.state.error?.operation === "save" &&
 			isRetryablePlaybackError(this.state.error.cause)
 		)
-			this.queueSave(false, true);
+			this.queueSave(true);
 	}
 
 	async flush(keepalive = false): Promise<boolean> {
 		if (this.closed) return false;
 		this.keepalive ||= keepalive;
-		if (!this.state.session || !this.state.restored) return true;
+		if (!this.state.session || !this.position) return true;
 		if (this.state.error && !isRetryablePlaybackError(this.state.error.cause))
 			return false;
-		this.queueSave(false, true);
+		this.queueSave(true);
 		return (await this.sending) ?? this.state.error === null;
 	}
 
 	async dispose(): Promise<void> {
 		if (this.closed) return;
-		this.sampleEvidence();
-		this.evidence.reset();
-		this.playing = false;
-		this.capture();
-		this.detachEvents?.();
-		clearInterval(this.timer);
+		this.clearBinding();
 		clearTimeout(this.retryTimer);
-		clearTimeout(this.seekTimer);
-		this.video = null;
 		this.closed = true;
 		await this.opening;
 		await this.sending;
 		if (
-			this.state.restored &&
+			this.position &&
 			(!this.state.error || isRetryablePlaybackError(this.state.error.cause))
 		)
-			this.queueSave(false, true);
+			this.queueSave(true);
 		await this.sending;
 		await this.release();
 	}
 
-	private restore(): void {
-		const { session } = this.state;
-		const video = this.video;
-		if (
-			!session ||
-			!video ||
-			!this.metadataReady ||
-			this.state.restored ||
-			this.state.error?.operation === "load" ||
-			this.closed
-		)
-			return;
-		const duration =
-			Number.isFinite(video.durationMs) && video.durationMs > 0
-				? video.durationMs
-				: null;
-		const position = this.position?.positionMs ?? session.progress.positionMs;
-		const mediaPosition = mediaTimeMs(position, this.timeline);
-		const target =
-			duration === null ? mediaPosition : Math.min(mediaPosition, duration);
-		try {
-			video.currentTimeMs = target;
-			if (!video.seeking) this.finishRestore();
-		} catch (cause) {
-			this.publish({ error: { operation: "load", cause } });
-		}
-	}
-	private finishRestore(): void {
-		if (
-			this.state.restored ||
-			!this.state.session ||
-			this.state.error?.operation === "load" ||
-			this.closed
-		)
-			return;
-		this.publish({ restored: true });
-		this.capture();
-	}
-	private sampleEvidence() {
-		if (this.video && this.state.restored)
-			this.evidence.sample(this.video, this.playing);
-	}
-	private capture(ended = false): void {
-		const video = this.video;
-		if (!video || !this.state.restored) return;
-		const position = capturePlaybackPosition(
-			video,
-			this.timeline,
-			ended || video.ended,
-		);
-		if (position) this.position = position;
-	}
-	private queueSave(ended = false, retry = false): void {
+	private queueSave(retry = false): void {
 		clearTimeout(this.seekTimer);
-		this.sampleEvidence();
-		this.capture(ended);
 		const session = this.state.session;
-		if (!session || !this.state.restored || !this.position) return;
+		if (!session || !this.position) return;
 
 		// Preserve sequence/payload for an ambiguous failed write unless a newer position exists.
 		const latest = this.pending ?? this.inFlight ?? this.lastSaved;
@@ -422,7 +426,7 @@ export class PlaybackSessionController {
 			this.policy.progressRetryMaximumMs,
 		);
 		this.retryTimer = setTimeout(() => {
-			this.queueSave(false, true);
+			this.queueSave(true);
 		}, this.retryDelayMs);
 	}
 	private async release(): Promise<void> {

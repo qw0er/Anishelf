@@ -395,10 +395,10 @@ See [WI10 delivery and validation](../implemented-requirements.md#library-and-de
 ## Media and playback collaboration
 
 Media compiles and executes explicit manual preparation commands; Playback binds
-existing bytes and owns source-level viewing progress. Movi Player handles browser
-demux/decode and controls. JASSUB renders selected ASS/SSA tracks. Media owns
-version-bound styled subtitle and font extraction. No browser capability evidence
-crosses a module boundary, and playback never creates preparation work.
+existing bytes and owns source-level viewing progress. `libmedia-react-player`
+handles browser demuxing, decoding, controls and embedded subtitles, including
+styled ASS/SSA with attached fonts. Media owns version-bound discovery and
+delivery of sidecars. Playback and manual preparation run independently.
 
 Media organizes inspection, preparation/planning, preparation/execution, artifacts,
 subtitles and the asset catalog separately. Tasks own execution snapshots;
@@ -411,7 +411,7 @@ The frontend adapter exposes milliseconds and lifecycle events without requiring
 video element. Explicit file/version selection, audio source/output mapping, source
 time, progress retry/order and completion observations remain application behavior.
 Runtime failures retain the selected resource; users retry or choose another file.
-See [playback](playback.md) and [Movi Player integration](movi.md).
+See [playback](playback.md) and the [libmedia migration and acceptance record](libmedia-player-migration.md).
 
 ## Playback Completion Observation
 

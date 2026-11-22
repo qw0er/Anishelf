@@ -146,7 +146,7 @@ test("normal navigation saves in the background, then releases the session", asy
 	);
 });
 
-test("playback session errors show a Toast and retry without unloading the video", async () => {
+test("playback session errors show a toast and retry before mounting the video", async () => {
 	const implementation = fetcher.getMockImplementation();
 	const notify = vi.spyOn(toast, "add");
 	let rejectSession = true;
@@ -169,10 +169,10 @@ test("playback session errors show a Toast and retry without unloading the video
 	});
 	renderApp("/files/file-1", true);
 	await screen.findByText(
-		"Playback progress is unavailable. You can keep watching and retry later.",
+		"Playback progress is unavailable. Retry to open the video.",
 		{ selector: "[data-slot=toast-title]" },
 	);
-	const video = await screen.findByLabelText("Video: Episode 01.mp4");
+	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
 	expect(notify).toHaveBeenCalledTimes(1);
 	rejectSession = false;
 	const retry = screen.getByText("Retry", {
@@ -188,12 +188,12 @@ test("playback session errors show a Toast and retry without unloading the video
 	await waitFor(() =>
 		expect(
 			screen.queryByText(
-				"Playback progress is unavailable. You can keep watching and retry later.",
+				"Playback progress is unavailable. Retry to open the video.",
 				{ selector: "[data-slot=toast-title]" },
 			),
 		).toBeNull(),
 	);
-	expect(screen.getByLabelText("Video: Episode 01.mp4")).toBe(video);
+	await screen.findByLabelText("Video: Episode 01.mp4");
 });
 
 test("progress save failures notify once across online and manual retries until recovery", async () => {

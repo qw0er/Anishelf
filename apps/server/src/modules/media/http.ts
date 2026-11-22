@@ -10,19 +10,14 @@ import { registerChapterRoutes } from "./inspection/http/chapters.js";
 import { describeAudio } from "./inspection/public.js";
 import type { PreparationApplication } from "./preparation/application/preparation.js";
 import { registerPreparationRoutes } from "./preparation/http/preparation.js";
-import type { EmbeddedSubtitles } from "./subtitles/application/embedded.js";
 import type { SubtitleApplication } from "./subtitles/application/subtitles.js";
-import {
-	registerEmbeddedSubtitleRoutes,
-	registerSubtitleRoutes,
-} from "./subtitles/http/subtitles.js";
+import { registerSubtitleRoutes } from "./subtitles/http/subtitles.js";
 export function registerMediaHttp(
 	app: HttpInstance,
 	owners: {
 		inspection: MediaInspectionApplication;
 		preparation: PreparationApplication;
 		subtitles: SubtitleApplication;
-		embeddedSubtitles: EmbeddedSubtitles;
 	},
 ): void {
 	app.get(
@@ -54,5 +49,4 @@ export function registerMediaHttp(
 	registerChapterRoutes(app, owners.inspection);
 	registerPreparationRoutes(app, owners.preparation);
 	registerSubtitleRoutes(app, owners.subtitles);
-	registerEmbeddedSubtitleRoutes(app, owners.embeddedSubtitles);
 }

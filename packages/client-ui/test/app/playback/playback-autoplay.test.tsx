@@ -1,138 +1,105 @@
 // @vitest-environment happy-dom
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import * as media from "../../../src/features/media/subtitles/api.js";
 import * as api from "../../../src/features/playback/player/api.js";
+import VideoPlayer from "../../../src/features/playback/player/components/video-player.js";
 import { usePlaybackSession } from "../../../src/features/playback/player/hooks/use-playback-session.js";
 import { playbackPolicy } from "../../../src/features/playback/player/policy.js";
-import type { PlaybackSessionResponse } from "../../../src/shared/api/contracts.js";
 import { toast } from "../../../src/shared/components/ui/toast.js";
-import { clockFor } from "../../features/playback/support/playback-session-fixture.js";
-import "../../../src/shared/i18n.js";
+import { session } from "../../features/playback/support/playback-session-fixture.js";
+import { mockPlayer } from "../../support/mock-libmedia.js";
+import { preparedActive } from "../../support/playback-fixture.js";
 import {
 	act,
 	cleanup,
-	renderHook,
+	render,
 	waitFor,
 } from "../../support/query-test-utils.js";
+import "../../../src/shared/i18n.js";
 
-const session: PlaybackSessionResponse = {
-	token: "next-session",
-	sourceVersion: "next-version",
-	file: {
-		id: "next-file",
-		kind: "file",
-		parentId: "root",
-		name: "Next.mp4",
-		sizeBytes: 1,
-		modifiedAt: "date",
-		mimeType: "video/mp4",
-	},
-	progress: {
-		positionMs: 40000,
-		durationMs: 100000,
-		generation: 1,
-		lastSequence: 0,
-		lastViewedAtMs: 1,
-	},
-};
-afterEach(async () => {
-	await act(async () => {
-		cleanup();
-		for (let index = 0; index < 20; index++) await Promise.resolve();
+function Harness({ autoPlay = true }: { autoPlay?: boolean }) {
+	const playback = usePlaybackSession("file", playbackPolicy, autoPlay);
+	if (!playback.session) return null;
+	return (
+		<VideoPlayer
+			fileId="file"
+			displayTitle="Next"
+			active={preparedActive}
+			sourceVersion={session.sourceVersion}
+			silent={false}
+			bind={playback.bind}
+			startContinuation={playback.startContinuation}
+			onAudioChange={() => {}}
+			onPlaybackFailure={() => {}}
+			onPlaybackRecovered={() => {}}
+			onReselect={() => {}}
+		/>
+	);
+}
+beforeEach(() => {
+	vi.spyOn(media, "getSubtitles").mockResolvedValue({
+		sourceVersion: session.sourceVersion,
+		tracks: [],
+		warnings: [],
 	});
+	vi.spyOn(api, "openPlaybackSession").mockResolvedValue(session);
+	vi.spyOn(api, "releasePlaybackSession").mockResolvedValue();
+	vi.spyOn(api, "savePlaybackProgress").mockResolvedValue({
+		status: "saved",
+		progress: session.progress,
+	});
+	mockPlayer.restored = true;
+	mockPlayer.play.mockReset().mockResolvedValue(undefined);
+});
+afterEach(async () => {
+	await act(async () => cleanup());
 	vi.restoreAllMocks();
 });
 
 test.each([false, true])(
-	"continuation starts after restoring the next file's progress (browser rejects: %s)",
+	"starts the continuation only after restoration (blocked: %s)",
 	async (blocked) => {
-		let resolveSession: ((value: PlaybackSessionResponse) => void) | undefined;
-		vi.spyOn(api, "openPlaybackSession").mockImplementation(
-			() =>
-				new Promise((resolve) => {
-					resolveSession = resolve;
-				}),
-		);
-		vi.spyOn(api, "releasePlaybackSession").mockResolvedValue();
-		vi.spyOn(api, "savePlaybackProgress").mockResolvedValue({
-			status: "saved",
-			progress: session.progress,
-		});
 		const notification = vi.spyOn(toast, "add");
-		const video = document.createElement("video");
-		Object.defineProperty(video, "readyState", { value: 1 });
-		Object.defineProperty(video, "duration", { value: 100 });
-		const play = vi.spyOn(video, "play").mockImplementation(async () => {
-			expect(video.currentTime).toBe(40);
+		mockPlayer.play.mockImplementationOnce(async () => {
+			expect(mockPlayer.instances[0]?.video.currentTime).toBe(40);
 			if (blocked)
 				throw new DOMException("Autoplay blocked", "NotAllowedError");
 		});
-		const { result } = renderHook(() =>
-			usePlaybackSession("next-file", playbackPolicy, true),
-		);
-		act(() => result.current.attach(clockFor(video)));
-		expect(play).not.toHaveBeenCalled();
-		await waitFor(() => expect(resolveSession).toBeDefined());
-		await act(async () => {
-			resolveSession?.(session);
-		});
-		await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+		const view = render(<Harness />);
+		expect(mockPlayer.play).not.toHaveBeenCalled();
+		await view.findByLabelText("Video: Next");
+		await waitFor(() => expect(mockPlayer.play).toHaveBeenCalledTimes(1));
 		if (blocked)
 			expect(notification).toHaveBeenCalledWith(
-				expect.objectContaining({
-					title:
-						"Press Play to continue. Your browser could not start playback automatically.",
-				}),
+				expect.objectContaining({ id: "continuation-play:file" }),
 			);
 		else expect(notification).not.toHaveBeenCalled();
-		expect(video.currentTime).toBe(40);
 	},
 );
 
-test("ordinary player openings restore progress without automatic playback", async () => {
-	vi.spyOn(api, "openPlaybackSession").mockResolvedValue(session);
-	vi.spyOn(api, "releasePlaybackSession").mockResolvedValue();
-	vi.spyOn(api, "savePlaybackProgress").mockResolvedValue({
-		status: "saved",
-		progress: session.progress,
-	});
-	const video = document.createElement("video");
-	Object.defineProperty(video, "readyState", { value: 1 });
-	Object.defineProperty(video, "duration", { value: 100 });
-	const play = vi.spyOn(video, "play").mockResolvedValue();
-	const { result } = renderHook(() =>
-		usePlaybackSession("next-file", playbackPolicy),
+test("ordinary openings restore without automatically starting", async () => {
+	const view = render(<Harness autoPlay={false} />);
+	await view.findByLabelText("Video: Next");
+	await waitFor(() =>
+		expect(mockPlayer.instances[0]?.video.currentTime).toBe(40),
 	);
-	act(() => result.current.attach(clockFor(video)));
-	await waitFor(() => expect(video.currentTime).toBe(40));
-	expect(play).not.toHaveBeenCalled();
+	expect(mockPlayer.play).not.toHaveBeenCalled();
 });
 
-test("a late autoplay rejection after navigation does not notify the next screen", async () => {
-	vi.spyOn(api, "openPlaybackSession").mockResolvedValue(session);
-	vi.spyOn(api, "releasePlaybackSession").mockResolvedValue();
-	vi.spyOn(api, "savePlaybackProgress").mockResolvedValue({
-		status: "saved",
-		progress: session.progress,
-	});
+test("a late autoplay rejection after unmount does not notify the next screen", async () => {
 	const notification = vi.spyOn(toast, "add");
-	const video = document.createElement("video");
-	Object.defineProperty(video, "readyState", { value: 1 });
-	Object.defineProperty(video, "duration", { value: 100 });
 	let rejectPlay: (() => void) | undefined;
-	const play = vi.spyOn(video, "play").mockImplementation(
+	mockPlayer.play.mockImplementationOnce(
 		() =>
 			new Promise((_resolve, reject) => {
 				rejectPlay = () =>
-					reject(new DOMException("Blocked", "NotAllowedError"));
+					reject(new DOMException("Autoplay blocked", "NotAllowedError"));
 			}),
 	);
-	const hook = renderHook(() =>
-		usePlaybackSession("next-file", playbackPolicy, true),
-	);
-	act(() => hook.result.current.attach(clockFor(video)));
-	await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+	const view = render(<Harness />);
+	await waitFor(() => expect(mockPlayer.play).toHaveBeenCalledTimes(1));
 	await act(async () => {
-		hook.unmount();
+		view.unmount();
 		rejectPlay?.();
 	});
 	expect(notification).not.toHaveBeenCalled();

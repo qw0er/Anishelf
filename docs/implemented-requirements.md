@@ -211,7 +211,7 @@ Available episode versions expose Show in Files through their file action menu. 
 The release records below describe delivered capabilities at their first release.
 Current playback uses Movi controls and JASSUB for styled ASS/SSA. Selected
 embedded ASS/SSA tracks and eligible fonts are extracted on demand. See the
-[current playback direction](requirements.md#movi-player-and-manual-preparation-direction).
+[current playback direction](requirements.md#client-playback-and-manual-preparation).
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |

@@ -57,7 +57,7 @@ test("saves periodically only while playing; ended saves duration and teardown r
 	await controller.open();
 	await vi.advanceTimersByTimeAsync(playbackPolicy.progressSaveIntervalMs);
 	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
-	Object.defineProperty(video, "paused", { value: false });
+	video.dispatchEvent(new Event("playing"));
 	video.currentTime = 45;
 	await vi.advanceTimersByTimeAsync(14999);
 	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();
@@ -151,7 +151,7 @@ test("injected save interval and request timeout control the progress lifecycle"
 		requestTimeoutMs: 50,
 	});
 	await controller.open();
-	Object.defineProperty(video, "paused", { value: false });
+	video.dispatchEvent(new Event("playing"));
 	video.currentTime = 45;
 	await vi.advanceTimersByTimeAsync(99);
 	expect(playbackApi.savePlaybackProgress).not.toHaveBeenCalled();

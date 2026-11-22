@@ -17,7 +17,7 @@ import {
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { directoryPath } from "../../../../shared/navigation.js";
-import type { PlaybackUiSlots } from "../../public.js";
+import type { NextEpisodeAction, PlaybackUiSlots } from "../../public.js";
 import { usePlaybackController } from "../hooks/use-playback-controller.js";
 
 import { PlaybackActionsMenu } from "./external-player-menu.js";
@@ -42,6 +42,7 @@ export default function FilePlayer({
 }) {
 	const { t } = useTranslation();
 	const {
+		audio,
 		audioValid,
 		playback,
 		selection,
@@ -120,7 +121,7 @@ export default function FilePlayer({
 								: selection.error
 									? "player.unavailableTitle"
 									: selection.runtimeFailure
-										? `player.failures.${selection.runtimeFailure.kind}`
+										? `player.failures.${selection.runtimeFailure.reason}`
 										: "player.noMatchingAsset",
 						)}
 					</p>
@@ -138,23 +139,49 @@ export default function FilePlayer({
 				</section>
 			)}
 			{active && source && (
-				<div className="-mx-4 sm:mx-0">
-					<QueryScope value={sourceScope}>
-						<VideoPlayer
-							key={`${active.asset.id}:${active.asset.revision}`}
-							fileId={data.file.id}
-							displayTitle={title}
-							active={active}
-							sourceVersion={source.sourceVersion}
-							playbackReady={playback.restored}
-							onMedia={playback.attach}
-							onPlaybackFailure={selection.failed}
-							onPlaybackRecovered={selection.recovered}
-							onRetry={onRetry}
-							onAudioChange={(index) => selectAudio(String(index))}
-						/>
-					</QueryScope>
-				</div>
+				<PlaybackSurface
+					fileId={data.file.id}
+					sourceVersion={source.sourceVersion}
+					slots={slots}
+					renderPlayer={(nextEpisode) =>
+						playback.session?.sourceVersion === source.sourceVersion ? (
+							<div className="-mx-4 sm:mx-0">
+								<QueryScope value={sourceScope}>
+									<VideoPlayer
+										key={JSON.stringify([
+											source.sourceVersion,
+											active.asset.id,
+											active.asset.revision,
+											active.resource.url,
+											playback.session.progress.generation,
+										])}
+										fileId={data.file.id}
+										displayTitle={title}
+										active={active}
+										sourceVersion={source.sourceVersion}
+										silent={audio === "none"}
+										bind={playback.bind}
+										startContinuation={playback.startContinuation}
+										nextEpisode={nextEpisode}
+										onPlaybackFailure={selection.failed}
+										onPlaybackRecovered={selection.recovered}
+										onReselect={recheck}
+										onAudioChange={selectAudio}
+									/>
+								</QueryScope>
+							</div>
+						) : playback.session ? (
+							<div className="space-y-3 rounded-md border p-6">
+								<p role="status">{t("errors.api.PLAYBACK_CONFLICT")}</p>
+								<Button variant="outline" onClick={onRetry}>
+									{t("actions.retry")}
+								</Button>
+							</div>
+						) : (
+							<Skeleton className="aspect-video w-full" />
+						)
+					}
+				/>
 			)}
 
 			<div className="player-action-bar">
@@ -163,11 +190,6 @@ export default function FilePlayer({
 						slots?.renderViewing?.({
 							fileId: data.file.id,
 							sourceVersion: playback.session.sourceVersion,
-						})}
-					{source &&
-						slots?.renderContinuation?.({
-							fileId: data.file.id,
-							sourceVersion: source.sourceVersion,
 						})}
 					<PlaybackActionsMenu
 						key={`actions:${data.file.id}`}
@@ -214,4 +236,20 @@ export default function FilePlayer({
 			</Dialog>
 		</section>
 	);
+}
+
+function PlaybackSurface({
+	fileId,
+	sourceVersion,
+	slots,
+	renderPlayer,
+}: {
+	fileId: string;
+	sourceVersion: string;
+	slots: PlaybackUiSlots | undefined;
+	renderPlayer(next?: NextEpisodeAction): React.ReactNode;
+}) {
+	return slots?.renderContinuation
+		? slots.renderContinuation({ fileId, sourceVersion, renderPlayer })
+		: renderPlayer();
 }

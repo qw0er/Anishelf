@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, SkipForward } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQueryScope } from "../../../../shared/api/queries.js";
@@ -11,11 +17,11 @@ import {
 	DialogDescription,
 	DialogTitle,
 } from "../../../../shared/components/ui/dialog.js";
-import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import {
 	animePlayerPath,
 	libraryReturnPath,
 } from "../../../../shared/navigation.js";
+import type { NextEpisodeAction } from "../../../playback/public.js";
 import { continuationContext, continuationEpisode } from "../continuation.js";
 import type { Version } from "../detail-format.js";
 import { localWorkDetailQuery, sourceQuery } from "../queries.js";
@@ -23,9 +29,11 @@ import { localWorkDetailQuery, sourceQuery } from "../queries.js";
 export function PlayerContinuation({
 	fileId,
 	sourceVersion,
+	renderPlayer,
 }: {
 	fileId: string;
 	sourceVersion: string;
+	renderPlayer(next?: NextEpisodeAction): ReactNode;
 }) {
 	const scope = useQueryScope();
 	const source = useQuery(sourceQuery(fileId, scope));
@@ -37,7 +45,7 @@ export function PlayerContinuation({
 		...localWorkDetailQuery(context?.workId ?? "", scope),
 		enabled: Boolean(context),
 	});
-	const { t } = useTranslation();
+
 	useEffect(() => {
 		if (source.error || detail.error)
 			console.warn("[playback] Next episode lookup failed.", {
@@ -45,72 +53,58 @@ export function PlayerContinuation({
 				stage: source.error ? "source" : "episodes",
 			});
 	}, [source.error, detail.error, fileId]);
-	if (source.error)
-		return (
-			<Button variant="ghost" onClick={() => void source.refetch()}>
-				{t("player.continuation.retry")}
-			</Button>
-		);
-	if (!context) return null;
-	if (detail.error)
-		return (
-			<Button variant="ghost" onClick={() => void detail.refetch()}>
-				{t("player.continuation.retry")}
-			</Button>
-		);
-	if (!detail.data || detail.data.work.id !== context.workId)
-		return (
-			<Button variant="outline" disabled aria-busy="true">
-				<Loader2
-					className="size-4 motion-safe:animate-spin"
-					aria-hidden="true"
-				/>
-				{t("player.continuation.loading")}
-			</Button>
-		);
-	const next = continuationEpisode(
-		detail.data.episodes,
-		context.nextNumber,
-		fileId,
-	);
+	const data = detail.data;
+	const next =
+		context && data?.work.id === context.workId && !detail.error
+			? continuationEpisode(data.episodes, context.nextNumber, fileId)
+			: null;
+	const failedLookup = source.error ? source : detail.error ? detail : null;
 	return (
 		<ContinuationControls
-			key={JSON.stringify([
+			contextKey={JSON.stringify([
 				fileId,
 				sourceVersion,
-				context.workId,
-				context.nextNumber,
+				context?.workId,
+				next?.id,
 			])}
 			episodeId={next?.id ?? ""}
-			workId={context.workId}
-			number={context.nextNumber}
+			workId={context?.workId ?? ""}
+			number={context?.nextNumber ?? 0}
 			versions={next?.versions ?? []}
+			renderPlayer={renderPlayer}
+			retry={failedLookup ? () => void failedLookup.refetch() : undefined}
 		/>
 	);
 }
 
 function ContinuationControls({
+	contextKey,
 	episodeId,
 	workId,
 	number,
 	versions,
+	renderPlayer,
+	retry,
 }: {
+	contextKey: string;
 	episodeId: string;
 	workId: string;
 	number: number;
 	versions: Version[];
+	renderPlayer(next?: NextEpisodeAction): ReactNode;
+	retry: (() => void) | undefined;
 }) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [params] = useSearchParams();
 	const nextLabel = t("player.continuation.next", { number });
-	const [choosing, setChoosing] = useState(false);
-	const navigating = useRef(false);
+	const [choosing, setChoosing] = useState<string | null>(null);
+	const navigating = useRef<string | null>(null);
 	const [only] = versions;
 	const play = useCallback(
 		(version: Version) => {
-			if (navigating.current) return;
-			navigating.current = true;
+			if (navigating.current === contextKey) return;
+			navigating.current = contextKey;
 			console.info("[playback] Next episode selected.", {
 				workId,
 				episodeId,
@@ -127,30 +121,29 @@ function ContinuationControls({
 				{ state: { autoPlay: true } },
 			);
 		},
-		[workId, episodeId, params, navigate],
+		[contextKey, workId, episodeId, params, navigate],
 	);
+	const next = versions.length
+		? {
+				label: nextLabel,
+				run: () => {
+					if (versions.length === 1 && only) play(only);
+					else setChoosing(contextKey);
+				},
+			}
+		: undefined;
 	return (
-		<section
-			aria-label={t("player.continuation.label")}
-			className="flex min-w-0 max-w-full flex-wrap items-center gap-2"
-		>
-			<Tooltip content={nextLabel}>
-				<Button
-					variant={versions.length ? "default" : "outline"}
-					className="player-action"
-					aria-label={nextLabel}
-					disabled={versions.length === 0}
-					onClick={() => {
-						if (versions.length === 1 && only) play(only);
-						else setChoosing(true);
-					}}
-				>
-					<SkipForward className="size-4" aria-hidden="true" />
-					<span className="player-action-label">{nextLabel}</span>
+		<>
+			{renderPlayer(next)}
+			{retry && (
+				<Button variant="ghost" onClick={retry}>
+					{t("player.continuation.retry")}
 				</Button>
-			</Tooltip>
-
-			<Dialog open={choosing} onOpenChange={setChoosing}>
+			)}
+			<Dialog
+				open={choosing === contextKey}
+				onOpenChange={(open) => setChoosing(open ? contextKey : null)}
+			>
 				<DialogContent>
 					<DialogTitle>{t("anime.chooseVersion")}</DialogTitle>
 					<DialogDescription>{t("anime.versionHint")}</DialogDescription>
@@ -169,6 +162,6 @@ function ContinuationControls({
 					</ul>
 				</DialogContent>
 			</Dialog>
-		</section>
+		</>
 	);
 }

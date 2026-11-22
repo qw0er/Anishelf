@@ -69,6 +69,11 @@ test("library cards expose the server next playback target", async () => {
 
 test("poster library filters local titles, preserves return context and selects an actual source version", async () => {
 	const detail = animeFixture();
+	for (const episode of detail.episodes) {
+		for (const version of episode.versions) {
+			if (version.fileId === "file-1") version.sourceVersion = "version";
+		}
+	}
 	detail.metadata.data.titles.push({
 		value: "Short alias",
 		language: "en",
@@ -118,7 +123,7 @@ test("poster library filters local titles, preserves return context and selects 
 	const back = screen.getByRole("link", { name: "Back to anime" });
 	expect(back.getAttribute("href")).toContain("#episode-ep-1");
 	expect(screen.getByTestId("location").textContent).toContain(
-		"version=source-v1",
+		"version=version",
 	);
 	fireEvent.click(back);
 	await screen.findByRole("heading", { name: "Frieren", level: 1 });

@@ -1,7 +1,4 @@
-import {
-	type MediaTimeline,
-	originalTimeline,
-} from "@anishelf/contracts/media";
+import type { MediaTimeline } from "@anishelf/contracts/media";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +6,6 @@ import { getClientRuntime } from "../../../../shared/api/connection.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
 import { interactionDefaults } from "../../../../shared/config/interaction-defaults.js";
 import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
-import type { PlaybackClock } from "../engine.js";
 import type { PlaybackPolicy } from "../policy.js";
 import {
 	isRetryablePlaybackError,
@@ -60,8 +56,6 @@ export function usePlaybackSession(
 	const [state, setState] = useState(initialState);
 	const autoPlayAttempted = useRef(false);
 	const controllerRef = useRef<PlaybackSessionController | null>(null);
-	const videoRef = useRef<PlaybackClock | null>(null);
-	const timelineRef = useRef<MediaTimeline>(originalTimeline());
 	useEffect(() => {
 		const notificationId = `playback-progress:${fileId}`;
 		let notifiedError: string | null = null;
@@ -103,7 +97,6 @@ export function usePlaybackSession(
 			stablePolicy,
 		);
 		controllerRef.current = controller;
-		controller.attach(videoRef.current, timelineRef.current);
 		void controller.open(departures.get(fileId));
 		const unsubscribe = getClientRuntime().platform.onPlaybackLifecycle({
 			onBackground: () => void controller.flush(true),
@@ -125,38 +118,39 @@ export function usePlaybackSession(
 		};
 	}, [fileId, stablePolicy, t, client]);
 
-	useEffect(() => {
-		const video = videoRef.current;
-		if (!autoPlay || autoPlayAttempted.current || !state.restored || !video)
-			return;
-		autoPlayAttempted.current = true;
-		let cancelled = false;
-		void video.play().catch(() => {
-			if (cancelled) return;
-			console.info("[playback] Continuation requires manual playback.", {
-				fileId,
-			});
-			toast.add({
-				type: "info",
-				title: t("player.continuation.playBlocked"),
-				id: `continuation-play:${fileId}`,
-			});
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [autoPlay, state.restored, fileId, t]);
-
-	const attach = useCallback(
-		(
-			video: PlaybackClock | null,
-			timeline: MediaTimeline = originalTimeline(),
-		) => {
-			videoRef.current = video;
-			timelineRef.current = timeline;
-			controllerRef.current?.attach(video, timeline);
+	const startContinuation = useCallback(
+		async (play: () => Promise<void>, signal: AbortSignal) => {
+			if (!autoPlay || autoPlayAttempted.current) return;
+			autoPlayAttempted.current = true;
+			try {
+				await play();
+			} catch (error) {
+				if (
+					signal.aborted ||
+					!(error instanceof Error) ||
+					error.name !== "NotAllowedError"
+				)
+					return;
+				console.info("[playback] Continuation requires manual playback.", {
+					fileId,
+				});
+				toast.add({
+					type: "info",
+					title: t("player.continuation.playBlocked"),
+					id: `continuation-play:${fileId}`,
+				});
+			}
 		},
+		[autoPlay, fileId, t],
+	);
+	const bind = useCallback(
+		(timeline: MediaTimeline, sourceVersion: string) =>
+			controllerRef.current?.bind(timeline, sourceVersion) ?? null,
 		[],
 	);
-	return { session: state.session, restored: state.restored, attach };
+	return {
+		session: state.session,
+		bind,
+		startContinuation,
+	};
 }

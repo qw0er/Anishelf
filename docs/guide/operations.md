@@ -192,8 +192,9 @@ changes to the same paths from other applications during these commands.
 
 ## Playback and preparation
 
-Movi Player handles client playback and subtitle selection. JASSUB renders
-selected ASS/SSA tracks, including supported embedded fonts. Preparation is manual.
+`libmedia-react-player` handles playback and subtitle selection. It reads embedded
+ASS/SSA tracks and their attached fonts from the selected file and renders them
+with JASSUB. Preparation is manual.
 See [manual preparation](manual-preparation.md). The default Matroska profile preserves
 subtitles, fonts and chapters. Legacy automatic preparation keys are ignored and are
 removed on the next settings save.

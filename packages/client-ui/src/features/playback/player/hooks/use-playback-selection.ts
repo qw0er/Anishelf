@@ -24,15 +24,20 @@ export function usePlaybackSelection(
 	useEffect(() => {
 		setRuntimeFailure(null);
 	}, [fileId, scope, audioStreamIndex, assetId]);
-	const baseKey = [
-		"playback-selection",
-		instance,
-		fileId,
-		scope,
-		audioStreamIndex,
-		assetId,
-		revision,
-	] as const;
+	const keyFor = (
+		audio: number | null | undefined,
+		asset: string | undefined,
+	) =>
+		[
+			"playback-selection",
+			instance,
+			fileId,
+			scope,
+			audio,
+			asset,
+			revision,
+		] as const;
+	const baseKey = keyFor(audioStreamIndex, assetId);
 	const client = useQueryClient();
 	const cached = client.getQueryData<PlaybackSelectionResponse>(baseKey);
 	const queryKey =
@@ -73,6 +78,34 @@ export function usePlaybackSelection(
 	return {
 		...current,
 		runtimeFailure,
+		retainAudio(sourceIndex: number | null) {
+			const selected = query.data;
+			const active = selected?.active;
+			if (!selected || !active) return;
+			const position = active.asset.audioTracks.findIndex(
+				(item) => item.sourceStreamIndex === sourceIndex,
+			);
+			const track = active.asset.audioTracks[position];
+			if (sourceIndex !== null && !track) return;
+			// The player already selected this stream in the current asset.
+			client.setQueryData<PlaybackSelectionResponse>(
+				keyFor(sourceIndex, active.asset.id),
+				{
+					...selected,
+					resolvedAudioStreamIndex: sourceIndex,
+					active: {
+						...active,
+						audio: track
+							? {
+									streamIndex: track.stream.index,
+									sourceStreamIndex: track.sourceStreamIndex,
+									position,
+								}
+							: null,
+					},
+				},
+			);
+		},
 		retry: () => {
 			setRuntimeFailure(null);
 			setRevision((value) => value + 1);
