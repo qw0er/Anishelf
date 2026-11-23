@@ -192,6 +192,7 @@ Normal status reads do not emit business events.
 | Backend suite | `npm run test --workspace @anishelf/backend` |
 | React client suite | `npm run test --workspace @anishelf/client-ui` |
 | Web browser end-to-end suite | `npm run test:e2e` |
+| Electron offline playback end-to-end test | `npm run test:e2e:desktop` |
 | One backend file | `npm run test --workspace @anishelf/backend -- test/app/anime-detail.test.ts` |
 | Deployment fixtures | `npm run test:deployment` |
 | Complete identification audit | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`; [corpus usage](../../apps/server/test/fixtures/anime-identification/README.md) |
@@ -226,11 +227,24 @@ npm run test:e2e
 
 Use `npm run test:e2e -- --headed` to watch the tests locally. The command builds
 Backend and Web, then runs Chromium against the production Web build served by
-Backend. Each test generates a short H.264 MKV and uses a temporary data directory
-and loopback port. The suite covers authenticated playback, seeking, and resuming
-from history in a fresh browser session. Failure traces are saved in
-`.temp/playwright-results/`. The CI `check` job runs the suite against its existing
-production build and uploads traces when the browser tests fail.
+Backend. Each test generates H.264 MKV media and uses a temporary data directory
+and loopback port. The suite covers authenticated playback, first-run resource
+setup, manual episode association, playback completion and continuation,
+subtitles, and progress persistence and recovery. The episode test replaces the
+upstream Bangumi responses with fixtures and uses the real Review workflow.
+The paused-seek test for embedded SRT is marked as an expected failure while
+the bundled player omits the active cue. Rendering during playback is covered
+by a separate passing test.
+
+Run `npm run test:e2e:desktop` to build and launch Electron with a temporary
+profile. On Linux without a display, run
+`xvfb-run -a npm run test:e2e:desktop`. The test stops the source server after
+caching a video and checks playback, sidecar subtitles, and local resume across
+Electron restarts.
+
+The CI `check` job runs both suites against its existing production builds.
+Failure traces and backend logs are collected under `.temp/playwright-results/`
+and `.temp/playwright-desktop-results/`.
 
 | Evidence | What it establishes |
 | --- | --- |

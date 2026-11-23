@@ -2,34 +2,15 @@ import type {
 	HistoryResponse,
 	SavePlaybackProgressResponse,
 } from "@anishelf/contracts/http";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Request } from "@playwright/test";
 import { sampleName, test } from "./fixtures.mts";
-
-async function signIn(page: Page, path: string, password: string) {
-	await page.goto(path);
-	await page.getByLabel("Password", { exact: true }).fill(password);
-	await page.getByRole("button", { name: "Sign in", exact: true }).click();
-	await expect(page).toHaveURL((url) => url.pathname === path);
-}
-
-function player(page: Page) {
-	return page.getByRole("region", { name: `Video: ${sampleName}` });
-}
-
-function position(page: Page) {
-	return player(page).getByRole("slider", { name: "Seek", exact: true });
-}
-
-async function playFromFiles(page: Page, password: string) {
-	await signIn(page, "/directories/root", password);
-	await page.getByRole("link", { name: sampleName, exact: true }).click();
-	await expect(position(page)).toHaveAttribute("max", /^[1-9]\d*$/);
-	await expect(player(page)).not.toHaveAttribute("aria-busy", "true");
-	await player(page).press("Space");
-	await expect
-		.poll(async () => Number(await position(page).inputValue()))
-		.toBeGreaterThan(2_000);
-}
+import {
+	player,
+	playFromFiles,
+	position,
+	seek,
+	signIn,
+} from "./playback-helpers.mts";
 
 test("plays authenticated media and continues after seeking", async ({
 	page,
@@ -37,15 +18,8 @@ test("plays authenticated media and continues after seeking", async ({
 }) => {
 	await playFromFiles(page, backend.password);
 	const timeline = position(page);
-	await player(page).hover();
-	await timeline.scrollIntoViewIfNeeded();
-	const bounds = await timeline.boundingBox();
-	if (!bounds) throw new Error("Playback timeline is not visible.");
 	const playingAt = Number(await timeline.inputValue());
-	await page.mouse.click(
-		bounds.x + bounds.width * 0.6,
-		bounds.y + bounds.height / 2,
-	);
+	await seek(page, 0.6);
 	await expect
 		.poll(async () => Number(await timeline.inputValue()), { timeout: 5_000 })
 		.toBeGreaterThan(playingAt + 7_000);
@@ -104,3 +78,70 @@ test("resumes saved progress from history in a fresh browser session", async ({
 		await context.close();
 	}
 });
+
+test("retries progress after a network failure and resumes the latest saved position", async ({
+	page,
+	backend,
+}) => {
+	await playFromFiles(page, backend.password);
+	const progressPath = "**/api/playback/sessions/*/progress";
+	const failedSave = page.waitForEvent("requestfailed", {
+		predicate: (request) => isProgressSave(request),
+	});
+	await page.route(progressPath, (route) =>
+		route.abort("internetdisconnected"),
+	);
+	await player(page).press("Space");
+	await failedSave;
+	await seek(page, 0.55);
+	await expect
+		.poll(async () => Number(await position(page).inputValue()))
+		.toBeGreaterThan(11_000);
+	await page.unroute(progressPath);
+
+	const [save] = await Promise.all([
+		page.waitForResponse(async (response) => {
+			if (!response.ok() || !isProgressSave(response.request())) return false;
+			const { progress }: SavePlaybackProgressResponse = await response.json();
+			return progress.positionMs > 11_000;
+		}),
+		page.evaluate(() => window.dispatchEvent(new Event("online"))),
+	]);
+	const { progress }: SavePlaybackProgressResponse = await save.json();
+	await resumeFromHistory(page, progress.positionMs);
+});
+
+test("saves progress when leaving the playing file through app navigation", async ({
+	page,
+	backend,
+}) => {
+	await playFromFiles(page, backend.password);
+	const leftAt = Number(await position(page).inputValue());
+	const [save] = await Promise.all([
+		page.waitForResponse(
+			(response) => response.ok() && isProgressSave(response.request()),
+		),
+		page.getByRole("link", { name: "Back to files", exact: true }).click(),
+	]);
+	await expect(page).toHaveURL(/\/directories\/root$/);
+	const { progress }: SavePlaybackProgressResponse = await save.json();
+	expect(progress.positionMs).toBeGreaterThanOrEqual(leftAt - 500);
+	await resumeFromHistory(page, progress.positionMs);
+});
+
+function isProgressSave(request: Request) {
+	return (
+		request.method() === "PUT" &&
+		new URL(request.url()).pathname.endsWith("/progress")
+	);
+}
+
+async function resumeFromHistory(page: Page, savedAt: number) {
+	await page.goto("/history");
+	await page.getByRole("link", { name: `Resume: ${sampleName}` }).click();
+	await expect
+		.poll(async () =>
+			Math.abs(Number(await position(page).inputValue()) - savedAt),
+		)
+		.toBeLessThan(500);
+}

@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
 	testDir: "./e2e",
+	testIgnore: "**/*.desktop.spec.mts",
 	outputDir: ".temp/playwright-results",
 	forbidOnly: Boolean(process.env.CI),
 	timeout: 60_000,

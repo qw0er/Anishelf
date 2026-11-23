@@ -31,7 +31,7 @@ jobs:
       - name: Install media tools and native build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3 make g++
+          sudo apt-get install -y ffmpeg python3 make g++ xvfb xauth
           ffmpeg -version
           ffprobe -version
 
@@ -51,10 +51,16 @@ jobs:
         id: browser-e2e
         run: npm run --ignore-scripts test:e2e
 
+      - name: Run Desktop end-to-end tests
+        id: desktop-e2e
+        run: xvfb-run -a npm run --ignore-scripts test:e2e:desktop
+
       - name: Upload Playwright failure traces
-        if: failure() && steps.browser-e2e.outcome == 'failure'
+        if: failure() && (steps.browser-e2e.outcome == 'failure' || steps.desktop-e2e.outcome == 'failure')
         uses: actions/upload-artifact@v4
         with:
           name: playwright-results
-          path: .temp/playwright-results/
+          path: |
+            .temp/playwright-results/
+            .temp/playwright-desktop-results/
           include-hidden-files: true
