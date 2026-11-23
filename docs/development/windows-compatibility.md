@@ -31,6 +31,7 @@ qBittorrent installation. Windows runtime verification is pending.
 | W3, W14, W15 | Download destinations accept fully qualified Windows drive and UNC paths and compare qBittorrent's paths using host rules. Resources resolves directory aliases when checking incomplete downloads against watched roots. Initial resource roots use the host path-list delimiter. A remote downloader still needs to expose its data through the existing shared path model. |
 | W5, W6, W12 | The desktop backend accepts explicit FFmpeg and FFprobe environment overrides. Media discovery and transcode profile validation run on demand. Startup failures include a path to the desktop failure log when the log can be written. |
 | W11 | The Windows window session-end event invokes the normal shutdown path. Forced termination and completion during sign-out still require Windows testing. |
+| W26 (player presets) | Built-in players are resolved from the inherited PATH, persistent system and user PATH settings, and common installation directories. Windows runtime verification is pending. |
 
 ## Summary
 

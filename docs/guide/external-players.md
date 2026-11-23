@@ -46,23 +46,24 @@ rejected.
 
 ## Desktop
 
-Anishelf detects built-in players by their command names on `PATH`.
-Detected players appear directly in the **Open in external player** menu, like Web
-presets. Built-in presets use a command name such as `mpv`, resolved from `PATH`
-when launching. Open **Settings → External players**
-to add custom command players:
+Anishelf checks the desktop process's `PATH` first, then the configured `PATH`
+and common installation locations. Detected presets appear in the
+**Open in external player** menu. Anishelf resolves the executable again before
+launching a preset.
 
-| OS | Detected players |
-| --- | --- |
-| macOS | IINA, mpv, VLC |
-| Linux | mpv, VLC, Celluloid, Haruna |
-| Windows | mpv, VLC, PotPlayer |
+| OS | Detected players | Additional search locations |
+| --- | --- | --- |
+| macOS | IINA, mpv, VLC | User shell PATH, app bundles in `/Applications` and `~/Applications`, and common binary directories including Homebrew and MacPorts |
+| Linux | mpv, VLC, Celluloid, Haruna | User shell PATH and common binary directories including `~/.local/bin` and `/usr/bin` |
+| Windows | mpv, VLC, PotPlayer | System and user PATH settings, Program Files, per-user installation directories, and WinGet and Scoop command directories |
+
+Open **Settings → External players** to add a custom command player.
 
 Enter a command name available on `PATH`, such as `mpv`, or select **Choose** to
 pick an executable file. A path containing a separator is checked when saved; a
 bare name is resolved from `PATH` when launched. On macOS choose the binary inside
 the application bundle, for example
-`/Applications/IINA.app/Contents/MacOS/iina` or
+`/Applications/IINA.app/Contents/MacOS/iina-cli` or
 `/Applications/VLC.app/Contents/MacOS/VLC`.
 
 Enter one argument per line. The same placeholders apply:

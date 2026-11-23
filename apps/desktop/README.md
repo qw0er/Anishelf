@@ -53,8 +53,8 @@ path for AppImage builds. Launch at login is available in packaged builds.
 The desktop platform adapter uses Electron for clipboard writes, media downloads,
 and opening links and external players. External players are configured as command
 players: enter a command name available on PATH or choose an executable, then one
-argument per line. Detected players whose commands are on PATH appear directly in
-the playback menu.
+argument per line. Built-in players detected on PATH or in common installation
+locations appear directly in the playback menu.
 Anishelf asks for confirmation before every launch and starts the process detached
 without a shell. No URL protocol handler is needed. Custom player settings are
 stored on this computer.
