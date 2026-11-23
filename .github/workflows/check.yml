@@ -43,3 +43,18 @@ jobs:
 
       - name: Build backend and frontend
         run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps --only-shell chromium
+
+      - name: Run Web end-to-end tests
+        id: browser-e2e
+        run: npm run --ignore-scripts test:e2e
+
+      - name: Upload Playwright failure traces
+        if: failure() && steps.browser-e2e.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: .temp/playwright-results/
+          include-hidden-files: true

@@ -14,6 +14,7 @@
 	],
 	"devDependencies": {
 		"@biomejs/biome": "^2.6.8",
+		"@playwright/test": "^1.65.1",
 		"@typescript/native": "npm:typescript@~7.0.2",
 		"concurrently": "^10.0.7",
 		"dependency-cruiser": "^18.8.0",
@@ -32,6 +33,8 @@
 		"test:installer": "node scripts/test-installer.mjs",
 		"test:deployment": "npm run test:installer && node --test deployment/qbittorrent-init.test.mjs deployment/jackett-init.test.mjs",
 		"test": "npm run architecture:test && npm run test:deployment && npm run test --workspace @anishelf/web && npm run test --workspace @anishelf/desktop && npm run test --workspace @anishelf/client-core && npm run test --workspace @anishelf/backend && npm run test --workspace @anishelf/client-ui",
+		"pretest:e2e": "npm run build --workspace @anishelf/backend --workspace @anishelf/web",
+		"test:e2e": "playwright test",
 		"build": "npm run build --workspaces --if-present",
 		"dev": "npm run dev:web",
 		"dev:web": "concurrently --kill-others --success first --names backend,web \"npm run dev:backend\" \"npm run dev:web:client\"",

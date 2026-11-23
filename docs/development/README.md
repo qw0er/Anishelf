@@ -191,6 +191,7 @@ Normal status reads do not emit business events.
 | Dependency boundaries | `npm run architecture:check` and `npm run architecture:test` |
 | Backend suite | `npm run test --workspace @anishelf/backend` |
 | React client suite | `npm run test --workspace @anishelf/client-ui` |
+| Web browser end-to-end suite | `npm run test:e2e` |
 | One backend file | `npm run test --workspace @anishelf/backend -- test/app/anime-detail.test.ts` |
 | Deployment fixtures | `npm run test:deployment` |
 | Complete identification audit | `node --import tsx scripts/manual-tests/anime-identification-corpus.mts test`; [corpus usage](../../apps/server/test/fixtures/anime-identification/README.md) |
@@ -212,6 +213,24 @@ Both Vitest workspaces use up to eight workers based on available CPU parallelis
 Use `--maxWorkers` to override the count.
 Tests exercising media tools, architecture fixtures or real HTTP need permission
 to spawn child processes and bind localhost ports.
+
+### Browser end-to-end tests
+
+With FFmpeg including `libx264` and FFprobe available, install Chromium once and
+run the opt-in suite:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
+Use `npm run test:e2e -- --headed` to watch the tests locally. The command builds
+Backend and Web, then runs Chromium against the production Web build served by
+Backend. Each test generates a short H.264 MKV and uses a temporary data directory
+and loopback port. The suite covers authenticated playback, seeking, and resuming
+from history in a fresh browser session. Failure traces are saved in
+`.temp/playwright-results/`. The CI `check` job runs the suite against its existing
+production build and uploads traces when the browser tests fail.
 
 | Evidence | What it establishes |
 | --- | --- |
@@ -267,12 +286,12 @@ not install a root CA. It is skipped unless the binary path is supplied.
 
 | Workflow | Behavior |
 | --- | --- |
-| [Check project](../../.github/workflows/check.yml) | PRs/pushes to main; Node from `.nvmrc`, media tools, `npm ci`, check and build |
+| [Check project](../../.github/workflows/check.yml) | PRs/pushes to main; Node from `.nvmrc`, media tools, `npm ci`, check, build and Chromium end-to-end tests |
 | [Publish images](../../.github/workflows/publish-image.yml) | Reuses checks; builds native AMD64/ARM64 Web and Backend images |
 
 Version tags on commits in main publish release images. Manual runs from any branch
 publish test tags.
-See [image publication](../../deployment/README.md#publication-flow). CI does not establish browser
-codec support or production deployment acceptance.
+See [image publication](../../deployment/README.md#publication-flow). The browser
+suite validates playback for its Chromium build and test sample.
 
 Automatic background copies: [configuration and behavior](../guide/manual-preparation.md).
