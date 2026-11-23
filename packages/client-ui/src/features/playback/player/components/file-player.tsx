@@ -194,6 +194,14 @@ export default function FilePlayer({
 					<PlaybackActionsMenu
 						key={`actions:${data.file.id}`}
 						fileId={data.file.id}
+						episode={!!displayTitle}
+						cacheTarget={{
+							fileId: data.file.id,
+							name: data.file.name,
+							...(data.file.sourceVersion
+								? { sourceVersion: data.file.sourceVersion }
+								: {}),
+						}}
 						onOptions={() => setOptionsOpen(true)}
 						onRetry={() => {
 							console.info("[playback] Manual playback retry requested.");

@@ -1,7 +1,18 @@
+import { offlineCachePath } from "@anishelf/contracts/offline-cache";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentProps, ReactElement } from "react";
-import type { RouteObject } from "react-router";
+import {
+	Outlet,
+	type RouteObject,
+	ScrollRestoration,
+	useParams,
+} from "react-router";
 import { RouterProvider } from "react-router/dom";
+import {
+	OfflineCachePage,
+	OfflineCachePlayer,
+	OfflineCacheProvider,
+} from "../features/playback/ui.js";
 import {
 	type ClientHost,
 	configureClientRuntime,
@@ -10,6 +21,8 @@ import {
 import { Toaster } from "../shared/components/ui/toast.js";
 import { initializeLanguage } from "../shared/i18n.js";
 import { authenticatedRoute } from "./auth/guard.js";
+import AppHeader from "./components/app-header.js";
+import { FilesNavigation } from "./components/files-layout.js";
 import { createLibraryRoute } from "./routes/library.js";
 
 export async function initializeClient(host: ClientHost) {
@@ -53,19 +66,34 @@ export { ClientSessionLifecycle } from "./session-lifecycle.js";
 
 export function createClientRoutes({
 	loginElement,
+	offlineCache = false,
 	externalPlayerSettings,
 	desktopSettings,
 	showSecuritySettings,
 }: {
 	loginElement: ReactElement;
+	offlineCache?: boolean;
 	externalPlayerSettings?: ReactElement;
 	desktopSettings?: ReactElement;
 	showSecuritySettings?: boolean;
 }): RouteObject[] {
 	return [
 		{ path: "/login", element: loginElement },
+		...(offlineCache
+			? [
+					{
+						path: offlineCachePath,
+						element: <OfflineCacheShell />,
+						children: [
+							{ index: true as const, element: <OfflineCachePage /> },
+							{ path: ":id", element: <OfflineCachePlayerRoute /> },
+						],
+					},
+				]
+			: []),
 		authenticatedRoute(
 			createLibraryRoute({
+				offlineCache,
 				externalPlayerSettings,
 				desktopSettings,
 				showSecuritySettings,
@@ -74,13 +102,42 @@ export function createClientRoutes({
 	];
 }
 
+function OfflineCacheShell() {
+	return (
+		<div className="app-shell min-h-screen bg-background">
+			<AppHeader />
+			<ScrollRestoration
+				getKey={(location) => `${location.pathname}${location.search}`}
+			/>
+			<main className="page-container page-content space-y-5">
+				<FilesNavigation offlineCache />
+				<Outlet />
+			</main>
+		</div>
+	);
+}
+
+function OfflineCachePlayerRoute() {
+	const { id } = useParams();
+	return <OfflineCachePlayer key={id} />;
+}
+
 export function ClientApp({
 	router,
 }: Pick<ComponentProps<typeof RouterProvider>, "router">) {
-	return (
-		<QueryClientProvider client={getClientRuntime().queryClient}>
+	const runtime = getClientRuntime();
+	const cache = runtime.platform.offlineCache;
+	const body = (
+		<QueryClientProvider client={runtime.queryClient}>
 			<RouterProvider router={router} />
 			<Toaster />
 		</QueryClientProvider>
+	);
+	return cache ? (
+		<OfflineCacheProvider cache={cache} navigate={runtime.navigate}>
+			{body}
+		</OfflineCacheProvider>
+	) : (
+		body
 	);
 }

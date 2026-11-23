@@ -1,3 +1,4 @@
+import { offlineCachePath } from "@anishelf/contracts/offline-cache";
 import {
 	FolderOpen,
 	History,
@@ -38,7 +39,10 @@ export default function AppHeader({
 			label: t("app.files"),
 			icon: FolderOpen,
 			active:
-				pathname.startsWith("/directories/") || pathname === "/prepared-media",
+				pathname.startsWith("/directories/") ||
+				pathname === "/prepared-media" ||
+				pathname === offlineCachePath ||
+				pathname.startsWith(`${offlineCachePath}/`),
 		},
 		{
 			to: "/review",

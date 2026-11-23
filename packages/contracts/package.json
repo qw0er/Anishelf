@@ -12,6 +12,7 @@
 			"types": "./src/http.ts"
 		},
 		"./media": "./src/media.ts",
+		"./offline-cache": "./src/offline-cache.ts",
 		"./references": "./src/references.ts",
 		"./subtitles": "./src/subtitles.ts",
 		"./schemas": "./src/schemas/index.ts",

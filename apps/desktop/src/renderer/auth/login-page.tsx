@@ -1,14 +1,17 @@
 import {
 	Button,
+	buttonStyles,
 	FieldError,
 	Input,
 	loginReturnPath,
 	SignInPanel,
 	Spinner,
 } from "@anishelf/client-ui";
+import { offlineCachePath } from "@anishelf/contracts/offline-cache";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+	Link,
 	useBlocker,
 	useLocation,
 	useNavigate,
@@ -138,6 +141,9 @@ export function DesktopLoginPage({
 							{t("serverConnection.useLocal")}
 						</Button>
 					)}
+					<Link className={buttonStyles("outline")} to={offlineCachePath}>
+						{t("offlineCache.open")}
+					</Link>
 					{state?.canGoBack === true && (
 						<Button
 							type="button"

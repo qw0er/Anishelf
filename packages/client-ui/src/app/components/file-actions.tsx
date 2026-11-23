@@ -3,7 +3,10 @@ import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFilePreparations } from "../../features/media/public.js";
 import { PreparationFileMenuItems } from "../../features/media/ui.js";
-import { FileLinkMenuItems } from "../../features/playback/ui.js";
+import {
+	CacheMenuItem,
+	FileLinkMenuItems,
+} from "../../features/playback/ui.js";
 
 import type { PreparationSummaryResponse } from "../../shared/api/contracts.js";
 import { Button } from "../../shared/components/ui/button.js";
@@ -16,6 +19,8 @@ import { Tooltip } from "../../shared/components/ui/tooltip.js";
 
 export function FileActions({
 	fileId,
+	fileName,
+	episode = false,
 	sourceVersion,
 	summary,
 	identification,
@@ -24,6 +29,8 @@ export function FileActions({
 	disabled = false,
 }: {
 	fileId: string;
+	fileName?: string | undefined;
+	episode?: boolean;
 	sourceVersion?: string;
 	disabled?: boolean;
 	identification?: ReactNode;
@@ -71,6 +78,12 @@ export function FileActions({
 				</Tooltip>
 				<DropdownMenuContent>
 					{identificationMenu}
+					<CacheMenuItem
+						fileId={fileId}
+						episode={episode}
+						{...(sourceVersion ? { sourceVersion } : {})}
+						{...(fileName ? { name: fileName } : {})}
+					/>
 					<FileLinkMenuItems fileId={fileId} />
 					<PreparationFileMenuItems
 						fileId={fileId}

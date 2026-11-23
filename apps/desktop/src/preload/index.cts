@@ -4,6 +4,28 @@ const { contextBridge, ipcRenderer } =
 	require("electron") as typeof import("electron");
 
 const desktop: DesktopBridge = {
+	offlineCache: {
+		list: () => ipcRenderer.invoke("desktop:cache:list"),
+		start: (target) => ipcRenderer.invoke("desktop:cache:start", target),
+		cancel: (id) => ipcRenderer.invoke("desktop:cache:cancel", id),
+		retry: (id) => ipcRenderer.invoke("desktop:cache:retry", id),
+		remove: (id) => ipcRenderer.invoke("desktop:cache:remove", id),
+		open: (id) => ipcRenderer.invoke("desktop:cache:open", id),
+		savePosition: (lease, positionMs) =>
+			ipcRenderer.invoke("desktop:cache:position", lease, positionMs),
+		close: (lease) => ipcRenderer.invoke("desktop:cache:close", lease),
+		subscribe(listener) {
+			const receive: Parameters<typeof ipcRenderer.on>[1] = (
+				_event,
+				entry,
+				id,
+			) => listener(entry, id);
+			ipcRenderer.on("desktop:cache:changed", receive);
+			return () => {
+				ipcRenderer.off("desktop:cache:changed", receive);
+			};
+		},
+	},
 	getLaunchAtLogin: () => ipcRenderer.invoke("desktop:login-item:get"),
 	setLaunchAtLogin: (enabled) =>
 		ipcRenderer.invoke("desktop:login-item:set", enabled),

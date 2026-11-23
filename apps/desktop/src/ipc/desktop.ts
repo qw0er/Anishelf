@@ -1,3 +1,5 @@
+import type { OfflineCacheHost } from "@anishelf/contracts/offline-cache";
+
 export interface CommandPlayerDraft {
 	name: string;
 	executable: string;
@@ -50,6 +52,7 @@ export interface DesktopUpdateCheck {
 }
 
 export interface DesktopBridge {
+	offlineCache: OfflineCacheHost;
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
 	getLaunchAtLogin(): Promise<DesktopLoginItemState>;
 	setLaunchAtLogin(enabled: boolean): Promise<void>;

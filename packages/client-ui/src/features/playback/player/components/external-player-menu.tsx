@@ -1,3 +1,4 @@
+import type { OfflineCacheTarget } from "@anishelf/contracts/offline-cache";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	ChevronRight,
@@ -25,6 +26,7 @@ import { toast } from "../../../../shared/components/ui/toast.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import type { ExternalPlayer } from "../../../../shared/platform.js";
 import { useExternalPlayers } from "../../../settings/public.js";
+import { CacheMenuItem } from "../../offline/public.js";
 import { resolveMediaLink } from "../media-link.js";
 import MediaLink from "./media-link.js";
 
@@ -147,10 +149,14 @@ function ExternalPlayerSubmenu({ fileId }: { fileId: string }) {
 
 export function PlaybackActionsMenu({
 	fileId,
+	cacheTarget,
+	episode = false,
 	onOptions,
 	onRetry,
 }: {
 	fileId: string;
+	cacheTarget?: OfflineCacheTarget;
+	episode?: boolean;
 	onOptions?(): void;
 	onRetry?(): void;
 }) {
@@ -184,6 +190,7 @@ export function PlaybackActionsMenu({
 						{t("player.retry")}
 					</DropdownMenuItem>
 				)}
+				<CacheMenuItem {...(cacheTarget ?? { fileId })} episode={episode} />
 				<FileLinkMenuItems fileId={fileId} />
 			</DropdownMenuContent>
 		</DropdownMenu>

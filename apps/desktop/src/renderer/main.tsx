@@ -5,6 +5,7 @@ import {
 	initializeClient,
 } from "@anishelf/client-ui";
 import type { BuildInfo } from "@anishelf/contracts/http";
+import { offlineCachePath } from "@anishelf/contracts/offline-cache";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter } from "react-router";
@@ -40,10 +41,16 @@ async function start() {
 			window.location.reload();
 		},
 	});
-	const onAuthRequired = () => session.onAuthRequired();
+	const onAuthRequired = () => {
+		const path = window.location.hash.slice(1).split("?", 1)[0];
+		if (path !== offlineCachePath && !path?.startsWith(`${offlineCachePath}/`))
+			session.onAuthRequired();
+	};
 	const client = await createDesktopServerClient(desktop, onAuthRequired);
 	const platform = await createDesktopPlatform(desktop, {
 		canChooseDirectories: client.server.kind === "local",
+		cacheServer:
+			client.server.kind === "local" ? "local" : client.server.origin,
 	});
 	const [closeToTray, launchAtLogin] = await Promise.all([
 		desktop.getCloseToTray(),
@@ -62,6 +69,7 @@ async function start() {
 	try {
 		const router = createHashRouter(
 			createClientRoutes({
+				offlineCache: true,
 				externalPlayerSettings: (
 					<DesktopExternalPlayerSettings
 						chooseExecutable={desktop.choosePlayerExecutable}

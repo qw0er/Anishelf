@@ -215,7 +215,7 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 | C11 | Mobile picture-in-picture playback | Not started | Optional | — | — |
 | C13 | Mobile background playback | Not started | Optional | — | — |
 | C14 | Mobile offline viewing | Not started | Optional | — | — |
-| C15 | Desktop offline caching and viewing | Not started | Optional | — | — |
+| C15 | Desktop offline caching and viewing | Partial | Later | [Implemented; cross-platform acceptance remains](#desktop-delivery-notes) | Unreleased |
 | C16 | Adapt Web playback fullscreen for iPhone | Not started | Optional | — | — |
 | C12 | Casting | Not started | Optional | — | — |
 
@@ -237,9 +237,12 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
   [desktop guide](../apps/desktop/README.md) and
   [Windows compatibility audit](development/windows-compatibility.md).
 
-Mobile clients and offline viewing remain future work. Desktop and mobile offline
-viewing should allow selected media to be cached for playback without a server
-connection. iPhone fullscreen should keep playback controls usable. A TV application
+- **C15:** Desktop can cache originals and supported external subtitles for
+  offline access, manage cached files, and resume playback from a local position.
+  See the [desktop guide](../apps/desktop/README.md).
+
+Mobile clients and mobile offline viewing remain future work. iPhone fullscreen
+should keep playback controls usable. A TV application
 is outside the planned scope. See the [client design](development/clients.md).
 
 ### 2.8 External Tracking Services

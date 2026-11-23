@@ -9,6 +9,8 @@ import type { PreparationSummaryResponse } from "../../shared/api/contracts.js";
 
 interface FileActionState {
 	fileId: string;
+	fileName: string;
+	sourceVersion?: string;
 	managementMenu?: ReactNode;
 	summary?: PreparationSummaryResponse["files"][number] | undefined;
 }

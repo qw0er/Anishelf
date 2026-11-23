@@ -1,3 +1,5 @@
+import type { OfflineCacheHost } from "@anishelf/contracts/offline-cache";
+
 export interface ClientStorage {
 	getItem(key: string): string | null;
 	setItem(key: string, value: string): void;
@@ -61,6 +63,7 @@ export type VideoDownloadProgress =
 	| { status: "downloading"; percent: number | null };
 
 export interface ClientPlatform {
+	offlineCache?: { host: OfflineCacheHost; server: string };
 	updates: {
 		kind: "web" | "desktop";
 		check(): Promise<ClientUpdateCheck>;

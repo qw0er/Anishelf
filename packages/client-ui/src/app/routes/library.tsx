@@ -27,10 +27,12 @@ import {
 import { libraryLoader } from "./root-data.js";
 import { settingsAction } from "./settings-data.js";
 export function createLibraryRoute({
+	offlineCache = false,
 	externalPlayerSettings,
 	desktopSettings,
 	showSecuritySettings,
 }: {
+	offlineCache?: boolean;
 	externalPlayerSettings?: ReactNode;
 	desktopSettings?: ReactNode;
 	showSecuritySettings?: boolean | undefined;
@@ -95,7 +97,7 @@ export function createLibraryRoute({
 				errorElement: <RouteError kind="directory" />,
 			},
 			{
-				element: <FilesLayout />,
+				element: <FilesLayout offlineCache={offlineCache} />,
 				children: [
 					{
 						path: "directories/:id",

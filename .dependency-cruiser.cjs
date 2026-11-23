@@ -366,7 +366,16 @@ module.exports = {
 			name: "desktop-ipc-contract-has-no-dependencies",
 			severity: "error",
 			from: { path: "^apps/desktop/src/ipc/" },
-			to: {},
+			to: { pathNot: "^packages/contracts/src/offline-cache\\.ts$" },
+		},
+		{
+			name: "desktop-ipc-offline-cache-is-type-only",
+			severity: "error",
+			from: { path: "^apps/desktop/src/ipc/" },
+			to: {
+				path: "^packages/contracts/src/offline-cache\\.ts$",
+				dependencyTypesNot: ["type-only"],
+			},
 		},
 		{
 			name: "desktop-renderer-does-not-import-node-builtins",

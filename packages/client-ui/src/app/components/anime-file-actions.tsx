@@ -14,7 +14,11 @@ export function AnimeFileActions({
 	identificationMenu,
 }: {
 	identificationMenu?: ReactNode;
-	source: { fileId: string; sourceVersion: string };
+	source: {
+		fileId: string;
+		sourceVersion: string;
+		evidence: { originalName: string };
+	};
 	summary: PreparationSummaryResponse["files"][number] | undefined;
 	summaryLoading: boolean;
 	gate: ReturnType<typeof queryGate>;
@@ -41,6 +45,8 @@ export function AnimeFileActions({
 				</>
 			}
 			fileId={source.fileId}
+			fileName={source.evidence.originalName}
+			episode
 			sourceVersion={source.sourceVersion}
 			summary={summary}
 		/>

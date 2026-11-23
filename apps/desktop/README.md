@@ -64,6 +64,18 @@ The menu shows progress while the file downloads. Choose **Show in folder**
 from the success notification to find the saved video, or **Retry** from a
 failure notification to start the download again.
 
+Choose **Cache episode** or **Cache video** from a media action menu to keep a
+copy on this computer. Open **Files → Offline cache** to check progress, retry
+interrupted downloads, play videos and remove cached files. The login and
+connection error screens also link to the offline cache.
+
+The desktop profile stores original video files, supported external subtitles
+and the SQLite index in its `offline-cache/` subdirectory. Cached videos remain
+available after a server switch or sign-out. The offline player remembers its
+position on this computer. Remove completed caches from the offline list to
+free disk space. Interrupted transfers can be restarted while their source
+server is connected.
+
 On Linux, Anishelf enables Chromium's `VaapiOnNvidiaGPUs` feature by default.
 Hardware decoding depends on the driver and media format. To disable the
 feature, launch Anishelf with `--disable-features=VaapiOnNvidiaGPUs`.

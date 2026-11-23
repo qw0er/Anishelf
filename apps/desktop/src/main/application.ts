@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { desktopOrigin } from "@anishelf/contracts/defaults";
 import {
@@ -21,6 +22,9 @@ import {
 import { chooseResourceDirectory } from "./native/resource-directory.js";
 import { DesktopTray } from "./native/tray.js";
 import { DesktopUpdateChecker } from "./native/updates.js";
+import { DesktopOfflineCache } from "./offline-cache/cache.js";
+import { cacheFailure } from "./offline-cache/source.js";
+import { OfflineCacheStore } from "./offline-cache/store.js";
 import { registerRendererProtocol } from "./protocol.js";
 import {
 	attachDeviceCredentials,
@@ -127,6 +131,7 @@ function logLocalShutdownFailure(error: unknown) {
 export class DesktopApplication {
 	private readonly windows = new Set<WebContents>();
 	private readonly cleanup: Array<() => void> = [];
+	private offlineCache: DesktopOfflineCache | undefined;
 	private tray: DesktopTray | undefined;
 	private openingWindow = false;
 	private switching = false;
@@ -158,6 +163,7 @@ export class DesktopApplication {
 				? await this.openExternalServer(connection)
 				: connectLocalBackend(connection);
 		this.activateServer(server);
+		await this.initializeCache();
 		this.tray = new DesktopTray(() => this.showWindow(), iconPath());
 		this.cleanup.push(() => this.tray?.dispose());
 		this.cleanup.push(() => this.detachCredentials?.());
@@ -174,6 +180,18 @@ export class DesktopApplication {
 		this.cleanup.push(
 			registerDesktopIpc(
 				{
+					offlineCache: {
+						list: async () => this.cache().list(),
+						start: async (target) => this.cache().start(target),
+						cancel: async (id) => this.cache().cancel(id),
+						retry: async (id) => this.cache().retry(id),
+						remove: async (id) => this.cache().remove(id),
+						open: async (sender, id) => this.cache().open(sender, id),
+						position: async (sender, lease, value) =>
+							this.cache().position(sender, lease, value),
+						close: async (sender, lease) =>
+							this.offlineCache?.close(sender, lease),
+					},
 					checkForUpdates: () => updates.check(),
 					getLaunchAtLogin: async () => {
 						try {
@@ -261,7 +279,12 @@ export class DesktopApplication {
 				this.windows,
 			),
 		);
-		this.cleanup.push(registerRendererProtocol(() => this.server.origin));
+		this.cleanup.push(
+			registerRendererProtocol(
+				() => this.server.origin,
+				() => this.offlineCache?.origin,
+			),
+		);
 		await this.createWindow();
 		app.on("activate", this.onActivate);
 		this.cleanup.push(() => app.off("activate", this.onActivate));
@@ -298,6 +321,50 @@ export class DesktopApplication {
 	private readonly onActivate = () => {
 		this.showWindow();
 	};
+
+	private cache() {
+		if (!this.offlineCache) throw new Error("Offline cache is unavailable.");
+		return this.offlineCache;
+	}
+
+	private async initializeCache() {
+		const directory = join(app.getPath("userData"), "offline-cache");
+		let cache: DesktopOfflineCache | undefined;
+		try {
+			await mkdir(directory, { recursive: true, mode: 0o700 });
+			cache = new DesktopOfflineCache(
+				directory,
+				new OfflineCacheStore(join(directory, "index.sqlite")),
+				session.fromPartition("offline-cache-downloads"),
+				() => {
+					const server = this.server;
+					return {
+						key: server.kind === "local" ? "local" : server.origin,
+						origin: server.origin,
+						authorization: () => {
+							if (server !== this.server) return undefined;
+							return server.kind === "local"
+								? `Bearer ${server.deviceToken}`
+								: server.tokens.authorization();
+						},
+					};
+				},
+				(entry, id) => {
+					for (const window of this.windows)
+						if (!window.isDestroyed())
+							window.send("desktop:cache:changed", entry, id);
+				},
+			);
+			await cache.initialize();
+			this.offlineCache = cache;
+			this.cleanup.push(() => cache?.dispose());
+		} catch (error) {
+			cache?.dispose();
+			console.warn("desktop.cache_initialization_failed", {
+				reason: cacheFailure(error),
+			});
+		}
+	}
 
 	private async openExternalServer(origin: string) {
 		let tokens = this.tokenStores.get(origin);
@@ -445,8 +512,13 @@ export class DesktopApplication {
 		const contents = window.webContents;
 		this.windows.add(contents);
 		contents.once("destroyed", () => {
+			this.offlineCache?.closeWindow(contents);
 			this.windows.delete(contents);
 			this.hiddenWindowMode = undefined;
+		});
+		contents.on("did-start-navigation", ({ isSameDocument, isMainFrame }) => {
+			if (isMainFrame && !isSameDocument)
+				this.offlineCache?.closeWindow(contents);
 		});
 		contents.on("will-navigate", (event, url) => {
 			// Session changes reload the same local document with a new hash route.

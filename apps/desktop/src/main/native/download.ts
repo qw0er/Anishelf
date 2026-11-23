@@ -1,11 +1,7 @@
 import { basename } from "node:path";
 import { desktopOrigin } from "@anishelf/contracts/defaults";
-import {
-	type DownloadItem,
-	type Event,
-	shell,
-	type WebContents,
-} from "electron";
+import { shell, type WebContents } from "electron";
+import { downloadPercent, transferDownload } from "./download-transfer.js";
 import { httpUrl } from "./links.js";
 
 const completedDownloads = new WeakMap<WebContents, Map<string, string>>();
@@ -45,66 +41,48 @@ export function downloadMedia(
 		"",
 	);
 	const { session } = sender;
-
+	let lastPercent: number | null | undefined;
 	return new Promise<boolean>((resolve, reject) => {
-		function cleanup() {
-			clearTimeout(timeout);
-			session.off("will-download", configureDownload);
-		}
-
-		function configureDownload(
-			_event: Event,
-			item: DownloadItem,
-			contents: WebContents,
-		) {
-			if (contents !== sender || item.getURLChain()[0] !== url.href) return;
-			cleanup();
-			if (name && name !== "." && name !== "..")
-				item.setSaveDialogOptions({ defaultPath: name });
-			console.info("desktop.download_started");
-			if (!id) resolve(true);
-
-			let lastPercent: number | null | undefined;
-			function reportProgress() {
+		void transferDownload({
+			session,
+			url: url.href,
+			begin: () => sender.downloadURL(url.href),
+			matches: (contents) => contents === sender,
+			configure(item) {
+				if (name && name !== "." && name !== "..")
+					item.setSaveDialogOptions({ defaultPath: name });
+			},
+			attached() {
+				console.info("desktop.download_started");
+				if (!id) resolve(true);
+			},
+			progress(item) {
 				if (!id || sender.isDestroyed() || !item.getSavePath()) return;
-				const percent = item.getPercentComplete();
-				const progress = percent < 0 ? null : Math.min(percent, 100);
-				if (progress === lastPercent) return;
-				lastPercent = progress;
-				sender.send("desktop:download-progress", id, progress);
-			}
-			if (id) item.on("updated", reportProgress);
-			item.once("done", (_event, state) => {
-				if (id) item.off("updated", reportProgress);
-				if (state === "interrupted") {
-					console.warn("desktop.download_interrupted");
-					reject(new Error("Media download was interrupted."));
-					return;
-				}
-				console.info(`desktop.download_${state}`);
-				if (state === "completed" && id) {
+				const percent = downloadPercent(item);
+				if (percent === lastPercent) return;
+				lastPercent = percent;
+				sender.send("desktop:download-progress", id, percent);
+			},
+		}).then(
+			(path) => {
+				console.info(
+					path === null
+						? "desktop.download_cancelled"
+						: "desktop.download_completed",
+				);
+				if (path !== null && id) {
 					const paths = completedDownloads.get(sender) ?? new Map();
-					paths.set(id, item.getSavePath());
+					paths.set(id, path);
 					completedDownloads.set(sender, paths);
-					// Keep enough paths for recent notifications in long-lived windows.
 					const oldest = paths.keys().next().value;
 					if (paths.size > 100 && oldest) paths.delete(oldest);
 				}
-				resolve(state === "completed");
-			});
-		}
-
-		const timeout = setTimeout(() => {
-			cleanup();
-			reject(new Error("Media download did not start."));
-		}, 30_000);
-		timeout.unref();
-		session.on("will-download", configureDownload);
-		try {
-			sender.downloadURL(url.href);
-		} catch (error) {
-			cleanup();
-			reject(error);
-		}
+				resolve(path !== null);
+			},
+			(error: unknown) => {
+				console.warn("desktop.download_failed");
+				reject(error);
+			},
+		);
 	});
 }

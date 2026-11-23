@@ -1,7 +1,8 @@
 import { EventEmitter } from "node:events";
-import type { WebContents } from "electron";
+import type { Session, WebContents } from "electron";
 import { expect, test, vi } from "vitest";
 import { downloadMedia, revealDownload } from "../src/main/native/download.js";
+import { transferDownload } from "../src/main/native/download-transfer.js";
 
 const { showItemInFolder } = vi.hoisted(() => ({
 	showItemInFolder: vi.fn(),
@@ -65,4 +66,40 @@ test("treats a cancelled save separately from an interrupted transfer", async ()
 	const interrupted = startDownload();
 	interrupted.item.emit("done", {}, "interrupted");
 	await expect(interrupted.result).rejects.toThrow(/interrupted/);
+});
+
+test("keeps a manual save and a managed cache transfer independent", async () => {
+	const manual = startDownload();
+	const session = new EventEmitter();
+	const managed = Object.assign(new EventEmitter(), {
+		getURLChain: () => [url],
+		getSavePath: () => "/cache/video.mkv.part",
+		setSavePath: vi.fn(),
+	});
+	const progress = vi.fn();
+	const cache = transferDownload({
+		session: session as Session,
+		url,
+		begin: () => {
+			session.emit("will-download", {}, managed, null);
+		},
+		matches: () => true,
+		configure: (item) => item.setSavePath("/cache/video.mkv.part"),
+		progress,
+	});
+
+	manual.item.getSavePath.mockReturnValue("/downloads/video.mkv");
+	manual.item.getPercentComplete.mockReturnValue(18);
+	manual.item.emit("updated", {}, "progressing");
+	managed.emit("done", {}, "completed");
+	manual.item.emit("done", {}, "completed");
+	await expect(cache).resolves.toBe("/cache/video.mkv.part");
+	await expect(manual.result).resolves.toBe(true);
+	expect(managed.setSavePath).toHaveBeenCalledWith("/cache/video.mkv.part");
+	expect(progress).toHaveBeenCalledWith(managed);
+	expect(manual.send).toHaveBeenCalledExactlyOnceWith(
+		"desktop:download-progress",
+		id,
+		18,
+	);
 });

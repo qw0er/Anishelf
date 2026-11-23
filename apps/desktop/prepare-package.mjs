@@ -12,6 +12,14 @@ const rootPackage = JSON.parse(
 );
 const require = createRequire(import.meta.url);
 const electronVersion = require("electron/package.json").version;
+const { dependencies: desktopDependencies } = JSON.parse(
+	await readFile(join(desktopDir, "package.json"), "utf8"),
+);
+const desktopMainDependencies = {
+	"better-sqlite3": desktopDependencies["better-sqlite3"],
+	"drizzle-orm": desktopDependencies["drizzle-orm"],
+	platformdirs: desktopDependencies.platformdirs,
+};
 const backendDir = join(rootDir, "apps/server");
 const { dependencies: backendDependencies } = JSON.parse(
 	await readFile(join(backendDir, "package.json"), "utf8"),
@@ -28,7 +36,7 @@ await build({
 	platform: "node",
 	format: "esm",
 	target: "node24",
-	external: ["electron", "platformdirs"],
+	external: ["electron", ...Object.keys(desktopMainDependencies)],
 });
 // Preserve the relative locations used for SQLite migrations and build metadata.
 await build({
@@ -91,7 +99,7 @@ await writeFile(
 			license: rootPackage.license,
 			type: "module",
 			main: "dist/main/index.js",
-			dependencies: backendDependencies,
+			dependencies: { ...backendDependencies, ...desktopMainDependencies },
 			build: {
 				appId: "app.anishelf.desktop",
 				artifactName: `anishelf-desktop-\${version}-\${arch}.\${ext}`,

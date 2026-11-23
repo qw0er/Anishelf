@@ -1,3 +1,4 @@
+import { offlineCachePath } from "@anishelf/contracts/offline-cache";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -6,6 +7,7 @@ import {
 	useRouteError,
 	useSearchParams,
 } from "react-router";
+import { useOfflineCache } from "../../features/playback/ui.js";
 import { Button, buttonStyles } from "../../shared/components/ui/button.js";
 import { InlineError } from "../../shared/components/ui/inline-error.js";
 import { Spinner } from "../../shared/components/ui/spinner.js";
@@ -20,6 +22,7 @@ export default function RouteError({
 	kind: "directory" | "file" | "page";
 }) {
 	const { t } = useTranslation();
+	const offlineCache = useOfflineCache();
 	const error = useRouteError();
 	const revalidator = useRevalidator();
 	const [searchParams] = useSearchParams();
@@ -72,6 +75,11 @@ export default function RouteError({
 						: t("navigation.goToRoot")}
 				</Link>
 				<ServerConnectionLink />
+				{offlineCache && (
+					<Link className={buttonStyles("outline")} to={offlineCachePath}>
+						{t("offlineCache.open")}
+					</Link>
+				)}
 			</div>
 		</section>
 	);

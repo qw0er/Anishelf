@@ -1,30 +1,6 @@
 import type { FileHandle } from "node:fs/promises";
+import { byteRange } from "@anishelf/contracts/media";
 import type { FastifyReply, FastifyRequest } from "fastify";
-
-type ByteRange = { start: number; end: number } | "unsatisfiable" | null;
-
-// Malformed/multipart fields are ignored; BigInt prevents integer overflow.
-function byteRange(header: string | undefined, size: number): ByteRange {
-	const match = header?.trim().match(/^bytes=(\d*)-(\d*)$/i);
-	if (!match || (!match[1] && !match[2])) return null;
-	const length = BigInt(size);
-	if (!match[1]) {
-		const suffix = BigInt(match[2] as string);
-		if (suffix === 0n || length === 0n) return "unsatisfiable";
-		return {
-			start: Number(suffix >= length ? 0n : length - suffix),
-			end: size - 1,
-		};
-	}
-	const start = BigInt(match[1]);
-	const end = match[2] ? BigInt(match[2]) : null;
-	if (end !== null && end < start) return null;
-	if (start >= length) return "unsatisfiable";
-	return {
-		start: Number(start),
-		end: Number(end === null || end >= length ? length - 1n : end),
-	};
-}
 
 /** HTTP byte delivery shared by authorized original and prepared media owners. */
 export async function sendMediaResponse(

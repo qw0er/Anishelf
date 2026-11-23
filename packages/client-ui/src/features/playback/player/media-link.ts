@@ -1,3 +1,7 @@
+import {
+	matchesOriginalMediaLink,
+	originalMediaPath,
+} from "@anishelf/contracts/media";
 import type { QueryClient } from "@tanstack/react-query";
 import {
 	ApiClientError,
@@ -20,7 +24,7 @@ export async function resolveMediaLink(
 		options?.signal ?? new AbortController().signal,
 		client,
 	);
-	const expectedPath = `/api/media/${encodeURIComponent(fileId)}`;
+	const expectedPath = originalMediaPath(fileId);
 	if (file.file.id !== fileId || file.originalMediaUrl !== expectedPath) {
 		throw new ApiClientError({
 			kind: "invalid_response",
@@ -28,12 +32,12 @@ export async function resolveMediaLink(
 		});
 	}
 	const link = await createMediaAccessLink(fileId, options);
-	const url = getClientRuntime().connection.resolveResourceUrl(link.url, true);
-	const resolved = url ? new URL(url) : null;
+	const { connection } = getClientRuntime();
+	const href = connection.resolveResourceUrl(link.url, true);
+	const resolved = href ? new URL(href) : null;
 	if (
 		!resolved ||
-		resolved.pathname !== expectedPath ||
-		!resolved.searchParams.get("access_token")
+		!matchesOriginalMediaLink(connection.origin, fileId, resolved)
 	)
 		throw new ApiClientError({
 			kind: "invalid_response",

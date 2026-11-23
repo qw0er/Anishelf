@@ -13,6 +13,23 @@ import type {
  * the sender for native dialogs and treat IPC arguments as untrusted.
  */
 export interface DesktopIpcHandlers {
+	offlineCache: {
+		list: DesktopBridge["offlineCache"]["list"];
+		start(target: unknown): Promise<void>;
+		cancel(id: unknown): Promise<void>;
+		retry(id: unknown): Promise<void>;
+		remove(id: unknown): Promise<void>;
+		open(
+			sender: WebContents,
+			id: unknown,
+		): ReturnType<DesktopBridge["offlineCache"]["open"]>;
+		position(
+			sender: WebContents,
+			lease: unknown,
+			positionMs: unknown,
+		): Promise<void>;
+		close(sender: WebContents, lease: unknown): Promise<void>;
+	};
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
 	getLaunchAtLogin(): Promise<DesktopLoginItemState>;
 	setLaunchAtLogin(enabled: unknown): Promise<void>;
@@ -109,6 +126,15 @@ export function registerDesktopIpc(
 		);
 		handle("desktop:download-file", handlers.downloadFile);
 		handle("desktop:reveal-download", handlers.revealDownload);
+		const cache = handlers.offlineCache;
+		handle("desktop:cache:list", cache.list);
+		handle("desktop:cache:start", (_, target) => cache.start(target));
+		handle("desktop:cache:cancel", (_, id) => cache.cancel(id));
+		handle("desktop:cache:retry", (_, id) => cache.retry(id));
+		handle("desktop:cache:remove", (_, id) => cache.remove(id));
+		handle("desktop:cache:open", cache.open);
+		handle("desktop:cache:position", cache.position);
+		handle("desktop:cache:close", cache.close);
 		handle("desktop:external-players:list", () =>
 			handlers.listExternalPlayers(),
 		);

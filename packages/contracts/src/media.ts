@@ -43,9 +43,58 @@ export function directPlaybackPlan(
 		mode: "direct",
 		resource: {
 			delivery: "file",
-			url: `/api/media/${encodeURIComponent(fileId)}`,
+			url: originalMediaPath(fileId),
 			mimeType,
 			timeline: originalTimeline(),
 		},
 	};
+}
+
+type ByteRange = { start: number; end: number } | "unsatisfiable" | null;
+
+// Malformed/multipart fields are ignored; BigInt prevents integer overflow.
+export function byteRange(header: string | undefined, size: number): ByteRange {
+	const match = header?.trim().match(/^bytes=(\d*)-(\d*)$/i);
+	if (!match || (!match[1] && !match[2])) return null;
+	const length = BigInt(size);
+	if (!match[1]) {
+		const suffix = BigInt(match[2] as string);
+		if (suffix === 0n || length === 0n) return "unsatisfiable";
+		return {
+			start: Number(suffix >= length ? 0n : length - suffix),
+			end: size - 1,
+		};
+	}
+	const start = BigInt(match[1]);
+	const end = match[2] ? BigInt(match[2]) : null;
+	if (end !== null && end < start) return null;
+	if (start >= length) return "unsatisfiable";
+	return {
+		start: Number(start),
+		end: Number(end === null || end >= length ? length - 1n : end),
+	};
+}
+
+export function originalMediaPath(fileId: string) {
+	return `/api/media/${encodeURIComponent(fileId)}`;
+}
+
+export function matchesOriginalMediaLink(
+	origin: string,
+	fileId: string,
+	url: {
+		origin: string;
+		username: string;
+		password: string;
+		pathname: string;
+		searchParams: { get(name: string): string | null };
+	},
+) {
+	return (
+		url.origin === origin &&
+		!url.username &&
+		!url.password &&
+		url.pathname === originalMediaPath(fileId) &&
+		Boolean(url.searchParams.get("access_token"))
+	);
 }

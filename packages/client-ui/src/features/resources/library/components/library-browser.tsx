@@ -271,6 +271,10 @@ export default function LibraryBrowser({
 											<div className="flex items-center justify-end gap-1 pl-2">
 												{renderFileActions?.({
 													fileId: entry.id,
+													fileName: entry.name,
+													...(entry.sourceVersion
+														? { sourceVersion: entry.sourceVersion }
+														: {}),
 													managementMenu: (
 														<ResourceOperationItems
 															onSelect={(action) =>

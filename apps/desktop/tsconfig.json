@@ -3,6 +3,7 @@
 		"rootDir": "src",
 		"outDir": "dist",
 		"module": "nodenext",
+		"rewriteRelativeImportExtensions": true,
 		"target": "esnext",
 		"types": ["node"],
 		"sourceMap": true,

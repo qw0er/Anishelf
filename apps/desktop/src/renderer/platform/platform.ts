@@ -8,7 +8,7 @@ import { createVideoDownloads } from "./video-downloads.js";
 
 export async function createDesktopPlatform(
 	desktop: DesktopBridge,
-	options: { canChooseDirectories?: boolean } = {},
+	options: { canChooseDirectories?: boolean; cacheServer?: string } = {},
 ): Promise<ClientPlatform> {
 	const externalPlayers = await createDesktopExternalPlayers(desktop);
 	function requestDownload(url: string, filename: string) {
@@ -23,6 +23,10 @@ export async function createDesktopPlatform(
 			return browserPlatform.device;
 		},
 		externalPlayers,
+		offlineCache: {
+			host: desktop.offlineCache,
+			server: options.cacheServer ?? "local",
+		},
 		videoDownloads: createVideoDownloads(desktop),
 		copyText: (text) => desktop.copyText(text),
 		...(options.canChooseDirectories

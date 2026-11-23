@@ -17,7 +17,10 @@ export function registerRendererScheme() {
 	]);
 }
 
-export function registerRendererProtocol(getServerOrigin: () => string) {
+export function registerRendererProtocol(
+	getServerOrigin: () => string,
+	getCacheOrigin: () => string | undefined,
+) {
 	const development =
 		!app.isPackaged && process.env.ANISHELF_DESKTOP_DEV === "1";
 	if (development) console.info("desktop.renderer_development_server_enabled");
@@ -42,6 +45,7 @@ export function registerRendererProtocol(getServerOrigin: () => string) {
 		const response = await net.fetch(resource);
 		const headers = new Headers(response.headers);
 		const serverOrigin = getServerOrigin();
+		const cacheOrigin = getCacheOrigin() ?? "";
 		headers.set(
 			"Content-Security-Policy",
 			[
@@ -50,8 +54,8 @@ export function registerRendererProtocol(getServerOrigin: () => string) {
 				"style-src 'self' 'unsafe-inline'",
 				"font-src 'self' blob: data:",
 				`img-src 'self' ${serverOrigin} https: data: blob:`,
-				`connect-src 'self' ${serverOrigin} blob: data:${development ? " ws://127.0.0.1:5174" : ""}`,
-				`media-src 'self' ${serverOrigin} blob:`,
+				`connect-src 'self' ${serverOrigin} ${cacheOrigin} blob: data:${development ? " ws://127.0.0.1:5174" : ""}`,
+				`media-src 'self' ${serverOrigin} ${cacheOrigin} blob:`,
 				"worker-src 'self' blob:",
 				"base-uri 'none'",
 				"form-action 'none'",
