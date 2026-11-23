@@ -333,7 +333,7 @@ future work. See [Architecture](development/architecture.md#source-organization-
 
 #### Delivery Notes (W)
 
-- **W03:** Unified detail/player commands and 90-percent/natural-end completion with 30-second normal-play minimum.
+- **W03:** Unified detail/player commands and 87-percent/natural-end completion with 30-second normal-play minimum.
 - **W06:** **Delivered:** Server-backed playback history and progress shared across Web devices. **Remaining:** Native client integration. **Release record:** 0.2.0 (Web playback history and progress; partial).
 - **W12:** Server-side session and sequence checks detect duplicate updates, reject stale or out-of-order updates, and give newer sessions precedence. Clients must use the playback session and progress protocol.
 - **W08:** Distinct tracking status with shared active-viewing behavior; see requirements below.
@@ -376,7 +376,7 @@ logs to make active membership and resulting acquisition decisions diagnosable.
 
 AniList is the authority for anime viewing status and cumulative episode progress. Display its tracked titles and supported statuses, and submit automatic completion updates and manual progress/status corrections to AniList. Reuse confirmed local work/episode associations and provider identifiers; mapping is already delivered and is not a new implementation requirement. Keep source playback positions and local playback history independent from AniList state. Multiple file versions must not increment progress repeatedly.
 
-AniList cumulative progress does not provide an independent watched/unwatched flag for every episode. Derived episode indicators must be labeled as based on AniList progress, rather than exact local per-episode viewing records. Watching a later episode must not silently imply earlier episodes were watched: noncontiguous completion requires an explicit cumulative-progress decision. The selected automatic policy requires reaching 90 percent of the source timeline or natural source end, plus 30 seconds of normal wall-clock playback in the current session. Seeks, resume restoration, pauses and buffering add no normal time; playback speed does not multiply it. Player manual marks require no telemetry. All entry points report consistent pending, confirmed and failed outcomes; delayed automatic updates must not override explicit manual corrections. Do not introduce a separate authoritative local tracking list or per-episode watched-state store.
+AniList cumulative progress does not provide an independent watched/unwatched flag for every episode. Derived episode indicators must be labeled as based on AniList progress, rather than exact local per-episode viewing records. Watching a later episode must not silently imply earlier episodes were watched: noncontiguous completion requires an explicit cumulative-progress decision. The selected automatic policy requires reaching 87 percent of the source timeline or natural source end, plus 30 seconds of normal wall-clock playback in the current session. Seeks, resume restoration, pauses and buffering add no normal time; playback speed does not multiply it. Player manual marks require no telemetry. All entry points report consistent pending, confirmed and failed outcomes; delayed automatic updates must not override explicit manual corrections. Do not introduce a separate authoritative local tracking list or per-episode watched-state store.
 
 ### 2.5 Subscriptions and Resource Discovery
 

@@ -245,13 +245,13 @@ async function observing() {
 	});
 	return submit;
 }
-test("reaching 90 percent after 30 seconds creates one durable observation, without coverage or probing", async () => {
+test("reaching 87 percent after 30 seconds creates one durable observation, without coverage or probing", async () => {
 	const submit = await observing();
 	const session = await playback.open(fileId);
 	now += 30000;
 	await playback.save({
 		...update(session),
-		positionMs: 90000,
+		positionMs: 87000,
 		normalPlayedMs: 30000,
 	});
 	await vi.waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
@@ -284,7 +284,7 @@ test("resume and seeking alone are insufficient; rejected telemetry still saves 
 	});
 	await playback.save({
 		...update(session, 3),
-		positionMs: 89999,
+		positionMs: 86999,
 		normalPlayedMs: 30000,
 	});
 	expect(submit).not.toHaveBeenCalled();
@@ -295,7 +295,7 @@ test("resume and seeking alone are insufficient; rejected telemetry still saves 
 				(await library.sources.resolveSource(fileId)).identity,
 			).id,
 		)?.positionMs,
-	).toBe(89999);
+	).toBe(86999);
 });
 test("natural end supports unknown duration after normal playback, and a new session needs new normal time", async () => {
 	const submit = await observing();

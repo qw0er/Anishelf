@@ -173,6 +173,17 @@ export class PlaybackApplication implements PlaybackApi {
 		session.touchedAtMs = this.now();
 		if (observation && result.status === "saved") {
 			session.completionQueued = true;
+			this.logger.debug(
+				{
+					event: "playback.completion_queued",
+					sourceId: session.sourceId,
+					positionMs: input.positionMs,
+					durationMs: input.durationMs,
+					completionRatio: this.policy.completionRatio,
+					naturalEnd: input.naturalEnd === true,
+				},
+				"Playback completion queued.",
+			);
 			void this.completionsWorker?.flush();
 		}
 		this.logger.trace(

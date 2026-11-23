@@ -6,7 +6,7 @@ import {
 } from "../../../shared/policy.js";
 
 const defaults = {
-	completionRatio: 0.9,
+	completionRatio: 0.87,
 	minimumNormalPlayMs: 30000,
 	sessionIdleMs: 30 * 60 * 1000,
 	maximumSessions: 1000,
