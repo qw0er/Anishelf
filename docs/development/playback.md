@@ -95,7 +95,7 @@ Retired generated subtitle/font directories are cleaned on startup.
 
 ## Runtime distribution and validation
 
-The shared client pins `libmedia-react-player@1.4.1`. The playback route loads
+The shared client pins `libmedia-react-player@1.4.2`. The playback route loads
 the package on demand. Vite emits the decoder, renderers and Workers as
 same-origin assets and excludes those assets from the Web shell's precache.
 The desktop renderer uses the standard application scheme, CSP and device
