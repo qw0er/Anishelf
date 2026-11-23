@@ -1,4 +1,5 @@
 import type {
+	LibmediaPlaybackPreferences,
 	LibmediaPlayerError,
 	LibmediaPlayerProps,
 } from "libmedia-react-player";
@@ -11,6 +12,7 @@ export const mockPlayer = {
 		video: HTMLVideoElement;
 		props(): LibmediaPlayerProps;
 		selectAudio: (streamIndex: number | null) => Promise<void>;
+		preference(changes: LibmediaPlaybackPreferences): void;
 		track(streamIndex: number | null): void;
 		error(error: Omit<LibmediaPlayerError, "sessionId" | "src">): void;
 	}[],
@@ -40,6 +42,13 @@ function Fixture(props: LibmediaPlayerProps) {
 			video: element,
 			props: () => latest.current,
 			selectAudio: selectAudio.current,
+			preference(changes: LibmediaPlaybackPreferences) {
+				latest.current.onPlaybackPreferenceChange?.({
+					src: latest.current.src,
+					sessionId: session.sessionId,
+					changes,
+				});
+			},
 			track(streamIndex: number | null) {
 				latest.current.onTrackChange?.({
 					src: latest.current.src,

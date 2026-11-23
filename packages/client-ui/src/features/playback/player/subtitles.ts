@@ -37,6 +37,7 @@ export async function prepareExternalSubtitles(
 						const content = await response.blob();
 						signal.throwIfAborted();
 						const options = {
+							id: track.id,
 							content,
 							label: track.label ?? track.name,
 							...(track.language ? { language: track.language } : {}),

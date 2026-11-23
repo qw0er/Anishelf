@@ -40,7 +40,6 @@ export interface PlaybackBinding {
 	events: Pick<
 		LibmediaPlayerEvents,
 		| "onPlaybackStateChange"
-		| "onInitialPositionResult"
 		| "onReady"
 		| "onTimeUpdate"
 		| "onSeeked"
@@ -150,7 +149,6 @@ export class PlaybackSessionController {
 		let state: LibmediaPlaybackState | undefined;
 		const retired = new Set<string>();
 		let mediaPositionMs: number | undefined;
-		let restoredAttempt: string | undefined;
 		let ended = false;
 		const active = () => !this.closed && this.binding === binding;
 		const accepts = (id: string) => active() && state?.sessionId === id;
@@ -179,7 +177,6 @@ export class PlaybackSessionController {
 						if (next.status !== "loading") return;
 						// React can restart the player's effects while keeping this binding.
 						retired.add(state.sessionId);
-						if (restoredAttempt !== next.sessionId) restoredAttempt = undefined;
 						ended = false;
 						this.evidence.reset();
 						this.publish({ restored: false });
@@ -203,14 +200,10 @@ export class PlaybackSessionController {
 					if (this.state.restored && (!wasPlaying || changedRate)) sample();
 					if (isPaused && this.state.restored) this.queueSave();
 				},
-				onInitialPositionResult: (result) => {
-					if (active() && !retired.has(result.sessionId))
-						restoredAttempt = result.restored ? result.sessionId : undefined;
-				},
 				onReady: (progress) => {
 					if (
 						!accepts(progress.sessionId) ||
-						restoredAttempt !== progress.sessionId ||
+						progress.initialPositionResult?.restored !== true ||
 						this.state.restored
 					)
 						return;

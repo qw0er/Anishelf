@@ -1,8 +1,6 @@
 import type { MediaTimeline } from "@anishelf/contracts/media";
 import type {
 	ExternalSubtitleTrack,
-	LibmediaControlLabels,
-	LibmediaInitialPositionResult,
 	LibmediaPlayerError,
 	LibmediaPlayerHandle,
 } from "libmedia-react-player";
@@ -21,7 +19,15 @@ import type { ActivePlayback } from "../../../../shared/api/contracts.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
+import {
+	defaultLanguage,
+	isSupportedLanguage,
+} from "../../../../shared/config/languages.js";
 import type { NextEpisodeAction } from "../../public.js";
+import {
+	readPlaybackPreferences,
+	savePlaybackPreferences,
+} from "../preferences.js";
 import type { PlaybackFailure } from "../runtime.js";
 import type { PlaybackBinding } from "../session.js";
 import { prepareExternalSubtitles } from "../subtitles.js";
@@ -140,8 +146,11 @@ function VideoAttempt({
 	timeline: MediaTimeline;
 	retry(): void;
 }) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	const { authentication, onAuthRequired, platform } = getClientRuntime();
+	const locale = isSupportedLanguage(i18n.resolvedLanguage)
+		? i18n.resolvedLanguage
+		: defaultLanguage;
 	const player = useRef<LibmediaPlayerHandle>(null);
 	const [binding, setBinding] = useState<PlaybackBinding | null>(null);
 	const [ready, setReady] = useState(false);
@@ -149,15 +158,30 @@ function VideoAttempt({
 		"restore" | PlaybackFailure["reason"]
 	>();
 	const failureReported = useRef(false);
-	const restore = useRef<LibmediaInitialPositionResult>(null);
+	const readySession = useRef<string>(null);
+	const failedRestore = useRef<string>(null);
 	const [failedSession, setFailedSession] = useState<string>();
 	const retrying = useRef(false);
-	const restorationFailed = (sessionId: string) =>
-		restore.current?.sessionId === sessionId && !restore.current.restored;
 	const requestedAudio =
 		active.audio?.streamIndex ??
 		(silent || active.asset.inspection === "complete" ? null : undefined);
-	const [initialAudio] = useState(requestedAudio);
+	const asset = JSON.stringify([
+		fileId,
+		sourceVersion,
+		active.asset.id,
+		active.asset.revision,
+	]);
+	const [initialPreferences] = useState(() => ({
+		...readPlaybackPreferences(platform.preferences, asset),
+		...(requestedAudio === undefined
+			? {}
+			: {
+					audio:
+						requestedAudio === null
+							? null
+							: { streamIndex: requestedAudio, strict: true },
+				}),
+	}));
 	const currentAudio = useRef(requestedAudio);
 	const confirmedAudio = useRef(false);
 	const container = active.asset.container;
@@ -188,9 +212,6 @@ function VideoAttempt({
 	if (!binding) return <Skeleton className="size-full" />;
 
 	const metadata = { fileId, assetId: active.asset.id };
-	const labels = t("player.controls", {
-		returnObjects: true,
-	}) as LibmediaControlLabels;
 	const failureLabel = failure ? t(`player.failures.${failure}`) : undefined;
 	const reportFailure = (error: LibmediaPlayerError) => {
 		if (!binding.accepts(error.sessionId) || error.reason === "aborted") return;
@@ -213,7 +234,7 @@ function VideoAttempt({
 		}
 		if (
 			operation === "track" ||
-			(operation === "seek" && !restorationFailed(error.sessionId))
+			(operation === "seek" && readySession.current === error.sessionId)
 		) {
 			console.warn("[playback] Playback operation failed.", {
 				...metadata,
@@ -274,23 +295,19 @@ function VideoAttempt({
 						platform.updates.kind === "desktop" ? desktopRequest : webRequest
 					}
 					initialPositionMs={binding.initialPositionMs}
-					{...(initialAudio === undefined ? {} : { initialAudio })}
+					initialPlaybackPreferences={initialPreferences}
+					locale={locale}
 					externalSubtitles={subtitles}
 					style={{ aspectRatio }}
 					labels={{
-						...labels,
 						player: t("player.videoLabel", { name: displayTitle }),
-						nextEpisode: nextEpisode?.label ?? labels.nextEpisode,
+						...(nextEpisode ? { nextEpisode: nextEpisode.label } : {}),
 					}}
 					{...(nextEpisode ? { onNextEpisode: nextEpisode.run } : {})}
-					onInitialPositionResult={(event) => {
-						binding.events.onInitialPositionResult?.(event);
-						restore.current = event;
-					}}
 					onReady={(event) => {
 						if (!binding.accepts(event.sessionId)) return;
-						if (restore.current?.sessionId !== event.sessionId) return;
-						if (restorationFailed(event.sessionId)) {
+						if (event.initialPositionResult?.restored !== true) {
+							failedRestore.current = event.sessionId;
 							setFailure("restore");
 							setFailedSession(event.sessionId);
 							console.warn(
@@ -300,16 +317,26 @@ function VideoAttempt({
 							return;
 						}
 
+						readySession.current = event.sessionId;
 						binding.events.onReady?.(event);
 						setReady(true);
 						onPlaybackRecovered();
 						console.info("[playback] Media ready.", metadata);
 					}}
 					onError={reportFailure}
+					onPlaybackPreferenceChange={({ sessionId, changes }) => {
+						if (
+							readySession.current !== sessionId ||
+							!binding.accepts(sessionId) ||
+							failureReported.current
+						)
+							return;
+						savePlaybackPreferences(platform.preferences, asset, changes);
+					}}
 					onTrackChange={(event) => {
 						if (
 							!binding.accepts(event.sessionId) ||
-							restorationFailed(event.sessionId)
+							failedRestore.current === event.sessionId
 						)
 							return;
 						if (!event.audio) {

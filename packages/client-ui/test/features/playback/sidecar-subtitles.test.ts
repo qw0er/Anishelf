@@ -72,6 +72,7 @@ test("version-bound sidecars retain their format, styles and source timing on th
 		tracks.every((item) => item.offsetMs === -1500 && item.language === "eng"),
 	).toBe(true);
 	expect(new Set(tracks.map((item) => item.content)).size).toBe(4);
+	expect(tracks.map((item) => item.id)).toEqual(["one", "two", "srt", "vtt"]);
 	expect(await tracks[0]?.content?.text()).toBe("fixture");
 });
 

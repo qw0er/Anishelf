@@ -57,13 +57,15 @@ export function playerEvents(
 					requestedPositionMs / 1000,
 				)
 			: 0;
-		props().onInitialPositionResult?.({
-			...progress(),
-			requestedPositionMs,
-			restored,
-		});
+		const initialPositionResult =
+			props().initialPositionMs === undefined
+				? {}
+				: { initialPositionResult: { requestedPositionMs, restored } };
 		state("ready");
-		props().onReady?.(progress());
+		props().onReady?.({
+			...progress(),
+			...initialPositionResult,
+		});
 	}
 	const handlers = {
 		loadedmetadata: () => ready(),

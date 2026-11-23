@@ -7,6 +7,7 @@ import VideoPlayer from "../../../src/features/playback/player/components/video-
 import { playbackPolicy } from "../../../src/features/playback/player/policy.js";
 import { PlaybackSessionController } from "../../../src/features/playback/player/session.js";
 import { getClientRuntime } from "../../../src/shared/api/connection.js";
+import i18n from "../../../src/shared/i18n.js";
 import { mockPlayer } from "../../support/mock-libmedia.js";
 import { preparedActive } from "../../support/playback-fixture.js";
 import {
@@ -17,10 +18,10 @@ import {
 	waitFor,
 } from "../../support/query-test-utils.js";
 import { session } from "./support/playback-session-fixture.js";
-import "../../../src/shared/i18n.js";
 
 let controller: PlaybackSessionController;
 beforeEach(async () => {
+	localStorage.clear();
 	mockPlayer.restored = true;
 	vi.spyOn(media, "getSubtitles").mockResolvedValue({
 		sourceVersion: session.sourceVersion,
@@ -69,13 +70,73 @@ test("loads the selected resource at restored source time with the selected audi
 	const player = await mounted();
 	expect(player.props()).toMatchObject({
 		src: new URL(preparedActive.resource.url, location.origin).href,
-		initialAudio: preparedActive.audio?.streamIndex,
+		initialPlaybackPreferences: {
+			audio: { streamIndex: preparedActive.audio?.streamIndex, strict: true },
+		},
 		initialPositionMs: 40000,
 		mediaRequest: { credentials: "include" },
 	});
 	view.rerender(<VideoPlayer {...input} displayTitle="Revised title" />);
 	expect(view.getByRole("region", { name: "Revised title" })).toBeTruthy();
 	expect(await mounted()).toBe(player);
+});
+
+test("uses the app locale without restarting the player", async () => {
+	const input = props();
+	render(<VideoPlayer {...input} />);
+	const player = await mounted();
+	const previous = i18n.language;
+	try {
+		await act(() => i18n.changeLanguage("zh-CN"));
+		expect(player.props().locale).toBe("zh-CN");
+		expect(await mounted()).toBe(player);
+	} finally {
+		await act(() => i18n.changeLanguage(previous));
+	}
+});
+
+test("restores saved speed and subtitles without replacing the requested audio", async () => {
+	const input = props();
+	const view = render(<VideoPlayer {...input} />);
+	const first = await mounted();
+	await waitFor(() => expect(input.onPlaybackRecovered).toHaveBeenCalledOnce());
+	act(() => {
+		first.preference({ playbackRate: 1.25, audio: null });
+		first.preference({
+			subtitles: {
+				enabled: true,
+				externalSubtitleId: "sidecar",
+				language: "eng",
+			},
+		});
+		first.props().onPlaybackPreferenceChange?.({
+			sessionId: "stale",
+			src: first.props().src,
+			changes: { playbackRate: 2 },
+		});
+	});
+	view.unmount();
+
+	const next = render(<VideoPlayer {...input} />);
+	expect((await mounted()).props().initialPlaybackPreferences).toEqual({
+		audio: { streamIndex: input.active.audio?.streamIndex, strict: true },
+		playbackRate: 1.25,
+		subtitles: {
+			enabled: true,
+			externalSubtitleId: "sidecar",
+			language: "eng",
+		},
+	});
+	next.unmount();
+
+	render(<VideoPlayer {...input} fileId="another-file" />);
+	expect((await mounted()).props().initialPlaybackPreferences).toMatchObject({
+		playbackRate: 1.25,
+		subtitles: { enabled: true, language: "eng" },
+	});
+	expect(
+		(await mounted()).props().initialPlaybackPreferences?.subtitles,
+	).not.toHaveProperty("externalSubtitleId");
 });
 
 test("maps same-language asset tracks and silence back to source audio without reopening media", async () => {

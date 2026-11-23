@@ -43,11 +43,18 @@ its own inventory when opened, and users explicitly choose newly prepared copies
 
 Anishelf opens a progress session and resolves the selected asset before starting
 the player. It maps the last source position to the asset clock and passes it as
-`initialPositionMs`. The restore result and ready event must come from the same
-player session before autoplay or progress saving can begin. A failed restore
+`initialPositionMs`. Autoplay and progress saving wait for a successful
+`initialPositionResult` in the active player session's `onReady` event. A failed restore
 keeps the last confirmed position available for retry. Title and audio changes
 reuse the selected asset's player. A different asset or a manual media retry
 starts a new player binding, while callbacks from the previous binding are ignored.
+
+The player uses the application's interface language. Its settings menu shows media
+information and its seek bar shows estimated buffered data. Playback speed and
+subtitle preferences are saved on the current client. The last chosen subtitle is
+matched by track identity on the same asset revision and by language on other
+files. Anishelf continues to select audio by the source stream index in the
+playback selection and maps it to the selected asset's exact stream.
 
 Normal-play evidence is sampled independently of network saves. Pauses, buffering,
 seeks and rate changes break continuity. Saves occur every 15 seconds; seeks are
@@ -95,7 +102,7 @@ Retired generated subtitle/font directories are cleaned on startup.
 
 ## Runtime distribution and validation
 
-The shared client pins `libmedia-react-player@1.4.2`. The playback route loads
+The shared lockfile resolves `libmedia-react-player@1.5.0`. The playback route loads
 the package on demand. Vite emits the decoder, renderers and Workers as
 same-origin assets and excludes those assets from the Web shell's precache.
 The desktop renderer uses the standard application scheme, CSP and device
