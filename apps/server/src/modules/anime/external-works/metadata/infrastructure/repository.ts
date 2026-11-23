@@ -275,7 +275,8 @@ export class MetadataRepository implements MetadataStore {
 					saveWorkSummary(store, work, entry.fetchedAt);
 			if (entry.kind === "relations")
 				for (const relation of (entry.data as Page<WorkRelation>).items)
-					saveWorkSummary(store, relation.work, entry.fetchedAt);
+					if ("work" in relation)
+						saveWorkSummary(store, relation.work, entry.fetchedAt);
 		});
 	}
 	fail(id: string, failure: MetadataFailure): void {

@@ -103,6 +103,98 @@ test.each([null, undefined])(
 		expect(result.data).toMatchObject({ year: null, startDate: null });
 	},
 );
+test("the relations API caches and paginates Bangumi anime and external works", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "anishelf-bangumi-relations-"));
+	cleanup.push(() => rm(dir, { recursive: true, force: true }));
+	const database = ApplicationDatabase.openMemory();
+	cleanup.push(async () => database.close());
+	const related = {
+		id: 515759,
+		type: 2,
+		name: "葬送のフリーレン 第2期",
+		name_cn: "葬送的芙莉莲 第二季",
+		relation: "续集",
+	};
+	const fetcher = vi.fn<typeof fetch>(async () =>
+		Response.json([
+			{
+				...related,
+				id: 305429,
+				type: 1,
+				name: "葬送のフリーレン",
+				name_cn: "葬送的芙莉莲",
+				relation: "书籍",
+			},
+			related,
+			{
+				...related,
+				id: 459283,
+				name: "葬送のフリーレン ～●●の魔法～",
+				name_cn: "葬送的芙莉莲 ～●●的魔法～",
+				relation: "衍生",
+				images: null,
+			},
+		]),
+	);
+	const metadata = await createMetadataModule({
+		dataDir: dir,
+		store: database.metadata,
+		providers: [new BangumiProvider(client(fetcher))],
+		defaultProvider: "bangumi",
+		artworkHosts: ["lain.bgm.tv"],
+		logger,
+		titleDisplayPreference: () => "chinese",
+	});
+	cleanup.push(() => metadata.close());
+	const app = createHttpApp({
+		config: { host: "localhost", port: 80, publicOrigin: "http://localhost" },
+		logger,
+		metadata,
+	});
+	cleanup.push(() => app.close());
+	const { id } = metadata.resolveReference("bangumi:anime:400602");
+	const url = `/api/metadata/${id}/relations?perPage=2`;
+	const first = await app.inject({ url });
+	expect(first.statusCode).toBe(200);
+	const data = first.json().data;
+	const sequel = metadata.resolveReference("bangumi:anime:515759");
+	expect(data).toMatchObject({
+		page: 1,
+		hasNextPage: true,
+		items: [
+			{
+				type: "书籍",
+				external: {
+					url: "https://bgm.tv/subject/305429",
+					format: "BOOK",
+					displayTitle: "葬送的芙莉莲",
+				},
+			},
+			{
+				type: "续集",
+				work: {
+					reference: sequel,
+					provider: "bangumi",
+					displayTitle: related.name_cn,
+				},
+			},
+		],
+	});
+	expect(data.items).toHaveLength(2);
+	expect(fetcher.mock.calls[0]?.[0]).toMatchObject({
+		url: "https://api.bgm.tv/v0/subjects/400602/subjects",
+	});
+	const cached = await app.inject({ url: `${url}&cachedOnly=true` });
+	expect(cached.json().snapshotId).toBe(first.json().snapshotId);
+	expect(fetcher).toHaveBeenCalledTimes(1);
+	const next = await app.inject({ url: `${url}&page=2` });
+	expect(next.json().data).toMatchObject({
+		page: 2,
+		hasNextPage: false,
+		items: [{ type: "衍生" }],
+	});
+});
+
 test("invalid search logs field paths without search strings or response bodies", async () => {
 	const logs: string[] = [];
 	const diagnosticLogger = pino(

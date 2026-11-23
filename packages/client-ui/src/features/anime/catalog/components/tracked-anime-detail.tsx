@@ -19,6 +19,7 @@ import { type AnimeStatusState, animeStatusQuery } from "../status-query.js";
 import { useEpisodeTimeline } from "../use-episode-timeline.js";
 import { AiringStatus } from "./airing-status.js";
 import { EpisodeRows } from "./episode-rows.js";
+import { RelatedWorks } from "./related-works.js";
 import { WorkMetadataExtras } from "./work-metadata-extras.js";
 import { WorkMetadataHeader } from "./work-metadata-header.js";
 import { WorkSynopsis } from "./work-synopsis.js";
@@ -29,11 +30,17 @@ export function TrackedAnimeDetail({
 	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
 	renderEpisodeAction?: AnimeEpisodeActionSlot;
 } = {}) {
-	const { mediaId = "" } = useParams();
+	const { mediaId = "", metadataId } = useParams();
 	const [params] = useSearchParams();
 	const { t } = useTranslation();
 	const scope = useQueryScope();
-	const query = useQuery(animeDetailQuery(mediaId, scope));
+	const query = useQuery(
+		animeDetailQuery(
+			metadataId ?? mediaId,
+			scope,
+			metadataId ? "metadata" : "work",
+		),
+	);
 	if (!query.data)
 		return (
 			<section className="stack-page">
@@ -161,6 +168,11 @@ function TrackedDetail({
 					<AiringStatus query={airing} metadata={data.metadata} />
 					<WorkSynopsis data={{ metadata: metadata.data }} />
 					<WorkMetadataExtras data={{ metadata: metadata.data }} />
+					<RelatedWorks
+						key={info.reference.id}
+						workId={info.reference.id}
+						libraryPath={libraryReturnPath(library)}
+					/>
 				</>
 			) : (
 				<>

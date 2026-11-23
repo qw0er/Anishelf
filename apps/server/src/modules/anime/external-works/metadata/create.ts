@@ -120,19 +120,8 @@ export function createMetadataApplication(
 			const value = works.current(reference);
 			return value ? titles.envelope(value) : null;
 		},
-		relations: async (...args) => {
-			const value = await works.relations(...args);
-			return {
-				...value,
-				data: {
-					...value.data,
-					items: value.data.items.map((item) => ({
-						...item,
-						work: titles.work(item.work),
-					})),
-				},
-			};
-		},
+		relations: async (...args) =>
+			titles.relations(await works.relations(...args)),
 		airing: works.airing.bind(works),
 		snapshot: (id) => titles.snapshot(snapshots.snapshot(id)),
 		retain: source.retain.bind(source),

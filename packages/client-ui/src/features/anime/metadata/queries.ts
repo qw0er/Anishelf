@@ -15,6 +15,7 @@ export const relationsQuery = (id: string, page: number) =>
 		queryKey: ["metadata-relations", id, page],
 		queryFn: ({ signal }) =>
 			getRelations(id, page, { signal: boundedSignal(signal) }),
+		refetchInterval: (query) => (query.state.data?.refreshing ? 2000 : false),
 	});
 
 export const metadataSearchQuery = (

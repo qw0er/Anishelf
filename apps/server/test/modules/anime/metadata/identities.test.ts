@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { SourceMetadataApplication as MetadataApplication } from "../../../../src/modules/anime/external-works/metadata/application/source-metadata.js";
 import { createMetadataApplication as createPublicMetadata } from "../../../../src/modules/anime/external-works/metadata/create.js";
+import { metadataDefaults } from "../../../../src/modules/anime/external-works/metadata/defaults.js";
 import { MetadataError } from "../../../../src/modules/anime/external-works/metadata/public.js";
 
 import {
@@ -62,12 +64,40 @@ test("public metadata uses durable project identities across search, detail, sna
 });
 
 test("relations and airing snapshots use project references and episode identities", async () => {
-	const { publicMetadata } = await setup();
-	const identity = publicMetadata.resolveReference("154587");
+	const { database, provider, publicMetadata } = await setup();
+	const identity = publicMetadata.resolveReference(reference.id);
+	const animeOnlyCacheKey = createHash("sha256")
+		.update(
+			JSON.stringify([
+				provider.capabilities.key,
+				provider.capabilities.version,
+				metadataDefaults.projectionVersion,
+				"relations",
+				{ reference, page: 1, perPage: 25 },
+			]),
+		)
+		.digest("hex");
+	const now = Date.now();
+	database.metadata.save({
+		id: "anime-only-relations",
+		key: animeOnlyCacheKey,
+		kind: "relations",
+		failure: null,
+		fetchedAt: now,
+		accessedAt: now,
+		expiresAt: now + 60_000,
+		data: { items: [], page: 1, perPage: 25, hasNextPage: false },
+	});
 	const relations = await publicMetadata.relations(identity);
-	const related = relations.data.items[0]?.work.reference;
-	expect(related).toEqual(publicMetadata.resolveReference("200"));
-	expect(relations.data.items[0]?.work.provider).toBe("anilist");
+	expect(relations.data.items).toMatchObject([
+		{
+			work: {
+				reference: publicMetadata.resolveReference("200"),
+				provider: "anilist",
+			},
+		},
+		{ external: { url: "https://anilist.co/manga/300" } },
+	]);
 	expect(publicMetadata.snapshot(relations.snapshotId).data).toEqual(
 		relations.data,
 	);

@@ -3,6 +3,7 @@ import {
 	AnimeDetailSchema,
 	AnimeStatusSchema,
 } from "@anishelf/contracts/schemas/anime-detail";
+import { MetadataReferenceParamsSchema } from "@anishelf/contracts/schemas/metadata";
 import type { Logger } from "pino";
 import { Type } from "typebox";
 import type { AcquisitionApi } from "../modules/acquisition/public.js";
@@ -22,7 +23,7 @@ export function registerAnimeDetailRoutes(
 	},
 	logger: Logger,
 ): void {
-	const read = async (input: { localWorkId: string } | { key: string }) => {
+	const read = async (input: Parameters<AnimeApi["queries"]["detail"]>[0]) => {
 		const detail = await anime.queries.detail(input);
 		const key = workKey(detail.reference);
 		const local = detail.local;
@@ -128,6 +129,19 @@ export function registerAnimeDetailRoutes(
 		async (request, reply) => {
 			reply.header("Cache-Control", "no-store");
 			return read({ key: request.params.key });
+		},
+	);
+	app.get(
+		"/api/anime/details/metadata/:id",
+		{
+			schema: {
+				params: MetadataReferenceParamsSchema,
+				response: { 200: AnimeDetailSchema },
+			},
+		},
+		async (request, reply) => {
+			reply.header("Cache-Control", "no-store");
+			return read({ metadataId: request.params.id });
 		},
 	);
 }

@@ -281,7 +281,11 @@ function LocalWorkDetail({
 					<AiringStatus query={airing} metadata={data.metadata} />
 					<WorkSynopsis data={data} />
 					<WorkMetadataExtras data={data} controller={controller} />
-					<RelatedWorks controller={controller} />
+					<RelatedWorks
+						key={data.metadata.data.reference.id}
+						workId={data.metadata.data.reference.id}
+						libraryPath={controller.libraryPath}
+					/>
 				</aside>
 			</div>
 			<VersionSelector

@@ -13,7 +13,11 @@ export type {
 } from "./model.js";
 export { MetadataError, workTitle } from "./model.js";
 
-import type { CachedMetadata, Page } from "./model.js";
+import type {
+	CachedMetadata,
+	Page,
+	WorkRelation as ProjectRelation,
+} from "./model.js";
 export type ProviderReference =
 	import("@anishelf/contracts/references").ExternalWorkReference;
 
@@ -29,10 +33,7 @@ export interface WorkDetails
 	siteUrl: string | null;
 	providerUpdatedAt: number | null;
 }
-export interface WorkRelation {
-	type: string;
-	work: WorkSummary;
-}
+export type WorkRelation = ProjectRelation<WorkSummary>;
 export interface AiringEpisode {
 	id: string;
 	episode: number;

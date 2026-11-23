@@ -71,7 +71,7 @@ export interface AnimeApi {
 	};
 	readonly queries: {
 		detail(
-			input: { localWorkId: string } | { key: string },
+			input: { localWorkId: string } | { key: string } | { metadataId: string },
 		): Promise<AnimeDetail>;
 	};
 	readonly library: AnimeLibraryApi;

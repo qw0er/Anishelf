@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
@@ -12,7 +12,6 @@ import {
 } from "../../../shared/navigation.js";
 import {
 	metadataRefreshNoticeId,
-	relationsQuery,
 	reportMetadataRefresh,
 } from "../metadata/public.js";
 import { invalidateAnimeQueries } from "../shared/query-keys.js";
@@ -36,10 +35,6 @@ export function useLocalWorkDetail(data: LocalWorkDetailResponse) {
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const selected = episodes.find((episode) => episode.id === selectedId);
 	const [showSpoilers, setShowSpoilers] = useState(false);
-	const [relationsPage, setRelationsPage] = useState(1);
-	const relations = useQuery(
-		relationsQuery(data.metadata.data.reference.id, relationsPage),
-	);
 	const noticeId = metadataRefreshNoticeId(data.metadata.data.reference.id);
 	const refresh = useMutation({
 		onMutate: () => toast.close(noticeId),
@@ -71,14 +66,11 @@ export function useLocalWorkDetail(data: LocalWorkDetailResponse) {
 		libraryPath,
 		selected,
 		showSpoilers,
-		relationsPage,
-		relations,
 		refresh,
 		playPath,
 		selectEpisode: setSelectedId,
 		toggleSpoilers: () => setShowSpoilers((value) => !value),
 		closeVersions: () => setSelectedId(null),
-		changeRelationsPage: setRelationsPage,
 	};
 }
 export type LocalWorkDetailController = ReturnType<typeof useLocalWorkDetail>;

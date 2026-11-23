@@ -21,6 +21,95 @@ import { appFixture, fetcher, json, requiredFetch } from "../support/state.js";
 
 setupAppTest();
 
+test.each([false, true])(
+	"related works load on expansion and open the linked detail with local availability %s",
+	async (hasLocal) => {
+		const origin = animeFixture();
+		const related = animeFixture();
+		related.work.id = "work-2";
+		related.work.displayTitle = "Frieren Season 2";
+		related.work.reference.id = "metadata-work-2";
+		related.metadata.data.reference.id = related.work.reference.id;
+		related.metadata.data.titles[0] = {
+			value: related.work.displayTitle,
+			language: "en",
+			kind: "english",
+		};
+		const detail = animeDetailFixture(related);
+		detail.reference.id = "182255";
+		mockAnime(origin);
+		const fallback = requiredFetch(fetcher.getMockImplementation());
+		const relationsPath = "/api/metadata/metadata-work-1/relations";
+		fetcher.mockImplementation(async (input, init) => {
+			const path = String(input);
+			if (path === `${relationsPath}?perPage=25&page=1`)
+				return json({
+					snapshotId: "relations",
+					fetchedAt: 1,
+					stale: false,
+					refreshing: false,
+					refreshError: null,
+					data: {
+						items: [
+							{ type: "SEQUEL", work: related.metadata.data },
+							{
+								type: "SOURCE",
+								external: {
+									url: "https://anilist.co/manga/118586",
+									titles: [],
+									displayTitle: "Frieren",
+									format: "MANGA",
+									year: 2020,
+								},
+							},
+						],
+						page: 1,
+						perPage: 25,
+						hasNextPage: false,
+					},
+				});
+			if (path === "/api/anime/details/metadata/metadata-work-2")
+				return json({ ...detail, local: hasLocal ? related : null });
+			if (path === "/api/anime/details/local/work-2") return json(detail);
+			return fallback(input, init);
+		});
+		const library = new URLSearchParams({ library: "/?query=Frieren" });
+		renderApp(`/anime/work-1?${library}`);
+		const section = await screen.findByRole("button", {
+			name: "Related works",
+		});
+		expect(
+			fetcher.mock.calls.some(([input]) =>
+				String(input).startsWith(relationsPath),
+			),
+		).toBe(false);
+		fireEvent.click(section);
+		const link = await screen.findByRole("link", {
+			name: "Sequel · Frieren Season 2",
+		});
+		const manga = screen.getByRole("link", {
+			name: "Source material · Frieren · Manga · 2020",
+		});
+		expect(manga.getAttribute("href")).toBe("https://anilist.co/manga/118586");
+		expect(manga.getAttribute("target")).toBe("_blank");
+		expect(link.getAttribute("href")).toBe(
+			`/anime/works/metadata-work-2?${library}`,
+		);
+		fireEvent.click(link);
+		await screen.findByRole("heading", {
+			name: related.work.displayTitle,
+			level: 1,
+		});
+		const target = hasLocal ? "/anime/work-2" : "/anime/works/metadata-work-2";
+		await waitFor(() =>
+			expect(screen.getByTestId("location").textContent).toContain(
+				`${target}?${library}`,
+			),
+		);
+		expect(screen.getByRole("button", { name: "Related works" })).toBeTruthy();
+	},
+);
+
 test("detail removes redundant episode labels and sanitizes provider descriptions", async () => {
 	const detail = animeFixture();
 	detail.metadata.data.titles.push({

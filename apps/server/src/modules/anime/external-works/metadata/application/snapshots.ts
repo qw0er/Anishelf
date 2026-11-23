@@ -202,10 +202,11 @@ export class MetadataSnapshots {
 				return {
 					kind: "relations",
 					...projectEnvelope(snapshot, (data) =>
-						projectPage(data, (item) => ({
-							type: item.type,
-							work: this.legacySummary(item.work),
-						})),
+						projectPage(data, (item) =>
+							"external" in item
+								? item
+								: { type: item.type, work: this.legacySummary(item.work) },
+						),
 					),
 				};
 			case "airing":

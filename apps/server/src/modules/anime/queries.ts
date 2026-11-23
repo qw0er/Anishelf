@@ -3,7 +3,10 @@ import type { Logger } from "pino";
 import { DomainError } from "../../shared/errors.js";
 import type { CatalogMetadata as MetadataApi } from "./anime-catalog/ports.js";
 import type { AnimeCatalogApi } from "./anime-catalog/public.js";
-import type { MetadataIdentitiesApi } from "./external-works/metadata/public.js";
+import type {
+	MetadataIdentitiesApi,
+	WorkReference,
+} from "./external-works/metadata/public.js";
 import { MetadataError, workTitle } from "./external-works/metadata/public.js";
 import type { AnimeApi, AnimeDetail } from "./public.js";
 
@@ -20,13 +23,19 @@ export class AnimeQueries implements Queries {
 		private readonly titleDisplayPreference: () => import("./external-works/metadata/public.js").TitleDisplayPreference = () =>
 			"native",
 	) {}
-	async detail(
-		input: { localWorkId: string } | { key: string },
-	): Promise<AnimeDetail> {
+	async detail(input: Parameters<Queries["detail"]>[0]): Promise<AnimeDetail> {
+		const project = "metadataId" in input ? { id: input.metadataId } : null;
+		const external = project
+			? this.identities?.externalReference(project)
+			: "key" in input
+				? this.reference(input.key)
+				: null;
 		const localId =
 			"localWorkId" in input
 				? input.localWorkId
-				: await this.findLocal(input.key);
+				: this.catalog && external
+					? await this.findLocal(project ?? this.projectReference(external))
+					: null;
 		const local =
 			localId && this.catalog
 				? await this.catalog.getLocalWorkDetail(localId)
@@ -38,7 +47,7 @@ export class AnimeQueries implements Queries {
 			);
 		const reference = local
 			? this.identities?.externalReference(local.work.reference)
-			: this.reference("key" in input ? input.key : "");
+			: external;
 		if (!reference)
 			throw new DomainError(
 				"INVALID_REQUEST",
@@ -56,7 +65,9 @@ export class AnimeQueries implements Queries {
 				: null;
 		if (!local && this.metadata) {
 			try {
-				metadata = await this.metadata.get(this.projectReference(reference));
+				metadata = await this.metadata.get(
+					project ?? this.projectReference(reference),
+				);
 			} catch (error) {
 				if (!(error instanceof MetadataError)) throw error;
 				metadataError = error.failure;
@@ -103,14 +114,9 @@ export class AnimeQueries implements Queries {
 		}
 	}
 
-	private async findLocal(key: string): Promise<string | null> {
-		const reference = this.reference(key);
-		if (!this.catalog) return null;
+	private async findLocal(reference: WorkReference): Promise<string | null> {
 		try {
-			return (
-				(await this.catalog?.findLocalWork(this.projectReference(reference))) ??
-				null
-			);
+			return (await this.catalog?.findLocalWork(reference)) ?? null;
 		} catch (error) {
 			if (
 				error instanceof DomainError &&

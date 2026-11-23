@@ -338,8 +338,55 @@ paths:
                 $ref: "#/components/schemas/ErrorDetail"
       security:
         - OptionalHTTPBearer: []
+  /v0/subjects/{subject_id}/subjects:
+    get:
+      tags:
+        - 条目
+      summary: Get Subject Relations
+      operationId: getRelatedSubjectsBySubjectId
+      parameters:
+        - $ref: "#/components/parameters/path_subject_id"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubjectRelation"
+        "400":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDetail"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDetail"
+      security:
+        - OptionalHTTPBearer: []
 components:
   schemas:
+    SubjectRelation:
+      type: object
+      required: [id, type, name, name_cn, relation]
+      properties:
+        id:
+          type: integer
+        type:
+          type: integer
+        name:
+          type: string
+        name_cn:
+          type: string
+        images:
+          $ref: "#/components/schemas/Images"
+        relation:
+          type: string
     SubjectCollectionWrite:
       type: object
       required: [type]

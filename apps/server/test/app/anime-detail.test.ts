@@ -70,13 +70,14 @@ function fixture() {
 	});
 	const findLocalWork = vi.fn(async () => null);
 	const getLocalWorkDetail = vi.fn();
+	const identities = fixtureIdentities();
 	const queries = new AnimeQueries(
 		{ findLocalWork, getLocalWorkDetail },
 		{ get },
 		logger,
-		fixtureIdentities(),
+		identities,
 	);
-	return { queries, list, get, findLocalWork, getLocalWorkDetail };
+	return { queries, list, get, findLocalWork, getLocalWorkDetail, identities };
 }
 test("detail and lightweight status remain independent during a metadata outage", async () => {
 	const f = fixture();
@@ -132,6 +133,13 @@ test("detail and lightweight status remain independent during a metadata outage"
 		expect(f.list).not.toHaveBeenCalled();
 		expect(downloads.summary).not.toHaveBeenCalled();
 		expect(response.json()).not.toHaveProperty("viewing");
+		const project = f.identities.referenceForExternal(reference);
+		const projectDetail = await app.inject({
+			url: `/api/anime/details/metadata/${encodeURIComponent(project.id)}`,
+			headers: { host: "127.0.0.1" },
+		});
+		expect(projectDetail.statusCode).toBe(200);
+		expect(projectDetail.json()).toEqual(response.json());
 		const status = await app.inject({
 			url: `/api/anime/status/${encodeURIComponent(key)}`,
 			headers: { host: "127.0.0.1" },
@@ -154,7 +162,7 @@ test("detail and lightweight status remain independent during a metadata outage"
 		expect(invalid.statusCode).toBe(400);
 		expect(downloads.summary).toHaveBeenCalledExactlyOnceWith(key);
 		expect(f.getLocalWorkDetail).not.toHaveBeenCalled();
-		expect(f.get).toHaveBeenCalledTimes(1);
+		expect(f.get).toHaveBeenCalledTimes(2);
 	} finally {
 		await app.close();
 	}
@@ -196,6 +204,11 @@ test("the signed-out wall lists only confirmed works and both detail links read 
 	expect(
 		(await queries.detail({ key: workKey(local.reference) })).local?.work.id,
 	).toBe(workId);
+	expect(
+		await queries.detail({
+			metadataId: local.metadata?.data.reference.id ?? "",
+		}),
+	).toEqual(local);
 	await expect(
 		queries.detail({ key: workKey({ ...local.reference, id: "2" }) }),
 	).resolves.toMatchObject({

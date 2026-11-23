@@ -140,11 +140,17 @@ test("relations and airing keep pagination and do not infer episode catalogs", a
 	expect(relations.data).toMatchObject({
 		page: 1,
 		perPage: 1,
-		hasNextPage: false,
+		hasNextPage: true,
+		items: [{ work: { reference: { id: "200" } } }],
 	});
-	expect(relations.data.items.map((item) => item.work.reference.id)).toEqual([
-		"200",
-	]);
+	const originals = await application.relations(reference, 2, 1);
+	expect(originals.data).toMatchObject({
+		page: 2,
+		hasNextPage: false,
+		items: [
+			{ type: "SOURCE", external: { url: "https://anilist.co/manga/300" } },
+		],
+	});
 	const airing = await application.airing(reference, 2, 10);
 	expect(airing.data).toEqual({
 		page: 2,

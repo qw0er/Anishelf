@@ -5,11 +5,13 @@ import {
 } from "../../bangumi/public.js";
 import {
 	MetadataError,
+	type Page,
 	type ProviderReference,
 	type WorkDetails,
+	type WorkRelation,
 	type WorkSummary,
 } from "../domain/source-model.js";
-import type { MetadataProvider } from "../ports.js";
+import type { MetadataProvider, ProviderResult } from "../ports.js";
 
 /** Only explicit Wiki labels establish language; Latin text alone is not evidence. */
 function nameKind(label: string): "english" | "romaji" | null {
@@ -29,9 +31,9 @@ function nameKind(label: string): "english" | "romaji" | null {
 			return null;
 	}
 }
-function infoboxTitles(raw: BangumiSubject): WorkSummary["titles"] {
+function infoboxTitles(infobox: unknown): WorkSummary["titles"] {
 	const titles: WorkSummary["titles"] = [];
-	if (!Array.isArray(raw.infobox)) return titles;
+	if (!Array.isArray(infobox)) return titles;
 	const add = (value: unknown, kind: "english" | "romaji" | "alias") => {
 		if (typeof value !== "string" || !value.trim()) return;
 		titles.push({
@@ -40,7 +42,7 @@ function infoboxTitles(raw: BangumiSubject): WorkSummary["titles"] {
 			language: kind === "english" ? "en" : null,
 		});
 	};
-	for (const entry of raw.infobox) {
+	for (const entry of infobox) {
 		if (!entry || typeof entry !== "object" || typeof entry.key !== "string")
 			continue;
 		const label = entry.key.normalize("NFKC").trim();
@@ -62,7 +64,9 @@ function infoboxTitles(raw: BangumiSubject): WorkSummary["titles"] {
 	return titles;
 }
 
-function summary(raw: BangumiSubject): WorkSummary {
+function subjectTitles(
+	raw: Pick<BangumiSubject, "name" | "name_cn">,
+): WorkSummary["titles"] {
 	const titles: WorkSummary["titles"] = [];
 	if (raw.name.trim())
 		titles.push({ value: raw.name.trim(), language: null, kind: "native" });
@@ -72,7 +76,16 @@ function summary(raw: BangumiSubject): WorkSummary {
 			language: "zh-Hans",
 			kind: "alias",
 		});
-	for (const title of infoboxTitles(raw)) {
+	return titles;
+}
+function summary(
+	raw: Pick<BangumiSubject, "id" | "name" | "name_cn"> &
+		Partial<
+			Pick<BangumiSubject, "date" | "eps" | "images" | "infobox" | "platform">
+		>,
+): WorkSummary {
+	const titles = subjectTitles(raw);
+	for (const title of infoboxTitles(raw.infobox)) {
 		// Keep more specific primary fields and avoid repeated labels for the same value.
 		const index = titles.findIndex(
 			(existing) => existing.value === title.value,
@@ -101,10 +114,10 @@ function summary(raw: BangumiSubject): WorkSummary {
 					Web: "ONA",
 					剧场版: "MOVIE",
 				} as Record<string, string>
-			)[raw.platform] ?? null,
+			)[raw.platform ?? ""] ?? null,
 		// Neither the premiere date nor the episode database count proves airing progress.
 		status: null,
-		episodeCount: raw.eps > 0 ? raw.eps : null,
+		episodeCount: raw.eps || null,
 		nextAiringEpisode: null,
 		airingSeason: null,
 		coverUrl: raw.images?.large || raw.images?.common || null,
@@ -117,7 +130,7 @@ export class BangumiProvider implements MetadataProvider {
 		version: "bangumi-v0-v2",
 		search: true,
 		details: true,
-		relations: false,
+		relations: true,
 		airing: false,
 		streamingLinks: false,
 		canonicalEpisodes: false,
@@ -175,7 +188,7 @@ export class BangumiProvider implements MetadataProvider {
 		);
 		return { data: { ...result, items: result.items.map(summary) } };
 	}
-	async get(reference: ProviderReference, signal: AbortSignal) {
+	private id(reference: ProviderReference): number {
 		const resolved = this.resolveReference(reference.id);
 		if (
 			reference.provider !== "bangumi" ||
@@ -188,9 +201,11 @@ export class BangumiProvider implements MetadataProvider {
 				message: "Supply a valid Bangumi anime reference.",
 				retryAt: null,
 			});
-		const raw = await this.read(() =>
-			this.client.get(Number(reference.id), signal),
-		);
+		return Number(reference.id);
+	}
+	async get(reference: ProviderReference, signal: AbortSignal) {
+		const id = this.id(reference);
+		const raw = await this.read(() => this.client.get(id, signal));
 		const base = summary(raw);
 		const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.date ?? "");
 		const data: WorkDetails = {
@@ -236,8 +251,56 @@ export class BangumiProvider implements MetadataProvider {
 		};
 		return { data };
 	}
-	relations(): never {
-		throw this.unsupported();
+	async relations(
+		reference: ProviderReference,
+		page: number,
+		perPage: number,
+		signal: AbortSignal,
+	): Promise<ProviderResult<Page<WorkRelation>>> {
+		const id = this.id(reference);
+		const related = await this.read(() => this.client.relations(id, signal));
+		const end = page * perPage;
+		const formats: Readonly<Record<number, string>> = {
+			1: "BOOK",
+			3: "MUSIC",
+			4: "GAME",
+			6: "LIVE_ACTION",
+		};
+		const items = related
+			.slice(end - perPage, end)
+			.map((item): WorkRelation => {
+				if (item.type !== 2)
+					return {
+						type: item.relation,
+						external: {
+							url: `https://bgm.tv/subject/${item.id}`,
+							titles: subjectTitles(item),
+							format: formats[item.type] ?? "OTHER",
+							year: null,
+						},
+					};
+				const work = summary({
+					id: item.id,
+					name: item.name,
+					name_cn: item.name_cn,
+					images: item.images ?? null,
+				});
+				return {
+					type: item.relation,
+					work: {
+						...work,
+						unavailableFields: [
+							...work.unavailableFields,
+							"year",
+							"format",
+							"episodeCount",
+						],
+					},
+				};
+			});
+		return {
+			data: { items, page, perPage, hasNextPage: related.length > end },
+		};
 	}
 	airing(): never {
 		throw this.unsupported();

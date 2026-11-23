@@ -174,7 +174,7 @@ export class SourceMetadataApplication implements SourceMetadataApi {
 		return this.cache.read(
 			provider,
 			"relations",
-			{ reference, page, perPage },
+			{ reference, page, perPage, version: policy.relationsProjectionVersion },
 			options,
 			(signal) => provider.relations(reference, page, perPage, signal),
 			() => policy.detailFreshMs,

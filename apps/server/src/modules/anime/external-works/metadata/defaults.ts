@@ -6,6 +6,7 @@ export const metadataDefaults = {
 	titleMissingRetryMs: 15 * 60_000,
 	titleFailureRetryMs: 60_000,
 	projectionVersion: "metadata-v1",
+	relationsProjectionVersion: "all-media-v1",
 	searchFreshMs: 24 * 60 * 60 * 1000,
 	emptySearchFreshMs: 15 * 60 * 1000,
 	detailFreshMs: 24 * 60 * 60 * 1000,

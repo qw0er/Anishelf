@@ -147,13 +147,16 @@ export class MetadataWorkReader {
 			return this.snapshots.save(
 				"relations",
 				projectEnvelope(result, (data) =>
-					projectPage(data, (item) => ({
-						type: item.type,
-						work: projectSummary(
-							item.work,
-							this.identities.referenceForExternal(item.work.reference),
-						),
-					})),
+					projectPage(data, (item) => {
+						if ("external" in item) return item;
+						return {
+							type: item.type,
+							work: projectSummary(
+								item.work,
+								this.identities.referenceForExternal(item.work.reference),
+							),
+						};
+					}),
 				),
 			);
 		});

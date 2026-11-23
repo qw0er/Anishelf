@@ -37,6 +37,19 @@ export function createLibraryRoute({
 	desktopSettings?: ReactNode;
 	showSecuritySettings?: boolean | undefined;
 } = {}): RouteObject {
+	const workDetail = (
+		<TrackedAnimeDetail
+			renderEpisodeAction={(target) => (
+				<EpisodeDownloadAction
+					key={`${target.workKey}:${target.episode}`}
+					{...target}
+				/>
+			)}
+			renderSubscription={(workKey, status) => (
+				<WorkAcquisitionPanel key={workKey} workKey={workKey} status={status} />
+			)}
+		/>
+	);
 	return {
 		id: "library",
 		path: "/",
@@ -71,23 +84,12 @@ export function createLibraryRoute({
 			},
 			{
 				path: "anime/tracked/:mediaId",
-				element: (
-					<TrackedAnimeDetail
-						renderEpisodeAction={(target) => (
-							<EpisodeDownloadAction
-								key={`${target.workKey}:${target.episode}`}
-								{...target}
-							/>
-						)}
-						renderSubscription={(workKey, status) => (
-							<WorkAcquisitionPanel
-								key={workKey}
-								workKey={workKey}
-								status={status}
-							/>
-						)}
-					/>
-				),
+				element: workDetail,
+				errorElement: <RouteError kind="directory" />,
+			},
+			{
+				path: "anime/works/:metadataId",
+				element: workDetail,
 				errorElement: <RouteError kind="directory" />,
 			},
 			{

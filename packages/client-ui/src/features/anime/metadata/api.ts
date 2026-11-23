@@ -13,7 +13,7 @@ export function getRelations(
 	options?: RequestOptions,
 ): Promise<MetadataRelationsResponse> {
 	return request(
-		`/api/metadata/${encodeURIComponent(id)}/relations?cachedOnly=true&perPage=25&page=${page}`,
+		`/api/metadata/${encodeURIComponent(id)}/relations?perPage=25&page=${page}`,
 		"GET",
 		options,
 	);

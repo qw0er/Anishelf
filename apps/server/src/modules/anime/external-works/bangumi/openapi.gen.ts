@@ -151,10 +151,35 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/v0/subjects/{subject_id}/subjects": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get Subject Relations */
+		get: operations["getRelatedSubjectsBySubjectId"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
+		SubjectRelation: {
+			id: number;
+			type: number;
+			name: string;
+			name_cn: string;
+			images?: components["schemas"]["Images"];
+			relation: string;
+		};
 		SubjectCollectionWrite: {
 			/** @enum {integer} */
 			type: 1 | 2 | 3 | 4 | 5;
@@ -754,6 +779,47 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["Subject"];
+				};
+			};
+			/** @description Validation Error */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ErrorDetail"];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ErrorDetail"];
+				};
+			};
+		};
+	};
+	getRelatedSubjectsBySubjectId: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description 条目 ID */
+				subject_id: components["parameters"]["path_subject_id"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["SubjectRelation"][];
 				};
 			};
 			/** @description Validation Error */

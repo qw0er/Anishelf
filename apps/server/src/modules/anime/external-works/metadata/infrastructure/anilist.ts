@@ -21,7 +21,7 @@ function invalid(): MetadataError {
 		retryAt: null,
 	});
 }
-function summary(raw: AniListMediaSummary): WorkSummary {
+function mediaTitles(raw: AniListMediaSummary): WorkSummary["titles"] {
 	const titles: WorkSummary["titles"] = [];
 	for (const [key, language] of [
 		["romaji", null],
@@ -34,12 +34,15 @@ function summary(raw: AniListMediaSummary): WorkSummary {
 	for (const value of raw.synonyms ?? [])
 		if (value) titles.push({ value, language: null, kind: "alias" });
 	if (!titles.length) throw invalid();
+	return titles;
+}
+function summary(raw: AniListMediaSummary): WorkSummary {
 	return {
 		unavailableFields: Object.entries(raw)
 			.filter(([, value]) => value === null)
 			.map(([key]) => key),
 		reference: { provider: "anilist", mediaType: "anime", id: String(raw.id) },
-		titles,
+		titles: mediaTitles(raw),
 		year: raw.startDate?.year ?? raw.seasonYear,
 		format: raw.format,
 		status: raw.status,
@@ -166,15 +169,27 @@ export class AniListProvider implements MetadataProvider {
 		const result = await this.read(() =>
 			this.client.relations(this.id(reference), signal),
 		);
-		const items = result.data
-			.filter((edge) => edge.node.type === "ANIME")
-			.map((edge) => ({ type: edge.relationType, work: summary(edge.node) }));
+		const end = page * perPage;
+		const items = result.data.slice(end - perPage, end).map(
+			({ relationType: type, node }): WorkRelation =>
+				node.type === "ANIME"
+					? { type, work: summary(node) }
+					: {
+							type,
+							external: {
+								url: `https://anilist.co/manga/${node.id}`,
+								titles: mediaTitles(node),
+								format: node.format ?? "MANGA",
+								year: node.startDate?.year ?? node.seasonYear,
+							},
+						},
+		);
 		return {
 			data: {
-				items: items.slice((page - 1) * perPage, page * perPage),
+				items,
 				page,
 				perPage,
-				hasNextPage: items.length > page * perPage,
+				hasNextPage: result.data.length > end,
 			},
 		};
 	}

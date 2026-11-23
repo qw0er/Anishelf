@@ -3,6 +3,7 @@ import {
 	type MetadataSnapshot,
 	type Page,
 	type TitleDisplayPreference,
+	type WorkRelation,
 	type WorkSummary,
 	workTitle,
 } from "../domain/model.js";
@@ -34,6 +35,28 @@ export class MetadataTitles {
 			},
 		};
 	}
+	relations(value: CachedMetadata<Page<WorkRelation>>) {
+		return {
+			...value,
+			data: {
+				...value.data,
+				items: value.data.items.map((item): WorkRelation => {
+					if ("work" in item) return { ...item, work: this.work(item.work) };
+					return {
+						...item,
+						external: {
+							...item.external,
+							displayTitle: workTitle(
+								item.external.titles,
+								item.external.url,
+								this.preference(),
+							),
+						},
+					};
+				}),
+			},
+		};
+	}
 	snapshot(value: MetadataSnapshot): MetadataSnapshot {
 		switch (value.kind) {
 			case "detail":
@@ -41,16 +64,7 @@ export class MetadataTitles {
 			case "search":
 				return { ...value, ...this.page(value) };
 			case "relations":
-				return {
-					...value,
-					data: {
-						...value.data,
-						items: value.data.items.map((item) => ({
-							...item,
-							work: this.work(item.work),
-						})),
-					},
-				};
+				return { ...value, ...this.relations(value) };
 			default:
 				return value;
 		}

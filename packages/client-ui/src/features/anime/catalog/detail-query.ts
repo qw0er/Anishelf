@@ -5,13 +5,17 @@ import {
 	boundedSignal,
 	queryScopeIdentity,
 } from "../../../shared/api/queries.js";
-export const animeDetailQuery = (key: string, scope: string) =>
+export const animeDetailQuery = (
+	key: string,
+	scope: string,
+	identity: "work" | "metadata" = "work",
+) =>
 	queryOptions({
-		queryKey: ["anime-detail", scope, "work", key],
+		queryKey: ["anime-detail", scope, identity, key],
 		queryFn: async ({ signal, client }) => {
 			const startedAt = Date.now();
 			const detail = await request<AnimeDetailResponse>(
-				`/api/anime/details/works/${encodeURIComponent(key)}`,
+				`/api/anime/details/${identity === "metadata" ? "metadata" : "works"}/${encodeURIComponent(key)}`,
 				"GET",
 				{ signal: boundedSignal(signal) },
 			);
@@ -31,7 +35,7 @@ export const animeDetailQuery = (key: string, scope: string) =>
 			query &&
 			queryScopeIdentity(String(query.queryKey[1])) ===
 				queryScopeIdentity(scope) &&
-			query.queryKey[2] === "work" &&
+			query.queryKey[2] === identity &&
 			query.queryKey[3] === key
 				? previous
 				: undefined,

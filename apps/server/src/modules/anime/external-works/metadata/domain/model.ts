@@ -117,10 +117,16 @@ export interface Page<T> {
 	perPage: number;
 	hasNextPage: boolean;
 }
-export interface WorkRelation {
-	type: string;
-	work: WorkSummary;
+interface ExternalRelatedWork {
+	url: string;
+	titles: MetadataTitle[];
+	displayTitle?: string;
+	format: string;
+	year: number | null;
 }
+export type WorkRelation<T = WorkSummary> =
+	| { type: string; work: T }
+	| { type: string; external: ExternalRelatedWork };
 export interface AiringEpisode {
 	id: string;
 	episode: number;

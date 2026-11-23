@@ -8,6 +8,7 @@ import {
 	BangumiError,
 	type BangumiMetadataApi,
 	type BangumiSubject,
+	relationsSchema,
 	searchSchema,
 	subjectSchema,
 } from "./domain/model.js";
@@ -293,6 +294,41 @@ export class BangumiClient implements BangumiMetadataApi {
 			return data;
 		});
 	}
+
+	relations(id: number, signal: AbortSignal) {
+		return this.request(signal, async (activeSignal) => {
+			const { data } = await this.client.GET(
+				"/v0/subjects/{subject_id}/subjects",
+				{
+					params: { path: { subject_id: id } },
+					signal: activeSignal,
+				},
+			);
+			if (!Check(relationsSchema, data))
+				throw this.invalid(
+					"relations",
+					"schema",
+					Errors(relationsSchema, data),
+				);
+			if (
+				data.some(
+					(item) =>
+						item.type === 2 && !item.name.trim() && !item.name_cn.trim(),
+				)
+			)
+				throw this.invalid("relations", "missing_title");
+			this.options.logger.debug(
+				{
+					event: "bangumi.relations_received",
+					subjectId: id,
+					count: data.length,
+				},
+				"Bangumi subject relations received.",
+			);
+			return data;
+		});
+	}
+
 	private authorization(credential: string) {
 		return { Authorization: `Bearer ${credential}` };
 	}
@@ -483,7 +519,7 @@ export class BangumiClient implements BangumiMetadataApi {
 	}
 
 	private invalid(
-		operation: "search" | "detail",
+		operation: "search" | "detail" | "relations",
 		reason: "schema" | "pagination" | "subject_id" | "missing_title",
 		issues: readonly { instancePath: string; message: string }[] = [],
 		pagination?: Record<string, number>,

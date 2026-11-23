@@ -140,6 +140,7 @@ async function project(snapshot: Snapshot) {
 					type: 2,
 				}) as BangumiSubject,
 			search: unavailable,
+			relations: unavailable,
 		} satisfies BangumiMetadataApi);
 		peers.push(
 			(
@@ -159,8 +160,11 @@ async function project(snapshot: Snapshot) {
 		peers,
 		capabilities: [
 			ani.capabilities,
-			new BangumiProvider({ get: unavailable, search: unavailable })
-				.capabilities,
+			new BangumiProvider({
+				get: unavailable,
+				search: unavailable,
+				relations: unavailable,
+			}).capabilities,
 		],
 	};
 }

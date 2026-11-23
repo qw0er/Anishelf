@@ -1,9 +1,18 @@
 import type { Static } from "typebox";
 import { Type } from "typebox";
 
+const subjectId = Type.Integer({
+	minimum: 1,
+	maximum: Number.MAX_SAFE_INTEGER,
+});
+const subjectImages = Type.Union([
+	Type.Object({ large: Type.String(), common: Type.String() }),
+	Type.Null(),
+]);
+
 // Validate the consumed projection; unrelated upstream fields remain forward compatible.
 export const subjectSchema = Type.Object({
-	id: Type.Integer({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER }),
+	id: subjectId,
 	type: Type.Literal(2),
 	name: Type.String(),
 	name_cn: Type.String(),
@@ -13,14 +22,22 @@ export const subjectSchema = Type.Object({
 	date: Type.Optional(Type.Union([Type.String(), Type.Null()])),
 	platform: Type.String(),
 	eps: Type.Integer({ minimum: 0 }),
-	images: Type.Union([
-		Type.Object({ large: Type.String(), common: Type.String() }),
-		Type.Null(),
-	]),
+	images: subjectImages,
 	rating: Type.Object({ score: Type.Number({ minimum: 0, maximum: 10 }) }),
 	tags: Type.Array(Type.Object({ name: Type.String() })),
 });
 export type BangumiSubject = Static<typeof subjectSchema>;
+export const relationsSchema = Type.Array(
+	Type.Object({
+		id: subjectId,
+		type: Type.Integer(),
+		name: Type.String(),
+		name_cn: Type.String(),
+		images: Type.Optional(subjectImages),
+		relation: Type.String({ minLength: 1 }),
+	}),
+);
+type BangumiSubjectRelation = Static<typeof relationsSchema>[number];
 export const searchSchema = Type.Object({
 	total: Type.Integer({ minimum: 0 }),
 	limit: Type.Integer({ minimum: 1 }),
@@ -61,4 +78,5 @@ export interface BangumiMetadataApi {
 		hasNextPage: boolean;
 	}>;
 	get(id: number, signal: AbortSignal): Promise<BangumiSubject>;
+	relations(id: number, signal: AbortSignal): Promise<BangumiSubjectRelation[]>;
 }

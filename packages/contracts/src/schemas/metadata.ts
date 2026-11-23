@@ -1,4 +1,4 @@
-import { Type } from "typebox";
+import { type TSchema, Type } from "typebox";
 
 const text = Type.Union([Type.String(), Type.Null()]);
 const integer = Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]);
@@ -59,7 +59,7 @@ const envelope = <T extends ReturnType<typeof Type.Object>>(data: T) =>
 		refreshError: Type.Union([failure, Type.Null()]),
 		data,
 	});
-const page = <T extends ReturnType<typeof Type.Object>>(item: T) =>
+const page = <T extends TSchema>(item: T) =>
 	Type.Object({
 		unavailable: Type.Optional(Type.Boolean()),
 		items: Type.Array(item),
@@ -97,7 +97,21 @@ export const MetadataDetailsResponseSchema = envelope(
 	}),
 );
 export const MetadataRelationsResponseSchema = envelope(
-	page(Type.Object({ type: Type.String(), work: Type.Object(summary) })),
+	page(
+		Type.Union([
+			Type.Object({ type: Type.String(), work: Type.Object(summary) }),
+			Type.Object({
+				type: Type.String(),
+				external: Type.Object({
+					url: Type.String(),
+					titles: summary.titles,
+					displayTitle: summary.displayTitle,
+					format: Type.String(),
+					year: integer,
+				}),
+			}),
+		]),
+	),
 );
 export const MetadataAiringResponseSchema = envelope(
 	page(
