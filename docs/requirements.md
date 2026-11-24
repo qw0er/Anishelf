@@ -183,7 +183,7 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 | --- | --- | --- | --- | --- | --- |
 | S09 | Search multiple sources for the same acquisition | Partial | Optional | [Ordered discovery supported; multi-source comparison optional](#delivery-notes-s) | 1.0.0 |
 | S13 | Rank releases across sources | Partial | Optional | [Current-source ranking supported; cross-source ranking optional](#delivery-notes-s) | 1.0.0 |
-| S14 | Download and ingest season packs | Not started | Optional | — | — |
+| S14 | Download and ingest season packs | Not started | Later | [Episode coverage, selective downloads and implementation plan](development/season-pack-acquisition.md) | — |
 | S15 | Upgrade an existing episode to a preferred release | Not started | Optional | — | — |
 
 #### Delivery Notes (S)
