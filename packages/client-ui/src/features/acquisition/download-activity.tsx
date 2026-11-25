@@ -57,9 +57,20 @@ const errorKeys: Record<string, string> = {
 		"acquisition.activity.errors.unsupported_file_layout",
 	association_requires_review:
 		"acquisition.activity.errors.association_requires_review",
+	association_rejected: "acquisition.activity.errors.association_rejected",
+	association_reassigned: "acquisition.activity.errors.association_reassigned",
+	association_conflict_retry:
+		"acquisition.activity.errors.association_conflict_retry",
 	source_changed: "acquisition.activity.errors.source_changed",
 	file_size_conflict: "acquisition.activity.errors.file_size_conflict",
 	file_selection_changed: "acquisition.activity.errors.file_selection_changed",
+	file_import_selection_changed:
+		"acquisition.activity.errors.file_import_selection_changed",
+	subtitle_file_unavailable:
+		"acquisition.activity.errors.subtitle_file_unavailable",
+	subtitle_size_conflict: "acquisition.activity.errors.subtitle_size_conflict",
+	subtitle_source_changed:
+		"acquisition.activity.errors.subtitle_source_changed",
 	task_path_changed: "acquisition.activity.errors.task_path_changed",
 	incomplete_directory_required:
 		"acquisition.activity.errors.incomplete_directory_required",
@@ -245,9 +256,35 @@ export function DownloadActivityPanel({
 					{t(errorKeys[item.error] ?? "acquisition.activity.errorFallback")}
 				</p>
 			)}
+			{item.selectedFiles?.length ? (
+				<ul className="space-y-1 text-muted-foreground">
+					{item.selectedFiles.map((file) => (
+						<li
+							key={file.path}
+							className="flex flex-wrap justify-between gap-x-3"
+						>
+							<span className="break-all">{file.path}</span>
+							{file.progress !== null && item.state !== "available" && (
+								<span>
+									{t("acquisition.activity.fileProgress", {
+										percent: Math.round(file.progress * 100),
+									})}
+								</span>
+							)}
+						</li>
+					))}
+				</ul>
+			) : null}
 			<div className="flex flex-wrap items-center gap-2">
 				{item.ingestion === "review" && (
-					<a className={buttonStyles("outline")} href="/review">
+					<a
+						className={buttonStyles("outline")}
+						href={
+							item.reviewId
+								? `/review?item=${encodeURIComponent(item.reviewId)}`
+								: "/review"
+						}
+					>
 						{t("acquisition.activity.openReview")}
 					</a>
 				)}

@@ -99,6 +99,9 @@ export function readDownloadRequest({
 		createdAt: request.createdAt,
 		updatedAt: request.updatedAt,
 		sourceIdentity: claim.sourceIdentity,
+		...(claim.associationReview
+			? { associationReview: claim.associationReview }
+			: {}),
 		lastCommand:
 			request.lastCommandId && request.lastCommandKind
 				? { id: request.lastCommandId, kind: request.lastCommandKind }
@@ -164,14 +167,26 @@ export function writeDownloadRequest(
 		live: keepsEpisodeClaim(value),
 		ingestion: value.ingestion,
 		sourceIdentity: value.sourceIdentity,
+		associationReview: value.associationReview ?? null,
 	};
 	store
 		.insert(s.acquisitionEpisodeClaims)
 		.values(claim)
 		.onConflictDoUpdate({ target: s.acquisitionEpisodeClaims.id, set: claim })
 		.run();
-	if (transferId && value.sourceIdentity)
-		saveFileEvidence(store, claim, transferId, value.sourceIdentity, files);
+	if (
+		transferId &&
+		(value.sourceIdentity || previous?.selectionMode === "files")
+	)
+		saveFileEvidence(
+			store,
+			claim,
+			transferId,
+			value.sourceIdentity,
+			value.error === "association_rejected" ||
+				value.error === "association_reassigned",
+			files,
+		);
 }
 
 function saveTransfer(
@@ -221,12 +236,13 @@ function saveFileEvidence(
 	store: Store,
 	claim: Pick<ClaimRow, "id" | "acceptedTarget" | "ingestion">,
 	transferId: string,
-	sourceIdentity: NonNullable<DownloadIntent["sourceIdentity"]>,
+	sourceIdentity: DownloadIntent["sourceIdentity"],
+	declined: boolean,
 	files?: VerifiedDownloadFiles,
 ) {
 	const associated = s.acquisitionTransferFileTargets;
 	const transferFiles = s.acquisitionTransferFiles;
-	if (!files) {
+	if (!files || !sourceIdentity) {
 		const known = store
 			.select({ id: transferFiles.id })
 			.from(associated)
@@ -238,12 +254,24 @@ function saveFileEvidence(
 				),
 			)
 			.get();
-		if (known)
+		if (known) {
 			store
 				.update(transferFiles)
 				.set({ ingestion: claim.ingestion })
 				.where(eq(transferFiles.id, known.id))
 				.run();
+			if (declined)
+				store
+					.update(associated)
+					.set({ declined: true })
+					.where(
+						and(
+							eq(associated.claimId, claim.id),
+							eq(associated.fileId, known.id),
+						),
+					)
+					.run();
+		}
 		return;
 	}
 	const file = files.video;
@@ -294,10 +322,30 @@ function saveFileEvidence(
 			fileId: stored.id,
 			claimId: claim.id,
 			acceptedTarget: claim.acceptedTarget,
+			declined,
 		})
 		.onConflictDoUpdate({
 			target: [associated.fileId, associated.claimId],
-			set: { acceptedTarget: claim.acceptedTarget },
+			set: {
+				acceptedTarget: claim.acceptedTarget,
+				...(declined ? { declined: true } : {}),
+			},
 		})
 		.run();
+	for (const sidecar of files.sidecars ?? [])
+		store
+			.update(transferFiles)
+			.set({
+				sourceIdentity: sidecar.identity,
+				ingestion: "available",
+			})
+			.where(
+				and(
+					eq(transferFiles.transferId, transferId),
+					eq(transferFiles.fileIndex, sidecar.index),
+					eq(transferFiles.videoFileId, stored.id),
+					eq(transferFiles.role, "subtitle"),
+				),
+			)
+			.run();
 }

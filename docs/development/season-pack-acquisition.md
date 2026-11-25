@@ -124,11 +124,19 @@ association retries idempotent. Recheck the selection revision if the transfer i
 expanded during import. Eleven successfully imported episodes remain available
 if the twelfth fails or the process restarts.
 
+For a manifest-backed request, import can begin when its selected video and
+sidecars are complete and visible in the validated destination. Other files may
+still be downloading. Persist file progress and verified subtitle versions. The
+Catalog commit rechecks the current selection and uses the same acquisition
+receipt if an earlier attempt committed before Downloads recorded the outcome.
+
 Keep Catalog Review for local association conflicts, such as a protected manual
 mapping to a different episode. Let other files import and let the subscription
 continue. Retain enough provenance to retry the unresolved file and suppress a
 second download while that file can still satisfy the claim. After an explicit
 rejection or reassignment, recompute which requested episodes still need a source.
+Record the declined file and episode together so subsequent requests can try
+another file or release.
 
 Use existing Activity and Diagnostics views to show requested episodes, selected
 files or coverage, transfer reuse, outstanding imports and actionable failure reasons.

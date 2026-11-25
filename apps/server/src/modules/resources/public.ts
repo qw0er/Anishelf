@@ -29,6 +29,10 @@ export interface AcquisitionResources {
 		scopeId: string,
 		relativePath: string,
 	): Promise<{ sizeBytes: number; sourceVersion: string }>;
+	inspectSubtitle?(
+		scopeId: string,
+		relativePath: string,
+	): Promise<{ sizeBytes: number; sourceVersion: string }>;
 	refresh(
 		scopeId: string,
 		relativePath: string,

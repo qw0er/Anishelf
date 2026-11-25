@@ -1,4 +1,8 @@
-import type { SourceIdentity } from "../../../resources/public.js";
+import type { AcquisitionReview } from "../../../anime/public.js";
+import type {
+	FileSourceIdentity,
+	SourceIdentity,
+} from "../../../resources/public.js";
 import type { TorrentManifest } from "../../torrent-clients/public.js";
 
 export interface DownloadDestination {
@@ -66,6 +70,7 @@ export interface DownloadIntent {
 	updatedAt: number;
 	createdAt: number;
 	sourceIdentity: SourceIdentity | null;
+	associationReview?: AcquisitionReview | null;
 	lastCommand: { id: string; kind: "acquisition" | "import" } | null;
 }
 export interface DownloadFileObservation {
@@ -79,6 +84,12 @@ export interface EpisodeFilePlan {
 	manifest: TorrentManifest;
 	videoIndex: number;
 	subtitleIndices: readonly number[];
+}
+export interface PlannedDownloadFile {
+	index: number;
+	path: string;
+	role: "video" | "subtitle";
+	progress: number | null;
 }
 
 export interface PendingFileSelection {
@@ -104,6 +115,10 @@ export interface ManagedFileSelection {
 export interface VerifiedDownloadFiles {
 	video: DownloadFileObservation;
 	selection: readonly DownloadFileObservation[];
+	sidecars?: readonly {
+		index: number;
+		identity: FileSourceIdentity;
+	}[];
 }
 
 export function isCanonicalDownloadHash(hash: string): boolean {
@@ -137,7 +152,12 @@ export interface DownloadActivity {
 		| "expectedHash"
 		| "ownerKey"
 		| "transferId"
-	> & { canRetryAcquisition: boolean })[];
+		| "associationReview"
+	> & {
+		canRetryAcquisition: boolean;
+		selectedFiles?: Omit<PlannedDownloadFile, "index">[];
+		reviewId?: string;
+	})[];
 	total: number;
 	active: number;
 	attention: number;

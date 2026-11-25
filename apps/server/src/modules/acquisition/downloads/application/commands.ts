@@ -43,6 +43,13 @@ export class DownloadCommands {
 			(item.state !== "bound" || !["failed", "review"].includes(item.ingestion))
 		)
 			conflict();
+		if (
+			kind === "import" &&
+			item.ingestion === "failed" &&
+			item.transferId &&
+			this.context.options.store.fileSelection(item.transferId)
+		)
+			item = { ...item, sourceIdentity: null };
 		if (kind === "acquisition") {
 			if (
 				!["missing", "blocked", "unknown"].includes(item.state) &&

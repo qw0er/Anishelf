@@ -87,6 +87,17 @@ export const DownloadActivitySchema = Type.Object({
 			]),
 			transfer: nullableString,
 			progress: nullableNumber,
+			selectedFiles: Type.Optional(
+				Type.Array(
+					Type.Object({
+						path: Type.String(),
+						role: Type.Union([Type.Literal("video"), Type.Literal("subtitle")]),
+						progress: nullableNumber,
+					}),
+					{ maxItems: 4096 },
+				),
+			),
+			reviewId: Type.Optional(Type.String()),
 			ingestion: Type.Union([
 				Type.Literal("not-ready"),
 				Type.Literal("discovering"),

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint as commandFingerprint } from "../../../../shared/fingerprint.js";
 import { MetadataError } from "../../external-works/metadata/public.js";
+import type { AcquisitionCommitGuard } from "../../public.js";
 import { catalogDefaults as policy } from "../defaults.js";
 import { conflict, invalid, targets, text } from "../domain/mapping.js";
 import type {
@@ -130,6 +131,7 @@ export class AssociationApplication {
 		signal?: AbortSignal,
 		origin: NonNullable<ReviewRecord["decisionOrigin"]> = "manual",
 		acquisition: ReviewRecord["acquisition"] = null,
+		guard?: AcquisitionCommitGuard,
 	): Promise<ConfirmationResult> {
 		signal?.throwIfAborted();
 		this.context.open();
@@ -175,6 +177,7 @@ export class AssociationApplication {
 			conflict("The resource root changed. Create a new preview.");
 		for (const record of saved.sources)
 			await this.context.validate(record, scope.revision);
+		if (guard) await guard.verify();
 		this.context.options.sources.assertAccessRevision(scope.revision);
 		this.context.open();
 		signal?.throwIfAborted();
@@ -199,6 +202,7 @@ export class AssociationApplication {
 		let result: ConfirmationResult;
 		try {
 			result = this.context.options.store.transaction((store) => {
+				guard?.assertCurrent();
 				const repeated = store.operation(request.operationKey);
 				if (repeated) {
 					if (repeated.fingerprint !== fingerprint) conflict();

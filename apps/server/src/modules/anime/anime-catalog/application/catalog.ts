@@ -11,6 +11,7 @@ import { WorkApplication } from "./work.js";
 /** Public facade; use cases share one lifecycle and transactional Catalog store. */
 export class AnimeCatalogApplication implements AnimeCatalogApi {
 	readonly associateAcquisition: AnimeCatalogApi["associateAcquisition"];
+	readonly reviewAcquisition: AnimeCatalogApi["reviewAcquisition"];
 	readonly reusableAcquisitions: AnimeCatalogApi["reusableAcquisitions"];
 	readonly findLocalWork: AnimeCatalogApi["findLocalWork"];
 	readonly availableEpisodes: AnimeCatalogApi["availableEpisodes"];
@@ -56,6 +57,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 			this.associations,
 		);
 		this.associateAcquisition = acquisition.associate.bind(acquisition);
+		this.reviewAcquisition = acquisition.review.bind(acquisition);
 		this.reusableAcquisitions = acquisition.reusable.bind(acquisition);
 		const work = new WorkApplication(this.context, queries);
 		this.refreshing = new CatalogRefresh(this.context, work);

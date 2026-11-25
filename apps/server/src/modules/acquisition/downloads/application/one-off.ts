@@ -213,6 +213,7 @@ export class OneOffDownloads {
 				expectedHash: null,
 				hash: `unresolved:${randomUUID()}`,
 				sourceIdentity: null,
+				associationReview: null,
 			};
 		const uncertain =
 			item.oneOff?.uncertainSubmission ||

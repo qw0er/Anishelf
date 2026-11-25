@@ -296,6 +296,40 @@ test("parser failure does not revoke the accepted download target", async () => 
 	).toBe("available");
 });
 
+test("a changed source with a committed receipt opens Review for the new version", async () => {
+	const f = await fixture();
+	const identity = await f.file();
+	const signal = new AbortController().signal;
+	const target = await f.ingestion.captureTarget("fixture:anime:1", 3, signal);
+	const receipt = {
+		intentId: "import-with-receipt",
+		candidateId: "release",
+		title: "Frieren 03",
+		hash: "torrent",
+		transfer: "transfer",
+		target,
+		warnings: [],
+	};
+	expect(
+		await f.ingestion.ingest(target.workKey, 3, identity, signal, receipt),
+	).toBe("available");
+	await writeFile(join(f.root, identity.relativePath), "replacement version");
+	const replacement = await f.library.refreshDownload(
+		identity.scopeId,
+		identity.relativePath,
+	);
+	expect(replacement.sourceVersion).not.toBe(identity.sourceVersion);
+	expect(
+		await f.ingestion.ingest(target.workKey, 3, replacement, signal, receipt),
+	).toBe("review");
+	expect((await f.catalog.fileReviews([replacement.fileId]))[0]).toMatchObject({
+		decision: "pending",
+		sourceVersion: replacement.sourceVersion,
+		unresolved: expect.arrayContaining(["download_target_conflict"]),
+		associations: [],
+	});
+});
+
 async function automaticallyAssociate(
 	f: Awaited<ReturnType<typeof fixture>>,
 	identity: Awaited<ReturnType<Awaited<ReturnType<typeof fixture>>["file"]>>,
@@ -411,6 +445,39 @@ test("manual rejection and a competing acquisition target remain protected", asy
 			new AbortController().signal,
 		),
 	).toBe("review");
+	const target = await f.ingestion.captureTarget(
+		"fixture:anime:1",
+		3,
+		new AbortController().signal,
+	);
+	expect(await f.ingestion.reviewAcquisition(identity, target)).toMatchObject({
+		id: review.id,
+		disposition: "rejected",
+	});
+});
+
+test("selected sidecar verification uses confined subtitle access and reports local versions", async () => {
+	const f = await fixture();
+	const subtitle = join(f.root, "episode.zh.ass");
+	await writeFile(subtitle, "first");
+	const first = await f.library.inspectDownloadSubtitle(
+		f.scopeId,
+		"episode.zh.ass",
+	);
+	expect(first.sizeBytes).toBe(5);
+	await writeFile(subtitle, "replacement");
+	const changed = await f.library.inspectDownloadSubtitle(
+		f.scopeId,
+		"episode.zh.ass",
+	);
+	expect(changed.sizeBytes).toBe(11);
+	expect(changed.sourceVersion).not.toBe(first.sourceVersion);
+	await expect(
+		f.library.inspectDownloadSubtitle(f.scopeId, "../episode.zh.ass"),
+	).rejects.toThrow();
+	await expect(
+		f.library.inspectDownloadSubtitle(f.scopeId, "episode.mkv"),
+	).rejects.toThrow();
 });
 
 test("routine scans reuse a confirmed acquisition without filename recognition or metadata search", async () => {

@@ -52,6 +52,7 @@ export class DownloadReconciliation {
 		)
 			return;
 		try {
+			if (await this.importer.reconcileReview(execution)) return;
 			const completed = await this.downloads.run(execution);
 			if (completed) await this.importer.run(execution, completed);
 		} catch (error) {

@@ -12,6 +12,7 @@ export type {
 	ReleaseAttributes,
 } from "./release-assessment/public.js";
 
+import type { SourceIdentity } from "../resources/public.js";
 import type { ReleaseAssessmentApi } from "./release-assessment/public.js";
 export interface AcceptedAcquisitionTarget {
 	workKey: string;
@@ -27,6 +28,16 @@ export interface AcquisitionProvenance {
 	transfer: string | null;
 	target: AcceptedAcquisitionTarget;
 	warnings: string[];
+}
+export interface AcquisitionReview {
+	id: string;
+	/** Changes with the Catalog decision or its committed episode links. */
+	decisionKey: string;
+	disposition: "available" | "pending" | "protected" | "rejected";
+}
+export interface AcquisitionCommitGuard {
+	verify(): Promise<void>;
+	assertCurrent(): void;
 }
 export interface AnimeApi {
 	readonly acquisition?: ReleaseAssessmentApi;
@@ -58,15 +69,18 @@ export interface AnimeApi {
 		): Promise<AcceptedAcquisitionTarget>;
 		retainTarget?(target: AcceptedAcquisitionTarget, intentId: string): void;
 		releaseTarget?(target: AcceptedAcquisitionTarget, intentId: string): void;
-		recoverableReview?(
-			identity: import("../resources/public.js").SourceIdentity,
-		): Promise<boolean>;
+		recoverableReview?(identity: SourceIdentity): Promise<boolean>;
+		reviewAcquisition?(
+			identity: SourceIdentity,
+			target: AcceptedAcquisitionTarget,
+		): Promise<AcquisitionReview | null>;
 		ingest(
 			key: string,
 			episode: number,
-			identity: import("../resources/public.js").SourceIdentity,
+			identity: SourceIdentity,
 			signal: AbortSignal,
 			provenance?: AcquisitionProvenance,
+			guard?: AcquisitionCommitGuard,
 		): Promise<"available" | "review">;
 	};
 	readonly queries: {

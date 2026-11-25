@@ -6,10 +6,19 @@ import type {
 	DownloadApplicationContext,
 	DownloadExecution,
 } from "./context.js";
+import { ManifestDownloadIngestion } from "./manifest-import.js";
 
 export class CompletedDownloadIngestion {
-	constructor(private readonly context: DownloadApplicationContext) {}
+	private readonly manifest: ManifestDownloadIngestion;
+	constructor(private readonly context: DownloadApplicationContext) {
+		this.manifest = new ManifestDownloadIngestion(context);
+	}
+	reconcileReview(execution: DownloadExecution) {
+		return this.manifest.reconcileReview(execution);
+	}
 	async run(execution: DownloadExecution, completed: CompletedDownload) {
+		if (completed.manifest)
+			return this.manifest.run(execution, completed.manifest, completed);
 		let item = execution.current;
 		const legacyReview = item.ingestion === "review";
 		if (

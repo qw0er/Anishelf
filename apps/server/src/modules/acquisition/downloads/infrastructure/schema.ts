@@ -10,6 +10,7 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import type { FileSourceIdentity } from "../../../resources/public.js";
 import type {
 	DownloadFileObservation,
 	DownloadIntent,
@@ -199,6 +200,9 @@ export const acquisitionEpisodeClaims = sqliteTable(
 		sourceIdentity: text("source_identity", { mode: "json" }).$type<
 			NonNullable<DownloadIntent["sourceIdentity"]>
 		>(),
+		associationReview: text("association_review", { mode: "json" }).$type<
+			NonNullable<DownloadIntent["associationReview"]>
+		>(),
 	},
 	(table) => [
 		check("acquisition_claim_episode", sql`${table.episode} >= 1`),
@@ -241,15 +245,16 @@ export const acquisitionTransferFiles = sqliteTable(
 		fileIndex: integer("file_index"),
 		path: text("path").notNull(),
 		sizeBytes: integer("size_bytes"),
+		progress: real("progress"),
 		role: text("role", { enum: ["video", "subtitle"] }).notNull(),
 		desiredSelected: integer("desired_selected", { mode: "boolean" }).notNull(),
 		observedSelected: integer("observed_selected", { mode: "boolean" }),
 		videoFileId: text("video_file_id").references(
 			(): AnySQLiteColumn => acquisitionTransferFiles.id,
 		),
-		sourceIdentity: text("source_identity", { mode: "json" }).$type<
-			NonNullable<DownloadIntent["sourceIdentity"]>
-		>(),
+		sourceIdentity: text("source_identity", {
+			mode: "json",
+		}).$type<FileSourceIdentity>(),
 		ingestion: text("ingestion").$type<DownloadIntent["ingestion"]>().notNull(),
 	},
 	(table) => [
@@ -288,6 +293,7 @@ export const acquisitionTransferFiles = sqliteTable(
 export const acquisitionTransferFileTargets = sqliteTable(
 	"acquisition_transfer_file_targets",
 	{
+		declined: integer("declined", { mode: "boolean" }).notNull().default(false),
 		fileId: text("file_id")
 			.notNull()
 			.references(() => acquisitionTransferFiles.id),

@@ -144,6 +144,24 @@ test("externally removed tasks require explicit acquisition retry", async () => 
 	).toBeTruthy();
 	expect(screen.queryByRole("button", { name: "Retry import" })).toBeNull();
 });
+
+test("manifest activity shows both selected files and opens the affected Review item", async () => {
+	fixture({
+		ingestion: "review",
+		error: "association_requires_review",
+		progress: 1,
+		reviewId: "review-file",
+		selectedFiles: [
+			{ path: "Season 2/03.mkv", role: "video", progress: 1 },
+			{ path: "Season 2/03.zh.ass", role: "subtitle", progress: 1 },
+		],
+	});
+	await screen.findByText("Season 2/03.mkv");
+	expect(screen.getByText("Season 2/03.zh.ass")).toBeTruthy();
+	expect(
+		screen.getByRole("link", { name: /review/i }).getAttribute("href"),
+	).toBe("/review?item=review-file");
+});
 test("destination settings separate saving from validation and do not start downloads", async () => {
 	let destination: null | {
 		revision: string;

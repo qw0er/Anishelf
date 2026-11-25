@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { pathContains } from "../../../../platform/paths.js";
 import type {
 	TorrentClient,
 	TorrentFile,
@@ -14,7 +15,7 @@ import {
 	sameDownloadPath,
 } from "../application/destination-paths.js";
 import { downloadDefaults as policy } from "../defaults.js";
-import { isTorrentComplete } from "../domain/completion.js";
+import { hasStableTorrentFiles } from "../domain/completion.js";
 import {
 	observeFileSelection,
 	sameManifest,
@@ -382,14 +383,8 @@ export class SelectedFileTransfers {
 			return null;
 		}
 		if (!this.current(execution, selection)) return null;
-		this.context.options.store.updateFileSelection({
-			transferId: selection.id,
-			revision: selection.revision,
-			task: remote.task,
-			observedAt: this.context.now(),
-		});
-		if (!isTorrentComplete(remote.task)) return null;
-		const episode = this.context.options.store.episodeFileSelection(
+		const { options } = this.context;
+		const episode = options.store.episodeFileSelection(
 			execution.current.id,
 			selection.id,
 		);
@@ -398,7 +393,22 @@ export class SelectedFileTransfers {
 		const files = remote.files.filter(
 			(file) => file.index !== undefined && selected.has(file.index),
 		);
+		const saved = options.store.updateFileSelection({
+			transferId: selection.id,
+			revision: selection.revision,
+			task: remote.task,
+			observedAt: this.context.now(),
+			fileProgress: files.flatMap(({ index, progress }) =>
+				index !== undefined && progress >= 0 && progress <= 1
+					? [{ index, progress }]
+					: [],
+			),
+		});
+		const video = files.find((file) => file.index === episode.videoIndex);
 		if (
+			!saved ||
+			!video ||
+			!this.stableDestination(remote.task, selection) ||
 			files.length !== selected.size ||
 			files.some((file) => !file.selected || file.progress !== 1)
 		)
@@ -406,17 +416,31 @@ export class SelectedFileTransfers {
 		return {
 			task: remote.task,
 			files,
+			manifest: {
+				video,
+				sidecars: files.filter((file) => file.index !== video.index),
+				isCurrent: () =>
+					options.connectionGeneration() ===
+						selection.destination.connectionGeneration &&
+					this.current(execution, selection),
+			},
 			verify: () =>
-				this.context.options.withClient(
+				options.withClient(
 					selection.destination.connectionGeneration,
 					async (currentClient) => {
 						const current = await this.read(currentClient, selection);
 						return Boolean(
 							current &&
-								isTorrentComplete(current.task) &&
-								this.context.options.store.fileSelection(selection.id)
-									?.revision === selection.revision &&
-								JSON.stringify(current.files) === JSON.stringify(remote.files),
+								this.stableDestination(current.task, selection) &&
+								this.current(execution, selection) &&
+								JSON.stringify(current.observed) ===
+									JSON.stringify(remote.observed) &&
+								current.files
+									.filter(
+										(file) =>
+											file.index !== undefined && selected.has(file.index),
+									)
+									.every((file) => file.progress === 1),
 						);
 					},
 				),
@@ -456,6 +480,20 @@ export class SelectedFileTransfers {
 		return join(
 			absoluteDownloadPath(selection.destination.path),
 			selection.directory,
+		);
+	}
+
+	private stableDestination(
+		task: TorrentTask,
+		selection: ManagedFileSelection,
+	) {
+		return (
+			hasStableTorrentFiles(task) &&
+			Boolean(task.contentPath) &&
+			pathContains(
+				this.savePath(selection),
+				absoluteDownloadPath(task.contentPath),
+			)
 		);
 	}
 

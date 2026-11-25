@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray, type SQL } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or, type SQL } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { sameManifest } from "../domain/file-selection.js";
 import type {
@@ -7,6 +7,7 @@ import type {
 	EpisodeFilePlan,
 	ManagedFileSelection,
 	PendingFileSelection,
+	PlannedDownloadFile,
 } from "../domain/model.js";
 import type { DownloadStore } from "../ports.js";
 import { writeDownloadRequest } from "./records.js";
@@ -47,20 +48,31 @@ export class FileSelectionRecords
 
 	episodeFileSelection(requestId: string, transferId: string) {
 		const file = this.store
-			.select({ id: files.id, index: files.fileIndex })
+			.select({
+				id: files.id,
+				index: files.fileIndex,
+				path: files.path,
+				progress: files.progress,
+			})
 			.from(targets)
 			.innerJoin(files, eq(files.id, targets.fileId))
+			.innerJoin(transfers, eq(transfers.id, files.transferId))
 			.where(
 				and(
 					eq(targets.claimId, requestId),
 					eq(files.transferId, transferId),
 					eq(files.role, "video"),
+					eq(transfers.selectionMode, "files"),
 				),
 			)
 			.get();
 		if (file?.index == null) return null;
 		const subtitles = this.store
-			.select({ index: files.fileIndex })
+			.select({
+				index: files.fileIndex,
+				path: files.path,
+				progress: files.progress,
+			})
 			.from(files)
 			.where(
 				and(
@@ -70,9 +82,21 @@ export class FileSelectionRecords
 				),
 			)
 			.all()
-			.flatMap(({ index }) => (index === null ? [] : [index]))
-			.sort((a, b) => a - b);
-		return { videoIndex: file.index, subtitleIndices: subtitles };
+			.flatMap(({ index, path, progress }): PlannedDownloadFile[] =>
+				index === null ? [] : [{ index, path, progress, role: "subtitle" }],
+			)
+			.sort((a, b) => a.index - b.index);
+		const video: PlannedDownloadFile = {
+			index: file.index,
+			path: file.path,
+			progress: file.progress,
+			role: "video",
+		};
+		return {
+			videoIndex: video.index,
+			subtitleIndices: subtitles.map(({ index }) => index),
+			files: [video, ...subtitles],
+		};
 	}
 
 	planFileSelection(
@@ -101,6 +125,23 @@ export class FileSelectionRecords
 					plan.manifest.files.some((file, index) => file.index !== index)
 				)
 					return "incompatible";
+				const declined = store
+					.select({ id: claims.id })
+					.from(claims)
+					.innerJoin(targets, eq(targets.claimId, claims.id))
+					.innerJoin(files, eq(files.id, targets.fileId))
+					.innerJoin(transfers, eq(transfers.id, files.transferId))
+					.where(
+						and(
+							eq(claims.workKey, value.workKey),
+							eq(claims.episode, value.episode),
+							eq(transfers.hash, plan.manifest.hash),
+							eq(files.fileIndex, plan.videoIndex),
+							eq(targets.declined, true),
+						),
+					)
+					.get();
+				if (declined) return "incompatible";
 				const previous = store
 					.select({ transfer: transfers, workKey: claims.workKey })
 					.from(transfers)
@@ -232,6 +273,18 @@ export class FileSelectionRecords
 					})
 					.where(eq(transfers.id, row.id))
 					.run();
+				for (const file of input.fileProgress ?? [])
+					store
+						.update(files)
+						.set({ progress: file.progress })
+						.where(
+							and(
+								eq(files.transferId, row.id),
+								eq(files.fileIndex, file.index),
+								or(isNull(files.progress), ne(files.progress, file.progress)),
+							),
+						)
+						.run();
 				if (input.cancel && row.pendingSelection) {
 					const affected = store
 						.select({ id: files.id })

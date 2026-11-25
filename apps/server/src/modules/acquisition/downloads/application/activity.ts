@@ -45,33 +45,56 @@ export class DownloadActivityQueries {
 			),
 			destination:
 				directory && destination ? join(destination.path, directory) : null,
-			items: result.items.map((item) => ({
-				id: item.id,
-				origin: item.origin,
-				canRetryAcquisition:
-					item.origin === "one-off"
-						? this.oneOff.canRetry(item)
-						: Boolean(
-								subscription &&
-									this.destination.authorized(subscription) &&
-									item.source,
-							),
-				revision: item.revision,
-				workKey: item.workKey,
-				candidateId: item.candidateId,
-				episode: item.episode,
-				title: item.title,
-				state: item.state,
-				transfer: item.transfer,
-				progress: item.progress,
-				ingestion: item.ingestion,
-				error: item.error,
-				attempts: item.attempts,
-				nextAttemptAt: item.nextAttemptAt,
-				observedAt: item.observedAt,
-				updatedAt: item.updatedAt,
-				createdAt: item.createdAt,
-			})),
+			items: result.items.map((item) => {
+				const selectedFiles = item.transferId
+					? this.context.options.store.episodeFileSelection(
+							item.id,
+							item.transferId,
+						)?.files
+					: undefined;
+				const progress = selectedFiles?.map((file) => file.progress);
+				return {
+					id: item.id,
+					origin: item.origin,
+					canRetryAcquisition:
+						item.origin === "one-off"
+							? this.oneOff.canRetry(item)
+							: Boolean(
+									subscription &&
+										this.destination.authorized(subscription) &&
+										item.source,
+								),
+					revision: item.revision,
+					workKey: item.workKey,
+					candidateId: item.candidateId,
+					episode: item.episode,
+					title: item.title,
+					state: item.state,
+					transfer: item.transfer,
+					progress: selectedFiles
+						? progress?.length && progress.every((value) => value !== null)
+							? Math.min(...progress)
+							: null
+						: item.progress,
+					...(selectedFiles
+						? {
+								selectedFiles: selectedFiles.map(
+									({ path, role, progress }) => ({ path, role, progress }),
+								),
+							}
+						: {}),
+					...(item.associationReview
+						? { reviewId: item.associationReview.id }
+						: {}),
+					ingestion: item.ingestion,
+					error: item.error,
+					attempts: item.attempts,
+					nextAttemptAt: item.nextAttemptAt,
+					observedAt: item.observedAt,
+					updatedAt: item.updatedAt,
+					createdAt: item.createdAt,
+				};
+			}),
 			total: result.total,
 			managedCandidateIds: this.context.options.selection
 				.candidates(workKey)

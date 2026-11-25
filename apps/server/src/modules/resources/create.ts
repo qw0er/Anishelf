@@ -37,6 +37,7 @@ export async function createResourcesModule(options: {
 			roots: library.downloadRoots.bind(library),
 			validate: library.validateDownloadRoot.bind(library),
 			inspect: library.inspectDownload.bind(library),
+			inspectSubtitle: library.inspectDownloadSubtitle.bind(library),
 			refresh: library.refreshDownload.bind(library),
 		},
 		applySettingsChange: library.settings.applySettingsChange.bind(

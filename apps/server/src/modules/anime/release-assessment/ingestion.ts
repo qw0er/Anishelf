@@ -15,6 +15,7 @@ import type { ExtractionEvidence } from "../identification/public.js";
 import { matchingTitle } from "../identification/public.js";
 import type {
 	AcceptedAcquisitionTarget,
+	AcquisitionCommitGuard,
 	AcquisitionProvenance,
 } from "../public.js";
 import type { ReleaseParser } from "./public.js";
@@ -74,12 +75,19 @@ export class AcquisitionIngestion {
 			review.unresolved.includes("download_target_conflict")
 		);
 	}
+	reviewAcquisition(
+		identity: SourceIdentity,
+		target: AcceptedAcquisitionTarget,
+	) {
+		return this.catalog.reviewAcquisition(identity, target);
+	}
 	async ingest(
 		key: string,
 		episode: number,
 		identity: SourceIdentity,
 		signal: AbortSignal,
 		provenance?: AcquisitionProvenance,
+		guard?: AcquisitionCommitGuard,
 	): Promise<"available" | "review"> {
 		const target =
 			provenance?.target ?? (await this.captureTarget(key, episode, signal));
@@ -166,6 +174,7 @@ export class AcquisitionIngestion {
 			},
 			receipt,
 			signal,
+			guard,
 		);
 	}
 }

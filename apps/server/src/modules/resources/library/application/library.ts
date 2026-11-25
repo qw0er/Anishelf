@@ -102,7 +102,11 @@ export class LibraryApplication<
 				);
 		}
 	}
-	private async downloadAccess(scopeId: string, path: string) {
+	private async downloadAccess(
+		scopeId: string,
+		path: string,
+		role: "video" | "subtitle" = "video",
+	) {
 		if (
 			!path ||
 			path.includes("\0") ||
@@ -114,6 +118,11 @@ export class LibraryApplication<
 		const epoch = this.sources.accessRevision;
 		const root = await this.options.roots.resolve(this.getSettings(), scopeId);
 		const resources = await this.options.roots.open(root);
+		if (role === "subtitle") {
+			const metadata = await resources.inspectSubtitleSource(path);
+			this.sources.assertAccessRevision(epoch);
+			return { metadata, epoch, relativePath: path };
+		}
 		const { relativePath, metadata } =
 			await resources.inspectVideoFileWithPath(path);
 		this.sources.assertAccessRevision(epoch);
@@ -121,6 +130,9 @@ export class LibraryApplication<
 	}
 	async inspectDownload(scopeId: string, path: string) {
 		return (await this.downloadAccess(scopeId, path)).metadata;
+	}
+	async inspectDownloadSubtitle(scopeId: string, path: string) {
+		return (await this.downloadAccess(scopeId, path, "subtitle")).metadata;
 	}
 	async refreshDownload(scopeId: string, path: string) {
 		const before = await this.downloadAccess(scopeId, path);

@@ -14,6 +14,7 @@ import { createSourcesModule } from "../../../../../src/modules/acquisition/sour
 import type { TorrentClient } from "../../../../../src/modules/acquisition/torrent-clients/public.js";
 import type {
 	AcquisitionTarget,
+	AnimeApi,
 	ReleaseAssessmentApi,
 } from "../../../../../src/modules/anime/public.js";
 
@@ -124,6 +125,10 @@ export async function fixture(
 		),
 		validate: vi.fn(async () => {}),
 		inspect: vi.fn(async () => ({ sizeBytes: 100, sourceVersion: "v1" })),
+		inspectSubtitle: vi.fn(async (_scope: string, _path: string) => ({
+			sizeBytes: 100,
+			sourceVersion: "v1",
+		})),
 		refresh: vi.fn(async (_scope: string, path: string) => ({
 			scopeId: "root",
 			relativePath: path,
@@ -146,7 +151,12 @@ export async function fixture(
 	};
 	const ingestion = {
 		available: vi.fn(async () => true),
-		ingest: vi.fn(async () => "available" as "available" | "review"),
+		ingest: vi.fn<NonNullable<AnimeApi["ingestion"]>["ingest"]>(
+			async () => "available",
+		),
+		reviewAcquisition: vi.fn<
+			NonNullable<NonNullable<AnimeApi["ingestion"]>["reviewAcquisition"]>
+		>(async () => null),
 	};
 	const transport = {
 		read: vi.fn(async () => new Uint8Array()),
@@ -261,10 +271,10 @@ export async function fixture(
 		return worker;
 	}
 	let worker = create();
-	async function configure() {
+	async function configure(scopeId = "root") {
 		const saved = await worker.saveDestination({
 			revision: db.acquisitionDownloads.destination()?.revision ?? null,
-			scopeId: "root",
+			scopeId,
 			path: fixturePath("downloads"),
 		});
 		await worker.validate(saved.revision);

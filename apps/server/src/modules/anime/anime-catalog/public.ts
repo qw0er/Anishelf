@@ -1,6 +1,11 @@
 import type { MetadataApi } from "../external-works/metadata/public.js";
 import type { IdentificationResult } from "../identification/public.js";
-import type { AcquisitionProvenance } from "../public.js";
+import type {
+	AcceptedAcquisitionTarget,
+	AcquisitionCommitGuard,
+	AcquisitionProvenance,
+	AcquisitionReview,
+} from "../public.js";
 
 export type { CatalogMetadata } from "./ports.js";
 
@@ -23,7 +28,12 @@ export interface AnimeCatalogApi {
 		result: import("../identification/public.js").IdentificationResult,
 		provenance: AcquisitionProvenance,
 		signal: AbortSignal,
+		guard?: AcquisitionCommitGuard,
 	): Promise<"available" | "review">;
+	reviewAcquisition(
+		identity: import("../../resources/public.js").SourceIdentity,
+		target: AcceptedAcquisitionTarget,
+	): Promise<AcquisitionReview | null>;
 	reusableAcquisitions(
 		sources: readonly import("../../resources/public.js").SourceIdentity[],
 	): Promise<import("../identification/public.js").IdentificationResult[]>;

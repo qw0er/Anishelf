@@ -4,13 +4,17 @@ export function isTorrentComplete(task: TorrentTask): boolean {
 	return (
 		task.progress === 1 &&
 		task.remainingBytes === 0 &&
-		[
-			"downloading",
-			"seeding",
-			"completed",
-			"paused",
-			"queued",
-			"stalled",
-		].includes(task.state)
+		hasStableTorrentFiles(task)
 	);
+}
+
+export function hasStableTorrentFiles(task: TorrentTask): boolean {
+	return [
+		"downloading",
+		"seeding",
+		"completed",
+		"paused",
+		"queued",
+		"stalled",
+	].includes(task.state);
 }

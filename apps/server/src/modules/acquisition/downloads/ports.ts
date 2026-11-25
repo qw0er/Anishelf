@@ -11,6 +11,7 @@ import type {
 	EpisodeFilePlan,
 	ManagedFileSelection,
 	PendingFileSelection,
+	PlannedDownloadFile,
 	VerifiedDownloadFiles,
 } from "./domain/model.js";
 
@@ -55,7 +56,11 @@ export interface DownloadStore {
 	episodeFileSelection(
 		requestId: string,
 		transferId: string,
-	): { videoIndex: number; subtitleIndices: number[] } | null;
+	): {
+		videoIndex: number;
+		subtitleIndices: number[];
+		files: PlannedDownloadFile[];
+	} | null;
 	planFileSelection(
 		value: DownloadIntent,
 		plan: EpisodeFilePlan,
@@ -68,6 +73,7 @@ export interface DownloadStore {
 		observed?: readonly DownloadFileObservation[];
 		task?: TorrentTask;
 		observedAt?: number;
+		fileProgress?: readonly { index: number; progress: number }[];
 		cancel?: boolean;
 		release?: boolean;
 	}): boolean;
@@ -96,5 +102,10 @@ export interface SubmissionAdmission {
 export interface CompletedDownload {
 	task: TorrentTask;
 	files: TorrentFile[];
+	manifest?: {
+		video: TorrentFile;
+		sidecars: readonly TorrentFile[];
+		isCurrent(): boolean;
+	};
 	verify(): Promise<boolean>;
 }

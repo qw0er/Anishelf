@@ -2,7 +2,12 @@ import { createHash } from "node:crypto";
 import { DomainError } from "../../../../shared/errors.js";
 import type { SourceIdentity } from "../../../resources/public.js";
 import type { IdentificationResult } from "../../identification/public.js";
-import type { AcquisitionProvenance } from "../../public.js";
+import type {
+	AcceptedAcquisitionTarget,
+	AcquisitionCommitGuard,
+	AcquisitionProvenance,
+	AcquisitionReview,
+} from "../../public.js";
 import type { AssociationApplication } from "./associations.js";
 import type { CatalogContext } from "./context.js";
 import { ReviewApplication } from "./review.js";
@@ -47,6 +52,7 @@ export class AcquisitionAssociation {
 		result: IdentificationResult,
 		provenance: AcquisitionProvenance,
 		signal: AbortSignal,
+		guard?: AcquisitionCommitGuard,
 	): Promise<"available" | "review"> {
 		const { options } = this.context;
 		const scope = await this.context.scope();
@@ -65,22 +71,26 @@ export class AcquisitionAssociation {
 			priorVersion &&
 			priorVersion.sourceVersion !== identity.sourceVersion &&
 			priorVersion.acquisition?.intentId === provenance.intentId
-		)
+		) {
+			new ReviewApplication(this.context).publish(
+				[
+					{
+						...result,
+						unresolved: [
+							...new Set([...result.unresolved, "download_target_conflict"]),
+						],
+					},
+				],
+				scope.ids,
+				[identity.fileId],
+			);
 			return "review";
+		}
 		const check = () => {
 			const record = options.store.review(source.id);
 			const links = options.store.associations(source.id);
-			const matches =
-				links.length > 0 &&
-				links.every(
-					(link) =>
-						options.store.link(link.episode.workId)?.reference.id ===
-							target.reference.id &&
-						link.episode.kind === "regular" &&
-						link.episode.number === String(target.episode),
-				);
 			if (record?.decision === "rejected") return "review" as const;
-			if (matches) return "available" as const;
+			if (this.matchesTarget(links, target)) return "available" as const;
 			if (
 				(record?.decision === "confirmed" || links.length) &&
 				record?.decisionOrigin !== "identification"
@@ -89,9 +99,20 @@ export class AcquisitionAssociation {
 			if (record?.decisionOrigin === "manual") return "review" as const;
 			return null;
 		};
+		const checkAfterVerification = async () => {
+			if (guard) {
+				await guard.verify();
+				guard.assertCurrent();
+				options.sources.assertAccessRevision(scope.revision);
+			}
+			return check() === "available" ? "available" : "review";
+		};
 		const prior = check();
 		if (prior) {
-			if (prior === "available" && !options.store.review(source.id)?.available)
+			if (prior === "review") return prior;
+			const verified = await checkAfterVerification();
+			if (verified === "review") return verified;
+			if (!options.store.review(source.id)?.available)
 				new ReviewApplication(this.context).publish([result], scope.ids, [
 					identity.fileId,
 				]);
@@ -110,7 +131,8 @@ export class AcquisitionAssociation {
 			identity.fileId,
 		]);
 		const existing = check();
-		if (existing) return existing;
+		if (existing)
+			return existing === "available" ? checkAfterVerification() : existing;
 		const record = this.context.requireReview(source.id, scope.ids);
 		const replace = options.store.associations(source.id).length > 0;
 		const preview = await this.associations.preview(
@@ -154,7 +176,17 @@ export class AcquisitionAssociation {
 				signal,
 				"acquisition",
 				provenance,
+				guard,
 			);
+		} catch (error) {
+			if (
+				error instanceof DomainError &&
+				error.code === "CATALOG_CONFLICT" &&
+				check() === "available"
+			) {
+				return checkAfterVerification();
+			}
+			throw error;
 		} finally {
 			this.associations.discard(preview.id);
 		}
@@ -174,5 +206,69 @@ export class AcquisitionAssociation {
 			check() === "available"
 			? "available"
 			: "review";
+	}
+
+	async review(
+		identity: SourceIdentity,
+		target: AcceptedAcquisitionTarget,
+	): Promise<AcquisitionReview | null> {
+		const { options } = this.context;
+		const scope = await this.context.scope();
+		if (!scope.ids.includes(identity.scopeId)) return null;
+		const source = options.store.registerSource(identity);
+		const record = options.store.review(source.id);
+		if (!record) return null;
+		const available = await this.context.available(record, scope.revision);
+		options.sources.assertAccessRevision(scope.revision);
+		const current = options.store.review(source.id);
+		if (!current) return null;
+		const links = options.store.associations(source.id);
+		let disposition: AcquisitionReview["disposition"] = "pending";
+		if (current.decision === "rejected" && current.decisionOrigin === "manual")
+			disposition = "rejected";
+		else if (current.decision === "confirmed") {
+			const matches = this.matchesTarget(links, target);
+			if (matches && available && current.available) disposition = "available";
+			else if (!matches && current.decisionOrigin === "manual")
+				disposition = "protected";
+		}
+		return {
+			id: current.id,
+			disposition,
+			decisionKey: createHash("sha256")
+				.update(
+					JSON.stringify([
+						current.decision,
+						current.decisionOrigin,
+						links
+							.map(({ operationKey, episode }) =>
+								JSON.stringify([
+									operationKey,
+									episode.id,
+									episode.kind,
+									episode.number,
+								]),
+							)
+							.sort(),
+					]),
+				)
+				.digest("hex"),
+		};
+	}
+
+	private matchesTarget(
+		links: ReturnType<CatalogContext["options"]["store"]["associations"]>,
+		target: AcceptedAcquisitionTarget,
+	) {
+		return (
+			links.length > 0 &&
+			links.every(
+				({ episode }) =>
+					this.context.options.store.link(episode.workId)?.reference.id ===
+						target.reference.id &&
+					episode.kind === "regular" &&
+					episode.number === String(target.episode),
+			)
+		);
 	}
 }

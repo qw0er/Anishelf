@@ -7,7 +7,7 @@ export function activityStatus(
 	if (item.error && item.state !== "missing")
 		return item.ingestion === "failed"
 			? t("acquisition.activity.importFailed")
-			: item.ingestion === "review"
+			: item.ingestion === "review" && item.state === "bound"
 				? t("acquisition.activity.reviewRequired")
 				: t("acquisition.activity.needsAttention");
 	if (item.state === "available") return t("acquisition.activity.available");

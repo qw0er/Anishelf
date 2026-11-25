@@ -1082,9 +1082,15 @@
 				"submission_unconfirmed": "The submission result is uncertain. Automatic resubmission is stopped; check WebUI before retrying.",
 				"unsupported_file_layout": "The downloaded files are not a supported single-episode layout.",
 				"association_requires_review": "The actual file needs local Review before it can be linked.",
+				"association_rejected": "The file was rejected in Review. Retry acquisition to find another release.",
+				"association_reassigned": "The file was linked to a different episode in Review. Retry acquisition to find another release.",
 				"source_changed": "The source file changed. Verify the files before retrying import.",
 				"file_size_conflict": "The local file size differs from the completed download.",
 				"file_selection_changed": "The file list or priorities changed in qBittorrent. Check the task before retrying.",
+				"file_import_selection_changed": "The selected files changed during import. Import will retry automatically.",
+				"subtitle_file_unavailable": "A selected subtitle could not be read. Check the subtitle and retry import.",
+				"subtitle_size_conflict": "A selected subtitle has a different size from the torrent. Repair the subtitle and retry import.",
+				"subtitle_source_changed": "A selected subtitle changed during import. Check the subtitle and retry import.",
 				"task_path_changed": "The task save path changed in qBittorrent. Restore it before retrying.",
 				"incomplete_directory_required": "Configure a separate incomplete directory and validate the destination in Settings.",
 				"no_eligible_release": "No single-episode release matches your download preferences. Retry later or adjust your preferences.",
@@ -1097,6 +1103,7 @@
 				"association_conflict_retry": "The catalog changed concurrently; ingestion will retry automatically."
 			},
 			"episodeProgress": "Episode {{episode}} download progress",
+			"fileProgress": "{{percent}}%",
 			"history": "History",
 			"diagnostics": "Diagnostics",
 			"noActiveTasks": "No active downloads."
