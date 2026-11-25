@@ -329,7 +329,7 @@ export class OneOffDownloads {
 							entry.title,
 							target,
 						);
-						if (assessment.reasons.includes("pack_requires_inspection")) {
+						if (assessment.inspectionCandidate && !assessment.eligible) {
 							packsRequiringInspection++;
 							if (
 								options.manifestPreview &&
@@ -397,6 +397,7 @@ export class OneOffDownloads {
 				...policy,
 				feed: { entries },
 				waitForLevels: false,
+				recordLevelIndex: true,
 				active: hashes,
 				downloadsUnknown: false,
 				assessReleaseTitle: options.anime.assessReleaseTitle.bind(
@@ -408,159 +409,176 @@ export class OneOffDownloads {
 			);
 			const entry =
 				chosen && entries.find((entry) => entry.id === chosen.entryId);
-			if (!chosen || !entry?.download) {
-				if (inspection.length && options.manifestPreview) {
-					const previews = await options.manifestPreview.preview({
-						candidates: inspection,
-						target,
-						workKey: initial.workKey,
-						scope: { episode: initial.episode },
-						signal: this.context.signal,
-					});
+			const singleLevel = chosen?.selection?.levelIndex ?? Infinity;
+			if (singleLevel > 0 && inspection.length && options.manifestPreview) {
+				const previews = await options.manifestPreview.preview({
+					candidates: inspection,
+					target,
+					workKey: initial.workKey,
+					scope: { episode: initial.episode },
+					signal: this.context.signal,
+				});
+				guard();
+				const choices = episodeFileOptions({
+					inspection,
+					previews,
+					policy,
+					episode: initial.episode,
+					assessTitle: options.anime.assessReleaseTitle.bind(options.anime),
+				}).filter(
+					({ candidate }) =>
+						(candidate.selection?.levelIndex ?? Infinity) < singleLevel,
+				);
+				if (choices.length) {
+					const generation = initial.destination.connectionGeneration;
+					const supported = await options.withClient(
+						generation,
+						async (client) =>
+							Boolean(
+								client.enableFiles &&
+									(await client.probe(this.context.signal)).selectiveFiles,
+							),
+					);
 					guard();
-					const choices = episodeFileOptions({
-						inspection,
-						previews,
-						policy,
-						episode: initial.episode,
-						assessTitle: options.anime.assessReleaseTitle.bind(options.anime),
-					});
-					if (choices.length) {
-						const generation = initial.destination.connectionGeneration;
-						const supported = await options.withClient(
-							generation,
-							async (client) =>
-								Boolean(
-									client.enableFiles &&
-										(await client.probe(this.context.signal)).selectiveFiles,
-								),
-						);
-						guard();
-						let busy = false;
-						let conflictCode: string | undefined;
-						if (!supported) throw new DownloadError("metadata_unsupported");
-						for (const choice of choices) {
-							if (!options.sources.isContentCurrent(choice.source)) continue;
-							const hash = choice.plan.manifest.hash;
-							const owned = options.store.ownedFileSelection(hash, generation);
-							const task =
-								owned && !owned.pending
-									? await options.withClient(generation, (client) =>
-											client.task(
-												owned.manifest.v2Hash?.slice(0, 40) ?? hash,
-												this.context.signal,
-											),
-										)
-									: tasks.find((entry) =>
-											[entry.hash, entry.v1Hash, entry.v2Hash].includes(hash),
-										);
-							guard();
-							if (task && (!owned || task.ownerKey !== owned.ownerKey)) {
-								conflictCode ??= "external_task_conflict";
-								continue;
-							}
-							if (!task && owned && !owned.pending) {
-								if (
-									!options.store.updateFileSelection({
-										transferId: owned.id,
-										revision: owned.revision,
-										release: true,
-									})
-								) {
-									busy = true;
-									continue;
-								}
-								options.logger.info(
-									{
-										event: "acquisition.file_selection_released",
-										transferId: owned.id,
-										code: "externally_removed",
-									},
-									"Released ownership of a removed torrent task.",
-								);
-							}
-							if (task && owned?.observed && !owned.pending) {
-								if (
-									!sameDownloadPath(
-										task.savePath,
-										join(
-											absoluteDownloadPath(owned.destination.path),
-											owned.directory,
+					let busy = false;
+					let conflictCode: string | undefined;
+					if (!supported && !entry?.download)
+						throw new DownloadError("metadata_unsupported");
+					for (const choice of supported ? choices : []) {
+						if (!options.sources.isContentCurrent(choice.source)) continue;
+						const hash = choice.plan.manifest.hash;
+						const owned = options.store.ownedFileSelection(hash, generation);
+						const task =
+							owned && !owned.pending
+								? await options.withClient(generation, (client) =>
+										client.task(
+											owned.manifest.v2Hash?.slice(0, 40) ?? hash,
+											this.context.signal,
 										),
 									)
-								) {
-									conflictCode ??= "task_path_changed";
-									continue;
-								}
-								const compatible = await options
-									.withClient(generation, async (client) => {
-										const files = await client.files(
-											task.hash,
-											this.context.signal,
-										);
-										return (
-											JSON.stringify(
-												observeFileSelection(choice.plan.manifest, files),
-											) === JSON.stringify(owned.observed)
-										);
-									})
-									.catch(() => false);
-								guard();
-								if (!compatible) {
-									conflictCode ??= "file_selection_changed";
-									continue;
-								}
+								: tasks.find((entry) =>
+										[entry.hash, entry.v1Hash, entry.v2Hash].includes(hash),
+									);
+						guard();
+						if (task && (!owned || task.ownerKey !== owned.ownerKey)) {
+							conflictCode ??= "external_task_conflict";
+							continue;
+						}
+						if (!task && owned && !owned.pending) {
+							if (
+								!options.store.updateFileSelection({
+									transferId: owned.id,
+									revision: owned.revision,
+									release: true,
+								})
+							) {
+								busy = true;
+								continue;
 							}
-							const result = execution.planSelection(
+							options.logger.info(
 								{
-									...execution.current,
-									acceptedTarget,
-									candidateId: choice.candidate.id,
-									title: choice.candidate.title.slice(0, 1024),
-									source: choice.source,
-									expectedHash: hash,
-									state: "pending",
-									error: null,
-									nextAttemptAt: 0,
-									oneOff: {
-										...configToAuthorization(config),
-										discovery: attempts,
-									},
+									event: "acquisition.file_selection_released",
+									transferId: owned.id,
+									code: "externally_removed",
 								},
-								choice.plan,
+								"Released ownership of a removed torrent task.",
 							);
-							if (result === "planned") return;
-							if (result === "busy") busy = true;
 						}
-						if (busy) {
-							execution.save({
+						if (task && owned?.observed && !owned.pending) {
+							if (
+								!sameDownloadPath(
+									task.savePath,
+									join(
+										absoluteDownloadPath(owned.destination.path),
+										owned.directory,
+									),
+								)
+							) {
+								conflictCode ??= "task_path_changed";
+								continue;
+							}
+							const compatible = await options
+								.withClient(generation, async (client) => {
+									const files = await client.files(
+										task.hash,
+										this.context.signal,
+									);
+									return (
+										JSON.stringify(
+											observeFileSelection(choice.plan.manifest, files),
+										) === JSON.stringify(owned.observed)
+									);
+								})
+								.catch(() => false);
+							guard();
+							if (!compatible) {
+								conflictCode ??= "file_selection_changed";
+								continue;
+							}
+						}
+						const result = execution.planSelection(
+							{
 								...execution.current,
+								acceptedTarget,
+								candidateId: choice.candidate.id,
+								title: choice.candidate.title.slice(0, 1024),
+								source: choice.source,
+								expectedHash: hash,
+								state: "pending",
 								error: null,
-								nextAttemptAt:
-									this.context.now() + downloadDefaults.activeIntervalMs,
-							});
-							return;
-						}
-						if (conflictCode) throw new DownloadError(conflictCode);
+								nextAttemptAt: 0,
+								oneOff: {
+									...configToAuthorization(config),
+									discovery: attempts,
+								},
+							},
+							choice.plan,
+						);
+						if (result === "planned") return;
+						if (result === "busy") busy = true;
 					}
-					if (previews.length && previews.every(({ code }) => code !== null)) {
-						const codes = previews.map(({ code }) => code);
-						const reason = [
-							"metadata_timeout",
-							"metadata_unsupported",
-							"torrent_identity_conflict",
-							"invalid_file_path",
-							"source_changed",
-						].find((code) => codes.includes(code));
-						throw new DownloadError(reason ?? "torrent_unavailable");
+					if (busy && !entry?.download) {
+						execution.save({
+							...execution.current,
+							error: null,
+							nextAttemptAt:
+								this.context.now() + downloadDefaults.activeIntervalMs,
+						});
+						return;
 					}
+					if (conflictCode && !entry?.download)
+						throw new DownloadError(conflictCode);
 				}
+				if (
+					!entry?.download &&
+					previews.some(
+						({ manifest }) => manifest?.indexSource === "metainfo",
+					) &&
+					previews.every(({ manifest }) => manifest?.indexSource !== "client")
+				)
+					throw new DownloadError("metadata_unsupported");
+				if (
+					!entry?.download &&
+					previews.length &&
+					previews.every(({ code }) => code !== null)
+				) {
+					const codes = previews.map(({ code }) => code);
+					const reason = [
+						"metadata_timeout",
+						"metadata_unsupported",
+						"torrent_identity_conflict",
+						"invalid_file_path",
+						"source_changed",
+					].find((code) => codes.includes(code));
+					throw new DownloadError(reason ?? "torrent_unavailable");
+				}
+			}
+			if (!chosen || !entry?.download)
 				throw new DownloadError(
 					attempts.some((attempt) => attempt.code)
 						? "discovery_unavailable"
 						: "no_eligible_release",
 				);
-			}
 			if (!options.sources.isContentCurrent(entry.download))
 				throw new DownloadError("source_changed");
 			execution.save({

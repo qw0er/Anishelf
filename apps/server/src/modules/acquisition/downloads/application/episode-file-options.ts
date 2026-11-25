@@ -2,53 +2,15 @@ import type {
 	ReleaseAssessmentApi,
 	ReleaseAttributes,
 } from "../../../anime/public.js";
+import { unlockedCandidate } from "../../coverage-planning.js";
 import type {
 	ManifestPreview,
 	ManifestPreviewCandidate,
 } from "../../manifest-preview.js";
+import { manifestVersions } from "../../manifest-versions.js";
 import { selectCandidates } from "../../release-selection.js";
 import type { ReleaseEvidence } from "../../sources/public.js";
 import type { EpisodeFilePlan } from "../domain/model.js";
-
-function versionAttributes(
-	declared: ReleaseAttributes | undefined,
-	file: ReleaseAttributes,
-): ReleaseAttributes | null {
-	for (const field of ["resolutions", "videoCodecs", "sources"] as const)
-		if (
-			declared?.[field].length &&
-			file[field].length &&
-			!file[field].some((value) =>
-				declared[field].some((other) => other === value),
-			)
-		)
-			return null;
-	return {
-		resolutions: file.resolutions.length
-			? file.resolutions
-			: (declared?.resolutions ?? []),
-		videoCodecs: file.videoCodecs.length
-			? file.videoCodecs
-			: (declared?.videoCodecs ?? []),
-		sources: file.sources.length ? file.sources : (declared?.sources ?? []),
-		releaseGroups: file.releaseGroups.length
-			? file.releaseGroups
-			: (declared?.releaseGroups ?? []),
-		subtitleLanguages: [
-			...new Set([
-				...(declared?.subtitleLanguages ?? []),
-				...file.subtitleLanguages,
-			]),
-		],
-		subtitleFormats: [
-			...new Set([
-				...(declared?.subtitleFormats ?? []),
-				...file.subtitleFormats,
-			]),
-		],
-		revision: Math.max(file.revision, declared?.revision ?? 1),
-	};
-}
 
 export function episodeFileOptions(input: {
 	inspection: readonly ManifestPreviewCandidate[];
@@ -63,51 +25,29 @@ export function episodeFileOptions(input: {
 	const entries: ReleaseEvidence[] = [];
 	const plans = new Map<
 		string,
-		{ plan: EpisodeFilePlan; attributes: ReleaseAttributes }
+		{ plan: EpisodeFilePlan; attributes: ReleaseAttributes; sizeBytes: number }
 	>();
-	for (const [offset, preview] of input.previews.entries()) {
-		const source = input.inspection[offset];
-		if (
-			!source ||
-			preview.code !== null ||
-			!preview.manifest ||
-			!preview.coverage ||
-			preview.manifest.indexSource !== "client"
-		)
+	for (const version of manifestVersions({
+		...input,
+		target: input.policy.target,
+	})) {
+		const { source, manifest, video, subtitleIndices, attributes, sizeBytes } =
+			version;
+		if (video.episodes.length !== 1 || video.episodes[0] !== input.episode)
 			continue;
-		const declaration = input.assessTitle(
-			source.entry.title,
-			input.policy.target,
-		);
-		if (!declaration.inspectionCandidate) continue;
-		for (const video of preview.coverage.videos) {
-			if (
-				video.episodes.length !== 1 ||
-				video.episodes[0] !== input.episode ||
-				!preview.manifest.files[video.index]?.sizeBytes
-			)
-				continue;
-			const attributes = versionAttributes(
-				declaration.attributes,
-				video.attributes,
-			);
-			if (!attributes) continue;
-			const id = `${source.publication.snapshot.id}:${source.entry.id}:${video.index}`;
-			entries.push({ ...source.entry, id });
-			plans.set(id, {
-				plan: {
-					manifest: preview.manifest,
-					videoIndex: video.index,
-					subtitleIndices: video.subtitleIndices,
-				},
-				attributes,
-			});
-		}
+		const id = `${source.publication.snapshot.id}:${source.entry.id}:${video.index}`;
+		entries.push({ ...source.entry, id });
+		plans.set(id, {
+			plan: { manifest, videoIndex: video.index, subtitleIndices },
+			attributes,
+			sizeBytes,
+		});
 	}
 	const ranked = selectCandidates({
 		...input.policy,
 		feed: { entries },
 		waitForLevels: false,
+		recordLevelIndex: true,
 		active: new Set(),
 		downloadsUnknown: false,
 		assessReleaseTitle: (_title, _target, entry) => {
@@ -123,23 +63,28 @@ export function episodeFileOptions(input: {
 		},
 	});
 	const byId = new Map(entries.map((entry) => [entry.id, entry]));
-	const ordered = [
-		...ranked.filter((candidate) => candidate.status === "selected"),
-		...ranked.filter((candidate) => candidate.status === "skipped"),
-	];
-	return ordered.flatMap((candidate) => {
-		const entry = byId.get(candidate.entryId);
-		const plan = plans.get(candidate.entryId)?.plan;
-		if (
-			!entry?.download ||
-			!plan ||
-			candidate.reasons.some(
-				(reason) =>
-					reason !== "another_version_selected" &&
-					reason !== "newer_revision_available",
-			)
-		)
-			return [];
-		return [{ candidate, source: entry.download, plan }];
-	});
+	return ranked
+		.flatMap((candidate) => {
+			const entry = byId.get(candidate.entryId);
+			const version = plans.get(candidate.entryId);
+			if (!entry?.download || !version || !unlockedCandidate(candidate))
+				return [];
+			return [
+				{
+					candidate,
+					source: entry.download,
+					plan: version.plan,
+					sizeBytes: version.sizeBytes,
+				},
+			];
+		})
+		.sort(
+			(a, b) =>
+				(a.candidate.selection?.levelIndex ?? Infinity) -
+					(b.candidate.selection?.levelIndex ?? Infinity) ||
+				a.plan.subtitleIndices.length - b.plan.subtitleIndices.length ||
+				a.sizeBytes - b.sizeBytes ||
+				Number(a.candidate.reasons.includes("newer_revision_available")) -
+					Number(b.candidate.reasons.includes("newer_revision_available")),
+		);
 }

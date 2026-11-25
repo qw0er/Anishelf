@@ -117,7 +117,14 @@ async function fixture(manifestPreview?: Pick<ManifestPreview, "preview">) {
 		store: db.acquisition,
 		sources: sources.api,
 		anime,
-		...(manifestPreview ? { manifestPreview } : {}),
+		...(manifestPreview
+			? {
+					manifestPreview: {
+						...manifestPreview,
+						supportsSelection: async () => true,
+					},
+				}
+			: {}),
 		downloads: async () => [],
 		logger,
 		now: () => now,
@@ -332,6 +339,70 @@ test("pack-only subscription discovery can inspect a prepared release without pu
 			.every((source) => !source.snapshot?.entries.length),
 	).toBe(true);
 	expect(f.db.acquisition.authorization(workKey)).toBeNull();
+});
+
+test("coverage can bind a later pack-only provider while a saved source stays pinned", async () => {
+	const pack = frierenSeasonPackFixture(await loadReleaseCorpus());
+	const hash = "b".repeat(40);
+	const files = ["01.mkv", "02.mkv", "03.mkv"].map((name, index) => ({
+		index,
+		path: `Season 2/${name}`,
+		sizeBytes: 100,
+	}));
+	const f = await fixture({
+		preview: async ({ candidates, target }) =>
+			candidates.map(({ entry }) => ({
+				code: null,
+				manifest: { hash, indexSource: "client", files },
+				coverage: pack.mapReleaseFiles(entry.title, target, files),
+				selectableEpisodes: [1, 2, 3],
+			})),
+	});
+	f.anime.target.mockResolvedValue(pack.target);
+	f.anime.assessReleaseTitle.mockImplementation(pack.assessReleaseTitle);
+	const single = {
+		id: "single",
+		observationId: "single",
+		title: "[SubsPlease] Sousou no Frieren S2 - 03 (1080p)",
+		hash: "a".repeat(40),
+	};
+	const season = { id: "pack", observationId: "pack", title: pack.title, hash };
+	f.search.mockImplementation(async ({ indexerId }) => ({
+		entries: [indexerId === "first" ? single : season].map((entry) => ({
+			...entry,
+			publishedAt: null,
+			downloadUrl: null,
+			download: { kind: "magnet", uri: `magnet:?xt=urn:btih:${entry.hash}` },
+		})),
+		coverage: { limited: false, reason: null, pages: 1, queries: 1 },
+		outcome: "matches",
+	}));
+	const result = await f.subscriptions.search(input);
+	expect(result.source?.providerId).toBe("second");
+	expect(result.attempts.map(({ episodes }) => episodes)).toEqual([
+		[3],
+		[1, 2, 3],
+		[1, 2, 3],
+	]);
+	const saved = await f.subscriptions.save({
+		...input,
+		target: null,
+		source: {
+			kind: "search",
+			providerId: "first",
+			connectionRevision: f.sources.api.connector.settings().generation,
+			titles: pack.target.searchTitles,
+		},
+	});
+	const revision = saved.subscription?.revision;
+	if (!revision) throw new Error("Missing pinned subscription.");
+	f.search.mockClear();
+	f.advance();
+	await f.subscriptions.refresh(workKey, revision);
+	expect(f.search.mock.calls.map(([plan]) => plan.indexerId)).toEqual([
+		"first",
+	]);
+	expect(f.subscriptions.get(workKey).subscription?.source).toBe("first");
 });
 
 test("provider failures are explained while later configured sites may still qualify", async () => {

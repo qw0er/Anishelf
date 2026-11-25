@@ -1,6 +1,6 @@
 # Subscriptions and Watching
 
-Subscribe manually from a work's details, or opt into automatic creation from your
+Subscribe manually from a work's details, or opt into automatic creation from
 the connected account’s Watching entries, including Rewatching where supported. Manual subscriptions are independent; Watching subscriptions belong to an automatic group. Both share source selection, download and import processing.
 
 ## Setup
@@ -45,7 +45,7 @@ and duplicate-acquisition checks.
 | Subscribe | Save intent immediately; no preliminary search needed |
 | More options | Override profile, use an explicit RSS feed or edit the source |
 | No eligible releases | Retain intent and retry discovery; distinguish empty results from service failures |
-| Successful discovery | Pin the first eligible configured site; later outages do not switch it |
+| Successful discovery | Compare verified coverage across configured sites and pin the selected site |
 | Starting episode | Fixed at creation, even while waiting for discovery |
 | Manual pause/resume/edit | Independent controls; manual pause survives edits |
 | Automatic subscription | Managed on the Subscriptions page; exclude/include individual works |
@@ -61,6 +61,34 @@ Watching and pending-source discovery each run every 30 seconds, at most five wo
 per pass. Unresolved discovery retries after five minutes; **Check updates** bypasses
 that local wait and collection cache while respecting transport limits. Source refresh defaults to 30
 minutes. Limits are 64 subscriptions and 500 current Watching or Rewatching works.
+
+## Selective season packs
+
+For initial automatic discovery, Anishelf compares the requested episodes that
+each configured site can supply. The chosen site remains pinned for future
+refreshes. Saved search sites and explicit RSS feeds continue to use their
+selected source.
+
+For a finished season missing all episodes, Anishelf prefers a verified
+complete pack among equally ranked releases. Partial packs and single-episode
+releases can fill remaining gaps in the same planning pass. A pack may also
+fill gaps in an airing season or a season with an unknown total. Completion
+requires a known total and verified local coverage of the subscription range.
+
+Anishelf selects videos and matching external subtitles for missing episodes
+at or after the starting episode. For example, a subscription starting at
+episode 9 can select episodes 9–12 from a 12-episode pack. An existing managed
+torrent can receive additional selections when its owner, destination and file
+priorities still match. An indivisible video covering episodes 3–4 can serve a
+request that includes both episodes. A one-off request prefers a single at the
+same eligible profile level.
+
+Selective packs require a qBittorrent connection with metadata preview and
+file priorities at add time. Use qBittorrent 5.2.0 or later. Missing metadata,
+incompatible tasks and unsupported selection leave other releases available
+for planning. Diagnostics shows coverage and skip reasons. Activity shows
+selected files, shared torrent tasks and the affected episode when an import
+needs attention.
 
 ## Airing-aware searches
 
@@ -148,17 +176,19 @@ starting episode, ownership, pause/completion state, authorization or candidate 
 Anishelf keeps the work, episode and metadata snapshot accepted when a subscription
 release is reserved or an individual episode's release is selected. After verifying
 client task ownership, completion, confined file access, size and source version,
-a task with exactly one selected video is associated directly with that target.
-Missing names, parser failures and contradictory filename titles or episode numbers
-are advisory; they do not block ingestion. The retained snapshot supports ingestion
+Anishelf associates the selected video with its accepted target. A manifest-backed
+transfer verifies each planned video and its matching subtitles independently.
+The Catalog can confirm several accepted episodes for one indivisible video.
+File-name hints are advisory once the target is accepted. The retained snapshot supports ingestion
 without another metadata request, including after restart or cache pruning.
 
 Routine scans reuse confirmed download associations for the same source version.
 An accepted download can correct an association explicitly created by automatic
 identification. Manual confirmations and rejections, conflicting download targets,
-and legacy decisions whose origin is unknown remain protected. Multiple selected
-videos and season packs without explicit episode mappings still require Review.
-Transfer completion remains distinct from verified library availability and playback.
+and legacy decisions whose origin is unknown remain protected. A failed video or
+subtitle can be repaired and retried from Activity while successful imports remain
+available. Transfer completion and verified library availability are shown
+separately.
 
 Local Review diagnostics show the accepted episode, release and any filename hint.
 Catalog contention retries with backoff. Changed files or failed ownership and path

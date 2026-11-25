@@ -18,6 +18,8 @@ export interface AcceptedAcquisitionTarget {
 	workKey: string;
 	reference: { id: string };
 	episode: number;
+	/** Exact regular episodes authorized together for an indivisible video. */
+	fileEpisodes?: readonly number[];
 	snapshotId: string;
 }
 export interface AcquisitionProvenance {

@@ -164,7 +164,7 @@ reverting an image alone does not undo migrations.
 | Request origin rejected | Match the browser address and trusted protocol; inspect proxy configuration and `http.origin_rejected` |
 | Forgotten Anishelf password | Use [password recovery](deployment.md#maintenance), then restart Backend |
 | Files absent | Check mounted paths, Settings roots, access and scan state |
-| Acquisition stalled | Open work Activity/Diagnostics; use the [recovery table](watching-automation.md#recovery-and-upgrade) |
+| Acquisition stalled | Open work Activity and Diagnostics for selected files, verified coverage and failure reasons. Use the [recovery table](watching-automation.md#recovery-and-upgrade). |
 | Jackett lists sites but finds no releases | Run title-search diagnostics; connection/capability checks alone do not prove results |
 | Download complete but unavailable | Check shared destination mapping and import/Review outcome |
 | Playback fails | Check actual browser/codecs and preparation output; discovery does not establish playability |

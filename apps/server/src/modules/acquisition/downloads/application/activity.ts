@@ -78,6 +78,12 @@ export class DownloadActivityQueries {
 						: item.progress,
 					...(selectedFiles
 						? {
+								sharedTransfer: Boolean(
+									item.transferId &&
+										this.context.options.store.sharedFileTransfer(
+											item.transferId,
+										),
+								),
 								selectedFiles: selectedFiles.map(
 									({ path, role, progress }) => ({ path, role, progress }),
 								),

@@ -69,6 +69,29 @@ export class DownloadCommands {
 					item.state === "bound"
 				)
 					conflict();
+				const transfer = item.transferId
+					? this.context.options.store.fileSelection(item.transferId)
+					: null;
+				if (transfer && !transfer.pending && !recoveringConnection) {
+					this.context.save({
+						...item,
+						state: "blocked",
+						error: "selection_changed",
+						nextAttemptAt: 0,
+						lastCommand: { id: commandId, kind },
+					});
+					this.context.options.logger.info(
+						{
+							event: "acquisition.selection_replan_requested",
+							intentId: item.id,
+							commandId,
+						},
+						"Retry requested with the current verified release choices.",
+					);
+					return;
+				}
+				if (transfer?.pending && transfer.pending.requestId !== item.id)
+					conflict();
 				const choice = this.context.options.selection
 					.candidates(item.workKey)
 					.find(
@@ -86,7 +109,9 @@ export class DownloadCommands {
 				if (recoveringConnection && destination)
 					item = { ...item, destination };
 				if (
+					!transfer &&
 					choice &&
+					!choice.selection?.file &&
 					entry?.download &&
 					destination &&
 					(item.state === "missing" ||

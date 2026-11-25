@@ -1,3 +1,4 @@
+import { unlockedCandidate } from "../../coverage-planning.js";
 import type { TorrentClient } from "../../torrent-clients/public.js";
 import type { DownloadIntent, EpisodeFilePlan } from "../domain/model.js";
 import { DownloadError } from "../public.js";
@@ -31,8 +32,11 @@ export class SubmissionAdmission {
 		client: TorrentClient,
 		snapshot: Awaited<ReturnType<TorrentClient["tasks"]>>,
 		selection?: EpisodeFilePlan,
+		additional: readonly { item: DownloadIntent; plan: EpisodeFilePlan }[] = [],
 	): Promise<{ subscriptionRevision: string | null } | null> {
 		const item = execution.current;
+		const members = [item, ...additional.map(({ item }) => item)];
+		const episodes = new Set(members.map(({ episode }) => episode));
 		const subscription = this.context.options.selection.subscription(
 			item.workKey,
 		);
@@ -62,7 +66,7 @@ export class SubmissionAdmission {
 			item.workKey,
 			this.context.signal,
 		);
-		if (target.availableEpisodes.includes(item.episode)) {
+		if (target.availableEpisodes.some((episode) => episodes.has(episode))) {
 			execution.save({
 				...item,
 				state: "blocked",
@@ -76,9 +80,8 @@ export class SubmissionAdmission {
 		);
 		const matches = selection
 			? this.matchesPlan(
-					item,
 					target,
-					selection,
+					[{ item, plan: selection }, ...additional],
 					assessment.inspectionCandidate,
 				)
 			: assessment.eligible && assessment.episode === item.episode;
@@ -97,7 +100,7 @@ export class SubmissionAdmission {
 					inspectionCandidate: assessment.inspectionCandidate,
 					reasons: assessment.reasons,
 				},
-				"Release no longer qualifies for single-episode submission.",
+				"Release evidence no longer matches the reserved episodes.",
 			);
 			return null;
 		}
@@ -112,7 +115,11 @@ export class SubmissionAdmission {
 					task.name,
 					target,
 				);
-				return assessment.eligible && assessment.episode === item.episode;
+				return (
+					assessment.eligible &&
+					assessment.episode !== null &&
+					episodes.has(assessment.episode)
+				);
 			})
 		) {
 			execution.save({
@@ -145,17 +152,13 @@ export class SubmissionAdmission {
 			!this.destination.authorized(before)
 		)
 			return this.stopped(execution);
-		const choice = this.context.options.selection
-			.candidates(item.workKey)
-			.find(
-				(candidate) =>
-					candidate.id === item.candidateId &&
-					candidate.episode === item.episode &&
-					candidate.status === "selected",
-			);
-		if (!choice) {
+		if (
+			members.some(
+				(member) => !this.subscriptionChoice(member, Boolean(selection)),
+			)
+		) {
 			execution.save({
-				...item,
+				...execution.current,
 				state: "blocked",
 				error: "selection_changed",
 			});
@@ -178,42 +181,94 @@ export class SubmissionAdmission {
 				options.store.episodeIntent(item.workKey, item.episode)?.id ===
 					item.id &&
 				options.transport.isCurrent(item.source) &&
-				item.origin === "one-off" &&
-				this.oneOff.authorized(item),
+				(item.origin === "one-off"
+					? this.oneOff.authorized(item)
+					: this.subscriptionChoice(item, true)),
+		);
+	}
+
+	private subscriptionChoice(item: DownloadIntent, selective: boolean) {
+		const { selection } = this.context.options;
+		const subscription = selection.subscription(item.workKey);
+		if (
+			!subscription?.feedId ||
+			!this.destination.authorized(subscription) ||
+			subscription.startEpisode > item.episode ||
+			(selective && item.subscriptionRevision !== subscription.revision)
+		)
+			return false;
+		const choice = selection
+			.candidates(item.workKey)
+			.find(
+				(candidate) =>
+					candidate.id === item.candidateId &&
+					candidate.episode === item.episode,
+			);
+		if (
+			!choice ||
+			(choice.status !== "selected" &&
+				(choice.selection?.order === undefined || !unlockedCandidate(choice)))
+		)
+			return false;
+		const file = choice.selection?.file;
+		if (!selective) return !file;
+		return Boolean(
+			file &&
+				file.reference === item.source &&
+				file.hash === item.hash &&
+				choice.snapshotId === item.acceptedTarget?.snapshotId &&
+				selection.release(subscription.feedId, choice.entryId)?.download ===
+					item.source,
 		);
 	}
 
 	private matchesPlan(
-		item: DownloadIntent,
 		target: Awaited<
 			ReturnType<DownloadApplicationContext["options"]["anime"]["target"]>
 		>,
-		plan: EpisodeFilePlan,
+		members: readonly { item: DownloadIntent; plan: EpisodeFilePlan }[],
 		plausible: boolean,
 	) {
-		const accepted = item.acceptedTarget;
-		if (
-			!plausible ||
-			accepted?.workKey !== item.workKey ||
-			accepted.episode !== item.episode ||
-			accepted.reference.id !== target.work.reference.id ||
-			accepted.snapshotId !== target.work.snapshotId
-		)
-			return false;
+		const first = members[0];
+		if (!plausible || !first) return false;
+		const episodesByVideo = new Map<number, number[]>();
+		for (const { item, plan } of members) {
+			const accepted = item.acceptedTarget;
+			const reference = target.work.reference;
+			if (
+				accepted?.workKey !== item.workKey ||
+				accepted.episode !== item.episode ||
+				accepted.reference.id !== reference.id ||
+				accepted.snapshotId !== target.work.snapshotId
+			)
+				return false;
+			const episodes = episodesByVideo.get(plan.videoIndex) ?? [];
+			episodes.push(item.episode);
+			episodesByVideo.set(plan.videoIndex, episodes);
+		}
 		const coverage = this.context.options.anime.mapReleaseFiles?.(
-			item.title,
+			first.item.title,
 			target,
-			plan.manifest.files,
+			first.plan.manifest.files,
 		);
-		return (
-			coverage?.videos.some(
-				(video) =>
-					video.index === plan.videoIndex &&
-					video.episodes.length === 1 &&
-					video.episodes[0] === item.episode &&
-					JSON.stringify([...video.subtitleIndices].sort((a, b) => a - b)) ===
-						JSON.stringify(plan.subtitleIndices),
-			) === true
+		const videos = new Map(
+			coverage?.videos.map((video) => [video.index, video]),
 		);
+		for (const { item, plan } of members) {
+			const video = videos.get(plan.videoIndex);
+			const episodes = episodesByVideo.get(plan.videoIndex);
+			if (
+				!video ||
+				!episodes ||
+				JSON.stringify(item.acceptedTarget?.fileEpisodes ?? [item.episode]) !==
+					JSON.stringify(video.episodes) ||
+				JSON.stringify(video.episodes.toSorted((a, b) => a - b)) !==
+					JSON.stringify(episodes.toSorted((a, b) => a - b)) ||
+				JSON.stringify(video.subtitleIndices.toSorted((a, b) => a - b)) !==
+					JSON.stringify(plan.subtitleIndices)
+			)
+				return false;
+		}
+		return true;
 	}
 }

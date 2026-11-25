@@ -5,6 +5,7 @@ import { sameManifest } from "../domain/file-selection.js";
 import type {
 	DownloadIntent,
 	EpisodeFilePlan,
+	FileSelectionReservation,
 	ManagedFileSelection,
 	PendingFileSelection,
 	PlannedDownloadFile,
@@ -103,45 +104,30 @@ export class FileSelectionRecords
 		value: DownloadIntent,
 		plan: EpisodeFilePlan,
 		expectedRevision: string,
+		additional: readonly FileSelectionReservation[] = [],
 	): "planned" | "busy" | "incompatible" {
+		const reservations = [
+			{ item: value, plan, expectedRevision },
+			...additional,
+		];
 		return this.store.transaction(
 			(store) => {
-				const request = store
-					.select({
-						revision: requests.revision,
-						transferId: claims.transferId,
-						live: claims.live,
-					})
-					.from(requests)
-					.innerJoin(claims, eq(claims.requestId, requests.id))
-					.where(eq(requests.id, value.id))
-					.get();
 				if (
-					!request?.live ||
-					request.revision !== expectedRevision ||
-					request.transferId ||
-					!value.acceptedTarget ||
 					plan.manifest.indexSource !== "client" ||
-					plan.manifest.files.some((file, index) => file.index !== index)
+					plan.manifest.files.some((file, index) => file.index !== index) ||
+					!reservations.every((reservation) =>
+						this.canReserve(store, reservation),
+					) ||
+					additional.some(
+						({ item, plan: other }) =>
+							item.workKey !== value.workKey ||
+							item.destination.revision !== value.destination.revision ||
+							item.directory !== value.directory ||
+							(plan.manifest !== other.manifest &&
+								!sameManifest(plan.manifest, other.manifest)),
+					)
 				)
 					return "incompatible";
-				const declined = store
-					.select({ id: claims.id })
-					.from(claims)
-					.innerJoin(targets, eq(targets.claimId, claims.id))
-					.innerJoin(files, eq(files.id, targets.fileId))
-					.innerJoin(transfers, eq(transfers.id, files.transferId))
-					.where(
-						and(
-							eq(claims.workKey, value.workKey),
-							eq(claims.episode, value.episode),
-							eq(transfers.hash, plan.manifest.hash),
-							eq(files.fileIndex, plan.videoIndex),
-							eq(targets.declined, true),
-						),
-					)
-					.get();
-				if (declined) return "incompatible";
 				const previous = store
 					.select({ transfer: transfers, workKey: claims.workKey })
 					.from(transfers)
@@ -172,7 +158,12 @@ export class FileSelectionRecords
 					if (transfer.pendingSelection) return "busy";
 					if (!transfer.observedSelection) return "incompatible";
 				}
-				const keys = [plan.videoIndex, ...plan.subtitleIndices];
+				const keys = new Set(
+					reservations.flatMap(({ plan }) => [
+						plan.videoIndex,
+						...plan.subtitleIndices,
+					]),
+				);
 				const selected = new Set(
 					transfer?.observedSelection
 						?.filter((file) => file.selected)
@@ -180,8 +171,11 @@ export class FileSelectionRecords
 				);
 				const pending: PendingFileSelection = {
 					requestId: value.id,
+					...(additional.length
+						? { additionalRequestIds: additional.map(({ item }) => item.id) }
+						: {}),
 					kind: transfer ? "expand" : "add",
-					added: keys
+					added: [...keys]
 						.filter((index) => !selected.has(index))
 						.sort((a, b) => a - b),
 					sentAt: null,
@@ -208,24 +202,38 @@ export class FileSelectionRecords
 					})
 					.where(eq(transfers.id, transferId))
 					.run();
-				const video = this.reserveFile(
-					store,
-					transferId,
-					plan,
-					plan.videoIndex,
-					null,
-				);
-				store
-					.insert(targets)
-					.values({
-						fileId: video,
-						claimId: value.id,
-						acceptedTarget: value.acceptedTarget,
-					})
-					.onConflictDoNothing()
-					.run();
-				for (const index of plan.subtitleIndices)
-					this.reserveFile(store, transferId, plan, index, video);
+				const saved = store
+					.select()
+					.from(transfers)
+					.where(eq(transfers.id, transferId))
+					.get();
+				if (!saved) throw new Error("Selective transfer was not saved.");
+				for (const { item, plan } of reservations) {
+					if (item.id !== value.id)
+						writeDownloadRequest(
+							store,
+							{ ...item, hash: plan.manifest.hash },
+							saved,
+						);
+					const video = this.reserveFile(
+						store,
+						transferId,
+						plan,
+						plan.videoIndex,
+						null,
+					);
+					store
+						.insert(targets)
+						.values({
+							fileId: video,
+							claimId: item.id,
+							acceptedTarget: item.acceptedTarget,
+						})
+						.onConflictDoNothing()
+						.run();
+					for (const index of plan.subtitleIndices)
+						this.reserveFile(store, transferId, plan, index, video);
+				}
 				return "planned";
 			},
 			{ behavior: "immediate" },
@@ -294,7 +302,10 @@ export class FileSelectionRecords
 						.delete(targets)
 						.where(
 							and(
-								eq(targets.claimId, row.pendingSelection.requestId),
+								inArray(targets.claimId, [
+									row.pendingSelection.requestId,
+									...(row.pendingSelection.additionalRequestIds ?? []),
+								]),
 								inArray(targets.fileId, affected),
 							),
 						)
@@ -330,6 +341,63 @@ export class FileSelectionRecords
 				return true;
 			},
 			{ behavior: "immediate" },
+		);
+	}
+
+	private canReserve(
+		store: Store,
+		{ item, plan, expectedRevision }: FileSelectionReservation,
+	) {
+		const request = store
+			.select({
+				revision: requests.revision,
+				transferId: claims.transferId,
+				live: claims.live,
+			})
+			.from(requests)
+			.innerJoin(claims, eq(claims.requestId, requests.id))
+			.where(eq(requests.id, item.id))
+			.get();
+		if (
+			!request?.live ||
+			request.revision !== expectedRevision ||
+			request.transferId ||
+			!item.acceptedTarget
+		)
+			return false;
+		return !this.declinedFile(
+			item.workKey,
+			item.episode,
+			plan.manifest.hash,
+			plan.videoIndex,
+			store,
+		);
+	}
+
+	declinedFile(
+		workKey: string,
+		episode: number,
+		hash: string,
+		videoIndex: number,
+		store = this.store,
+	) {
+		return Boolean(
+			store
+				.select({ id: claims.id })
+				.from(claims)
+				.innerJoin(targets, eq(targets.claimId, claims.id))
+				.innerJoin(files, eq(files.id, targets.fileId))
+				.innerJoin(transfers, eq(transfers.id, files.transferId))
+				.where(
+					and(
+						eq(claims.workKey, workKey),
+						eq(claims.episode, episode),
+						eq(transfers.hash, hash),
+						eq(files.fileIndex, videoIndex),
+						eq(targets.declined, true),
+					),
+				)
+				.get(),
 		);
 	}
 

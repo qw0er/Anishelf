@@ -25,6 +25,8 @@ export function selectCandidates(input: {
 	subscription: Pick<Subscription, "workKey" | "startEpisode" | "profileId"> &
 		Partial<Subscription>;
 	waitForLevels?: boolean;
+	recordLevelIndex?: boolean;
+	reservedEpisodes?: ReadonlySet<number> | undefined;
 	feed: Pick<SourceSnapshot, "entries">;
 	target: AcquisitionTarget;
 	history?: Candidate[];
@@ -137,6 +139,7 @@ export function selectCandidates(input: {
 			});
 		return {
 			selection: {
+				...(input.recordLevelIndex ? { levelIndex } : {}),
 				profileId: profile?.id ?? subscription.profileId ?? "unavailable",
 				fingerprint,
 				level: profile?.levels[levelIndex]?.name ?? null,
@@ -182,7 +185,8 @@ export function selectCandidates(input: {
 				: null;
 		if (candidate.status !== "selected") continue;
 		if (
-			reserved.has(candidate.episode) &&
+			(input.reservedEpisodes?.has(candidate.episode) ||
+				reserved.has(candidate.episode)) &&
 			reserved.get(candidate.episode) !== candidate.id
 		)
 			candidate.reasons.push("episode_reserved");

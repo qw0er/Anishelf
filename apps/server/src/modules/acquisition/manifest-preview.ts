@@ -21,7 +21,7 @@ import {
 } from "./torrent-clients/public.js";
 
 export interface ManifestPreviewCandidate {
-	publication: SourcePublication;
+	publication: Pick<SourcePublication, "snapshot" | "content">;
 	entry: Readonly<ReleaseEvidence>;
 }
 
@@ -102,6 +102,9 @@ export class ManifestPreview {
 		string,
 		{ code: string; expiresAt: number }
 	>();
+	private selectionCapability:
+		| { generation: string; supported: boolean }
+		| undefined;
 	constructor(
 		private readonly connection: TorrentConnection,
 		private readonly mapFiles: NonNullable<
@@ -111,6 +114,32 @@ export class ManifestPreview {
 		private readonly now = Date.now,
 		private readonly deadlineMs = 8_000,
 	) {}
+
+	async supportsSelection(signal: AbortSignal) {
+		const generation = this.connection.connectionGeneration();
+		const cached = this.selectionCapability;
+		if (cached?.generation === generation) return cached.supported;
+		const bounded = AbortSignal.any([
+			this.shutdown.signal,
+			signal,
+			AbortSignal.timeout(this.deadlineMs),
+		]);
+		try {
+			const supported = await abortable(
+				this.connection.withClient(generation, async (client) =>
+					Boolean(
+						client.enableFiles && (await client.probe(bounded)).selectiveFiles,
+					),
+				),
+				bounded,
+			);
+			if (this.connection.connectionGeneration() !== generation) return false;
+			this.selectionCapability = { generation, supported };
+			return supported;
+		} catch {
+			return false;
+		}
+	}
 
 	async preview(input: {
 		candidates: readonly ManifestPreviewCandidate[];

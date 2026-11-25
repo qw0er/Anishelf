@@ -1,6 +1,6 @@
 # Season packs and selective episode acquisition
 
-Proposed design for S14. Implementation and release assignment are pending.
+Design and acceptance record for [S14](../implemented-requirements.md#selective-season-pack-acquisition-s14).
 
 A subscription or one-off request specifies the episodes the user wants. A release
 offers files that may satisfy some or all of that request. Plan the download from
@@ -9,9 +9,9 @@ individual episodes. A season pack is complete when its distinct regular episode
 cover the known season. The release title, publication date and video count alone
 cannot establish that coverage.
 
-## Where the current flow breaks
+## Pre-implementation behavior
 
-| Stage | Current behavior and consequence |
+| Stage | Previous behavior and consequence |
 | --- | --- |
 | Discovery | The release assessor accepts a single regular episode. A recognizable range can be discarded before inspection. Conversely, the real Frieren S2 release in the corpus with `Batch S02 S2` in its title was accepted as episode 3. [Release assessment](../../apps/server/src/modules/anime/release-assessment/application.ts) · [Release corpus, case `nyaa-2106580-title`](../../apps/server/test/fixtures/anime-releases/corpus.json) |
 | Source choice | Subscription discovery returns the first configured site with an eligible release. One-off discovery searches across sites but filters by the requested episode number in the title. Either path can miss the best pack. [Subscription discovery](../../apps/server/src/modules/acquisition/subscriptions/application/discovery.ts) · [One-off discovery](../../apps/server/src/modules/acquisition/downloads/application/one-off.ts) |
@@ -165,3 +165,19 @@ after reservation, selective transfer and multi-file import work end to end.
 2. After E03 imports, subscribe from episode 1. Verify the planner reuses the task and enables the eleven missing episodes and their subtitles. A simultaneous request for E04 resolves to the same claim.
 3. Restart Anishelf after qBittorrent accepts a selection change but before the local acknowledgement. Verify readback converges to the intended selection and no second transfer appears.
 4. Cause one file to fail import. Verify the other eleven episodes are locally available, the subscription remains incomplete, and the failure is visible in Activity. Repair and retry that file. All twelve episodes must then be available, E03 must retain its original import, and the subscription must complete.
+
+
+The scenario passed on qBittorrent 5.2.3 using locally generated torrent data and
+a simulated local file failure. The test uses the real Web API for metadata preview,
+file priorities, task ownership and readback. It checks episode availability in
+the Catalog before and after import recovery.
+
+To rerun the scenario, configure an isolated qBittorrent 5.2.0 or later instance
+with its Web API enabled and a separate incomplete directory. The qBittorrent
+process must be able to read and write the backend test's temporary directory.
+Set `ANISHELF_TEST_QBITTORRENT_URL`, `ANISHELF_TEST_QBITTORRENT_USERNAME` and
+`ANISHELF_TEST_QBITTORRENT_PASSWORD` before running the test.
+
+```sh
+npm run test --workspace @anishelf/backend -- test/modules/acquisition/downloads/season-pack-live.test.ts
+```

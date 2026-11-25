@@ -87,6 +87,7 @@ export const DownloadActivitySchema = Type.Object({
 			]),
 			transfer: nullableString,
 			progress: nullableNumber,
+			sharedTransfer: Type.Optional(Type.Boolean()),
 			selectedFiles: Type.Optional(
 				Type.Array(
 					Type.Object({

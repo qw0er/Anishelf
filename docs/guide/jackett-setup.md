@@ -17,8 +17,9 @@ connect your own, then select sites in Anishelf.
 | Search support | Site capabilities |
 | Title search | Actual results, no matches, failures or limited coverage for that query |
 
-Diagnostics do not create subscriptions. Discovery uses the saved site order and
-pins the first eligible site; it does not merge releases across sites. Manage site
+Diagnostics can be used before saving a subscription. Initial automatic discovery
+compares useful episode coverage across the configured sites, uses the saved order
+when sites tie and pins one site for future subscription refreshes. Manage site
 credentials, cookies and Jackett's administrator password in Jackett itself.
 
 Omitting the key retains it; changing the API address requires a key. Changing or

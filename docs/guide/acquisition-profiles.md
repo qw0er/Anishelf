@@ -124,6 +124,18 @@ flowchart LR
 | Remaining ties | Newer revision within the same group set, then earlier publication and stable identity |
 | Reservation | Locks the choice; later evidence cannot replace an accepted download |
 
+For season packs, the planner evaluates the profile separately for each mapped
+video and episode. The release title supplies declared attributes, and
+contradictory attributes in a file name can rule out that version. A subtitle
+language declared in the release can satisfy the profile. Embedded tracks are
+verified separately from the torrent file list. A file that covers multiple
+episodes is selectable when all of those episodes are requested and the profile
+level is unlocked for each one.
+
+Within the best unlocked choices, the planner prefers the complete pack for a
+fully missing season, then favors more covered episodes and fewer selected files
+or bytes. An equivalent single is preferred for a one-episode request.
+
 Activity shows profile level, wait threshold or rejection reason. Use Diagnostics
 for evidence and [subscription recovery](watching-automation.md#recovery-and-upgrade)
 for stalled work.

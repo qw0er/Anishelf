@@ -9,6 +9,7 @@ import type {
 	DownloadFileObservation,
 	DownloadIntent,
 	EpisodeFilePlan,
+	FileSelectionReservation,
 	ManagedFileSelection,
 	PendingFileSelection,
 	PlannedDownloadFile,
@@ -38,7 +39,18 @@ export interface DownloadStore {
 		candidateIds: string[];
 	};
 	lockedCandidates(workKey: string): string[];
-	attemptedCandidate(workKey: string, candidateId: string): boolean;
+	attemptedCandidate(
+		workKey: string,
+		candidateId: string,
+		snapshotId?: string,
+	): boolean;
+	declinedFile(
+		workKey: string,
+		episode: number,
+		hash: string,
+		videoIndex: number,
+	): boolean;
+	reservedEpisodes(workKey: string): ReadonlySet<number>;
 	reservedEpisode(workKey: string, episode: number): boolean;
 	episodeIntent(workKey: string, episode: number): DownloadIntent | null;
 	episodeCommand(commandId: string): DownloadIntent | null;
@@ -52,6 +64,7 @@ export interface DownloadStore {
 		hash: string,
 		generation: string,
 	): ManagedFileSelection | null;
+	sharedFileTransfer(id: string): boolean;
 	fileSelection(id: string): ManagedFileSelection | null;
 	episodeFileSelection(
 		requestId: string,
@@ -65,6 +78,7 @@ export interface DownloadStore {
 		value: DownloadIntent,
 		plan: EpisodeFilePlan,
 		expectedRevision: string,
+		additional?: readonly FileSelectionReservation[],
 	): "planned" | "busy" | "incompatible";
 	updateFileSelection(input: {
 		transferId: string;
@@ -95,6 +109,7 @@ export interface SubmissionAdmission {
 		client: TorrentClient,
 		snapshot: TorrentTask[],
 		selection?: EpisodeFilePlan,
+		additional?: readonly { item: DownloadIntent; plan: EpisodeFilePlan }[],
 	): Promise<{ subscriptionRevision: string | null } | null>;
 	/** Synchronous fence after the last remote read. */
 	current?(item: DownloadIntent): boolean;

@@ -393,6 +393,7 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S10 | Automatically subscribe to anime in AniList Watching | Complete | Completed | [Opt-in Watching automation with explicit activation scope](#delivery-notes-s) | 1.0.0 |
 | S11 | Find a suitable release source without entering an RSS URL for each anime | Complete | Completed | [Configured-site discovery with pinned sources](#delivery-notes-s) | 1.0.0 |
 | S12 | Keep manual and automatic subscription management independent | Complete | Completed | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
+| S14 | Download and ingest season packs | Complete | Completed | [Verified coverage and selective file acquisition](#selective-season-pack-acquisition-s14) | Unreleased |
 | WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | [H.264/VP9 preferred with fallback](#delivery-notes-s) | 1.4.1 |
 | WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | 1.4.2 |
 | WI14 | Improve Chinese resource searches using available Chinese titles | Complete | Completed | [Chinese search titles and merged names](#chinese-search-titles-and-merged-names-wi14) | 1.4.2 |
@@ -409,15 +410,31 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 - **S06:** Exclude duplicate releases, available local episodes and already active acquisitions, including across restart.
 - **S07:** Profile levels, persisted waiting, seed-count tie-breaking and skipped reasons; manual selection/dismissal outside the simplified scope.
 - **S08:** Watching controls automatic subscriptions by current list membership; manual subscriptions and submitted transfers/imports remain independent. **Release record:** 1.0.0; 1.0.6 (independent subscriptions).
-- **S09:** **Delivered:** Ordered source discovery. **Remaining:** Searching multiple sources for comparison. **Release record:** 1.0.0 (ordered discovery; partial).
-- **S13:** **Delivered:** Profile-based selection and ranking within the current source. **Remaining:** Cross-source comparison. **Release record:** 1.0.0 (single-source selection; partial).
+- **S09:** **Delivered:** Initial subscription discovery compares verified episode coverage across configured sites. **Remaining:** Continued discovery across sites for subscriptions with a saved source. **Release record:** 1.0.0 (ordered discovery; partial).
+- **S13:** **Delivered:** Profile-based ranking within the current source, with coverage comparison before initial binding. **Remaining:** Combining releases across sites for an existing subscription. **Release record:** 1.0.0 (single-source selection; partial).
 - **S10:** Default-off Watching creation with explicit activation preview, fixed starting scope and recreation exclusions; automatic subscriptions remain group-managed; manual subscriptions take precedence.
-- **S11:** Ordered configured-site discovery with Anime identity assessment, S05 profiles, pinned sources and unresolved states.
+- **S11:** Configured-site discovery with Anime identity assessment, S05 profiles, verified coverage comparison, pinned sources and unresolved states.
 - **S12:** Tracking status changes and automation disable stop automatic acquisition; manual controls remain independent and completed ranges stop source polling.
 
 The completed subscription scope is [archived](history.md#automatic-acquisition-requirements).
 RSS selects candidates automatically without per-release approval; accepted scopes
 enable the download worker.
+
+#### Selective Season Pack Acquisition (S14)
+
+Subscriptions and one-off requests plan from verified torrent file coverage.
+Initial subscription discovery compares configured sites before binding a source.
+The planner applies profile levels per episode and can select an entire season or
+only the missing files and their subtitles. Claims from both entry points share
+one ownership check. Compatible qBittorrent tasks can expand with additional files
+under the current authorization. Activity shows shared tasks and per-file progress.
+Diagnostics reports verified episode coverage and candidate decisions.
+
+The qBittorrent 5.2.3 acceptance scenario verified the E03 selection, expansion to
+the eleven remaining episodes, a concurrent E04 request, restart recovery and
+import retry. See the [design and acceptance scenario](development/season-pack-acquisition.md#end-to-end-acceptance-scenario)
+and the [operator guide](guide/watching-automation.md#selective-season-packs).
+
 #### Merged Keyword Search Results (WI13)
 
 Subscription discovery and single-episode downloads share collection that searches

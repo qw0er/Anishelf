@@ -6,8 +6,8 @@ import type {
 	TorrentTask,
 } from "../../torrent-clients/public.js";
 import { TorrentError } from "../../torrent-clients/public.js";
-import type {
-	DownloadContext,
+import {
+	type DownloadContext,
 	DownloadExecution,
 } from "../application/context.js";
 import {
@@ -23,6 +23,7 @@ import {
 import {
 	DownloadError,
 	type DownloadFileObservation,
+	type DownloadIntent,
 	type ManagedFileSelection,
 } from "../domain/model.js";
 import { resolveTorrent } from "../infrastructure/torrent.js";
@@ -55,6 +56,8 @@ export class SelectedFileTransfers {
 		selection: ManagedFileSelection,
 	): Promise<CompletedDownload | null> {
 		const item = execution.current;
+		if (selection.pending && selection.pending.requestId !== item.id)
+			return null;
 		const generation = item.destination.connectionGeneration;
 		if (generation !== this.context.options.connectionGeneration()) {
 			if (
@@ -80,8 +83,6 @@ export class SelectedFileTransfers {
 			});
 			return null;
 		}
-		if (selection.pending && selection.pending.requestId !== item.id)
-			return null;
 		return this.context.options.withClient(generation, async (client) => {
 			if (!selection.pending)
 				return this.completed(execution, selection, client);
@@ -118,7 +119,7 @@ export class SelectedFileTransfers {
 		if (!pending) return;
 		if (
 			pending.sentAt === null &&
-			!this.admission.current?.(execution.current)
+			!this.authorizedMembers(execution.current, selection)
 		) {
 			this.finish(execution, selection, {
 				code: "acquisition_configuration_changed",
@@ -182,7 +183,7 @@ export class SelectedFileTransfers {
 		const { options } = this.context;
 		const item = execution.current;
 		const episode = options.store.episodeFileSelection(item.id, selection.id);
-		if (!episode || !this.admission.current?.(item)) {
+		if (!episode || !this.authorizedMembers(item, selection)) {
 			this.finish(execution, selection, {
 				code: "acquisition_configuration_changed",
 			});
@@ -215,13 +216,24 @@ export class SelectedFileTransfers {
 				return;
 			}
 		}
+		const additional = this.additionalMembers(selection).flatMap((item) => {
+			const files = options.store.episodeFileSelection(item.id, selection.id);
+			return files
+				? [{ item, plan: { ...files, manifest: selection.manifest } }]
+				: [];
+		});
+		if (additional.length !== (pending.additionalRequestIds?.length ?? 0)) {
+			this.finish(execution, selection, { code: "selection_changed" });
+			return;
+		}
 		const authorized = await this.admission.authorize(
 			execution,
 			client,
 			snapshot,
 			{ ...episode, manifest: selection.manifest },
+			additional,
 		);
-		if (!authorized || !this.admission.current?.(execution.current)) {
+		if (!authorized || !this.authorizedMembers(execution.current, selection)) {
 			this.finish(execution, selection, {
 				code: execution.current.error ?? "acquisition_configuration_changed",
 			});
@@ -236,7 +248,7 @@ export class SelectedFileTransfers {
 			}
 			throw error;
 		}
-		if (!this.admission.current?.(execution.current)) {
+		if (!this.authorizedMembers(execution.current, selection)) {
 			this.finish(execution, selection, {
 				code: "acquisition_configuration_changed",
 			});
@@ -510,6 +522,25 @@ export class SelectedFileTransfers {
 		);
 	}
 
+	private additionalMembers(selection: ManagedFileSelection) {
+		return (selection.pending?.additionalRequestIds ?? []).flatMap((id) => {
+			const item = this.context.options.store.intent(id);
+			return item?.transferId === selection.id ? [item] : [];
+		});
+	}
+
+	private authorizedMembers(
+		item: DownloadIntent,
+		selection: ManagedFileSelection,
+	) {
+		const additional = this.additionalMembers(selection);
+		return (
+			additional.length ===
+				(selection.pending?.additionalRequestIds?.length ?? 0) &&
+			[item, ...additional].every((member) => this.admission.current?.(member))
+		);
+	}
+
 	private defer(execution: DownloadExecution) {
 		execution.save({
 			...execution.current,
@@ -528,6 +559,12 @@ export class SelectedFileTransfers {
 		options.store.transaction(() => {
 			if (!this.current(execution, selection)) return;
 			const item = execution.current;
+			const members = [
+				execution,
+				...this.additionalMembers(selection).map(
+					(member) => new DownloadExecution(this.context, member),
+				),
+			];
 			if ("remote" in result) {
 				const observed = result.remote.observed;
 				if (
@@ -542,13 +579,14 @@ export class SelectedFileTransfers {
 					})
 				)
 					return;
-				execution.save({
-					...item,
-					state: "bound",
-					error: null,
-					observedAt: this.context.now(),
-					nextAttemptAt: 0,
-				});
+				for (const member of members)
+					member.save({
+						...member.current,
+						state: "bound",
+						error: null,
+						observedAt: this.context.now(),
+						nextAttemptAt: 0,
+					});
 			} else {
 				const pending = selection.pending;
 				const release =
@@ -567,17 +605,20 @@ export class SelectedFileTransfers {
 					})
 				)
 					return;
-				execution.save({
-					...item,
-					state: result.code === "externally_removed" ? "missing" : "blocked",
-					error: result.code,
-				});
+				for (const member of members)
+					member.save({
+						...member.current,
+						state: result.code === "externally_removed" ? "missing" : "blocked",
+						error: result.code,
+					});
 			}
 			options.logger.info(
 				{
 					event: "acquisition.file_selection_reconciled",
 					intentId: item.id,
 					transferId: selection.id,
+					episodes: members.map(({ current }) => current.episode),
+					reused: selection.pending?.kind === "expand",
 					code: "code" in result ? result.code : null,
 				},
 				"Reconciled torrent file selection.",

@@ -11,6 +11,7 @@ import type { TorrentReader } from "../../../../../src/modules/acquisition/downl
 import type { ManifestPreview } from "../../../../../src/modules/acquisition/manifest-preview.js";
 import { SourceContent } from "../../../../../src/modules/acquisition/sources/application/content.js";
 import { createSourcesModule } from "../../../../../src/modules/acquisition/sources/create.js";
+import { SubscriptionsApplication } from "../../../../../src/modules/acquisition/subscriptions/application/application.js";
 import type { TorrentClient } from "../../../../../src/modules/acquisition/torrent-clients/public.js";
 import type {
 	AcquisitionTarget,
@@ -124,7 +125,10 @@ export async function fixture(
 				: [{ scopeId: "root", name: "Anime" }],
 		),
 		validate: vi.fn(async () => {}),
-		inspect: vi.fn(async () => ({ sizeBytes: 100, sourceVersion: "v1" })),
+		inspect: vi.fn(async (_scope: string, _path: string) => ({
+			sizeBytes: 100,
+			sourceVersion: "v1",
+		})),
 		inspectSubtitle: vi.fn(async (_scope: string, _path: string) => ({
 			sizeBytes: 100,
 			sourceVersion: "v1",
@@ -246,6 +250,12 @@ export async function fixture(
 				candidates: (key) => db.acquisition.candidates(key),
 				release: (feedId, entryId) => {
 					const feed = db.acquisition.feed(feedId);
+					if (!feed)
+						return (
+							sources.api
+								.snapshot(feedId)
+								?.entries.find((entry) => entry.id === entryId) ?? null
+						);
 					const entry = feed?.entries.find((entry) => entry.id === entryId);
 					if (!feed || !entry) return null;
 					sourceDownloads().publish({ ...feed, label: "feed" }, null);
@@ -271,11 +281,11 @@ export async function fixture(
 		return worker;
 	}
 	let worker = create();
-	async function configure(scopeId = "root") {
+	async function configure(scopeId = "root", path = fixturePath("downloads")) {
 		const saved = await worker.saveDestination({
 			revision: db.acquisitionDownloads.destination()?.revision ?? null,
 			scopeId,
-			path: fixturePath("downloads"),
+			path,
 		});
 		await worker.validate(saved.revision);
 		return saved;
@@ -309,6 +319,30 @@ export async function fixture(
 		},
 		get worker() {
 			return worker;
+		},
+		subscriptions: (
+			preview: Pick<ManifestPreview, "preview" | "supportsSelection">,
+		) => {
+			const subscriptions = new SubscriptionsApplication({
+				store: db.acquisition,
+				sources: sources.api,
+				anime,
+				manifestPreview: preview,
+				downloads: async (signal) =>
+					(await client.tasks(signal)).map(({ hash }) => hash),
+				reservedEpisodes: (workKey) =>
+					db.acquisitionDownloads.reservedEpisodes(workKey),
+				lockedCandidates: (workKey) =>
+					db.acquisitionDownloads.lockedCandidates(workKey),
+				reusableSelection: (workKey, hash) =>
+					db.acquisitionDownloads.ownedFileSelection(hash, generation)
+						?.workKey === workKey,
+				logger,
+				now: () => now,
+				defaultProfileId: () => defaultProfileId,
+			});
+			cleanup.push(() => subscriptions.close());
+			return subscriptions;
 		},
 		state,
 		setDefaultProfileId: (value: string) => {

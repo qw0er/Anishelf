@@ -181,15 +181,14 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 
 | ID | Item | Delivery | Status | Details | First release |
 | --- | --- | --- | --- | --- | --- |
-| S09 | Search multiple sources for the same acquisition | Partial | Optional | [Ordered discovery supported; multi-source comparison optional](#delivery-notes-s) | 1.0.0 |
-| S13 | Rank releases across sources | Partial | Optional | [Current-source ranking supported; cross-source ranking optional](#delivery-notes-s) | 1.0.0 |
-| S14 | Download and ingest season packs | Not started | Later | [Episode coverage, selective downloads and implementation plan](development/season-pack-acquisition.md) | — |
+| S09 | Search multiple sources for the same acquisition | Partial | Optional | [Initial comparison and pinned sources](#delivery-notes-s) | 1.0.0 |
+| S13 | Rank releases across sources | Partial | Optional | [Initial coverage comparison and ranking within the selected site](#delivery-notes-s) | 1.0.0 |
 | S15 | Upgrade an existing episode to a preferred release | Not started | Optional | — | — |
 
 #### Delivery Notes (S)
 
-- **S09:** **Delivered:** Ordered source discovery. **Remaining:** Searching multiple sources for comparison. **Release record:** 1.0.0 (ordered discovery; partial).
-- **S13:** **Delivered:** Profile-based selection and ranking within the current source. **Remaining:** Cross-source comparison. **Release record:** 1.0.0 (single-source selection; partial).
+- **S09:** **Delivered:** Initial subscription discovery compares verified episode coverage across configured sites. **Remaining:** Continued discovery across sites for subscriptions with a saved source. **Release record:** 1.0.0 (ordered discovery; partial).
+- **S13:** **Delivered:** Profile-based ranking within the current source, with coverage comparison before initial binding. **Remaining:** Combining releases across sites for an existing subscription. **Release record:** 1.0.0 (single-source selection; partial).
 
 ### 2.6 Downloads and Automatic Ingestion
 

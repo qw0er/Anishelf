@@ -9,19 +9,10 @@ import {
 	TorrentError,
 	type TorrentManifest,
 } from "../../../../src/modules/acquisition/torrent-clients/public.js";
-import { AnimeCatalogApplication } from "../../../../src/modules/anime/anime-catalog/application/catalog.js";
-import type { CatalogMetadata } from "../../../../src/modules/anime/anime-catalog/public.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
-import { AcquisitionIngestion } from "../../../../src/modules/anime/release-assessment/ingestion.js";
-import type {
-	ResourceAccessApi,
-	SourceIdentity,
-} from "../../../../src/modules/resources/public.js";
 import {
 	frierenSeasonPackFixture,
 	loadReleaseCorpus,
 } from "../../../support/anime-release-corpus.js";
-import { fixtureIdentities } from "../../../support/metadata-identities.js";
 import {
 	cleanup,
 	fixture,
@@ -31,6 +22,7 @@ import {
 	logger,
 	setupTestLifecycle,
 } from "./support/acquisition-downloads-fixture.js";
+import { packCatalog } from "./support/season-pack-catalog.js";
 
 setupTestLifecycle();
 afterEach(() => vi.restoreAllMocks());
@@ -160,6 +152,7 @@ async function setup(
 	};
 	return {
 		f,
+		preview,
 		target,
 		progress,
 		priorities,
@@ -208,6 +201,115 @@ test("requests E03 then extends its completed task for E04 and their respective 
 	expect(item(3)).toMatchObject({ state: "available" });
 	expect(item(4)).toMatchObject({ state: "available" });
 	expect(f.ingestion.ingest).toHaveBeenCalledTimes(2);
+});
+
+test("a subscription reuses E03 and reserves missing episodes before a concurrent one-off", async () => {
+	const {
+		f,
+		preview,
+		target,
+		request,
+		item,
+		selection,
+		priorities,
+		enable,
+		complete,
+		receiveExpansion,
+	} = await setup(
+		[
+			"01.mkv",
+			"01.zh.ass",
+			"02.mkv",
+			"02.zh.ass",
+			"03.mkv",
+			"03.zh.ass",
+			"04.mkv",
+			"04.zh.ass",
+			"NCOP.mkv",
+		],
+		4,
+	);
+	await request(3);
+	await f.worker.tick();
+	expect(priorities).toEqual([0, 0, 0, 0, 1, 1, 0, 0, 0]);
+	await complete(4, 5);
+	expect(item(3)?.state).toBe("available");
+	f.anime.target.mockResolvedValue({ ...target, availableEpisodes: [3] });
+	const subscriptions = f.subscriptions(preview);
+	const saved = await subscriptions.save({
+		workKey: key,
+		revision: null,
+		source: {
+			kind: "search",
+			providerId: "first",
+			titles: target.searchTitles,
+			connectionRevision: f.sources.connector.settings().generation,
+		},
+		startEpisode: 1,
+		target: null,
+	});
+	await f.authorize();
+	const revision = saved.subscription?.revision;
+	if (!revision) throw new Error("Subscription was not saved.");
+	await subscriptions.refresh(key, revision);
+	expect(
+		f.db.acquisition
+			.candidates(key)
+			.filter(({ status }) => status === "selected"),
+	).toHaveLength(0);
+	f.advance();
+	await subscriptions.refresh(key, revision);
+	expect(
+		f.db.acquisition
+			.candidates(key)
+			.filter(({ status }) => status === "selected")
+			.map(({ episode }) => episode)
+			.sort(),
+	).toEqual([1, 2, 4]);
+
+	let joined: Awaited<ReturnType<typeof request>> | undefined;
+	enable.mockImplementationOnce(async (...args) => {
+		joined = await request(4);
+		await receiveExpansion(...args);
+		throw new TorrentError("timeout", "unknown");
+	});
+	await f.worker.tick();
+	expect(joined?.existing).toBe(true);
+	expect(joined?.intentId).toBe(item(4)?.id);
+	expect(selection()?.pending?.additionalRequestIds).toHaveLength(2);
+	expect(priorities).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 0]);
+
+	await f.restart();
+	f.advance();
+	await f.worker.tick();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(enable).toHaveBeenCalledTimes(1);
+	expect([1, 2, 4].map((episode) => item(episode)?.state)).toEqual([
+		"bound",
+		"bound",
+		"bound",
+	]);
+	expect(item(4)?.sharedTransfer).toBe(true);
+	expect(selection()?.pending).toBeNull();
+
+	const inspect = f.resources.inspect.getMockImplementation();
+	f.resources.inspect.mockRejectedValueOnce(new Error("broken local file"));
+	await complete(0, 1, 2, 3, 6, 7);
+	const failed = f.worker
+		.activity(key)
+		.items.find(({ ingestion }) => ingestion === "failed");
+	expect(failed).toBeDefined();
+	expect(
+		f.worker.activity(key).items.filter(({ state }) => state === "available"),
+	).toHaveLength(3);
+	if (!failed || !inspect) throw new Error("Expected one repairable file.");
+	f.resources.inspect.mockImplementation(inspect);
+	f.worker.retry(failed.id, failed.revision, randomUUID(), "import");
+	await f.worker.tick();
+	expect(
+		f.worker.activity(key).items.every(({ state }) => state === "available"),
+	).toBe(true);
+	expect(f.ingestion.ingest).toHaveBeenCalledTimes(4);
 });
 
 test.each(["add", "expand"] as const)(
@@ -570,142 +672,59 @@ test("an explicit Catalog rejection releases the claim and skips the rejected pa
 	expect(f.add).toHaveBeenCalledTimes(1);
 });
 
-async function packCatalog(
-	f: Awaited<ReturnType<typeof setup>>["f"],
-	target: Awaited<ReturnType<typeof setup>>["target"],
-) {
-	const scopeId = "r".repeat(43);
-	f.resources.roots.mockResolvedValue([{ scopeId, name: "Anime" }]);
-	await f.configure(scopeId);
-	const identities = new Map<string, SourceIdentity>();
-	const identityFor = (path: string) => {
-		const identity = {
-			fileId: path,
-			relativePath: path,
-			scopeId,
-			sourceVersion: "v1",
-		};
-		identities.set(identity.fileId, identity);
-		return identity;
-	};
-	f.resources.refresh.mockImplementation(async (_scope, path) =>
-		identityFor(path),
-	);
-	const resolveSource: ResourceAccessApi["resolveSource"] = async (id) => {
-		const identity = identities.get(id);
-		if (!identity) throw new Error("Missing fixture source.");
-		return {
-			identity,
-			file: {
-				id,
-				name: id,
-				kind: "file",
-				parentId: "directory",
-				sizeBytes: 100,
-				modifiedAt: new Date(0).toISOString(),
-				mimeType: "video/x-matroska",
-			},
-			accessRevision: 0,
-		};
-	};
-	const sources: ResourceAccessApi = {
-		hasSnapshot: true,
-		accessRevision: 0,
-		getScope: async () => ({ ids: [scopeId], revision: 0 }),
-		resolveSource,
-		revalidateSource: ({ identity }) => resolveSource(identity.fileId),
-		assertAccessRevision: vi.fn(),
-		filePath: vi.fn(),
-		getFile: vi.fn(),
-		openMedia: vi.fn(),
-		openResources: vi.fn(),
-	};
-	const reference = {
-		provider: "metadata",
-		mediaType: "anime",
-		id: target.work.reference.id,
-	} as const;
-	const data = {
-		...target.work,
-		reference,
-		provider: "metadata",
-		unavailableFields: [],
-		titles: [{ value: "Frieren", kind: "romaji" as const, language: "en" }],
-		status: "FINISHED" as const,
-		nextAiringEpisode: null,
-		airingSeason: null,
-		coverUrl: null,
-		bannerUrl: null,
-		description: null,
-		startDate: null,
-		endDate: null,
-		durationMinutes: null,
-		country: null,
-		source: null,
-		genres: [],
-		tags: [],
-		studios: [],
-		averageScore: null,
-		siteUrl: null,
-		providerUpdatedAt: null,
-		streamingEpisodes: [],
-		episodeCatalog: "unavailable" as const,
-	};
-	const snapshot = {
-		snapshotId: target.work.snapshotId,
-		fetchedAt: Date.now(),
-		stale: false,
-		refreshing: false,
-		refreshError: null,
-		data,
-	};
-	f.db.metadata.save({
-		id: snapshot.snapshotId,
-		key: `metadata:anime:${reference.id}`,
-		kind: "detail",
-		data,
-		fetchedAt: snapshot.fetchedAt,
-		expiresAt: snapshot.fetchedAt + 600000,
-		accessedAt: snapshot.fetchedAt,
-		failure: null,
+test("an indivisible video commits all of its authorized episodes in one Catalog operation", async () => {
+	const { f, target, preview, priorities, complete, item, selection } =
+		await setup(["S02E03-E04.mkv", "S02E03-E04.zh.ass"], 4);
+	const { connect, identityFor } = await packCatalog(f, target);
+	const catalog = connect();
+	const subscriptions = f.subscriptions(preview);
+	const saved = await subscriptions.save({
+		workKey: key,
+		revision: null,
+		startEpisode: 3,
+		target: null,
+		source: {
+			kind: "search",
+			providerId: "first",
+			titles: target.searchTitles,
+			connectionRevision: f.sources.connector.settings().generation,
+		},
 	});
-	const metadata: CatalogMetadata = {
-		current: () => snapshot,
-		get: async () => snapshot,
-		snapshot: () => ({ kind: "detail", ...snapshot }),
-		retain: (id, owner) => f.db.metadata.retain(id, owner),
-		release: (id, owner) => f.db.metadata.release(id, owner),
-		snapshotArtwork: async () => ({
-			status: "missing",
-			id: null,
-			failure: null,
-		}),
-		readArtwork: vi.fn(),
-	};
-	const parser = new AnitomyIdentificationParser();
-	function connect() {
-		const catalog = new AnimeCatalogApplication({
-			store: f.db.catalog,
-			metadata,
-			sources,
-			logger,
-		});
-		cleanup.push(async () => catalog.close());
-		const ingestion = new AcquisitionIngestion(
-			metadata,
-			fixtureIdentities(),
-			parser,
-			catalog,
-			sources,
-		);
-		f.ingestion.ingest.mockImplementation(ingestion.ingest.bind(ingestion));
-		f.ingestion.reviewAcquisition.mockImplementation(
-			ingestion.reviewAcquisition.bind(ingestion),
-		);
-		return catalog;
+	await f.authorize();
+	const revision = saved.subscription?.revision;
+	if (!revision) throw new Error("Missing subscription");
+	await subscriptions.refresh(key, revision);
+	f.advance();
+	await subscriptions.refresh(key, revision);
+	await f.worker.tick();
+	expect(priorities).toEqual([1, 1]);
+	const transfer = selection();
+	if (!transfer) throw new Error("Missing selected video.");
+	await complete(0, 1);
+	await f.worker.tick();
+	expect([item(3), item(4)]).toMatchObject([
+		{ state: "available", ingestion: "available", error: null },
+		{ state: "available", ingestion: "available", error: null },
+	]);
+	const identity = identityFor(`${transfer.directory}/Season 2/S02E03-E04.mkv`);
+	expect(
+		(await catalog.source(identity.fileId)).associations
+			.map(({ number }) => number)
+			.sort(),
+	).toEqual(["3", "4"]);
+	const raw = new Database(join(f.dir, "anishelf.sqlite"), { readonly: true });
+	try {
+		expect(
+			raw
+				.prepare(
+					"SELECT count(*) AS receipts FROM catalog_operations WHERE key LIKE 'acquisition:%'",
+				)
+				.get(),
+		).toEqual({ receipts: 1 });
+	} finally {
+		raw.close();
 	}
-	return { connect, identityFor, parser, reference };
-}
+});
 
 test("one pack imports independently and survives receipt replay, a broken sidecar and protected Review", async () => {
 	const episodes = Array.from({ length: 12 }, (_, index) => index + 1);

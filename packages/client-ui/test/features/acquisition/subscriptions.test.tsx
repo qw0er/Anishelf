@@ -432,6 +432,14 @@ test("source attempts appear only in lazy diagnostics with outcomes and coverage
 					limited: true,
 				},
 				{
+					providerId: "site-pack",
+					outcome: "matched",
+					reasons: [],
+					code: null,
+					limited: false,
+					episodes: [3, 4],
+				},
+				{
 					providerId: "site-offline",
 					outcome: "unavailable",
 					reasons: [],
@@ -450,6 +458,7 @@ test("source attempts appear only in lazy diagnostics with outcomes and coverage
 	await screen.findByText(/site-empty · No matching releases/);
 	expect(screen.getByText(/site-offline · Site unavailable/)).toBeTruthy();
 	expect(screen.getByText(/Limited search coverage/)).toBeTruthy();
+	expect(screen.getByText("Covers episodes 3, 4")).toBeTruthy();
 });
 
 test("a discovery outage offers a direct check instead of generic configuration guidance", async () => {

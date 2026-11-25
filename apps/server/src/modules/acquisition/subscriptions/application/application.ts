@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import { workReference } from "@anishelf/contracts/references";
 import { DomainError } from "../../../../shared/errors.js";
 import type { AcquisitionTarget } from "../../../anime/public.js";
-import type { SourceSnapshot } from "../../sources/public.js";
+import type {
+	SourcePublication,
+	SourceSnapshot,
+} from "../../sources/public.js";
 import type {
 	Candidate,
 	SaveSubscriptionInput,
@@ -15,10 +18,10 @@ import {
 	builtinAcquisitionProfiles,
 	defaultAcquisitionProfileId,
 } from "../domain/profiles.js";
-import { selectCandidates } from "../domain/selection.js";
 import type { SubscriptionsApi, SubscriptionViewOptions } from "../public.js";
 import { SubscriptionCompletion } from "./completion.js";
 import { SubscriptionsContext, type SubscriptionsOptions } from "./context.js";
+import { inspectCoverage, shortlistPacks } from "./coverage.js";
 import { SubscriptionDiscovery } from "./discovery.js";
 import { PendingSubscriptions } from "./pending.js";
 import { maximumSubscriptions, saveSubscription } from "./save.js";
@@ -240,9 +243,10 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 
 	private async evaluateCandidates(
 		subscription: Subscription,
-		feed: SourceSnapshot,
+		publication: Pick<SourcePublication, "snapshot" | "content">,
 		target: AcquisitionTarget,
 	): Promise<Candidate[]> {
+		const feed = publication.snapshot;
 		let hashes: string[] | null = null,
 			downloadsUnknown = false;
 		try {
@@ -259,24 +263,32 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			subscription.createdBy === "watching"
 				? this.profiles().selectedProfileId
 				: (subscription.profileId ?? this.profiles().selectedProfileId);
-		const candidates = selectCandidates({
-			history,
-			now: this.context.now(),
-			locked: new Set(
-				this.options.lockedCandidates?.(subscription.workKey) ?? [],
-			),
-			profile:
-				(this.options.profiles ?? builtinAcquisitionProfiles).find(
-					(profile) => profile.id === profileId,
-				) ?? null,
-			subscription,
-			feed,
-			target,
-			downloadsUnknown,
-			active: new Set(hashes ?? []),
-			assessReleaseTitle: (title, work) =>
-				this.options.anime.assessReleaseTitle(title, work),
-		});
+		const previous = new Map(
+			history.map((candidate) => [candidate.id, candidate]),
+		);
+		const candidates = await inspectCoverage(
+			this.context,
+			{
+				history,
+				reservedEpisodes: this.options.reservedEpisodes?.(subscription.workKey),
+				now: this.context.now(),
+				locked: new Set(
+					this.options.lockedCandidates?.(subscription.workKey) ?? [],
+				),
+				profile:
+					(this.options.profiles ?? builtinAcquisitionProfiles).find(
+						(profile) => profile.id === profileId,
+					) ?? null,
+				subscription,
+				feed,
+				target,
+				downloadsUnknown,
+				active: new Set(hashes ?? []),
+				assessReleaseTitle: (title, work) =>
+					this.options.anime.assessReleaseTitle(title, work),
+			},
+			shortlistPacks(this.context, publication, target),
+		);
 		for (const candidate of candidates) {
 			if (
 				candidate.selection &&
@@ -286,7 +298,7 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			)
 				candidate.selection.policyRevision =
 					this.context.profileScope(subscription);
-			const prior = history.find((other) => other.id === candidate.id);
+			const prior = previous.get(candidate.id);
 			if (JSON.stringify(prior) !== JSON.stringify(candidate))
 				this.options.logger.info(
 					{
@@ -296,7 +308,11 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 						episode: candidate.episode,
 						status: candidate.status,
 						reasons: candidate.reasons,
-						...candidate.selection,
+						profileId: candidate.selection?.profileId,
+						level: candidate.selection?.level,
+						eligibleAt: candidate.selection?.eligibleAt,
+						videoIndex: candidate.selection?.file?.videoIndex,
+						fileEpisodes: candidate.selection?.file?.episodes,
 					},
 					"Release selection evaluated.",
 				);
@@ -329,7 +345,9 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 				).find(
 					(profile) =>
 						profile.id ===
-						(subscription?.profileId ?? this.profiles().selectedProfileId),
+						(subscription?.createdBy === "watching"
+							? this.profiles().selectedProfileId
+							: (subscription?.profileId ?? this.profiles().selectedProfileId)),
 				);
 				const locked = new Set(this.options.lockedCandidates?.(workKey) ?? []);
 				return this.options.store.candidates(workKey).map((candidate) =>
@@ -416,7 +434,20 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					sub.workKey,
 					this.context.signal,
 				);
-				const updated = await this.evaluateCandidates(sub, feed, target);
+				const { sources } = this.options;
+				const updated = await this.evaluateCandidates(
+					sub,
+					{
+						snapshot: feed,
+						content: {
+							readContent: sources.readContent,
+							isContentCurrent: (reference) =>
+								sources.snapshot(sub.sourceInput ?? feed.id)?.revision ===
+									feed.revision && sources.isContentCurrent(reference),
+						},
+					},
+					target,
+				);
 				const current = this.options.store.subscription(sub.workKey);
 				if (
 					!current ||

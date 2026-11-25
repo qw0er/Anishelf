@@ -40,7 +40,11 @@ export class DownloadReconciliation {
 			});
 			return;
 		}
-		if (item.state === "pending" && item.origin === "subscription") {
+		if (
+			item.state === "pending" &&
+			item.origin === "subscription" &&
+			!this.isSelective(item)
+		) {
 			const subscription = this.context.options.selection.subscription(
 				item.workKey,
 			);

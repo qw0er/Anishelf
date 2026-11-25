@@ -24,7 +24,9 @@ export type SubscriptionsOptions = {
 	store: SubscriptionStore;
 	sources: SourcesApi;
 	anime: ReleaseAssessmentApi;
-	manifestPreview?: Pick<ManifestPreview, "preview">;
+	manifestPreview?: Pick<ManifestPreview, "preview" | "supportsSelection">;
+	reservedEpisodes?: (workKey: string) => ReadonlySet<number>;
+	reusableSelection?: (workKey: string, hash: string) => boolean;
 	downloads: (signal: AbortSignal) => Promise<string[] | null>;
 	logger: Logger;
 	now?: () => number;

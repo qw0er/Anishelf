@@ -151,6 +151,7 @@ test("manifest activity shows both selected files and opens the affected Review 
 		error: "association_requires_review",
 		progress: 1,
 		reviewId: "review-file",
+		sharedTransfer: true,
 		selectedFiles: [
 			{ path: "Season 2/03.mkv", role: "video", progress: 1 },
 			{ path: "Season 2/03.zh.ass", role: "subtitle", progress: 1 },
@@ -158,6 +159,7 @@ test("manifest activity shows both selected files and opens the affected Review 
 	});
 	await screen.findByText("Season 2/03.mkv");
 	expect(screen.getByText("Season 2/03.zh.ass")).toBeTruthy();
+	expect(screen.getByText("Shared torrent task")).toBeTruthy();
 	expect(
 		screen.getByRole("link", { name: /review/i }).getAttribute("href"),
 	).toBe("/review?item=review-file");

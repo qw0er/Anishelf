@@ -1,5 +1,9 @@
 import type { AcquisitionTarget } from "../../../anime/public.js";
-import { SourceError, type SourceSnapshot } from "../../sources/public.js";
+import {
+	SourceError,
+	type SourcePublication,
+	type SourceSnapshot,
+} from "../../sources/public.js";
 import type { Candidate, Subscription } from "../domain/model.js";
 import type { SubscriptionsContext } from "./context.js";
 export class SubscriptionWorker {
@@ -9,7 +13,7 @@ export class SubscriptionWorker {
 		private readonly context: SubscriptionsContext,
 		private readonly evaluateCandidates: (
 			subscription: Subscription,
-			feed: SourceSnapshot,
+			publication: SourcePublication,
 			target: AcquisitionTarget,
 		) => Promise<Candidate[]>,
 	) {}
@@ -86,7 +90,7 @@ export class SubscriptionWorker {
 					);
 					const candidates = await this.evaluateCandidates(
 						subscription,
-						updated,
+						publication,
 						target,
 					);
 					results.push({

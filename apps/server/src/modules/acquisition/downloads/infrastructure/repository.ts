@@ -43,6 +43,7 @@ const terminalStates: DownloadIntent["state"][] = [
 ];
 
 export class DownloadRepository implements DownloadStore {
+	readonly declinedFile: DownloadStore["declinedFile"];
 	readonly fileSelection: DownloadStore["fileSelection"];
 	readonly ownedFileSelection: DownloadStore["ownedFileSelection"];
 	readonly episodeFileSelection: DownloadStore["episodeFileSelection"];
@@ -50,6 +51,7 @@ export class DownloadRepository implements DownloadStore {
 	readonly updateFileSelection: DownloadStore["updateFileSelection"];
 	constructor(private readonly store: Store) {
 		const selections = new FileSelectionRecords(store);
+		this.declinedFile = selections.declinedFile.bind(selections);
 		this.fileSelection = selections.fileSelection.bind(selections);
 		this.ownedFileSelection = selections.ownedFileSelection.bind(selections);
 		this.episodeFileSelection =
@@ -122,6 +124,17 @@ export class DownloadRepository implements DownloadStore {
 			.map((row) => row.id);
 		return { items, ...summary, candidateIds };
 	}
+	sharedFileTransfer(id: string) {
+		return (
+			this.store
+				.select({ id: claims.id })
+				.from(claims)
+				.where(eq(claims.transferId, id))
+				.limit(2)
+				.all().length > 1
+		);
+	}
+
 	lockedCandidates(workKey: string) {
 		return this.store
 			.select({ id: requests.candidateId })
@@ -132,20 +145,30 @@ export class DownloadRepository implements DownloadStore {
 			.all()
 			.map((row) => row.id);
 	}
-	attemptedCandidate(workKey: string, candidateId: string) {
-		return Boolean(
-			this.store
-				.select({ id: requests.id })
-				.from(claims)
-				.innerJoin(requests, eq(claims.requestId, requests.id))
-				.where(
-					and(
-						eq(claims.workKey, workKey),
-						eq(requests.candidateId, candidateId),
-					),
-				)
-				.limit(1)
-				.get(),
+	attemptedCandidate(
+		workKey: string,
+		candidateId: string,
+		snapshotId?: string,
+	) {
+		const history = this.store
+			.select({ error: requests.error, target: claims.acceptedTarget })
+			.from(claims)
+			.innerJoin(requests, eq(claims.requestId, requests.id))
+			.where(
+				and(eq(claims.workKey, workKey), eq(requests.candidateId, candidateId)),
+			)
+			.all();
+		return history.some(
+			({ error, target }) =>
+				!snapshotId ||
+				(target?.snapshotId === snapshotId &&
+					![
+						"acquisition_configuration_changed",
+						"selection_changed",
+						"source_changed",
+						"already_available",
+						"destination_changed",
+					].includes(error ?? "")),
 		);
 	}
 	episodeIntent(workKey: string, episode: number) {
@@ -159,6 +182,16 @@ export class DownloadRepository implements DownloadStore {
 			)
 			.get();
 		return row ? readDownloadRequest(row) : null;
+	}
+	reservedEpisodes(workKey: string) {
+		return new Set(
+			this.store
+				.select({ episode: claims.episode })
+				.from(claims)
+				.where(and(eq(claims.workKey, workKey), eq(claims.live, true)))
+				.all()
+				.map(({ episode }) => episode),
+		);
 	}
 	reservedEpisode(workKey: string, episode: number) {
 		return Boolean(

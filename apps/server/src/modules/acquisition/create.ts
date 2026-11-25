@@ -106,6 +106,21 @@ export async function createAcquisitionModule(options: {
 		lockedCandidates: options.downloadStore.lockedCandidates.bind(
 			options.downloadStore,
 		),
+		reservedEpisodes: options.downloadStore.reservedEpisodes.bind(
+			options.downloadStore,
+		),
+		reusableSelection: (workKey, hash) => {
+			const destination = options.downloadStore.destination();
+			const transfer = options.downloadStore.ownedFileSelection(
+				hash,
+				torrentClients.api.connectionGeneration(),
+			);
+			return Boolean(
+				destination &&
+					transfer?.workKey === workKey &&
+					transfer.destination.revision === destination.revision,
+			);
+		},
 		downloadTarget: () => {
 			const destination = options.downloadStore.destination();
 			return destination

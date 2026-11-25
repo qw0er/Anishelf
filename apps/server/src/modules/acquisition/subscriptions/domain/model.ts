@@ -1,4 +1,5 @@
 import type { SourceInput } from "../../sources/public.js";
+import type { TorrentManifest } from "../../torrent-clients/public.js";
 
 export interface Subscription {
 	schedule?: import("./airing-schedule.js").AiringSchedule | null;
@@ -34,6 +35,19 @@ export interface Subscription {
 export interface Candidate {
 	selection?: {
 		policyRevision?: string;
+		levelIndex?: number;
+		order?: number;
+		file?: {
+			hash: string;
+			reference: string;
+			videoIndex: number;
+			subtitleIndices: number[];
+			episodes: number[];
+			path: string;
+			sizeBytes: number;
+			complete: boolean;
+			manifest?: TorrentManifest;
+		};
 		profileId: string;
 		fingerprint: string;
 		level: string | null;
@@ -66,7 +80,9 @@ export interface SubscriptionView {
 				error: string | null;
 		  })
 		| null;
-	candidates: Candidate[];
+	candidates: (Candidate & {
+		fileCoverage?: { path: string; episodes: number[] };
+	})[];
 	total: number;
 	page: number;
 }
@@ -107,6 +123,7 @@ export interface SubscriptionSearchResult {
 		code: string | null;
 		retryAt?: number;
 		limited: boolean;
+		episodes?: number[];
 	}[];
 	releases: {
 		id: string;

@@ -36,6 +36,12 @@ const AcquisitionCandidateSchema = Type.Object({
 			seeders: nullableNumber,
 		}),
 	),
+	fileCoverage: Type.Optional(
+		Type.Object({
+			path: Type.String(),
+			episodes: Type.Array(Type.Integer()),
+		}),
+	),
 	workKey,
 	entryId: Type.String(),
 	title: Type.String(),
@@ -48,6 +54,7 @@ const AcquisitionCandidateSchema = Type.Object({
 });
 const DiscoveryAttemptSchema = Type.Object({
 	providerId: Type.String(),
+	episodes: Type.Optional(Type.Array(Type.Integer())),
 	reasons: Type.Array(Type.String()),
 	outcome: Type.Union([
 		Type.Literal("matched"),

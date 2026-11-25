@@ -40,7 +40,23 @@ export function projectSubscriptionView({
 					(a.episode ?? Infinity) - (b.episode ?? Infinity) ||
 					a.id.localeCompare(b.id),
 			)
-			.slice((page - 1) * pageSize, page * pageSize);
+			.slice((page - 1) * pageSize, page * pageSize)
+			.map(({ selection, ...candidate }) => {
+				if (!selection) return candidate;
+				const {
+					file,
+					order: _order,
+					levelIndex: _levelIndex,
+					...profile
+				} = selection;
+				return {
+					...candidate,
+					selection: profile,
+					...(file
+						? { fileCoverage: { path: file.path, episodes: file.episodes } }
+						: {}),
+				};
+			});
 		if (subscription?.discovery) view.discovery = subscription.discovery;
 	}
 	if (!subscription) return view;

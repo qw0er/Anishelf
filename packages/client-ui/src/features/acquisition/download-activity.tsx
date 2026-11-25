@@ -256,6 +256,11 @@ export function DownloadActivityPanel({
 					{t(errorKeys[item.error] ?? "acquisition.activity.errorFallback")}
 				</p>
 			)}
+			{item.sharedTransfer && (
+				<p className="text-muted-foreground">
+					{t("acquisition.activity.sharedTransfer")}
+				</p>
+			)}
 			{item.selectedFiles?.length ? (
 				<ul className="space-y-1 text-muted-foreground">
 					{item.selectedFiles.map((file) => (
@@ -443,6 +448,13 @@ export function DownloadActivityPanel({
 												{attempt.limited &&
 													t("acquisition.subscription.limitedCoverage")}
 											</p>
+											{attempt.episodes?.length ? (
+												<p className="break-words text-muted-foreground">
+													{t("acquisition.activity.coveredEpisodes", {
+														episodes: attempt.episodes.join(", "),
+													})}
+												</p>
+											) : null}
 											{attempt.reasons.length > 0 && (
 												<p className="text-muted-foreground">
 													{attempt.reasons.map(reason).join(" · ")}
@@ -491,6 +503,19 @@ export function DownloadActivityPanel({
 															{candidate.title}
 														</button>
 													</Tooltip>
+													{candidate.fileCoverage && (
+														<div className="text-muted-foreground">
+															<p>
+																{t("acquisition.activity.coveredEpisodes", {
+																	episodes:
+																		candidate.fileCoverage.episodes.join(", "),
+																})}
+															</p>
+															<p className="break-all">
+																{candidate.fileCoverage.path}
+															</p>
+														</div>
+													)}
 												</div>
 											))}
 										</CollapsibleContent>

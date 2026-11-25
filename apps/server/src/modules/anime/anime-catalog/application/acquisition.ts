@@ -135,6 +135,7 @@ export class AcquisitionAssociation {
 			return existing === "available" ? checkAfterVerification() : existing;
 		const record = this.context.requireReview(source.id, scope.ids);
 		const replace = options.store.associations(source.id).length > 0;
+		const episodes = target.fileEpisodes ?? [target.episode];
 		const preview = await this.associations.preview(
 			{
 				reference: target.reference,
@@ -142,7 +143,10 @@ export class AcquisitionAssociation {
 					{
 						reviewId: record.id,
 						revision: record.revision,
-						targets: [{ kind: "regular", number: String(target.episode) }],
+						targets: episodes.map((episode) => ({
+							kind: "regular",
+							number: String(episode),
+						})),
 						offset: 0,
 						reason:
 							"Associated with the accepted Anishelf download target; filename differences are advisory.",
@@ -167,7 +171,7 @@ export class AcquisitionAssociation {
 								provenance.intentId,
 								identity,
 								target.reference,
-								target.episode,
+								target.fileEpisodes ?? target.episode,
 							]),
 						)
 						.digest("hex")}`,
@@ -197,6 +201,7 @@ export class AcquisitionAssociation {
 				intentId: provenance.intentId,
 				sourceId: source.id,
 				episode: target.episode,
+				fileEpisodes: target.fileEpisodes,
 				correctedAutomatic: replace,
 				warnings: provenance.warnings,
 			},
@@ -260,14 +265,17 @@ export class AcquisitionAssociation {
 		links: ReturnType<CatalogContext["options"]["store"]["associations"]>,
 		target: AcceptedAcquisitionTarget,
 	) {
+		const allowed = new Set(
+			(target.fileEpisodes ?? [target.episode]).map(String),
+		);
 		return (
-			links.length > 0 &&
+			links.some(({ episode }) => episode.number === String(target.episode)) &&
 			links.every(
 				({ episode }) =>
 					this.context.options.store.link(episode.workId)?.reference.id ===
 						target.reference.id &&
 					episode.kind === "regular" &&
-					episode.number === String(target.episode),
+					allowed.has(episode.number),
 			)
 		);
 	}

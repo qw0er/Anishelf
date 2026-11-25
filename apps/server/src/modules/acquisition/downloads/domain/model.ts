@@ -85,6 +85,12 @@ export interface EpisodeFilePlan {
 	videoIndex: number;
 	subtitleIndices: readonly number[];
 }
+export interface FileSelectionReservation {
+	item: DownloadIntent;
+	plan: EpisodeFilePlan;
+	expectedRevision: string;
+}
+
 export interface PlannedDownloadFile {
 	index: number;
 	path: string;
@@ -94,6 +100,7 @@ export interface PlannedDownloadFile {
 
 export interface PendingFileSelection {
 	requestId: string;
+	additionalRequestIds?: readonly string[];
 	kind: "add" | "expand";
 	added: readonly number[];
 	sentAt: number | null;
@@ -155,6 +162,7 @@ export interface DownloadActivity {
 		| "associationReview"
 	> & {
 		canRetryAcquisition: boolean;
+		sharedTransfer?: boolean;
 		selectedFiles?: Omit<PlannedDownloadFile, "index">[];
 		reviewId?: string;
 	})[];
