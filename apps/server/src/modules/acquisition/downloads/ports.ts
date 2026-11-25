@@ -6,7 +6,11 @@ import type {
 } from "../torrent-clients/public.js";
 import type {
 	DownloadDestination,
+	DownloadFileObservation,
 	DownloadIntent,
+	EpisodeFilePlan,
+	ManagedFileSelection,
+	PendingFileSelection,
 	VerifiedDownloadFiles,
 } from "./domain/model.js";
 
@@ -43,6 +47,30 @@ export interface DownloadStore {
 	hasActive(): boolean;
 	intent(id: string): DownloadIntent | null;
 	reserve(value: DownloadIntent): boolean;
+	ownedFileSelection(
+		hash: string,
+		generation: string,
+	): ManagedFileSelection | null;
+	fileSelection(id: string): ManagedFileSelection | null;
+	episodeFileSelection(
+		requestId: string,
+		transferId: string,
+	): { videoIndex: number; subtitleIndices: number[] } | null;
+	planFileSelection(
+		value: DownloadIntent,
+		plan: EpisodeFilePlan,
+		expectedRevision: string,
+	): "planned" | "busy" | "incompatible";
+	updateFileSelection(input: {
+		transferId: string;
+		revision: string;
+		pending?: PendingFileSelection | null;
+		observed?: readonly DownloadFileObservation[];
+		task?: TorrentTask;
+		observedAt?: number;
+		cancel?: boolean;
+		release?: boolean;
+	}): boolean;
 	saveIntent(value: DownloadIntent, files?: VerifiedDownloadFiles): boolean;
 	prune(before: number, onPruned?: (item: DownloadIntent) => void): void;
 }
@@ -60,7 +88,10 @@ export interface SubmissionAdmission {
 		},
 		client: TorrentClient,
 		snapshot: TorrentTask[],
+		selection?: EpisodeFilePlan,
 	): Promise<{ subscriptionRevision: string | null } | null>;
+	/** Synchronous fence after the last remote read. */
+	current?(item: DownloadIntent): boolean;
 }
 export interface CompletedDownload {
 	task: TorrentTask;

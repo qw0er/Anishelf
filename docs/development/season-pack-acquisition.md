@@ -99,6 +99,12 @@ Recheck ownership, destination and observed priorities before changing a transfe
 Respect external tasks and conflicting user edits in qBittorrent. Try another
 candidate if the desired files cannot be selected safely.
 
+Explicit episode requests use a verified pack when no eligible ordinary release
+can serve the episode. Select one confidently mapped video and its matching
+sidecars using qBittorrent's stable file indices. Stage the metadata before
+adding the torrent with its initial priorities. Extensions enable only new
+indices after comparing the current priorities with the last verified selection.
+
 After an ambiguous add or priority update, keep the claims and read back the
 remote task, ownership and selection before attempting another change. A timeout
 does not establish failure. A confirmed rejection, removal or permanent inability

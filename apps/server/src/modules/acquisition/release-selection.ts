@@ -33,7 +33,11 @@ export function selectCandidates(input: {
 	locked?: ReadonlySet<string>;
 	active: ReadonlySet<string>;
 	downloadsUnknown: boolean;
-	assessReleaseTitle: ReleaseAssessmentApi["assessReleaseTitle"];
+	assessReleaseTitle(
+		title: string,
+		target: AcquisitionTarget,
+		entry: SourceSnapshot["entries"][number],
+	): ReturnType<ReleaseAssessmentApi["assessReleaseTitle"]>;
 }): Candidate[] {
 	const {
 		subscription,
@@ -69,7 +73,7 @@ export function selectCandidates(input: {
 			reserved.set(candidate.episode, candidate.id);
 	}
 	const candidates = feed.entries.map((entry): Candidate => {
-		const assessment = assessReleaseTitle(entry.title, target);
+		const assessment = assessReleaseTitle(entry.title, target, entry);
 		const reasons = [...assessment.reasons];
 		const seeders =
 			entry.seedersObservedAt != null &&

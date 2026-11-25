@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 import { abortable } from "../../../../shared/abortable.js";
 import { DomainError } from "../../../../shared/errors.js";
 import type { ManifestPreviewCandidate } from "../../manifest-preview.js";
@@ -9,6 +10,8 @@ import {
 	builtinAcquisitionProfiles,
 	defaultAcquisitionProfileId,
 } from "../../subscriptions/public.js";
+import { downloadDefaults } from "../defaults.js";
+import { observeFileSelection } from "../domain/file-selection.js";
 import { DownloadError, type DownloadIntent } from "../domain/model.js";
 import { workDirectory } from "../domain/paths.js";
 import {
@@ -16,6 +19,8 @@ import {
 	type DownloadApplicationContext,
 	type DownloadExecution,
 } from "./context.js";
+import { absoluteDownloadPath, sameDownloadPath } from "./destination-paths.js";
+import { episodeFileOptions } from "./episode-file-options.js";
 
 /** One explicit episode request owns its discovery and permission; no subscription writes. */
 export class OneOffDownloads {
@@ -193,6 +198,22 @@ export class OneOffDownloads {
 	/** Explicit retry adopts current settings, while uncertain submissions retain their identity. */
 	prepareRetry(item: DownloadIntent): DownloadIntent {
 		const config = this.configuration();
+		const selective = item.transferId
+			? this.context.options.store.fileSelection(item.transferId)
+			: null;
+		if (selective?.pending?.requestId === item.id)
+			return {
+				...item,
+				state: selective.pending.sentAt === null ? "pending" : "unknown",
+			};
+		if (selective)
+			item = {
+				...item,
+				source: "",
+				expectedHash: null,
+				hash: `unresolved:${randomUUID()}`,
+				sourceIdentity: null,
+			};
 		const uncertain =
 			item.oneOff?.uncertainSubmission ||
 			item.state === "unknown" ||
@@ -254,7 +275,7 @@ export class OneOffDownloads {
 				throw new DownloadError("already_available");
 			const titles = target.searchTitles;
 			if (!titles.length) throw new DownloadError("discovery_unavailable");
-			const hashes = await options.withClient(
+			const tasks = await options.withClient(
 				initial.destination.connectionGeneration,
 				async (client) => {
 					const tasks = await client.tasks(this.context.signal);
@@ -270,14 +291,15 @@ export class OneOffDownloads {
 						})
 					)
 						throw new DownloadError("episode_downloading");
-					return new Set(
-						tasks.flatMap((task) =>
-							[task.hash, task.v1Hash, task.v2Hash].filter(
-								(hash): hash is string => Boolean(hash),
-							),
-						),
-					);
+					return tasks;
 				},
+			);
+			const hashes = new Set(
+				tasks.flatMap((task) =>
+					[task.hash, task.v1Hash, task.v2Hash].filter((hash): hash is string =>
+						Boolean(hash),
+					),
+				),
 			);
 			guard();
 			const entries: ReleaseEvidence[] = [];
@@ -330,13 +352,13 @@ export class OneOffDownloads {
 					if (packsRequiringInspection)
 						options.logger.info(
 							{
-								event: "acquisition.episode_packs_skipped",
+								event: "acquisition.episode_packs_found",
 								intentId: initial.id,
 								providerId,
 								count: packsRequiringInspection,
 								reason: "pack_requires_inspection",
 							},
-							"Skipped publications requiring file inspection during single-episode discovery.",
+							"Found publications requiring file inspection during episode discovery.",
 						);
 				} catch (error) {
 					guard();
@@ -354,17 +376,26 @@ export class OneOffDownloads {
 				}
 			}
 			guard();
-			const candidates = selectCandidates({
+			const policy = {
 				subscription: {
 					workKey: initial.workKey,
 					startEpisode: initial.episode,
 					profileId: config.profile.id,
 				},
-				feed: { entries },
 				target,
 				profile: config.profile,
-				waitForLevels: false,
 				now: this.context.now(),
+			};
+			const acceptedTarget = {
+				workKey: initial.workKey,
+				reference: target.work.reference,
+				episode: initial.episode,
+				snapshotId: target.work.snapshotId,
+			};
+			const candidates = selectCandidates({
+				...policy,
+				feed: { entries },
+				waitForLevels: false,
 				active: hashes,
 				downloadsUnknown: false,
 				assessReleaseTitle: options.anime.assessReleaseTitle.bind(
@@ -386,6 +417,131 @@ export class OneOffDownloads {
 						signal: this.context.signal,
 					});
 					guard();
+					const choices = episodeFileOptions({
+						inspection,
+						previews,
+						policy,
+						episode: initial.episode,
+						assessTitle: options.anime.assessReleaseTitle.bind(options.anime),
+					});
+					if (choices.length) {
+						const generation = initial.destination.connectionGeneration;
+						const supported = await options.withClient(
+							generation,
+							async (client) =>
+								Boolean(
+									client.enableFiles &&
+										(await client.probe(this.context.signal)).selectiveFiles,
+								),
+						);
+						guard();
+						let busy = false;
+						let conflictCode: string | undefined;
+						if (!supported) throw new DownloadError("metadata_unsupported");
+						for (const choice of choices) {
+							if (!options.sources.isContentCurrent(choice.source)) continue;
+							const hash = choice.plan.manifest.hash;
+							const owned = options.store.ownedFileSelection(hash, generation);
+							const task =
+								owned && !owned.pending
+									? await options.withClient(generation, (client) =>
+											client.task(
+												owned.manifest.v2Hash?.slice(0, 40) ?? hash,
+												this.context.signal,
+											),
+										)
+									: tasks.find((entry) =>
+											[entry.hash, entry.v1Hash, entry.v2Hash].includes(hash),
+										);
+							guard();
+							if (task && (!owned || task.ownerKey !== owned.ownerKey)) {
+								conflictCode ??= "external_task_conflict";
+								continue;
+							}
+							if (!task && owned && !owned.pending) {
+								if (
+									!options.store.updateFileSelection({
+										transferId: owned.id,
+										revision: owned.revision,
+										release: true,
+									})
+								) {
+									busy = true;
+									continue;
+								}
+								options.logger.info(
+									{
+										event: "acquisition.file_selection_released",
+										transferId: owned.id,
+										code: "externally_removed",
+									},
+									"Released ownership of a removed torrent task.",
+								);
+							}
+							if (task && owned?.observed && !owned.pending) {
+								if (
+									!sameDownloadPath(
+										task.savePath,
+										join(
+											absoluteDownloadPath(owned.destination.path),
+											owned.directory,
+										),
+									)
+								) {
+									conflictCode ??= "task_path_changed";
+									continue;
+								}
+								const compatible = await options
+									.withClient(generation, async (client) => {
+										const files = await client.files(
+											task.hash,
+											this.context.signal,
+										);
+										return (
+											JSON.stringify(
+												observeFileSelection(choice.plan.manifest, files),
+											) === JSON.stringify(owned.observed)
+										);
+									})
+									.catch(() => false);
+								guard();
+								if (!compatible) {
+									conflictCode ??= "file_selection_changed";
+									continue;
+								}
+							}
+							const result = execution.planSelection(
+								{
+									...execution.current,
+									acceptedTarget,
+									candidateId: choice.candidate.id,
+									title: choice.candidate.title.slice(0, 1024),
+									source: choice.source,
+									expectedHash: hash,
+									state: "pending",
+									error: null,
+									nextAttemptAt: 0,
+									oneOff: {
+										...configToAuthorization(config),
+										discovery: attempts,
+									},
+								},
+								choice.plan,
+							);
+							if (result === "planned") return;
+							if (result === "busy") busy = true;
+						}
+						if (busy) {
+							execution.save({
+								...execution.current,
+								error: null,
+								nextAttemptAt:
+									this.context.now() + downloadDefaults.activeIntervalMs,
+							});
+							return;
+						}
+						if (conflictCode) throw new DownloadError(conflictCode);
+					}
 					if (previews.length && previews.every(({ code }) => code !== null)) {
 						const codes = previews.map(({ code }) => code);
 						const reason = [
@@ -408,12 +564,7 @@ export class OneOffDownloads {
 				throw new DownloadError("source_changed");
 			execution.save({
 				...execution.current,
-				acceptedTarget: {
-					workKey: initial.workKey,
-					reference: target.work.reference,
-					episode: initial.episode,
-					snapshotId: target.work.snapshotId,
-				},
+				acceptedTarget,
 				candidateId: chosen.id,
 				title: chosen.title.slice(0, 1024),
 				source: entry.download,

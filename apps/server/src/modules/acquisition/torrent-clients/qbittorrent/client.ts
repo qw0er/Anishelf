@@ -60,6 +60,7 @@ export class QbittorrentClient implements TorrentClient {
 				throw new TorrentError("invalid-response", "read");
 			return {
 				version,
+				...(gte(apiVersion, "2.11.9") ? { selectiveFiles: true as const } : {}),
 				incompleteDirectory: preferences.temp_path_enabled
 					? preferences.temp_path
 					: null,
@@ -98,6 +99,7 @@ export class QbittorrentClient implements TorrentClient {
 					path: file.name,
 					sizeBytes: file.size,
 					progress: file.progress,
+					priority: file.priority,
 					selected: file.priority > 0,
 				};
 			});
@@ -154,9 +156,35 @@ export class QbittorrentClient implements TorrentClient {
 			paused: input.paused ? ("true" as const) : ("false" as const),
 			useAutoTMM: "false" as const,
 		};
+		const selection = input.fileSelection;
+		if (selection)
+			return this.run("add_selected", true, signal, async () => {
+				// qBittorrent takes initial priorities with a reference to cached metadata.
+				let magnet =
+					typeof source === "string"
+						? source
+						: `magnet:?xt=urn:btih:${selection.hash}`;
+				if (selection.v2Hash) {
+					const exactTopic = `urn:btmh:1220${selection.v2Hash}`;
+					if (!new URL(magnet).searchParams.getAll("xt").includes(exactTopic))
+						magnet += `&xt=${exactTopic}`;
+				}
+				const selectiveOptions = {
+					...options,
+					contentLayout: "Original",
+					filePriorities: selection.priorities.join(","),
+				};
+				await this.sdk.addMagnet(magnet, selectiveOptions);
+			});
 		return this.run("add", true, signal, async () => {
 			if (typeof source === "string") await this.sdk.addMagnet(source, options);
 			else await this.sdk.addTorrent(source, options);
+		});
+	}
+
+	enableFiles(hash: string, indices: readonly number[], signal?: AbortSignal) {
+		return this.run("enable_files", true, signal, async () => {
+			await this.sdk.setFilePriority(hash, indices.map(String), 1);
 		});
 	}
 

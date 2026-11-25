@@ -1070,6 +1070,7 @@
 				"association_requires_review": "实际文件需要通过本地审核才能关联。",
 				"source_changed": "源文件已更改，请在重试导入前验证文件。",
 				"file_size_conflict": "本地文件大小与已完成的下载不一致。",
+				"file_selection_changed": "qBittorrent 中的文件清单或优先级已变更，请检查任务后重试。",
 				"task_path_changed": "qBittorrent 中的任务保存路径已更改，请恢复后重试。",
 				"incomplete_directory_required": "请配置单独的未完成目录，并在设置中验证目标。",
 				"no_eligible_release": "未找到符合下载偏好的单集资源。可稍后重试，或调整下载偏好。",

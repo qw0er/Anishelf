@@ -20,6 +20,7 @@ import {
 	type VerifiedDownloadFiles,
 } from "../domain/model.js";
 import type { DownloadStore } from "../ports.js";
+import { FileSelectionRecords } from "./file-selection.js";
 import {
 	readAcquisitionDestination,
 	readDownloadRequest,
@@ -42,7 +43,20 @@ const terminalStates: DownloadIntent["state"][] = [
 ];
 
 export class DownloadRepository implements DownloadStore {
-	constructor(private readonly store: Store) {}
+	readonly fileSelection: DownloadStore["fileSelection"];
+	readonly ownedFileSelection: DownloadStore["ownedFileSelection"];
+	readonly episodeFileSelection: DownloadStore["episodeFileSelection"];
+	readonly planFileSelection: DownloadStore["planFileSelection"];
+	readonly updateFileSelection: DownloadStore["updateFileSelection"];
+	constructor(private readonly store: Store) {
+		const selections = new FileSelectionRecords(store);
+		this.fileSelection = selections.fileSelection.bind(selections);
+		this.ownedFileSelection = selections.ownedFileSelection.bind(selections);
+		this.episodeFileSelection =
+			selections.episodeFileSelection.bind(selections);
+		this.planFileSelection = selections.planFileSelection.bind(selections);
+		this.updateFileSelection = selections.updateFileSelection.bind(selections);
+	}
 	transaction<T>(operation: () => T): T {
 		return this.store.transaction(() => operation(), { behavior: "immediate" });
 	}
@@ -231,7 +245,13 @@ export class DownloadRepository implements DownloadStore {
 					!current ||
 					current.claim.workKey !== data.workKey ||
 					current.claim.episode !== data.episode ||
-					!this.canWrite(store, data)
+					!this.canWrite(
+						store,
+						data,
+						current.transfer?.selectionMode === "files"
+							? current.transfer.id
+							: undefined,
+					)
 				)
 					return false;
 				writeDownloadRequest(store, data, current.transfer, files);
@@ -267,7 +287,11 @@ export class DownloadRepository implements DownloadStore {
 			.innerJoin(claims, eq(claims.requestId, requests.id))
 			.leftJoin(transfers, eq(claims.transferId, transfers.id));
 	}
-	private canWrite(store: Store, value: DownloadIntent) {
+	private canWrite(
+		store: Store,
+		value: DownloadIntent,
+		sharedTransferId?: string,
+	) {
 		const live = keepsEpisodeClaim(value);
 		if (
 			live &&
@@ -292,6 +316,7 @@ export class DownloadRepository implements DownloadStore {
 				value.hash,
 				value.destination.connectionGeneration,
 				value.id,
+				sharedTransferId,
 			)
 		);
 	}
@@ -300,6 +325,7 @@ export class DownloadRepository implements DownloadStore {
 		hash: string,
 		generation: string,
 		exceptId: string,
+		sharedTransferId?: string,
 	) {
 		if (!isCanonicalDownloadHash(hash)) return false;
 		return Boolean(
@@ -312,6 +338,7 @@ export class DownloadRepository implements DownloadStore {
 						eq(transfers.destinationConnectionGeneration, generation),
 						eq(transfers.owned, true),
 						ne(transfers.requestId, exceptId),
+						sharedTransferId ? ne(transfers.id, sharedTransferId) : undefined,
 					),
 				)
 				.get(),

@@ -1,4 +1,5 @@
 import type { TorrentClient } from "../../torrent-clients/public.js";
+import type { DownloadIntent, EpisodeFilePlan } from "../domain/model.js";
 import { DownloadError } from "../public.js";
 import type {
 	DownloadApplicationContext,
@@ -29,6 +30,7 @@ export class SubmissionAdmission {
 		execution: DownloadExecution,
 		client: TorrentClient,
 		snapshot: Awaited<ReturnType<TorrentClient["tasks"]>>,
+		selection?: EpisodeFilePlan,
 	): Promise<{ subscriptionRevision: string | null } | null> {
 		const item = execution.current;
 		const subscription = this.context.options.selection.subscription(
@@ -72,7 +74,15 @@ export class SubmissionAdmission {
 			item.title,
 			target,
 		);
-		if (!assessment.eligible || assessment.episode !== item.episode) {
+		const matches = selection
+			? this.matchesPlan(
+					item,
+					target,
+					selection,
+					assessment.inspectionCandidate,
+				)
+			: assessment.eligible && assessment.episode === item.episode;
+		if (!matches) {
 			execution.save({
 				...item,
 				state: "blocked",
@@ -93,6 +103,11 @@ export class SubmissionAdmission {
 		}
 		if (
 			snapshot.some((task) => {
+				if (
+					selection &&
+					[task.hash, task.v1Hash, task.v2Hash].includes(item.hash)
+				)
+					return false;
 				const assessment = this.context.options.anime.assessReleaseTitle(
 					task.name,
 					target,
@@ -108,6 +123,8 @@ export class SubmissionAdmission {
 			return null;
 		}
 		const probe = await client.probe(this.context.signal);
+		if (selection && (!probe.selectiveFiles || !client.enableFiles))
+			throw new DownloadError("metadata_unsupported");
 		await this.destination.validateIncomplete(probe, item.destination);
 		this.context.open();
 		if (item.origin === "one-off") {
@@ -146,5 +163,57 @@ export class SubmissionAdmission {
 		}
 
 		return { subscriptionRevision: before.revision };
+	}
+
+	current(item: DownloadIntent): boolean {
+		const { options } = this.context;
+		const destination = options.store.destination();
+		return Boolean(
+			!this.context.signal.aborted &&
+				destination?.validated &&
+				destination.revision === item.destination.revision &&
+				options.connectionGeneration() ===
+					item.destination.connectionGeneration &&
+				options.store.intent(item.id)?.revision === item.revision &&
+				options.store.episodeIntent(item.workKey, item.episode)?.id ===
+					item.id &&
+				options.transport.isCurrent(item.source) &&
+				item.origin === "one-off" &&
+				this.oneOff.authorized(item),
+		);
+	}
+
+	private matchesPlan(
+		item: DownloadIntent,
+		target: Awaited<
+			ReturnType<DownloadApplicationContext["options"]["anime"]["target"]>
+		>,
+		plan: EpisodeFilePlan,
+		plausible: boolean,
+	) {
+		const accepted = item.acceptedTarget;
+		if (
+			!plausible ||
+			accepted?.workKey !== item.workKey ||
+			accepted.episode !== item.episode ||
+			accepted.reference.id !== target.work.reference.id ||
+			accepted.snapshotId !== target.work.snapshotId
+		)
+			return false;
+		const coverage = this.context.options.anime.mapReleaseFiles?.(
+			item.title,
+			target,
+			plan.manifest.files,
+		);
+		return (
+			coverage?.videos.some(
+				(video) =>
+					video.index === plan.videoIndex &&
+					video.episodes.length === 1 &&
+					video.episodes[0] === item.episode &&
+					JSON.stringify([...video.subtitleIndices].sort((a, b) => a - b)) ===
+						JSON.stringify(plan.subtitleIndices),
+			) === true
+		);
 	}
 }

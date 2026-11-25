@@ -59,6 +59,7 @@ const errorKeys: Record<string, string> = {
 		"acquisition.activity.errors.association_requires_review",
 	source_changed: "acquisition.activity.errors.source_changed",
 	file_size_conflict: "acquisition.activity.errors.file_size_conflict",
+	file_selection_changed: "acquisition.activity.errors.file_selection_changed",
 	task_path_changed: "acquisition.activity.errors.task_path_changed",
 	incomplete_directory_required:
 		"acquisition.activity.errors.incomplete_directory_required",

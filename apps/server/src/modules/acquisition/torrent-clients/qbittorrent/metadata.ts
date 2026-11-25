@@ -66,5 +66,18 @@ export async function inspectQbittorrentMetadata(
 	});
 	if (!Number.isSafeInteger(size) || info.length !== size)
 		throw new TorrentError("invalid-response", "read");
-	return { hash: input.expectedHash, indexSource: "client", files };
+	const v2Hash = response.infohash_v2;
+	if (
+		v2Hash &&
+		(typeof v2Hash !== "string" ||
+			!/^[a-f0-9]{64}$/.test(v2Hash) ||
+			response.hash !== v2Hash.slice(0, 40))
+	)
+		throw new TorrentError("invalid-response", "read");
+	return {
+		hash: input.expectedHash,
+		...(typeof v2Hash === "string" && v2Hash ? { v2Hash } : {}),
+		indexSource: "client",
+		files,
+	};
 }

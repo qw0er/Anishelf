@@ -6,18 +6,25 @@ import { sameDownloadPath } from "../application/destination-paths.js";
 import { isTorrentComplete } from "../domain/completion.js";
 import { resolveTorrent } from "../infrastructure/torrent.js";
 import type { CompletedDownload, SubmissionAdmission } from "../ports.js";
+import { SelectedFileTransfers } from "./selected-files.js";
 import { DownloadSubmission } from "./submission.js";
 /** Executes accepted tasks; no Discovery, Anime or Resources business calls. */
 export class DownloadTransfers {
 	private readonly submission: DownloadSubmission;
+	private readonly selected: SelectedFileTransfers;
 	constructor(
 		private readonly context: DownloadContext,
 		admission: SubmissionAdmission,
 	) {
 		this.submission = new DownloadSubmission(context, admission);
+		this.selected = new SelectedFileTransfers(context, admission);
 	}
 	async run(execution: DownloadExecution): Promise<CompletedDownload | null> {
 		let item = execution.current;
+		const selection =
+			item.transferId &&
+			this.context.options.store.fileSelection(item.transferId);
+		if (selection) return this.selected.run(execution, selection);
 		let resolvedContent: Awaited<ReturnType<typeof resolveTorrent>> | undefined;
 		if (
 			item.destination.connectionGeneration !==

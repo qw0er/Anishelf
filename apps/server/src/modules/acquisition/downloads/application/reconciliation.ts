@@ -15,6 +15,12 @@ export class DownloadReconciliation {
 		private readonly importer: CompletedDownloadIngestion,
 		private readonly oneOff: OneOffDownloads,
 	) {}
+	private isSelective(item: DownloadIntent) {
+		return (
+			item.transferId &&
+			this.context.options.store.fileSelection(item.transferId)
+		);
+	}
 	async run(item: DownloadIntent) {
 		const execution = new DownloadExecution(this.context, item);
 		if (item.state === "discovering") {
@@ -24,6 +30,7 @@ export class DownloadReconciliation {
 		if (
 			item.state === "pending" &&
 			item.origin === "one-off" &&
+			!this.isSelective(item) &&
 			!this.oneOff.authorized(item)
 		) {
 			execution.save({
@@ -54,6 +61,7 @@ export class DownloadReconciliation {
 			if (
 				current.origin === "one-off" &&
 				current.state === "pending" &&
+				!this.isSelective(current) &&
 				!this.oneOff.authorized(current)
 			) {
 				execution.save({

@@ -1,4 +1,5 @@
 import type { SourceIdentity } from "../../../resources/public.js";
+import type { TorrentManifest } from "../../torrent-clients/public.js";
 
 export interface DownloadDestination {
 	revision: string;
@@ -72,6 +73,33 @@ export interface DownloadFileObservation {
 	path: string;
 	sizeBytes: number;
 	selected: boolean;
+	priority?: number;
+}
+export interface EpisodeFilePlan {
+	manifest: TorrentManifest;
+	videoIndex: number;
+	subtitleIndices: readonly number[];
+}
+
+export interface PendingFileSelection {
+	requestId: string;
+	kind: "add" | "expand";
+	added: readonly number[];
+	sentAt: number | null;
+}
+
+export interface ManagedFileSelection {
+	id: string;
+	hash: string;
+	ownerKey: string;
+	workKey: string;
+	destination: DownloadDestination;
+	directory: string;
+	owned: boolean;
+	revision: string;
+	manifest: TorrentManifest;
+	pending: PendingFileSelection | null;
+	observed: readonly DownloadFileObservation[] | null;
 }
 export interface VerifiedDownloadFiles {
 	video: DownloadFileObservation;

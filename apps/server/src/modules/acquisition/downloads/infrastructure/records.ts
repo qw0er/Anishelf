@@ -192,6 +192,7 @@ function saveTransfer(
 		...(files ? { observedSelection: files.selection } : {}),
 	};
 	if (continued && previous) {
+		if (previous.selectionMode === "files") return previous.id;
 		store
 			.update(s.acquisitionTransfers)
 			.set(observation)

@@ -62,6 +62,7 @@ export async function fixture(
 	persistent = false,
 	bundled = false,
 	manifestPreview?: Pick<ManifestPreview, "preview">,
+	mapReleaseFiles?: ReleaseAssessmentApi["mapReleaseFiles"],
 ) {
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-downloads-"));
 	cleanup.push(() => rm(dir, { recursive: true, force: true }));
@@ -141,6 +142,7 @@ export async function fixture(
 				version: "1",
 			}),
 		),
+		...(mapReleaseFiles ? { mapReleaseFiles } : {}),
 	};
 	const ingestion = {
 		available: vi.fn(async () => true),

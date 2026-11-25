@@ -1084,6 +1084,7 @@
 				"association_requires_review": "The actual file needs local Review before it can be linked.",
 				"source_changed": "The source file changed. Verify the files before retrying import.",
 				"file_size_conflict": "The local file size differs from the completed download.",
+				"file_selection_changed": "The file list or priorities changed in qBittorrent. Check the task before retrying.",
 				"task_path_changed": "The task save path changed in qBittorrent. Restore it before retrying.",
 				"incomplete_directory_required": "Configure a separate incomplete directory and validate the destination in Settings.",
 				"no_eligible_release": "No single-episode release matches your download preferences. Retry later or adjust your preferences.",

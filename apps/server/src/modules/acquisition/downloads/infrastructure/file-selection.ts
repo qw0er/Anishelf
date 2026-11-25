@@ -1,0 +1,346 @@
+import { randomUUID } from "node:crypto";
+import { and, eq, inArray, type SQL } from "drizzle-orm";
+import type { Store } from "../../../../platform/database/store.js";
+import { sameManifest } from "../domain/file-selection.js";
+import type {
+	DownloadIntent,
+	EpisodeFilePlan,
+	ManagedFileSelection,
+	PendingFileSelection,
+} from "../domain/model.js";
+import type { DownloadStore } from "../ports.js";
+import { writeDownloadRequest } from "./records.js";
+import {
+	acquisitionEpisodeClaims as claims,
+	acquisitionTransferFiles as files,
+	acquisitionRequests as requests,
+	acquisitionTransferFileTargets as targets,
+	acquisitionTransfers as transfers,
+} from "./schema.js";
+
+export class FileSelectionRecords
+	implements
+		Pick<
+			DownloadStore,
+			| "fileSelection"
+			| "ownedFileSelection"
+			| "episodeFileSelection"
+			| "planFileSelection"
+			| "updateFileSelection"
+		>
+{
+	constructor(private readonly store: Store) {}
+
+	fileSelection(id: string) {
+		return this.read(eq(transfers.id, id));
+	}
+
+	ownedFileSelection(hash: string, generation: string) {
+		return this.read(
+			and(
+				eq(transfers.hash, hash),
+				eq(transfers.destinationConnectionGeneration, generation),
+				eq(transfers.owned, true),
+			),
+		);
+	}
+
+	episodeFileSelection(requestId: string, transferId: string) {
+		const file = this.store
+			.select({ id: files.id, index: files.fileIndex })
+			.from(targets)
+			.innerJoin(files, eq(files.id, targets.fileId))
+			.where(
+				and(
+					eq(targets.claimId, requestId),
+					eq(files.transferId, transferId),
+					eq(files.role, "video"),
+				),
+			)
+			.get();
+		if (file?.index == null) return null;
+		const subtitles = this.store
+			.select({ index: files.fileIndex })
+			.from(files)
+			.where(
+				and(
+					eq(files.transferId, transferId),
+					eq(files.videoFileId, file.id),
+					eq(files.desiredSelected, true),
+				),
+			)
+			.all()
+			.flatMap(({ index }) => (index === null ? [] : [index]))
+			.sort((a, b) => a - b);
+		return { videoIndex: file.index, subtitleIndices: subtitles };
+	}
+
+	planFileSelection(
+		value: DownloadIntent,
+		plan: EpisodeFilePlan,
+		expectedRevision: string,
+	): "planned" | "busy" | "incompatible" {
+		return this.store.transaction(
+			(store) => {
+				const request = store
+					.select({
+						revision: requests.revision,
+						transferId: claims.transferId,
+						live: claims.live,
+					})
+					.from(requests)
+					.innerJoin(claims, eq(claims.requestId, requests.id))
+					.where(eq(requests.id, value.id))
+					.get();
+				if (
+					!request?.live ||
+					request.revision !== expectedRevision ||
+					request.transferId ||
+					!value.acceptedTarget ||
+					plan.manifest.indexSource !== "client" ||
+					plan.manifest.files.some((file, index) => file.index !== index)
+				)
+					return "incompatible";
+				const previous = store
+					.select({ transfer: transfers, workKey: claims.workKey })
+					.from(transfers)
+					.innerJoin(claims, eq(claims.id, transfers.requestId))
+					.where(
+						and(
+							eq(
+								transfers.destinationConnectionGeneration,
+								value.destination.connectionGeneration,
+							),
+							eq(transfers.hash, plan.manifest.hash),
+							eq(transfers.owned, true),
+						),
+					)
+					.get();
+				const transfer = previous?.transfer;
+				if (transfer) {
+					if (
+						!transfer.selectionManifest ||
+						!sameManifest(transfer.selectionManifest, plan.manifest) ||
+						previous?.workKey !== value.workKey ||
+						transfer.destinationRevision !== value.destination.revision ||
+						transfer.destinationScopeId !== value.destination.scopeId ||
+						transfer.destinationPath !== value.destination.path ||
+						transfer.directory !== value.directory
+					)
+						return "incompatible";
+					if (transfer.pendingSelection) return "busy";
+					if (!transfer.observedSelection) return "incompatible";
+				}
+				const keys = [plan.videoIndex, ...plan.subtitleIndices];
+				const selected = new Set(
+					transfer?.observedSelection
+						?.filter((file) => file.selected)
+						.map((file) => file.index),
+				);
+				const pending: PendingFileSelection = {
+					requestId: value.id,
+					kind: transfer ? "expand" : "add",
+					added: keys
+						.filter((index) => !selected.has(index))
+						.sort((a, b) => a - b),
+					sentAt: null,
+				};
+				writeDownloadRequest(
+					store,
+					{ ...value, hash: plan.manifest.hash },
+					transfer ?? null,
+				);
+				const transferId = store
+					.select({ id: claims.transferId })
+					.from(claims)
+					.where(eq(claims.id, value.id))
+					.get()?.id;
+				if (!transferId)
+					throw new Error("Selective transfer reservation was not saved.");
+				store
+					.update(transfers)
+					.set({
+						selectionMode: "files",
+						selectionRevision: randomUUID(),
+						selectionManifest: plan.manifest,
+						pendingSelection: pending,
+					})
+					.where(eq(transfers.id, transferId))
+					.run();
+				const video = this.reserveFile(
+					store,
+					transferId,
+					plan,
+					plan.videoIndex,
+					null,
+				);
+				store
+					.insert(targets)
+					.values({
+						fileId: video,
+						claimId: value.id,
+						acceptedTarget: value.acceptedTarget,
+					})
+					.onConflictDoNothing()
+					.run();
+				for (const index of plan.subtitleIndices)
+					this.reserveFile(store, transferId, plan, index, video);
+				return "planned";
+			},
+			{ behavior: "immediate" },
+		);
+	}
+
+	updateFileSelection(
+		input: Parameters<DownloadStore["updateFileSelection"]>[0],
+	) {
+		return this.store.transaction(
+			(store) => {
+				const row = store
+					.select()
+					.from(transfers)
+					.where(
+						and(
+							eq(transfers.id, input.transferId),
+							eq(transfers.selectionRevision, input.revision),
+						),
+					)
+					.get();
+				if (!row?.selectionManifest) return false;
+				const changed =
+					input.pending !== undefined ||
+					input.observed !== undefined ||
+					input.release;
+				store
+					.update(transfers)
+					.set({
+						...(changed ? { selectionRevision: randomUUID() } : {}),
+						...(input.pending !== undefined
+							? { pendingSelection: input.pending }
+							: {}),
+						...(input.observed ? { observedSelection: input.observed } : {}),
+						...(input.observedAt !== undefined
+							? { observedAt: input.observedAt }
+							: {}),
+						...(input.release ? { owned: false } : {}),
+						...(input.task
+							? {
+									state: input.task.state,
+									progress: input.task.progress,
+								}
+							: {}),
+					})
+					.where(eq(transfers.id, row.id))
+					.run();
+				if (input.cancel && row.pendingSelection) {
+					const affected = store
+						.select({ id: files.id })
+						.from(files)
+						.where(eq(files.transferId, row.id));
+					store
+						.delete(targets)
+						.where(
+							and(
+								eq(targets.claimId, row.pendingSelection.requestId),
+								inArray(targets.fileId, affected),
+							),
+						)
+						.run();
+					if (row.pendingSelection.added.length)
+						store
+							.update(files)
+							.set({ desiredSelected: false })
+							.where(
+								and(
+									eq(files.transferId, row.id),
+									inArray(files.fileIndex, [...row.pendingSelection.added]),
+								),
+							)
+							.run();
+				}
+				if (input.observed) {
+					const observed = input.observed.flatMap((file) =>
+						file.selected && file.index !== null ? [file.index] : [],
+					);
+					if (observed.length)
+						store
+							.update(files)
+							.set({ observedSelected: true })
+							.where(
+								and(
+									eq(files.transferId, row.id),
+									inArray(files.fileIndex, observed),
+								),
+							)
+							.run();
+				}
+				return true;
+			},
+			{ behavior: "immediate" },
+		);
+	}
+
+	private read(where: SQL | undefined): ManagedFileSelection | null {
+		const row = this.store
+			.select({ transfer: transfers, workKey: claims.workKey })
+			.from(transfers)
+			.innerJoin(claims, eq(claims.id, transfers.requestId))
+			.where(where)
+			.get();
+		const transfer = row?.transfer;
+		if (!row || !transfer?.selectionManifest) return null;
+		return {
+			id: transfer.id,
+			hash: transfer.hash,
+			ownerKey: transfer.ownerKey,
+			workKey: row.workKey,
+			destination: {
+				revision: transfer.destinationRevision,
+				scopeId: transfer.destinationScopeId,
+				path: transfer.destinationPath,
+				connectionGeneration: transfer.destinationConnectionGeneration,
+				validated: transfer.destinationValidated,
+				visibilityVerified: transfer.destinationVisibilityVerified,
+			},
+			directory: transfer.directory,
+			owned: transfer.owned,
+			revision: transfer.selectionRevision,
+			manifest: transfer.selectionManifest,
+			pending: transfer.pendingSelection,
+			observed: transfer.observedSelection,
+		};
+	}
+
+	private reserveFile(
+		store: Store,
+		transferId: string,
+		plan: EpisodeFilePlan,
+		index: number,
+		videoFileId: string | null,
+	) {
+		const file = plan.manifest.files[index];
+		if (!file || file.index !== index)
+			throw new Error("Missing stable index in selection plan.");
+		const row = store
+			.insert(files)
+			.values({
+				id: randomUUID(),
+				transferId,
+				fileIndex: index,
+				path: file.path,
+				sizeBytes: file.sizeBytes,
+				role: videoFileId ? "subtitle" : "video",
+				desiredSelected: true,
+				videoFileId,
+				ingestion: "not-ready",
+			})
+			.onConflictDoUpdate({
+				target: [files.transferId, files.path],
+				set: { desiredSelected: true },
+			})
+			.returning({ id: files.id })
+			.get();
+		if (!row) throw new Error("Selected file reservation was not saved.");
+		return row.id;
+	}
+}

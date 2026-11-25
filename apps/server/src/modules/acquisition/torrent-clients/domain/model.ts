@@ -50,6 +50,7 @@ export interface TorrentTask {
 
 export interface TorrentFile {
 	index?: number;
+	priority?: number;
 	/** Untrusted downloader-relative path; callers must validate mapped access. */
 	path: string;
 	sizeBytes: number;
@@ -69,6 +70,8 @@ interface TorrentManifestFile {
 
 export interface TorrentManifest {
 	readonly hash: string;
+	/** A hybrid torrent uses the truncated v2 hash as its qBittorrent task ID. */
+	readonly v2Hash?: string;
 	/** Metainfo order still needs verification against the client's file indices. */
 	readonly indexSource: "client" | "metainfo";
 	readonly files: readonly TorrentManifestFile[];
@@ -80,10 +83,17 @@ export interface TorrentSubmission {
 	/** Adapter must persist this identity and return it through TorrentTask.ownerKey. */
 	ownerKey: string;
 	paused?: boolean;
+	/** The matching manifest must have been staged on this connection. */
+	fileSelection?: {
+		hash: string;
+		v2Hash?: string;
+		priorities: readonly (0 | 1)[];
+	};
 }
 
 export interface TorrentProbe {
 	version: string;
+	selectiveFiles?: true;
 	/** Absolute staging directory, or null when isolation cannot be established. */
 	incompleteDirectory: string | null;
 }

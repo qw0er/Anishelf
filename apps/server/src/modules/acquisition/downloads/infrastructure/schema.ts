@@ -13,7 +13,9 @@ import {
 import type {
 	DownloadFileObservation,
 	DownloadIntent,
+	ManagedFileSelection,
 	OneOffAuthorization,
+	PendingFileSelection,
 } from "../domain/model.js";
 
 export const acquisitionDirectories = sqliteTable("acquisition_directories", {
@@ -141,6 +143,12 @@ export const acquisitionTransfers = sqliteTable(
 			.notNull()
 			.default("all"),
 		selectionRevision: text("selection_revision").notNull(),
+		selectionManifest: text("selection_manifest", { mode: "json" }).$type<
+			ManagedFileSelection["manifest"]
+		>(),
+		pendingSelection: text("pending_selection", {
+			mode: "json",
+		}).$type<PendingFileSelection>(),
 		observedSelection: text("observed_selection", { mode: "json" }).$type<
 			readonly DownloadFileObservation[]
 		>(),

@@ -314,6 +314,7 @@ test("lookup distinguishes absent task from a failed or invalid snapshot", async
 			path: "episode.mkv",
 			sizeBytes: 100,
 			progress: 1,
+			priority: 1,
 			selected: true,
 		},
 	]);
@@ -360,6 +361,50 @@ test("magnet and torrent multipart fields preserve explicit placement and tags",
 	if (!(upload instanceof Blob)) throw new Error("Missing torrent upload.");
 	expect(await upload.text()).toBe("torrent-fixture");
 });
+test("selective add references cached metadata and expansion sends only the new indices", async () => {
+	const { client, requests } = await fixture((request) => {
+		if (request.path.endsWith("/app/webapiVersion")) return { body: "2.11.9" };
+		if (request.path.endsWith("/torrents/filePrio")) return { body: "" };
+		return false;
+	});
+	expect(await client.probe()).toMatchObject({ selectiveFiles: true });
+	const fileSelection = { hash, priorities: [0, 1, 1, 0, 0] } as const;
+	const magnet = `magnet:?xt=urn:btih:${hash}&tr=https%3A%2F%2Ftracker.example`;
+	await client.add({ ...addInput, source: { magnet }, fileSelection });
+	await client.add({
+		...addInput,
+		source: { torrent: new Uint8Array([1, 2]) },
+		fileSelection,
+	});
+	const v2Hash = "f".repeat(64);
+	await client.add({
+		...addInput,
+		source: { torrent: new Uint8Array([1, 2]) },
+		fileSelection: { ...fileSelection, v2Hash },
+	});
+	await client.enableFiles?.(hash, [3, 4]);
+	const writes = requests.filter(({ path }) => path.endsWith("/torrents/add"));
+	expect(writes.map(({ form }) => form?.get("urls"))).toEqual([
+		magnet,
+		addInput.source.magnet,
+		`${addInput.source.magnet}&xt=urn:btmh:1220${v2Hash}`,
+	]);
+	for (const { form } of writes) {
+		expect(form?.get("file")).toBeNull();
+		expect(form?.get("filePriorities")).toBe("0,1,1,0,0");
+		expect(form?.get("contentLayout")).toBe("Original");
+		expect(form?.get("tags")).toBe("anishelf-1");
+	}
+	const expansion = requests.find(({ path }) =>
+		path.endsWith("/torrents/filePrio"),
+	);
+	expect(Object.fromEntries(new URLSearchParams(expansion?.body))).toEqual({
+		hash,
+		id: "3|4",
+		priority: "1",
+	});
+});
+
 test("server-rejected adds are distinct from unknown delivery and are never retried", async () => {
 	const { client, requests } = await fixture((request) => {
 		if (!request.path.endsWith("/torrents/add")) return false;

@@ -38,6 +38,11 @@ export interface TorrentClient {
 	): Promise<TorrentManifest | null>;
 	/** Acceptance only. Throws TorrentError; unknown outcomes must be reconciled before retry. */
 	add(input: TorrentSubmission, signal?: AbortSignal): Promise<void>;
+	enableFiles?(
+		hash: string,
+		indices: readonly number[],
+		signal?: AbortSignal,
+	): Promise<void>;
 	/** Reject new operations and drain outstanding requests before releasing credentials. */
 	close(): Promise<void>;
 }

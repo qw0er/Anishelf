@@ -13,7 +13,11 @@ import type {
 } from "../../subscriptions/public.js";
 import type { TorrentConnection } from "../../torrent-clients/public.js";
 import { downloadDefaults as policy } from "../defaults.js";
-import type { DownloadIntent, VerifiedDownloadFiles } from "../domain/model.js";
+import type {
+	DownloadIntent,
+	EpisodeFilePlan,
+	VerifiedDownloadFiles,
+} from "../domain/model.js";
 import type { DownloadStore, TorrentReader } from "../ports.js";
 
 export function conflict(): never {
@@ -25,7 +29,14 @@ export function conflict(): never {
 export interface DownloadOptions extends TorrentConnection {
 	store: Pick<
 		DownloadStore,
-		"intent" | "saveIntent" | "hashOwner" | "transaction"
+		| "intent"
+		| "saveIntent"
+		| "hashOwner"
+		| "transaction"
+		| "fileSelection"
+		| "episodeFileSelection"
+		| "planFileSelection"
+		| "updateFileSelection"
 	>;
 	transport: TorrentReader;
 	logger: Logger;
@@ -130,6 +141,33 @@ export class DownloadContext<T extends DownloadOptions = DownloadOptions> {
 	delay(attempts: number) {
 		return Math.min(policy.retryMaximumMs, 30_000 * 2 ** Math.min(attempts, 7));
 	}
+	planSelection(item: DownloadIntent, plan: EpisodeFilePlan) {
+		this.open();
+		return this.options.store.transaction(() => {
+			const current = this.options.store.intent(item.id);
+			if (!current || current.revision !== item.revision) conflict();
+			const value = { ...item, revision: randomUUID(), updatedAt: this.now() };
+			const result = this.options.store.planFileSelection(
+				value,
+				plan,
+				current.revision,
+			);
+			if (result !== "planned") return { result };
+			this.options.onAcceptedTarget?.(value, current);
+			const saved = this.options.store.intent(item.id);
+			if (!saved) conflict();
+			this.options.logger.info(
+				{
+					event: "acquisition.file_selection_planned",
+					intentId: saved.id,
+					transferId: saved.transferId,
+					episode: saved.episode,
+				},
+				"Reserved one episode and its manifest files.",
+			);
+			return { result, saved };
+		});
+	}
 }
 
 /** Retains our last write across stages without adopting concurrent user commands. */
@@ -141,5 +179,10 @@ export class DownloadExecution {
 	save(value: DownloadIntent, files?: VerifiedDownloadFiles) {
 		this.current = this.context.save(value, files);
 		return this.current;
+	}
+	planSelection(value: DownloadIntent, plan: EpisodeFilePlan) {
+		const reservation = this.context.planSelection(value, plan);
+		if (reservation.saved) this.current = reservation.saved;
+		return reservation.result;
 	}
 }
