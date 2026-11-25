@@ -26,6 +26,9 @@ test("acquisition receives Unix milliseconds and cache freshness without a time 
 	const f = await setup(fetcher, () => fetchedAt);
 	const assessment = new AnimeReleaseAssessment(
 		{
+			extract: () => {
+				throw Error("not used");
+			},
 			extractRelease: () => {
 				throw Error("not used");
 			},

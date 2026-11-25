@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { abortable } from "../../../../shared/abortable.js";
 import { DomainError } from "../../../../shared/errors.js";
+import type { ManifestPreviewCandidate } from "../../manifest-preview.js";
 import { selectCandidates } from "../../release-selection.js";
 import { type ReleaseEvidence, SourceError } from "../../sources/public.js";
 import {
@@ -275,6 +276,7 @@ export class OneOffDownloads {
 			);
 			guard();
 			const entries: ReleaseEvidence[] = [];
+			const inspection: ManifestPreviewCandidate[] = [];
 			for (const providerId of config.sources.providers) {
 				try {
 					const publication = await abortable(
@@ -299,8 +301,15 @@ export class OneOffDownloads {
 							entry.title,
 							target,
 						);
-						if (assessment.reasons.includes("pack_requires_inspection"))
+						if (assessment.reasons.includes("pack_requires_inspection")) {
 							packsRequiringInspection++;
+							if (
+								options.manifestPreview &&
+								publication.content &&
+								entry.download
+							)
+								inspection.push({ publication, entry });
+						}
 						if (
 							!assessment.eligible ||
 							assessment.episode !== initial.episode ||
@@ -362,12 +371,34 @@ export class OneOffDownloads {
 			);
 			const entry =
 				chosen && entries.find((entry) => entry.id === chosen.entryId);
-			if (!chosen || !entry?.download)
+			if (!chosen || !entry?.download) {
+				if (inspection.length && options.manifestPreview) {
+					const previews = await options.manifestPreview.preview({
+						candidates: inspection,
+						target,
+						workKey: initial.workKey,
+						scope: { episode: initial.episode },
+						signal: this.context.signal,
+					});
+					guard();
+					if (previews.length && previews.every(({ code }) => code !== null)) {
+						const codes = previews.map(({ code }) => code);
+						const reason = [
+							"metadata_timeout",
+							"metadata_unsupported",
+							"torrent_identity_conflict",
+							"invalid_file_path",
+							"source_changed",
+						].find((code) => codes.includes(code));
+						throw new DownloadError(reason ?? "torrent_unavailable");
+					}
+				}
 				throw new DownloadError(
 					attempts.some((attempt) => attempt.code)
 						? "discovery_unavailable"
 						: "no_eligible_release",
 				);
+			}
 			if (!options.sources.isContentCurrent(entry.download))
 				throw new DownloadError("source_changed");
 			execution.save({

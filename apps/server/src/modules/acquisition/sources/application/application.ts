@@ -310,8 +310,13 @@ export class SourcesApplication {
 		const previous = this.snapshot(reference.id);
 		try {
 			const result = await this.collect(reference, options.refresh);
+			const prepared = this.prepared.get(result);
+			if (!prepared) throw new SourceError("source_conflict");
 			return Object.freeze({
 				snapshot: result,
+				content: this.downloads.publication(prepared.read.record, () =>
+					this.isCurrent(result),
+				),
 				commit: (writeCandidates: () => void) =>
 					this.publish(result, writeCandidates),
 			});

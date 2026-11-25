@@ -56,8 +56,25 @@ export interface TorrentFile {
 	selected: boolean;
 }
 
+export type TorrentSource =
+	| { magnet: string }
+	| { torrent: Uint8Array<ArrayBuffer> };
+
+interface TorrentManifestFile {
+	readonly index: number;
+	readonly path: string;
+	readonly sizeBytes: number;
+}
+
+export interface TorrentManifest {
+	readonly hash: string;
+	/** Metainfo order still needs verification against the client's file indices. */
+	readonly indexSource: "client" | "metainfo";
+	readonly files: readonly TorrentManifestFile[];
+}
+
 export interface TorrentSubmission {
-	source: { magnet: string } | { torrent: Uint8Array<ArrayBuffer> };
+	source: TorrentSource;
 	savePath: string;
 	/** Adapter must persist this identity and return it through TorrentTask.ownerKey. */
 	ownerKey: string;

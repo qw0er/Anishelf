@@ -146,8 +146,10 @@ export const animeNameParser = {
 				last &&
 				/^\d+$/u.test(first.value) &&
 				/^\d+$/u.test(last.value) &&
-				/^\s*[-–]\s*$/u.test(
-					value.slice(first.position + first.value.length, last.position),
+				/^\s*[-–]\s*(?:ep?\s*)?$/iu.test(
+					[...value]
+						.slice(first.position + first.value.length, last.position)
+						.join(""),
 				)
 			)
 				return { kind: "range" as const, tokens };

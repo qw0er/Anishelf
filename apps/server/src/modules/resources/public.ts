@@ -1,4 +1,5 @@
 export type { LibraryApi, LibraryChange } from "./library/public.js";
+export { getVideoMimeType } from "./resource-access/domain/mime.js";
 export type {
 	FileInfo,
 	FileSourceIdentity,

@@ -106,19 +106,57 @@ export class SourceContent {
 	isCurrent(reference: string) {
 		if (this.signal.aborted) return false;
 		const saved = this.lookup(reference);
+		return Boolean(saved && this.locatorCurrent(saved));
+	}
+	private locatorCurrent(saved: SourceDownload) {
 		return (
 			!this.signal.aborted &&
-			Boolean(
-				saved && (!saved.generation || this.jackett?.current(saved.generation)),
-			)
+			(!saved.generation || this.jackett?.current(saved.generation) === true)
 		);
+	}
+	publication(record: SourceRecord, current: () => boolean) {
+		let locators: Map<string, SourceDownload> | undefined;
+		const lookup = (reference: string) => {
+			if (!locators) {
+				locators = new Map();
+				for (const entry of record.entries) {
+					const locator = this.locator(record.id, entry);
+					if (locator) locators.set(locator.id, locator);
+				}
+			}
+			return locators.get(reference);
+		};
+		const isContentCurrent = (reference: string) => {
+			if (this.signal.aborted || !current()) return false;
+			const locator = lookup(reference);
+			return Boolean(locator && this.locatorCurrent(locator));
+		};
+		return {
+			isContentCurrent,
+			readContent: async (reference: string, signal: AbortSignal) => {
+				const locator = lookup(reference);
+				if (!locator) throw new SourceError("download_missing");
+				return this.readAuthorized(locator, signal, () =>
+					isContentCurrent(reference),
+				);
+			},
+		};
 	}
 	async read(reference: string, signal: AbortSignal): Promise<DownloadContent> {
 		if (this.signal.aborted) throw new SourceError("source_unavailable");
 		if (signal.aborted) throw new SourceError("request_cancelled");
 		const saved = this.lookup(reference);
 		if (!saved) throw new SourceError("download_missing");
-		if (!this.isCurrent(reference)) throw new SourceError("source_conflict");
+		return this.readAuthorized(saved, signal, () => this.isCurrent(reference));
+	}
+	private async readAuthorized(
+		saved: SourceDownload,
+		signal: AbortSignal,
+		current: () => boolean,
+	): Promise<DownloadContent> {
+		if (this.signal.aborted) throw new SourceError("source_unavailable");
+		if (signal.aborted) throw new SourceError("request_cancelled");
+		if (!current()) throw new SourceError("source_conflict");
 		const key = createHash("sha256")
 			.update(JSON.stringify([saved.generation, saved.descriptor]))
 			.digest("hex");
@@ -150,7 +188,7 @@ export class SourceContent {
 			this.pending.add(created.promise);
 			void created.promise
 				.then((content) => {
-					if (!combined.aborted && this.isCurrent(reference))
+					if (!combined.aborted && this.locatorCurrent(saved))
 						this.remember(key, content);
 				})
 				.finally(() => {
@@ -169,18 +207,18 @@ export class SourceContent {
 			);
 		}
 		entry.readers++;
-		const current = entry;
+		const request = entry;
 		try {
-			const result = await this.wait(current.promise, signal);
+			const result = await this.wait(request.promise, signal);
 			if (this.signal.aborted) throw new SourceError("source_unavailable");
 			if (signal.aborted) throw new SourceError("request_cancelled");
-			if (!this.isCurrent(reference)) throw new SourceError("source_conflict");
+			if (!current()) throw new SourceError("source_conflict");
 			return this.copy(result);
 		} finally {
-			current.readers--;
-			if (current.readers === 0 && !current.settled) {
-				current.controller.abort();
-				if (this.inFlight.get(key) === current) this.inFlight.delete(key);
+			request.readers--;
+			if (request.readers === 0 && !request.settled) {
+				request.controller.abort();
+				if (this.inFlight.get(key) === request) this.inFlight.delete(key);
 			}
 		}
 	}

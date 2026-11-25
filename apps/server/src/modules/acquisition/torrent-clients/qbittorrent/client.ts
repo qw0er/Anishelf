@@ -1,14 +1,18 @@
 import { QBittorrent, TorrentClientError } from "@ctrl/qbittorrent";
+import { gte } from "semver";
+import { abortable } from "../../../../shared/abortable.js";
 import {
 	type TorrentClient,
 	TorrentError,
 	type TorrentFailureCode,
 	type TorrentFile,
 	type TorrentProbe,
+	type TorrentSource,
 	type TorrentState,
 	type TorrentSubmission,
 	type TorrentTask,
 } from "../public.js";
+import { inspectQbittorrentMetadata } from "./metadata.js";
 import type { QbittorrentOptions } from "./model.js";
 
 function text(value: unknown): value is string {
@@ -25,6 +29,7 @@ export class QbittorrentClient implements TorrentClient {
 	private readonly shutdown = new AbortController();
 	private readonly pending = new Set<Promise<unknown>>();
 	private authentication: Promise<void> | undefined;
+	private metadataCapability: Promise<boolean> | undefined;
 	private readonly logger;
 
 	constructor(options: QbittorrentOptions) {
@@ -88,6 +93,45 @@ export class QbittorrentClient implements TorrentClient {
 				progress: file.progress,
 				selected: file.priority > 0,
 			}));
+		});
+	}
+	inspectMetadata(
+		input: { source: TorrentSource; expectedHash: string },
+		signal?: AbortSignal,
+	) {
+		const deadline = AbortSignal.timeout(8_000);
+		const bounded = AbortSignal.any([deadline, ...(signal ? [signal] : [])]);
+		const task = this.run(
+			"inspect_metadata",
+			false,
+			bounded,
+			async (active) => {
+				this.metadataCapability ??= this.sdk
+					.getApiVersion()
+					.then((version) => {
+						if (!/^2\.\d+\.\d+$/.test(version))
+							throw new TorrentError("invalid-response", "read");
+						const supported = gte(version, "2.11.9");
+						this.logger.debug(
+							{ event: "qbittorrent.metadata_capability", version, supported },
+							"Checked qBittorrent metadata preview support.",
+						);
+						return supported;
+					})
+					.catch((error: unknown) => {
+						this.metadataCapability = undefined;
+						throw error;
+					});
+				const supported = await this.metadataCapability;
+				active.throwIfAborted();
+				if (!supported) return null;
+				return inspectQbittorrentMetadata(this.sdk, input, active);
+			},
+		);
+		return abortable(task, bounded).catch((error: unknown) => {
+			if (signal?.aborted) throw new TorrentError("cancelled", "read");
+			if (deadline.aborted) throw new TorrentError("timeout", "read");
+			throw error;
 		});
 	}
 	add(input: TorrentSubmission, signal?: AbortSignal) {
@@ -157,7 +201,7 @@ export class QbittorrentClient implements TorrentClient {
 		operation: string,
 		write: boolean,
 		signal: AbortSignal | undefined,
-		action: () => Promise<T>,
+		action: (signal: AbortSignal) => Promise<T>,
 	): Promise<T> {
 		const cancellation = AbortSignal.any([
 			this.shutdown.signal,
@@ -170,7 +214,7 @@ export class QbittorrentClient implements TorrentClient {
 				await this.authenticate();
 				cancellation.throwIfAborted();
 				actionStarted = true;
-				const result = await action();
+				const result = await action(cancellation);
 				cancellation.throwIfAborted();
 				this.logger.debug(
 					{ event: "qbittorrent.succeeded", operation },

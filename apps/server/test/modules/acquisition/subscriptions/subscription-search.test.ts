@@ -4,6 +4,7 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
+import type { ManifestPreview } from "../../../../src/modules/acquisition/manifest-preview.js";
 import { createSourcesModule } from "../../../../src/modules/acquisition/sources/create.js";
 import { JackettConnection } from "../../../../src/modules/acquisition/sources/jackett/connection.js";
 import { SourceError } from "../../../../src/modules/acquisition/sources/public.js";
@@ -47,7 +48,7 @@ const target: AcquisitionTarget = {
 	availableEpisodes: [],
 	revision: "metadata",
 };
-async function fixture() {
+async function fixture(manifestPreview?: Pick<ManifestPreview, "preview">) {
 	const directory = await mkdtemp(
 		join(tmpdir(), "anishelf-subscription-search-"),
 	);
@@ -116,6 +117,7 @@ async function fixture() {
 		store: db.acquisition,
 		sources: sources.api,
 		anime,
+		...(manifestPreview ? { manifestPreview } : {}),
 		downloads: async () => [],
 		logger,
 		now: () => now,
@@ -270,6 +272,66 @@ test("identity uncertainty and episode scope cannot select a source", async () =
 	});
 	const scoped = await f.subscriptions.search({ ...input, startEpisode: 4 });
 	expect(scoped.source).toBeNull();
+});
+
+test("pack-only subscription discovery can inspect a prepared release without publishing it", async () => {
+	const pack = frierenSeasonPackFixture(await loadReleaseCorpus());
+	const hash = "b".repeat(40);
+	const magnet = `magnet:?xt=urn:btih:${hash}`;
+	const preview = vi.fn<ManifestPreview["preview"]>(
+		async ({ candidates, signal }) => {
+			expect(candidates).toHaveLength(1);
+			const found = candidates[0];
+			const reference = found?.entry.download;
+			if (!found || !reference) throw new Error("Missing pack reference.");
+			const content = found.publication.content;
+			expect(content?.isContentCurrent(reference)).toBe(true);
+			await expect(content?.readContent(reference, signal)).resolves.toEqual({
+				kind: "magnet",
+				uri: magnet,
+			});
+			await expect(
+				content?.readContent("foreign-locator", signal),
+			).rejects.toMatchObject({
+				code: "download_missing",
+			});
+			return [];
+		},
+	);
+	const f = await fixture({ preview });
+	f.anime.target.mockResolvedValue(pack.target);
+	f.anime.assessReleaseTitle.mockImplementation(pack.assessReleaseTitle);
+	f.search.mockImplementation(async ({ indexerId }) => ({
+		entries:
+			indexerId === "first"
+				? [
+						{
+							id: "pack",
+							observationId: "pack",
+							title: pack.title,
+							hash,
+							publishedAt: null,
+							downloadUrl: null,
+							download: { kind: "magnet", uri: magnet },
+						},
+					]
+				: [],
+		coverage: { limited: false, reason: null, pages: 1, queries: 1 },
+		outcome: indexerId === "first" ? "matches" : "no_match",
+	}));
+	expect(await f.subscriptions.search(input)).toMatchObject({
+		source: null,
+		releases: [],
+	});
+	expect(preview).toHaveBeenCalledWith(
+		expect.objectContaining({ scope: { startEpisode: 1 } }),
+	);
+	expect(
+		f.db.acquisition
+			.sources()
+			.every((source) => !source.snapshot?.entries.length),
+	).toBe(true);
+	expect(f.db.acquisition.authorization(workKey)).toBeNull();
 });
 
 test("provider failures are explained while later configured sites may still qualify", async () => {

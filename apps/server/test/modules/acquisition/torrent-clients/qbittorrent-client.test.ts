@@ -174,6 +174,103 @@ async function fixture(
 	return { client, requests, logs, url };
 }
 
+test.each(["2.11.9", "2.13.0"])(
+	"SDK metadata endpoints return matching manifests and wait for a magnet (%s)",
+	async (version) => {
+		const response = {
+			hash,
+			infohash_v1: hash,
+			infohash_v2: "",
+			info: {
+				length: 109,
+				files: [
+					{ path: "Season 1/03.mkv", length: 100 },
+					{ path: "Season 1/03.zh.ass", length: 9 },
+				],
+			},
+			trackers: [{ url: "https://tracker.test/private-passkey", tier: 0 }],
+		};
+		let polls = 0;
+		const { client, requests, logs } = await fixture(({ path }) => {
+			if (path.endsWith("/app/webapiVersion")) return { body: version };
+			if (path.endsWith("/torrents/parseMetadata"))
+				return {
+					body: JSON.stringify(
+						version === "2.11.9"
+							? { "metadata.torrent": response }
+							: [response],
+					),
+				};
+			if (path.endsWith("/torrents/fetchMetadata"))
+				return ++polls === 1
+					? {
+							body: JSON.stringify({ hash, infohash_v1: hash }),
+							statusCode: 202,
+						}
+					: { body: JSON.stringify(response) };
+			return false;
+		});
+		const [upload, magnet] = await Promise.all([
+			client.inspectMetadata?.({
+				source: { torrent: Uint8Array.of(1, 2, 3) },
+				expectedHash: hash,
+			}),
+			client.inspectMetadata?.({ source: addInput.source, expectedHash: hash }),
+		]);
+		expect(upload).toEqual(magnet);
+		expect(upload).toEqual({
+			hash,
+			indexSource: "client",
+			files: [
+				{ index: 0, path: "Season 1/03.mkv", sizeBytes: 100 },
+				{ index: 1, path: "Season 1/03.zh.ass", sizeBytes: 9 },
+			],
+		});
+		expect(polls).toBe(2);
+		expect(
+			requests.filter(({ path }) => path.endsWith("/app/webapiVersion")),
+		).toHaveLength(1);
+		expect(
+			requests
+				.find(({ path }) => path.endsWith("/torrents/parseMetadata"))
+				?.form?.get("file"),
+		).toMatchObject({ name: "metadata.torrent", size: 3 });
+		expect(requests.some(({ path }) => path.endsWith("/torrents/add"))).toBe(
+			false,
+		);
+		expect(logs.join("")).not.toMatch(/private-passkey|magnet:/);
+	},
+);
+
+test("older qBittorrent versions return unsupported without sending a metadata request", async () => {
+	const { client, requests } = await fixture();
+	const input = { source: addInput.source, expectedHash: hash };
+	expect(await client.inspectMetadata?.(input)).toBeNull();
+	expect(await client.inspectMetadata?.(input)).toBeNull();
+	expect(
+		requests.filter(({ path }) => path.endsWith("/app/webapiVersion")),
+	).toHaveLength(1);
+	expect(requests.some(({ path }) => path.endsWith("Metadata"))).toBe(false);
+});
+
+test("a mismatched hash cannot complete or keep polling a magnet metadata request", async () => {
+	const { client, requests } = await fixture(({ path }) => {
+		if (path.endsWith("/app/webapiVersion")) return { body: "2.11.9" };
+		if (path.endsWith("/torrents/fetchMetadata"))
+			return {
+				body: JSON.stringify({ infohash_v1: "a".repeat(40) }),
+				statusCode: 202,
+			};
+		return false;
+	});
+	await expect(
+		client.inspectMetadata?.({ source: addInput.source, expectedHash: hash }),
+	).rejects.toMatchObject({ code: "invalid-response", outcome: "read" });
+	expect(
+		requests.filter(({ path }) => path.endsWith("/torrents/fetchMetadata")),
+	).toHaveLength(1);
+});
+
 test("SDK cookie login is shared by concurrent operations and preserves proxy prefix", async () => {
 	const { client, requests } = await networkFixture();
 	const [probe, tasks] = await Promise.all([client.probe(), client.tasks()]);

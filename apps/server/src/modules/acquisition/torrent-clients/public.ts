@@ -1,6 +1,8 @@
 import type {
 	TorrentFile,
+	TorrentManifest,
 	TorrentProbe,
+	TorrentSource,
 	TorrentSubmission,
 	TorrentTask,
 } from "./domain/model.js";
@@ -11,7 +13,9 @@ export type {
 	TorrentConnectionStatus,
 	TorrentFailureCode,
 	TorrentFile,
+	TorrentManifest,
 	TorrentProbe,
+	TorrentSource,
 	TorrentState,
 	TorrentSubmission,
 	TorrentTask,
@@ -27,6 +31,11 @@ export interface TorrentClient {
 	/** Lookup accepts canonical v1/v2 hashes and returns null only on confirmed absence. */
 	task(hash: string, signal?: AbortSignal): Promise<TorrentTask | null>;
 	files(hash: string, signal?: AbortSignal): Promise<TorrentFile[]>;
+	/** Read-only preview. Null means the client lacks the required API capability. */
+	inspectMetadata?(
+		input: { source: TorrentSource; expectedHash: string },
+		signal?: AbortSignal,
+	): Promise<TorrentManifest | null>;
 	/** Acceptance only. Throws TorrentError; unknown outcomes must be reconciled before retry. */
 	add(input: TorrentSubmission, signal?: AbortSignal): Promise<void>;
 	/** Reject new operations and drain outstanding requests before releasing credentials. */

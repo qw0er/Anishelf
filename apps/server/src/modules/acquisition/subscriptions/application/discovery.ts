@@ -1,4 +1,5 @@
 import { DomainError } from "../../../../shared/errors.js";
+import type { ManifestPreviewCandidate } from "../../manifest-preview.js";
 import { SourceError } from "../../sources/public.js";
 import type {
 	SubscriptionSearchInput,
@@ -122,6 +123,7 @@ export class SubscriptionDiscovery {
 			);
 		guard();
 		const attempts: SubscriptionSearchResult["attempts"] = [];
+		const inspection: ManifestPreviewCandidate[] = [];
 		for (const providerId of settings.providers) {
 			guard();
 			const source = {
@@ -163,6 +165,17 @@ export class SubscriptionDiscovery {
 				guard();
 				const candidates = assess(publication.snapshot);
 				const eligible = eligibleCandidates(candidates);
+				const packs = new Set(
+					candidates
+						.filter((candidate) =>
+							candidate.reasons.includes("pack_requires_inspection"),
+						)
+						.map(({ entryId }) => entryId),
+				);
+				if (options.manifestPreview && publication.content)
+					for (const entry of publication.snapshot.entries)
+						if (entry.download && packs.has(entry.id))
+							inspection.push({ publication, entry });
 				attempts.push({
 					providerId,
 					outcome: eligible.length
@@ -190,9 +203,7 @@ export class SubscriptionDiscovery {
 						providerId,
 						outcome: attempts.at(-1)?.outcome,
 						eligible: eligible.length,
-						packsRequiringInspection: candidates.filter((candidate) =>
-							candidate.reasons.includes("pack_requires_inspection"),
-						).length,
+						packsRequiringInspection: packs.size,
 					},
 					"Source discovery evaluated a configured provider.",
 				);
@@ -240,6 +251,16 @@ export class SubscriptionDiscovery {
 					"Source discovery could not read a configured provider.",
 				);
 			}
+		}
+		if (inspection.length && options.manifestPreview) {
+			await options.manifestPreview.preview({
+				candidates: inspection,
+				target,
+				workKey: input.workKey,
+				scope: { startEpisode: input.startEpisode },
+				signal: this.context.signal,
+			});
+			guard();
 		}
 		return { source: null, attempts, releases: [] };
 	}

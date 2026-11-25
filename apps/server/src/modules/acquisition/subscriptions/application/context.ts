@@ -3,6 +3,7 @@ import type { Logger } from "pino";
 import { DomainError } from "../../../../shared/errors.js";
 import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";
 import type { ReleaseAssessmentApi } from "../../../anime/public.js";
+import type { ManifestPreview } from "../../manifest-preview.js";
 import type { SourcesApi } from "../../sources/public.js";
 import type { Subscription } from "../domain/model.js";
 import {
@@ -23,6 +24,7 @@ export type SubscriptionsOptions = {
 	store: SubscriptionStore;
 	sources: SourcesApi;
 	anime: ReleaseAssessmentApi;
+	manifestPreview?: Pick<ManifestPreview, "preview">;
 	downloads: (signal: AbortSignal) => Promise<string[] | null>;
 	logger: Logger;
 	now?: () => number;

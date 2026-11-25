@@ -31,6 +31,8 @@ import { getSubscription } from "./subscriptions-api.js";
 const errorKeys: Record<string, string> = {
 	no_eligible_release: "acquisition.activity.errors.no_eligible_release",
 	discovery_unavailable: "acquisition.activity.errors.discovery_unavailable",
+	metadata_timeout: "acquisition.activity.errors.metadata_timeout",
+	metadata_unsupported: "acquisition.activity.errors.metadata_unsupported",
 	acquisition_configuration_changed:
 		"acquisition.activity.errors.acquisition_configuration_changed",
 	already_available: "acquisition.activity.errors.already_available",

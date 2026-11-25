@@ -1,6 +1,11 @@
+import { sep } from "node:path";
 import parseTorrent from "parse-torrent";
 import { isWindowsPathPart } from "../../../../platform/paths.js";
-import type { ReleaseEvidence } from "../../sources/public.js";
+import type { DownloadContent, ReleaseEvidence } from "../../sources/public.js";
+import type {
+	TorrentManifest,
+	TorrentSource,
+} from "../../torrent-clients/public.js";
 import { downloadDefaults } from "../defaults.js";
 import { DownloadError } from "../domain/model.js";
 import {
@@ -8,6 +13,12 @@ import {
 	maximumDownloadFilePathLength,
 } from "../domain/paths.js";
 import type { TorrentReader } from "../ports.js";
+
+interface InspectedTorrent {
+	hash: string;
+	source: TorrentSource;
+	localManifest(): TorrentManifest | null;
+}
 
 function rawPaths(info: unknown) {
 	if (!info || typeof info !== "object")
@@ -59,14 +70,11 @@ function rawPaths(info: unknown) {
 	};
 	if (data["file tree"]) tree(data["file tree"], 0, nameLength);
 }
-export async function resolveTorrent(
-	entry: Pick<ReleaseEvidence, "download" | "hash">,
-	transport: TorrentReader,
-	signal: AbortSignal,
-) {
-	if (!entry.download) throw new DownloadError("missing_download");
+export async function inspectTorrentContent(
+	content: DownloadContent,
+	expectedHash: string | null,
+): Promise<InspectedTorrent> {
 	try {
-		const content = await transport.read(entry.download, signal);
 		const bytes = content.kind === "bytes" ? content.bytes : null;
 		const magnet = content.kind === "magnet" ? content.uri : null;
 		if (bytes && bytes.byteLength > downloadDefaults.maximumTorrentBytes)
@@ -74,7 +82,7 @@ export async function resolveTorrent(
 		const parsed = await parseTorrent(bytes ?? magnet ?? "");
 		if (!/^[a-f0-9]{40}$/.test(parsed.infoHash))
 			throw new DownloadError("unsupported_torrent");
-		if (entry.hash && parsed.infoHash !== entry.hash.toLowerCase())
+		if (expectedHash && parsed.infoHash !== expectedHash.toLowerCase())
 			throw new DownloadError("torrent_identity_conflict");
 		if (bytes) rawPaths(parsed.info);
 		return {
@@ -82,7 +90,37 @@ export async function resolveTorrent(
 			source: bytes
 				? { torrent: new Uint8Array(bytes) }
 				: { magnet: magnet ?? "" },
+			localManifest: () =>
+				bytes
+					? {
+							hash: parsed.infoHash,
+							indexSource: "metainfo",
+							files: (parsed.files ?? []).map((file, index) => ({
+								index,
+								path: file.path.split(sep).join("/"),
+								sizeBytes: file.length,
+							})),
+						}
+					: null,
 		};
+	} catch (error) {
+		if (error instanceof DownloadError) throw error;
+		throw new DownloadError("torrent_unavailable");
+	}
+}
+
+export async function resolveTorrent(
+	entry: Pick<ReleaseEvidence, "download" | "hash">,
+	transport: TorrentReader,
+	signal: AbortSignal,
+) {
+	if (!entry.download) throw new DownloadError("missing_download");
+	try {
+		const { hash, source } = await inspectTorrentContent(
+			await transport.read(entry.download, signal),
+			entry.hash,
+		);
+		return { hash, source };
 	} catch (error) {
 		if (error instanceof DownloadError) throw error;
 		throw new DownloadError("torrent_unavailable");

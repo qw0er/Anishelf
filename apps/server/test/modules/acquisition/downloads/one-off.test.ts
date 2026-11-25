@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, expect, test, vi } from "vitest";
+import type { ManifestPreview } from "../../../../src/modules/acquisition/manifest-preview.js";
 import { JackettConnection } from "../../../../src/modules/acquisition/sources/jackett/connection.js";
 import { SourceError } from "../../../../src/modules/acquisition/sources/public.js";
 import { TorrentError } from "../../../../src/modules/acquisition/torrent-clients/public.js";
@@ -44,8 +45,11 @@ function release(
 		seedersObservedAt: 1_000_000,
 	};
 }
-async function setup(persistent = false) {
-	const f = await fixture(persistent);
+async function setup(
+	persistent = false,
+	manifestPreview?: Pick<ManifestPreview, "preview">,
+) {
+	const f = await fixture(persistent, false, manifestPreview);
 	f.db.acquisition.remove(
 		key,
 		f.db.acquisition.subscription(key)?.revision ?? "",
@@ -207,6 +211,39 @@ test("empty discovery stops until explicit retry and can recover without a subsc
 	f.worker.retry(item.id, item.revision, "retry", "acquisition");
 	await f.worker.tick();
 	expect(f.add).toHaveBeenCalledTimes(1);
+});
+
+test("pack-only one-off discovery reports a preview timeout in Activity", async () => {
+	const preview = vi.fn<ManifestPreview["preview"]>(async () => [
+		{ code: "metadata_timeout" },
+	]);
+	const { f, search, input } = await setup(false, { preview });
+	const pack = frierenSeasonPackFixture(await loadReleaseCorpus());
+	f.anime.target.mockResolvedValue(pack.target);
+	f.anime.assessReleaseTitle.mockImplementation(pack.assessReleaseTitle);
+	search.mockResolvedValue({
+		entries: [release("pack", pack.title)],
+		coverage,
+		outcome: "matches",
+	});
+	await f.worker.requestEpisode(input);
+	await f.worker.tick();
+	expect(preview).toHaveBeenCalledWith(
+		expect.objectContaining({
+			scope: { episode: 3 },
+			candidates: expect.arrayContaining([
+				expect.objectContaining({
+					entry: expect.objectContaining({ title: pack.title }),
+				}),
+			]),
+		}),
+	);
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		state: "blocked",
+		error: "metadata_timeout",
+		canRetryAcquisition: true,
+	});
+	expect(f.add).not.toHaveBeenCalled();
 });
 
 test("partial site failures still select matching evidence and retain diagnostics", async () => {

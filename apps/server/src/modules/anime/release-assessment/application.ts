@@ -7,22 +7,23 @@ import type {
 } from "../anime-catalog/public.js";
 import type { MetadataIdentitiesApi } from "../external-works/metadata/public.js";
 import {
-	matchingTitle,
 	proposeMapping,
 	rankCandidates,
 	titleEvidence,
 } from "../identification/public.js";
 import { releaseAttributes } from "./attributes.js";
+import { mapReleaseFiles } from "./file-mapping.js";
 import type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,
 	ReleaseParser,
 } from "./public.js";
 import { acquisitionSearchTitles } from "./search-titles.js";
-
-const localizedPackLabel = /(?:合[集辑輯]|全集)版?(?!\p{Script=Han})/u;
-const episodeRangeSeparator =
-	/(?<![\p{L}\p{N}]|\b(?:season|part|cour)\s+)((?:s\d+e|ep?\s*)?\d+)(?:\s*[-‐‑‒–—−~～至]\s*|\s+to\s+)(?:ep?\s*)?(?=\d)/giu;
+import {
+	localizedPackLabel,
+	matchesPublicationTitle,
+	publicationRangeEvidence,
+} from "./title.js";
 
 /** Remote publication evidence never impersonates a confined local source. */
 export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
@@ -106,26 +107,16 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 		target: AcquisitionTarget,
 	): ReturnType<ReleaseAssessmentApi["assessReleaseTitle"]> {
 		const evidence = this.parser.extractRelease(title);
-		// Recognize release range delimiters the filename parser may split into
-		// title text and a single endpoint. Keep the original declared attributes.
-		const normalizedRange = title.replace(episodeRangeSeparator, "$1-");
-		const rangeEvidence =
-			evidence.numbering !== "range" && normalizedRange !== title
-				? this.parser.extractRelease(normalizedRange)
-				: null;
-		const publication =
-			rangeEvidence?.numbering === "range" ? rangeEvidence : evidence;
+		const publication = publicationRangeEvidence(this.parser, evidence);
 		const candidate = rankCandidates(publication, [target.work])[0];
 		const version = `${evidence.parserVersion}:${evidence.normalizationVersion}:${candidate?.matcherVersion ?? "unknown"}:rss-single-v2`;
-		const matchesWork = (title: string) =>
-			target.work.titles.some((alias) =>
-				matchingTitle(title, alias, publication.seasons, publication.parts),
-			);
-		const titleMatches = publication.titles.some(
-			(value) =>
-				matchesWork(value) ||
-				(localizedPackLabel.test(value) &&
-					matchesWork(value.replace(localizedPackLabel, " ").trim())),
+		const titleMatches = publication.titles.some((value) =>
+			matchesPublicationTitle(
+				value,
+				target.work,
+				publication.seasons,
+				publication.parts,
+			),
 		);
 		const possiblePack =
 			publication.numbering === "range" ||
@@ -182,5 +173,17 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 			reasons,
 			version,
 		};
+	}
+	mapReleaseFiles(
+		...args: Parameters<NonNullable<ReleaseAssessmentApi["mapReleaseFiles"]>>
+	) {
+		const [title, target, files] = args;
+		const evidence = this.parser.extractRelease(title);
+		return mapReleaseFiles(
+			this.parser,
+			publicationRangeEvidence(this.parser, evidence),
+			target,
+			files,
+		);
 	}
 }

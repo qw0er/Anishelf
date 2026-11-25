@@ -1,5 +1,6 @@
 import type {
 	ExtractionEvidence,
+	IdentificationParser,
 	WorkCandidate,
 } from "../identification/public.js";
 
@@ -37,13 +38,28 @@ interface ReleaseAssessment {
 	reasons: string[];
 	version: string;
 }
+export interface ReleaseFileCoverage {
+	episodes: number[];
+	complete: boolean;
+	videos: {
+		index: number;
+		episodes: number[];
+		subtitleIndices: number[];
+		attributes: ReleaseAttributes;
+	}[];
+}
 export interface ReleaseAssessmentApi {
 	target(key: string, signal?: AbortSignal): Promise<AcquisitionTarget>;
 	assessReleaseTitle(
 		title: string,
 		target: AcquisitionTarget,
 	): ReleaseAssessment;
+	mapReleaseFiles?(
+		title: string,
+		target: AcquisitionTarget,
+		files: readonly { index: number; path: string }[],
+	): ReleaseFileCoverage;
 }
-export interface ReleaseParser {
+export interface ReleaseParser extends Pick<IdentificationParser, "extract"> {
 	extractRelease(title: string): ExtractionEvidence;
 }

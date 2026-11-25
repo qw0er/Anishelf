@@ -1088,6 +1088,8 @@
 				"incomplete_directory_required": "Configure a separate incomplete directory and validate the destination in Settings.",
 				"no_eligible_release": "No single-episode release matches your download preferences. Retry later or adjust your preferences.",
 				"discovery_unavailable": "Release discovery could not complete. Check source sites and the downloader, then retry.",
+				"metadata_timeout": "The downloader timed out while reading the torrent file list. Retry later.",
+				"metadata_unsupported": "The downloader cannot preview this torrent. Update qBittorrent or try another release.",
 				"acquisition_configuration_changed": "Download settings changed. Retry to use the current configuration.",
 				"already_available": "This episode is already available locally.",
 				"association_requires_manual_review": "An existing manual or protected decision requires local Review.",

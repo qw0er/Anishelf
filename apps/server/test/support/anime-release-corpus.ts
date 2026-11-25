@@ -141,6 +141,7 @@ export function frierenSeasonPackFixture(corpus: Corpus) {
 		title: entry.title,
 		target,
 		assessReleaseTitle: assessor.assessReleaseTitle.bind(assessor),
+		mapReleaseFiles: assessor.mapReleaseFiles.bind(assessor),
 	};
 }
 const normalize = (value: unknown) =>

@@ -1074,6 +1074,8 @@
 				"incomplete_directory_required": "请配置单独的未完成目录，并在设置中验证目标。",
 				"no_eligible_release": "未找到符合下载偏好的单集资源。可稍后重试，或调整下载偏好。",
 				"discovery_unavailable": "资源查找未能完成。请检查资源站和下载客户端，然后重试。",
+				"metadata_timeout": "下载器读取种子文件清单超时。请稍后重试。",
+				"metadata_unsupported": "下载器无法预览此种子。请更新 qBittorrent 或尝试其他资源。",
 				"acquisition_configuration_changed": "下载配置已更改。重试以使用当前配置。",
 				"already_available": "此集已有可用的本地文件。",
 				"association_requires_manual_review": "存在手动或受保护的关联决定，请在本地审核中处理。",

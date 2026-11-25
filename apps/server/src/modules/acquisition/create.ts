@@ -5,6 +5,7 @@ import type { AcquisitionResources } from "../resources/public.js";
 import { DownloadsApplication } from "./downloads/application/application.js";
 import type { DownloadStore } from "./downloads/public.js";
 import { registerAcquisitionHttp } from "./http.js";
+import { ManifestPreview } from "./manifest-preview.js";
 import type { AcquisitionStore } from "./persistence.js";
 import type { AcquisitionApi } from "./public.js";
 import {
@@ -81,6 +82,14 @@ export async function createAcquisitionModule(options: {
 			: {}),
 		...(options.now ? { now: options.now } : {}),
 	});
+	const manifestPreview = options.anime?.mapReleaseFiles
+		? new ManifestPreview(
+				torrentClients.api,
+				options.anime.mapReleaseFiles.bind(options.anime),
+				options.logger,
+				options.now,
+			)
+		: undefined;
 	let watching: WatchingApplication | undefined;
 	let profileRevision = 0;
 	let defaultProfile =
@@ -124,6 +133,7 @@ export async function createAcquisitionModule(options: {
 			},
 		},
 		sources: sources.api,
+		...(manifestPreview ? { manifestPreview } : {}),
 		downloads: torrentClients.api.activeHashes,
 		logger: options.logger,
 		...(options.now ? { now: options.now } : {}),
@@ -171,6 +181,7 @@ export async function createAcquisitionModule(options: {
 					defaultProfileId: () => options.defaultAcquisitionProfileId?.(),
 					resources: options.resources,
 					anime: options.anime,
+					...(manifestPreview ? { manifestPreview } : {}),
 					ingestion: options.ingestion,
 					transport: {
 						read: sources.api.readContent,
@@ -241,6 +252,7 @@ export async function createAcquisitionModule(options: {
 			closing ??= (async () => {
 				unsubscribe?.();
 				watching?.stop();
+				manifestPreview?.close();
 				await downloads?.close();
 				const closingSubscriptions = subscriptions.close();
 				await sources.runtime.close();

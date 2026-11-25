@@ -8,6 +8,7 @@ import { ApplicationDatabase } from "../../../../../src/app/bootstrap/database.j
 import { createAcquisitionModule } from "../../../../../src/modules/acquisition/create.js";
 import { DownloadsApplication } from "../../../../../src/modules/acquisition/downloads/application/application.js";
 import type { TorrentReader } from "../../../../../src/modules/acquisition/downloads/public.js";
+import type { ManifestPreview } from "../../../../../src/modules/acquisition/manifest-preview.js";
 import { SourceContent } from "../../../../../src/modules/acquisition/sources/application/content.js";
 import { createSourcesModule } from "../../../../../src/modules/acquisition/sources/create.js";
 import type { TorrentClient } from "../../../../../src/modules/acquisition/torrent-clients/public.js";
@@ -57,7 +58,11 @@ export function readerFor(transport: {
 	};
 }
 
-export async function fixture(persistent = false, bundled = false) {
+export async function fixture(
+	persistent = false,
+	bundled = false,
+	manifestPreview?: Pick<ManifestPreview, "preview">,
+) {
 	const dir = await mkdtemp(join(tmpdir(), "anishelf-downloads-"));
 	cleanup.push(() => rm(dir, { recursive: true, force: true }));
 	let db = persistent
@@ -237,6 +242,7 @@ export async function fixture(persistent = false, bundled = false) {
 			},
 			resources,
 			anime,
+			...(manifestPreview ? { manifestPreview } : {}),
 			ingestion,
 			transport: reader,
 			connectionGeneration: () => generation,

@@ -36,6 +36,8 @@ export interface SourcesApi {
 /** Source evidence and candidate writes share one synchronous transaction. */
 export interface SourcePublication {
 	readonly snapshot: SourceSnapshot;
+	/** Scoped access to this snapshot's locators without publishing evidence. */
+	readonly content?: Pick<SourcesApi, "readContent" | "isContentCurrent">;
 	commit(writeCandidates: () => void): void;
 }
 
