@@ -31,9 +31,17 @@ export interface CatalogStore extends SourceRegistry {
 	transaction<T>(operation: (store: CatalogStore) => T): T;
 	publish(
 		scopeIds: readonly string[],
-		items: { source: RegisteredSource; result: IdentificationResult }[],
+		items: {
+			source: RegisteredSource;
+			result: IdentificationResult;
+			identificationFingerprint?: string | null;
+		}[],
 		fileIds?: readonly string[],
 	): void;
+	reusableIdentification(
+		sources: readonly SourceIdentity[],
+		fingerprint: string,
+	): IdentificationResult[] | undefined;
 	review(id: string): ReviewRecord | null;
 	priorAcquisition(fileId: string, scopeId: string): ReviewRecord | null;
 	reviews(

@@ -1,6 +1,7 @@
-import { rm } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { join, sep } from "node:path";
 import { expect, test, vi } from "vitest";
+import { IdentificationApplication } from "../../../../src/modules/anime/identification/application/identification.js";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import { createHttpApp } from "../../../support/http.js";
 import {
@@ -58,9 +59,80 @@ test("unambiguous scanner identification automatically admits sources and preser
 	);
 	await automatic.close();
 	await f.restart();
+	const identify = vi.spyOn(IdentificationApplication.prototype, "identify");
+	await enableAutomatic(f);
 	await f.scan();
+	expect(identify).not.toHaveBeenCalled();
 	expect((await f.catalog.list()).items).toHaveLength(1);
 	expect((await f.catalog.review(review.id)).associations[0]?.number).toBe("3");
+});
+
+test("cold identification reuses unchanged directories and recomputes changed and explicitly retried directories", async () => {
+	const f = await fixture(
+		["series/Anime - 01.mkv", "other/Anime - SP01.mkv"],
+		undefined,
+		true,
+	);
+	const automatic = await enableAutomatic(f);
+	await automatic.close();
+	await f.restart();
+	await writeFile(join(f.root, "series", "Anime - 02.mkv"), "new episode");
+	await f.scan();
+
+	const identify = vi.spyOn(IdentificationApplication.prototype, "identify");
+	const restarted = await enableAutomatic(f);
+	expect(identify).toHaveBeenCalledTimes(1);
+	expect(
+		identify.mock.calls[0]?.[0].map((source) => source.relativePath),
+	).toEqual([
+		join("series", "Anime - 01.mkv"),
+		join("series", "Anime - 02.mkv"),
+	]);
+	const special = required(
+		restarted
+			.getResults()
+			.find((result) => result.source.relativePath.startsWith("other")),
+	);
+	identify.mockClear();
+	await restarted.reidentify(special.source.fileId);
+	expect(identify).toHaveBeenCalledExactlyOnceWith(
+		[special.source],
+		expect.any(AbortSignal),
+		{ refreshMetadata: true },
+	);
+});
+
+test("cold identification retries a whole directory after metadata failure", async () => {
+	const f = await fixture(
+		["Anime - 01.mkv", "Anime - 02.mkv"],
+		undefined,
+		true,
+	);
+	const originalIdentify = IdentificationApplication.prototype.identify;
+	const identify = vi
+		.spyOn(IdentificationApplication.prototype, "identify")
+		.mockImplementationOnce(async function (
+			this: IdentificationApplication,
+			...args
+		) {
+			const results = await originalIdentify.apply(this, args);
+			required(results[0]).metadataStatus = "failed";
+			return results;
+		});
+	const automatic = await enableAutomatic(f);
+	expect(automatic.getResults().map((result) => result.metadataStatus)).toEqual(
+		["failed", "searched"],
+	);
+	await automatic.close();
+	await f.restart();
+
+	identify.mockClear();
+	const restarted = await enableAutomatic(f);
+	expect(identify).toHaveBeenCalledTimes(1);
+	expect(identify.mock.calls[0]?.[0]).toHaveLength(2);
+	expect(restarted.getResults().map((result) => result.metadataStatus)).toEqual(
+		["searched", "searched"],
+	);
 });
 
 test("ambiguous candidates, specials and provider failure remain pending rather than auto-associated", async () => {

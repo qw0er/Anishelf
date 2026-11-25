@@ -16,12 +16,15 @@ export function createIdentificationModule(options: {
 	metadataContext?: () => string;
 	metadata?: IdentificationMetadata;
 	catalog?: Pick<AnimeCatalogApi, "reviews" | "review"> &
-		Partial<Pick<AnimeCatalogApi, "reusableAcquisitions">>;
+		Partial<
+			Pick<AnimeCatalogApi, "reusableAcquisitions" | "reusableIdentification">
+		>;
 	onPublication?: (
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],
 		signal: AbortSignal,
 		fileIds?: readonly string[],
+		identificationFingerprints?: ReadonlyMap<string, string>,
 	) => void | Promise<void>;
 }): AutomaticIdentificationCoordinator {
 	const identification = createIdentificationApplication(options.metadata);

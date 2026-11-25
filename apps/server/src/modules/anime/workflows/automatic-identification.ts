@@ -62,12 +62,18 @@ export class AutomaticIdentificationCoordinator {
 			logger: Logger;
 			metadataContext?: () => string;
 			catalog?: Pick<AnimeCatalogApi, "reviews" | "review"> &
-				Partial<Pick<AnimeCatalogApi, "reusableAcquisitions">>;
+				Partial<
+					Pick<
+						AnimeCatalogApi,
+						"reusableAcquisitions" | "reusableIdentification"
+					>
+				>;
 			onPublication?: (
 				results: readonly IdentificationResult[],
 				scopeIds: readonly string[],
 				signal: AbortSignal,
 				fileIds?: readonly string[],
+				identificationFingerprints?: ReadonlyMap<string, string>,
 			) => void | Promise<void>;
 		},
 	) {}
@@ -362,7 +368,10 @@ export class AutomaticIdentificationCoordinator {
 			: new Map(this.cache);
 		const started = performance.now();
 		let parsed = 0;
+		let reusedDirectories = 0;
+		let reusedPersistedDirectories = 0;
 		const publication: IdentificationResult[] = [];
+		const fingerprints = new Map<string, string>();
 		const affectedFiles = new Set<string>();
 		const forcedCompleted = new Set<string>();
 		this.options.logger.info(
@@ -412,13 +421,23 @@ export class AutomaticIdentificationCoordinator {
 				sources,
 			);
 			const cached = this.cache.get(id);
-			let results: IdentificationResult[];
-			if (!forced && cached?.fingerprint === fingerprint)
-				results = cached.results;
-			else {
+			let results: IdentificationResult[] | undefined;
+			if (!forced && sources.length) {
+				if (cached?.fingerprint === fingerprint) results = cached.results;
+				else {
+					results = this.options.catalog?.reusableIdentification?.(
+						sources,
+						fingerprint,
+					);
+					if (results) reusedPersistedDirectories++;
+				}
+				if (results) reusedDirectories++;
+			}
+			if (!results) {
 				const reusable =
 					(await this.options.catalog?.reusableAcquisitions?.(sources)) ?? [];
 				const unidentified = sourcesNeedingIdentification(sources, reusable);
+				parsed += unidentified.length;
 				results = [...reusable];
 				for (
 					let start = 0;
@@ -451,7 +470,6 @@ export class AutomaticIdentificationCoordinator {
 						"Local identification candidate evaluated.",
 					);
 				}
-				parsed += sources.length;
 			}
 			for (const source of sources)
 				await this.options.sources.revalidateSource({
@@ -463,12 +481,14 @@ export class AutomaticIdentificationCoordinator {
 			publication.push(...results);
 			if (forced) forcedCompleted.add(id);
 			// Failed provider results are retained for Review but not reused on retry.
+			const metadataFailed = results.some(
+				(result) => result.metadataStatus === "failed",
+			);
+			if (!metadataFailed)
+				for (const result of results)
+					fingerprints.set(result.source.fileId, fingerprint);
 			next.set(id, {
-				fingerprint: results.some(
-					(result) => result.metadataStatus === "failed",
-				)
-					? ""
-					: fingerprint,
+				fingerprint: metadataFailed ? "" : fingerprint,
 				results,
 				fileIds: files.map((file) => file.id),
 				scopeId: sources[0]?.scopeId ?? cached?.scopeId,
@@ -481,6 +501,7 @@ export class AutomaticIdentificationCoordinator {
 			availableScopes,
 			signal,
 			full ? undefined : [...affectedFiles],
+			fingerprints,
 		);
 		signal.throwIfAborted();
 		this.options.sources.assertAccessRevision(epoch);
@@ -497,6 +518,8 @@ export class AutomaticIdentificationCoordinator {
 				event: "identification.automatic_completed",
 				full,
 				directories: groups.size,
+				reusedDirectories,
+				reusedPersistedDirectories,
 				sources: publication.length,
 				parsed,
 				reused: publication.length - parsed,

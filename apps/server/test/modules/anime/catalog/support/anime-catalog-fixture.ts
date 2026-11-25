@@ -259,8 +259,7 @@ export async function enableAutomatic(f: Awaited<ReturnType<typeof fixture>>) {
 			createPublicMetadata(f.metadata, f.database.metadata),
 		),
 		catalog: f.catalog,
-		onPublication: (results, root, signal, fileIds) =>
-			f.catalog.publish(results, root, signal, fileIds),
+		onPublication: (...args) => f.catalog.publish(...args),
 	});
 	cleanups.push(() => automatic.close());
 	await automatic.waitForCompletion();

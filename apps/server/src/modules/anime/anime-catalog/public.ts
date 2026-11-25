@@ -37,6 +37,10 @@ export interface AnimeCatalogApi {
 	reusableAcquisitions(
 		sources: readonly import("../../resources/public.js").SourceIdentity[],
 	): Promise<import("../identification/public.js").IdentificationResult[]>;
+	reusableIdentification(
+		sources: readonly import("../../resources/public.js").SourceIdentity[],
+		fingerprint: string,
+	): IdentificationResult[] | undefined;
 
 	availableEpisodes(
 		reference: import("../external-works/metadata/public.js").WorkReference,
@@ -46,6 +50,7 @@ export interface AnimeCatalogApi {
 		scopeIds: readonly string[],
 		signal?: AbortSignal,
 		fileIds?: readonly string[],
+		identificationFingerprints?: ReadonlyMap<string, string>,
 	): Promise<void>;
 	list(query?: CatalogQuery): Promise<Page<WorkCard>>;
 	index(query?: CatalogQuery): Promise<{

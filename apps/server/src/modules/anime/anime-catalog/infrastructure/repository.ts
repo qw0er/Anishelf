@@ -3,8 +3,12 @@ import type { Store } from "../../../../platform/database/store.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { mediaSources } from "../../../resources/persistence.js";
-import type { SourceRegistry } from "../../../resources/public.js";
+import type {
+	SourceIdentity,
+	SourceRegistry,
+} from "../../../resources/public.js";
 import { metadataWorks } from "../../external-works/metadata/persistence.js";
+import type { IdentificationResult } from "../../identification/public.js";
 
 import type {
 	Association,
@@ -93,6 +97,31 @@ export class CatalogRepository implements CatalogStore {
 		const row = this.reviewQuery().where(eq(catalogReviews.id, id)).get();
 		return row ? this.readReview(row) : null;
 	}
+	reusableIdentification(
+		sources: readonly SourceIdentity[],
+		fingerprint: string,
+	): IdentificationResult[] | undefined {
+		// Sibling evidence makes a partial directory hit unsafe to reuse.
+		const rows = [];
+		for (const source of sources) {
+			const row = this.reviewQuery()
+				.where(
+					and(
+						eq(mediaSources.rootId, source.scopeId),
+						eq(mediaSources.fileId, source.fileId),
+						eq(mediaSources.sourceVersion, source.sourceVersion),
+						eq(catalogReviews.identificationFingerprint, fingerprint),
+					),
+				)
+				.get();
+			if (!row || row.review.resultMetadataStatus === "failed") return;
+			rows.push({ source, review: row.review });
+		}
+		return rows.map(({ source, review }) => ({
+			...readCatalogReviews(this.store, review).result,
+			source,
+		}));
+	}
 	priorAcquisition(fileId: string, scopeId: string) {
 		const row = this.reviewQuery()
 			.where(
@@ -167,7 +196,11 @@ export class CatalogRepository implements CatalogStore {
 					.where(inArray(catalogReviews.id, rootSources))
 					.run();
 			}
-			for (const { source, result } of items) {
+			for (const {
+				source,
+				result,
+				identificationFingerprint = null,
+			} of items) {
 				const previous = this.store
 					.select()
 					.from(catalogReviews)
@@ -179,25 +212,34 @@ export class CatalogRepository implements CatalogStore {
 				) {
 					this.store
 						.update(catalogReviews)
-						.set({ available: true })
+						.set({ available: true, identificationFingerprint })
 						.where(eq(catalogReviews.id, source.id))
 						.run();
 					continue;
 				}
 				const { source: _source, ...storedResult } = result;
-				const changed =
-					!previous ||
-					fingerprint(readCatalogReviews(this.store, previous).result) !==
-						fingerprint(storedResult);
+				if (
+					previous &&
+					fingerprint(readCatalogReviews(this.store, previous).result) ===
+						fingerprint(storedResult)
+				) {
+					this.store
+						.update(catalogReviews)
+						.set({ available: true, identificationFingerprint })
+						.where(eq(catalogReviews.id, source.id))
+						.run();
+					continue;
+				}
 				writeCatalogReviews(this.store, {
 					id: source.id,
 					result: storedResult,
 					available: true,
-					revision: previous ? previous.revision + Number(changed) : 1,
+					revision: (previous?.revision ?? 0) + 1,
 					decision: previous?.decision ?? "pending",
 					decisionOrigin: previous?.decisionOrigin ?? "legacy",
 					acquisition: previous?.acquisition ?? null,
 					reason: previous?.reason ?? null,
+					identificationFingerprint,
 				});
 			}
 		});

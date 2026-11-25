@@ -471,6 +471,7 @@ export function writeCatalogReviews(
 		acquisition?: AcquisitionProvenance | null;
 		decision: "pending" | "confirmed" | "rejected";
 		reason: string | null;
+		identificationFingerprint?: string | null;
 		result: Omit<IdentificationResult, "source">;
 	},
 ): void {
@@ -483,6 +484,7 @@ export function writeCatalogReviews(
 			decisionOrigin: value.decisionOrigin ?? "legacy",
 			acquisition: value.acquisition ?? null,
 			reason: value?.reason ?? null,
+			identificationFingerprint: value.identificationFingerprint ?? null,
 			resultEvidenceParser: value?.result?.evidence?.parser,
 			resultEvidenceParserVersion: value?.result?.evidence?.parserVersion,
 			resultEvidenceNormalizationVersion:

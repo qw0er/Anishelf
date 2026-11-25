@@ -86,6 +86,7 @@ export class ReviewApplication {
 		results: readonly IdentificationResult[],
 		scopeIds: readonly string[],
 		fileIds?: readonly string[],
+		identificationFingerprints?: ReadonlyMap<string, string>,
 	): void {
 		this.context.open();
 
@@ -99,6 +100,8 @@ export class ReviewApplication {
 		const items = results.map((result) => ({
 			source: this.context.options.store.registerSource(result.source),
 			result: structuredClone(result),
+			identificationFingerprint:
+				identificationFingerprints?.get(result.source.fileId) ?? null,
 		}));
 		this.context.options.store.publish(scopeIds, items, fileIds);
 		this.context.options.logger.info(

@@ -1,0 +1,1 @@
+ALTER TABLE `catalog_reviews` ADD `identification_fingerprint` text;

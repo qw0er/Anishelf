@@ -130,6 +130,7 @@ export const catalogReviews = sqliteTable(
 			mode: "json",
 		}).$type<AcquisitionProvenance>(),
 		reason: text("reason"),
+		identificationFingerprint: text("identification_fingerprint"),
 		resultEvidenceParser: text("result_evidence_parser").notNull(),
 		resultEvidenceParserVersion: text(
 			"result_evidence_parser_version",

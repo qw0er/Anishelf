@@ -13,6 +13,7 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 	readonly associateAcquisition: AnimeCatalogApi["associateAcquisition"];
 	readonly reviewAcquisition: AnimeCatalogApi["reviewAcquisition"];
 	readonly reusableAcquisitions: AnimeCatalogApi["reusableAcquisitions"];
+	readonly reusableIdentification: AnimeCatalogApi["reusableIdentification"];
 	readonly findLocalWork: AnimeCatalogApi["findLocalWork"];
 	readonly availableEpisodes: AnimeCatalogApi["availableEpisodes"];
 	private readonly context: CatalogContext;
@@ -59,6 +60,10 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 		this.associateAcquisition = acquisition.associate.bind(acquisition);
 		this.reviewAcquisition = acquisition.review.bind(acquisition);
 		this.reusableAcquisitions = acquisition.reusable.bind(acquisition);
+		this.reusableIdentification = (sources, fingerprint) => {
+			this.context.open();
+			return options.store.reusableIdentification(sources, fingerprint);
+		};
 		const work = new WorkApplication(this.context, queries);
 		this.refreshing = new CatalogRefresh(this.context, work);
 		this.list = queries.list.bind(queries);
@@ -74,9 +79,9 @@ export class AnimeCatalogApplication implements AnimeCatalogApi {
 			return detail;
 		};
 		const automatic = new AutomaticAdmission(this.context, this.associations);
-		this.publish = async (results, root, signal, fileIds) => {
+		this.publish = async (results, root, signal, fileIds, fingerprints) => {
 			signal?.throwIfAborted();
-			review.publish(results, root, fileIds);
+			review.publish(results, root, fileIds, fingerprints);
 			await automatic.admit(results, root, signal);
 		};
 		this.source = review.source.bind(review);
