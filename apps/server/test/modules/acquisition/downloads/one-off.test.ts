@@ -145,6 +145,72 @@ test("replayed and concurrent clicks reserve one episode and reject command ID r
 	expect(f.add).toHaveBeenCalledTimes(1);
 });
 
+test("a manual command racing subscription planning joins its claim across restarts", async () => {
+	const f = await fixture(true);
+	await f.configure();
+	await f.authorize();
+	await f.sources.connector.save({
+		generation: f.sources.connector.settings().generation,
+		url: "http://jackett:9117",
+		apiKey: "private-key",
+		origin: "external",
+		providers: ["first"],
+	});
+	const entered = Promise.withResolvers<void>();
+	const resume = Promise.withResolvers<void>();
+	f.anime.target.mockImplementationOnce(async () => {
+		entered.resolve();
+		await resume.promise;
+		return target;
+	});
+	const input = { workKey: key, episode: 3, commandId: randomUUID() };
+	const requesting = f.worker.requestEpisode(input);
+	await entered.promise;
+	await f.worker.tick();
+	resume.resolve();
+	const claim = f.db.acquisitionDownloads.episodeIntent(key, 3);
+	expect(claim?.origin).toBe("subscription");
+	const joined = { accepted: true, existing: true, intentId: claim?.id };
+	expect(await requesting).toEqual(joined);
+	await f.restart();
+	expect(await f.worker.requestEpisode(input)).toEqual(joined);
+	await expect(
+		f.worker.requestEpisode({ ...input, episode: 4 }),
+	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
+	await f.worker.tick();
+	expect(f.worker.activity(key).total).toBe(1);
+	expect(f.add).toHaveBeenCalledTimes(1);
+});
+
+test("a confirmed downloader rejection releases the claim without erasing the command receipt", async () => {
+	const { f, input } = await setup(true);
+	f.add.mockRejectedValueOnce(new TorrentError("rejected", "rejected"));
+	const initial = await f.worker.requestEpisode(input);
+	await f.worker.tick();
+	expect(f.db.acquisitionDownloads.episodeIntent(key, 3)).toBeNull();
+	expect(f.db.acquisitionDownloads.intent(initial.intentId)).toMatchObject({
+		state: "blocked",
+		error: "downloader_rejected",
+	});
+	await f.restart();
+	const next = await f.worker.requestEpisode({
+		...input,
+		commandId: randomUUID(),
+	});
+	expect(next.existing).toBe(false);
+	expect(next.intentId).not.toBe(initial.intentId);
+	expect(await f.worker.requestEpisode(input)).toMatchObject({
+		existing: true,
+		intentId: initial.intentId,
+	});
+	await f.worker.tick();
+	expect(f.db.acquisitionDownloads.episodeIntent(key, 3)?.id).toBe(
+		next.intentId,
+	);
+	expect(f.worker.activity(key).total).toBe(2);
+	expect(f.add).toHaveBeenCalledTimes(2);
+});
+
 test("single-episode discovery skips a better-seeded pack and submits the ordinary episode", async () => {
 	const { f, input, search } = await setup();
 	const pack = frierenSeasonPackFixture(await loadReleaseCorpus());

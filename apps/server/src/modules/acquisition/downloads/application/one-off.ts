@@ -83,26 +83,36 @@ export class OneOffDownloads {
 				!/^[0-9a-f-]{36}$/i.test(input.commandId)
 			)
 				throw new DomainError("INVALID_REQUEST", "Invalid episode request.");
-			const replay = options.store.intent(input.commandId);
-			if (replay) {
+			const existingRequest = () => {
+				const replay = options.store.episodeCommand(input.commandId);
+				const existing =
+					replay ?? options.store.episodeIntent(input.workKey, input.episode);
+				if (!existing) return null;
 				if (
-					replay.origin !== "one-off" ||
-					replay.workKey !== input.workKey ||
-					replay.episode !== input.episode
+					existing.workKey !== input.workKey ||
+					existing.episode !== input.episode
 				)
 					conflict();
-				return { accepted: true as const, intentId: replay.id, existing: true };
-			}
-			const existing = options.store.episodeIntent(
-				input.workKey,
-				input.episode,
-			);
-			if (existing)
+				if (!replay) {
+					options.store.saveEpisodeCommand(input.commandId, existing.id);
+					options.logger.info(
+						{
+							event: "acquisition.episode_claim_joined",
+							intentId: existing.id,
+							workKey: input.workKey,
+							episode: input.episode,
+						},
+						"Single-episode command joined an existing claim.",
+					);
+				}
 				return {
 					accepted: true as const,
 					intentId: existing.id,
 					existing: true,
 				};
+			};
+			const existing = options.store.transaction(existingRequest);
+			if (existing) return existing;
 			const config = this.configuration();
 			const target = await options.anime.target(
 				input.workKey,
@@ -159,20 +169,15 @@ export class OneOffDownloads {
 				sourceIdentity: null,
 				lastCommand: null,
 			};
-			if (!this.authorized(item)) conflict();
-			if (!options.store.reserve(item)) {
-				const prior =
-					options.store.intent(input.commandId) ??
-					options.store.episodeIntent(input.workKey, input.episode);
-				if (
-					!prior ||
-					prior.workKey !== input.workKey ||
-					prior.episode !== input.episode
-				)
-					conflict();
-				return { accepted: true as const, intentId: prior.id, existing: true };
-			}
-			options.store.saveDirectory(item.workKey, item.directory);
+			const accepted = options.store.transaction(() => {
+				const prior = existingRequest();
+				if (prior) return prior;
+				if (!this.authorized(item) || !options.store.reserve(item)) conflict();
+				options.store.saveEpisodeCommand(input.commandId, item.id);
+				options.store.saveDirectory(item.workKey, item.directory);
+				return { accepted: true as const, intentId: item.id, existing: false };
+			});
+			if (accepted.existing) return accepted;
 			options.logger.info(
 				{
 					event: "acquisition.episode_requested",
@@ -182,7 +187,7 @@ export class OneOffDownloads {
 				},
 				"Single-episode acquisition accepted.",
 			);
-			return { accepted: true as const, intentId: item.id, existing: false };
+			return accepted;
 		});
 	}
 	/** Explicit retry adopts current settings, while uncertain submissions retain their identity. */

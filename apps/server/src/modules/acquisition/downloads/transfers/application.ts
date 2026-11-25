@@ -36,15 +36,25 @@ export class DownloadTransfers {
 				this.context.options.transport,
 				this.context.signal,
 			);
-			if (this.context.options.store.hashOwner(resolved.hash, item.id)) {
-				execution.save({
-					...item,
-					state: "blocked",
-					error: "torrent_reserved",
-				});
-				return null;
-			}
-			item = execution.save({ ...item, hash: resolved.hash });
+			const reserved = this.context.options.store.transaction(() => {
+				if (
+					this.context.options.store.hashOwner(
+						resolved.hash,
+						item.destination.connectionGeneration,
+						item.id,
+					)
+				) {
+					execution.save({
+						...item,
+						state: "blocked",
+						error: "torrent_reserved",
+					});
+					return null;
+				}
+				return execution.save({ ...item, hash: resolved.hash });
+			});
+			if (!reserved) return null;
+			item = reserved;
 			resolvedContent = resolved;
 		}
 		return this.context.options.withClient(
@@ -77,7 +87,7 @@ export class DownloadTransfers {
 								return (
 									current !== null &&
 									isTorrentComplete(current) &&
-									current.ownerKey === item.id &&
+									current.ownerKey === (item.ownerKey ?? item.id) &&
 									sameDownloadPath(current.savePath, task.savePath) &&
 									JSON.stringify(currentFiles) === JSON.stringify(files)
 								);

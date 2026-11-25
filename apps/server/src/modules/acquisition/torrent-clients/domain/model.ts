@@ -49,6 +49,7 @@ export interface TorrentTask {
 }
 
 export interface TorrentFile {
+	index?: number;
 	/** Untrusted downloader-relative path; callers must validate mapped access. */
 	path: string;
 	sizeBytes: number;

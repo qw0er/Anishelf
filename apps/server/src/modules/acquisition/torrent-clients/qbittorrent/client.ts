@@ -87,12 +87,20 @@ export class QbittorrentClient implements TorrentClient {
 		const normalized = hash.toLowerCase();
 		return this.run("files", false, signal, async () => {
 			const result = await this.sdk.torrentFiles(normalized);
-			return result.map((file) => ({
-				path: file.name,
-				sizeBytes: file.size,
-				progress: file.progress,
-				selected: file.priority > 0,
-			}));
+			return result.map((file) => {
+				const index = "index" in file ? file.index : undefined;
+				return {
+					...(typeof index === "number" &&
+					Number.isSafeInteger(index) &&
+					index >= 0
+						? { index }
+						: {}),
+					path: file.name,
+					sizeBytes: file.size,
+					progress: file.progress,
+					selected: file.priority > 0,
+				};
+			});
 		});
 	}
 	inspectMetadata(

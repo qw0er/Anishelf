@@ -23,6 +23,9 @@ export interface DownloadIntent {
 		| import("../../../anime/public.js").AcceptedAcquisitionTarget
 		| null;
 	id: string;
+	transferId?: string;
+	/** Durable downloader ownership read from the managed transfer. */
+	ownerKey?: string;
 	revision: string;
 	workKey: string;
 	candidateId: string;
@@ -64,6 +67,31 @@ export interface DownloadIntent {
 	sourceIdentity: SourceIdentity | null;
 	lastCommand: { id: string; kind: "acquisition" | "import" } | null;
 }
+export interface DownloadFileObservation {
+	index: number | null;
+	path: string;
+	sizeBytes: number;
+	selected: boolean;
+}
+export interface VerifiedDownloadFiles {
+	video: DownloadFileObservation;
+	selection: readonly DownloadFileObservation[];
+}
+
+export function isCanonicalDownloadHash(hash: string): boolean {
+	return /^[0-9a-f]{40}$/.test(hash);
+}
+
+export function keepsEpisodeClaim(
+	item: Pick<DownloadIntent, "state" | "error" | "hash">,
+) {
+	if (item.state === "available" || item.state === "missing") return false;
+	return (
+		item.state !== "blocked" ||
+		(item.error === "downloader_configuration_changed" &&
+			isCanonicalDownloadHash(item.hash))
+	);
+}
 export interface DownloadActivity {
 	planningError?: string | null;
 	authorized: boolean;
@@ -79,6 +107,8 @@ export interface DownloadActivity {
 		| "lastCommand"
 		| "hash"
 		| "expectedHash"
+		| "ownerKey"
+		| "transferId"
 	> & { canRetryAcquisition: boolean })[];
 	total: number;
 	active: number;

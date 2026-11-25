@@ -31,7 +31,11 @@ export class DownloadPlanning {
 						candidate.status !== "selected" ||
 						candidate.episode === null ||
 						candidate.episode < subscription.startEpisode ||
-						target.availableEpisodes.includes(candidate.episode)
+						target.availableEpisodes.includes(candidate.episode) ||
+						this.context.options.store.attemptedCandidate(
+							subscription.workKey,
+							candidate.id,
+						)
 					)
 						continue;
 					if (

@@ -138,6 +138,16 @@ export class ApplicationDatabase {
 					return 1;
 				},
 			);
+			let acquisitionBackfill:
+				| { claims: number; transfers: number; files: number }
+				| undefined;
+			connection.function(
+				"anishelf_acquisition_backfilled",
+				(claims: number, transfers: number, files: number) => {
+					acquisitionBackfill = { claims, transfers, files };
+					return 1;
+				},
+			);
 			connection.pragma("foreign_keys = OFF");
 			migrate(store, {
 				migrationsFolder: fileURLToPath(
@@ -156,6 +166,11 @@ export class ApplicationDatabase {
 			connection.pragma("foreign_keys = ON");
 			if ((connection.pragma("foreign_key_check") as unknown[]).length)
 				throw new Error("Database schema contains invalid foreign keys.");
+			if (acquisitionBackfill)
+				logger?.info(
+					{ event: "acquisition.claims_migrated", ...acquisitionBackfill },
+					"Historical downloads migrated to episode claims and managed transfers.",
+				);
 			return new ApplicationDatabase(connection, store, playbackPolicy);
 		} catch (error) {
 			connection.close();

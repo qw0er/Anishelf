@@ -4,7 +4,11 @@ import type {
 	TorrentFile,
 	TorrentTask,
 } from "../torrent-clients/public.js";
-import type { DownloadDestination, DownloadIntent } from "./domain/model.js";
+import type {
+	DownloadDestination,
+	DownloadIntent,
+	VerifiedDownloadFiles,
+} from "./domain/model.js";
 
 export interface DownloadStore {
 	transaction<T>(operation: () => T): T;
@@ -29,14 +33,17 @@ export interface DownloadStore {
 		candidateIds: string[];
 	};
 	lockedCandidates(workKey: string): string[];
+	attemptedCandidate(workKey: string, candidateId: string): boolean;
 	reservedEpisode(workKey: string, episode: number): boolean;
 	episodeIntent(workKey: string, episode: number): DownloadIntent | null;
-	hashOwner(hash: string, exceptId: string): boolean;
+	episodeCommand(commandId: string): DownloadIntent | null;
+	saveEpisodeCommand(commandId: string, requestId: string): void;
+	hashOwner(hash: string, generation: string, exceptId: string): boolean;
 	workBatch(afterId: string, limit: number, now: number): DownloadIntent[];
 	hasActive(): boolean;
 	intent(id: string): DownloadIntent | null;
 	reserve(value: DownloadIntent): boolean;
-	saveIntent(value: DownloadIntent): void;
+	saveIntent(value: DownloadIntent, files?: VerifiedDownloadFiles): boolean;
 	prune(before: number, onPruned?: (item: DownloadIntent) => void): void;
 }
 export interface TorrentReader {

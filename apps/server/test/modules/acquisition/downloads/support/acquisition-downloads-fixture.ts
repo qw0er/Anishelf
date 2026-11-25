@@ -103,6 +103,7 @@ export async function fixture(
 		tasks: vi.fn(async () => (state.task ? [state.task] : [])),
 		files: vi.fn(async () => [
 			{
+				index: 0,
 				path: "Frieren - 03.mkv",
 				sizeBytes: 100,
 				progress: 1,

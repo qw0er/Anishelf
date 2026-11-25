@@ -309,7 +309,13 @@ test("lookup distinguishes absent task from a failed or invalid snapshot", async
 	});
 	expect(await client.task(hash)).toBeNull();
 	expect(await client.files(hash)).toEqual([
-		{ path: "episode.mkv", sizeBytes: 100, progress: 1, selected: true },
+		{
+			index: 0,
+			path: "episode.mkv",
+			sizeBytes: 100,
+			progress: 1,
+			selected: true,
+		},
 	]);
 });
 test("single lookup checks returned identity", async () => {

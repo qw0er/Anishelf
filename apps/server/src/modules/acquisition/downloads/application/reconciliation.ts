@@ -65,6 +65,11 @@ export class DownloadReconciliation {
 			}
 			const retryableAssociation =
 				error instanceof DomainError && error.code === "CATALOG_CONFLICT";
+			const rejectedSubmission =
+				current.state === "submitting" &&
+				error instanceof TorrentError &&
+				error.code === "rejected" &&
+				error.outcome === "rejected";
 			const code = retryableAssociation
 				? "association_conflict_retry"
 				: error instanceof DownloadError
@@ -74,8 +79,9 @@ export class DownloadReconciliation {
 						: "verification_unavailable";
 			execution.save({
 				...current,
-				state:
-					current.state === "submitting"
+				state: rejectedSubmission
+					? "blocked"
+					: current.state === "submitting"
 						? error instanceof TorrentError &&
 							error.outcome !== "unknown" &&
 							error.outcome !== "read"

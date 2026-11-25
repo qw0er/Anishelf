@@ -13,7 +13,7 @@ import type {
 } from "../../subscriptions/public.js";
 import type { TorrentConnection } from "../../torrent-clients/public.js";
 import { downloadDefaults as policy } from "../defaults.js";
-import type { DownloadIntent } from "../domain/model.js";
+import type { DownloadIntent, VerifiedDownloadFiles } from "../domain/model.js";
 import type { DownloadStore, TorrentReader } from "../ports.js";
 
 export function conflict(): never {
@@ -23,8 +23,10 @@ export function conflict(): never {
 	);
 }
 export interface DownloadOptions extends TorrentConnection {
-	store: Pick<DownloadStore, "intent" | "saveIntent" | "hashOwner"> &
-		Partial<Pick<DownloadStore, "transaction">>;
+	store: Pick<
+		DownloadStore,
+		"intent" | "saveIntent" | "hashOwner" | "transaction"
+	>;
 	transport: TorrentReader;
 	logger: Logger;
 	now?: () => number;
@@ -83,44 +85,47 @@ export class DownloadContext<T extends DownloadOptions = DownloadOptions> {
 		void task.finally(() => this.pending.delete(task)).catch(() => {});
 		return task;
 	}
-	save(item: DownloadIntent) {
+	save(item: DownloadIntent, files?: VerifiedDownloadFiles) {
 		this.open();
-		const current = this.options.store.intent(item.id);
-		if (!current || current.revision !== item.revision) conflict();
-		if (
-			JSON.stringify({ ...current, revision: "", updatedAt: 0 }) ===
-			JSON.stringify({ ...item, revision: "", updatedAt: 0 })
-		)
-			return current;
-		const value = { ...item, revision: randomUUID(), updatedAt: this.now() };
-		const write = () => {
-			this.options.store.saveIntent(value);
+		return this.options.store.transaction(() => {
+			const current = this.options.store.intent(item.id);
+			if (!current || current.revision !== item.revision) conflict();
+			if (
+				!files &&
+				JSON.stringify({ ...current, revision: "", updatedAt: 0 }) ===
+					JSON.stringify({ ...item, revision: "", updatedAt: 0 })
+			)
+				return current;
+			const value = { ...item, revision: randomUUID(), updatedAt: this.now() };
+			if (!this.options.store.saveIntent(value, files)) conflict();
 			if (
 				JSON.stringify(value.acceptedTarget) !==
 				JSON.stringify(current.acceptedTarget)
 			)
 				this.options.onAcceptedTarget?.(value, current);
-		};
-		if (this.options.store.transaction) this.options.store.transaction(write);
-		else write();
-		if (
-			current.state !== item.state ||
-			current.ingestion !== item.ingestion ||
-			current.error !== item.error
-		)
-			this.options.logger.info(
-				{
-					event: "acquisition.intent_state",
-					intentId: item.id,
-					workKey: item.workKey,
-					revision: value.revision,
-					state: item.state,
-					ingestion: item.ingestion,
-					code: item.error,
-				},
-				"Acquisition state updated.",
-			);
-		return value;
+			const saved = this.options.store.intent(value.id);
+			if (!saved) conflict();
+			if (
+				current.state !== item.state ||
+				current.ingestion !== item.ingestion ||
+				current.error !== item.error
+			)
+				this.options.logger.info(
+					{
+						event: "acquisition.intent_state",
+						intentId: item.id,
+						workKey: item.workKey,
+						revision: saved.revision,
+						transferId: saved.transferId,
+						ownerKey: saved.ownerKey,
+						state: item.state,
+						ingestion: item.ingestion,
+						code: item.error,
+					},
+					"Acquisition state updated.",
+				);
+			return saved;
+		});
 	}
 	delay(attempts: number) {
 		return Math.min(policy.retryMaximumMs, 30_000 * 2 ** Math.min(attempts, 7));
@@ -133,8 +138,8 @@ export class DownloadExecution {
 		private readonly context: DownloadContext,
 		public current: DownloadIntent,
 	) {}
-	save(value: DownloadIntent) {
-		this.current = this.context.save(value);
+	save(value: DownloadIntent, files?: VerifiedDownloadFiles) {
+		this.current = this.context.save(value, files);
 		return this.current;
 	}
 }

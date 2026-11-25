@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import Database from "better-sqlite3";
 import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
@@ -20,6 +19,7 @@ import {
 } from "../../../../src/modules/anime/external-works/tracking/infrastructure/bangumi-provider.js";
 import { aniListTracking } from "../../../../src/modules/anime/external-works/tracking/infrastructure/provider-mapping.js";
 import { fixtureIdentities } from "../../../support/metadata-identities.js";
+import { openMigrationDatabase } from "../../../support/migration-database.js";
 
 const mediaId = "bangumi:anime:42";
 const account = { id: 7, nickname: "Bangumi viewer", username: "viewer" };
@@ -412,24 +412,11 @@ test("confirmation switches provider across restart and recovers partial writes 
 test("migration preserves an AniList connection from the singleton schema", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-tracking-upgrade-"));
 	try {
-		const initial = ApplicationDatabase.open(directory);
-		initial.tracking.save({
-			account: { id: "anilist:7", name: "AniList viewer" },
-			generation: "old-generation",
-			credentialId: "old-credential",
-			state: "connected",
-			checkedAt: 123,
-		});
-		initial.close();
-		const raw = new Database(join(directory, "anishelf.sqlite"));
+		const raw = openMigrationDatabase(directory, 23);
 		try {
 			raw.exec(`
-				ALTER TABLE tracking_connection DROP COLUMN provider_key;
-				ALTER TABLE tracking_operations DROP COLUMN attempt_episode_baseline;
-				ALTER TABLE tracking_operations DROP COLUMN attempt_automatic;
-				DROP TABLE auth_device_sessions;
-				ALTER TABLE auth_sessions DROP COLUMN generation;
-				DELETE FROM __drizzle_migrations WHERE created_at >= 1794464479524;
+				INSERT INTO tracking_connection (id, generation, account_id, account_name, credential_id, state, checked_at)
+				VALUES (1, 'old-generation', 'anilist:7', 'AniList viewer', 'old-credential', 'connected', 123);
 			`);
 		} finally {
 			raw.close();

@@ -28,6 +28,7 @@ export class DownloadSubmission {
 		resolvedContent?: Awaited<ReturnType<typeof resolveTorrent>>,
 	): Promise<{ item: DownloadIntent; task: TorrentTask } | null> {
 		let item = execution.current;
+		const ownerKey = item.ownerKey ?? item.id;
 		let task = await client.task(item.hash, this.context.signal);
 		this.context.open();
 		const latest = this.context.options.store.intent(item.id);
@@ -101,7 +102,7 @@ export class DownloadSubmission {
 					{
 						source: source.source,
 						savePath,
-						ownerKey: item.id,
+						ownerKey,
 					},
 					this.context.signal,
 				);
@@ -126,7 +127,7 @@ export class DownloadSubmission {
 				return null;
 			}
 		}
-		if (task.ownerKey !== item.id) {
+		if (task.ownerKey !== ownerKey) {
 			execution.save({
 				...item,
 				state: "blocked",

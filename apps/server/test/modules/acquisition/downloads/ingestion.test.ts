@@ -1,3 +1,5 @@
+import { join } from "node:path";
+import Database from "better-sqlite3";
 import { expect, test, vi } from "vitest";
 import {
 	DownloadContext,
@@ -14,6 +16,59 @@ import {
 } from "./support/acquisition-downloads-fixture.js";
 
 setupTestLifecycle();
+
+test("an ordinary single records verified file evidence and preserves it across review and restart", async () => {
+	const f = await fixture(true);
+	await f.configure();
+	await f.authorize();
+	await f.worker.tick();
+	f.complete();
+	f.ingestion.ingest.mockResolvedValueOnce("review");
+	await f.worker.tick();
+	await f.restart();
+	const item = f.db.acquisitionDownloads.episodeIntent(key, 3);
+	if (!item) throw new Error("Missing review claim.");
+	expect(item).toMatchObject({
+		ownerKey: item.id,
+		state: "bound",
+		ingestion: "review",
+		sourceIdentity: { sourceVersion: "v1" },
+	});
+	f.worker.retry(item.id, item.revision, "retry-review-file", "import");
+	await f.worker.tick();
+	expect(f.db.acquisitionDownloads.episodeIntent(key, 3)).toBeNull();
+	expect(f.add).toHaveBeenCalledTimes(1);
+	const raw = new Database(join(f.dir, "anishelf.sqlite"), { readonly: true });
+	try {
+		const row = raw
+			.prepare(`
+			SELECT task.owner_key, task.observed_selection, task.owned, file.file_index, file.path,
+				file.size_bytes, file.ingestion, file.source_identity, target.accepted_target, claim.live
+			FROM acquisition_episode_claims AS claim
+			JOIN acquisition_transfers AS task ON task.id = claim.transfer_id
+			JOIN acquisition_transfer_file_targets AS target ON target.claim_id = claim.id
+			JOIN acquisition_transfer_files AS file ON file.id = target.file_id
+			WHERE claim.id = ?
+		`)
+			.get(item.id);
+		expect(row).toEqual({
+			owner_key: item.id,
+			owned: 1,
+			live: 0,
+			observed_selection: JSON.stringify([
+				{ index: 0, path: "Frieren - 03.mkv", sizeBytes: 100, selected: true },
+			]),
+			file_index: 0,
+			path: "Frieren - 03.mkv",
+			size_bytes: 100,
+			ingestion: "available",
+			source_identity: expect.stringContaining('"sourceVersion":"v1"'),
+			accepted_target: expect.stringContaining('"snapshotId":"snapshot"'),
+		});
+	} finally {
+		raw.close();
+	}
+});
 
 test("completed files become available only after confined refresh and Anime ingestion", async () => {
 	const f = await fixture();

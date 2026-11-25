@@ -4,7 +4,7 @@ SQLite and Drizzle remain the persistence mechanisms. The initial migration
 `0000_relational_schema` creates the original 78 business tables.
 `0001_snapshot_payloads` replaces thirteen metadata collection tables and detail
 columns with a JSON projection and adds durable media inspections. The current
-schema has 71 business tables after migrations through `0017`; Drizzle's journal is infrastructure.
+schema has 76 business tables after migration `0027`. Drizzle's journal is infrastructure.
 `0002_anime_work_information` centralizes current work summaries and removes
 the Catalog and per-account Tracking description copies.
 SQLite `user_version = 1` identifies this supported database family.
@@ -29,7 +29,10 @@ continues to use the disk-backed `openDatabase()` path and its existing logs.
 | `acquisition_watching_policy` | One `default` typed JSON configuration/grant snapshot with policy revision, enabled state, accepted account/source/profile/destination generations and applied snapshot |
 | `acquisition_watching_members` | Normalized account/work primary key, member revision, manual pause/exclusion, owned subscription revision, grant ID, frozen starting episode, decision and retry deadline; partial unique work ownership; exclusion tombstones have no subscription foreign key |
 | `acquisition_authorizations` | Subscriptions-owned accepted source/episode scope, destination revision and connection generation |
-| `acquisition_intents` | Identity/reservations, state, retry, progress, timestamps, captured destination, source identity and last command columns |
+| `acquisition_requests` and `acquisition_request_commands` | Request lifecycle, authorization, chosen release, retry state and durable one-off command receipts |
+| `acquisition_episode_claims` | Provider-qualified work and regular episode, accepted metadata target, optional managed transfer and import state |
+| `acquisition_transfers` | Connection-scoped torrent identity, durable downloader owner, captured destination, selection revision and observed file snapshot |
+| `acquisition_transfer_files` and `acquisition_transfer_file_targets` | File path, optional downloader index and size, role, local evidence, import outcome and accepted episode targets |
 | `acquisition_directories` | Work primary key and unique stable directory; no representation change |
 | `catalog_works` | Local identity, mapping revision and creation/update times; descriptive fields come from Metadata |
 | `catalog_provider_links` | Local work/snapshot foreign keys and a unique project metadata work ID |
@@ -86,6 +89,17 @@ migrate to subscription origin; one-off rows have no subscription revision and
 persist their profile fingerprint, source generation and discovery diagnostics as
 one validated JSON document. Their discovering state, episode reservation and
 command identity survive restarts before any release has been selected.
+
+Migration `0027_acquisition_claims_and_transfers` splits single-episode intents
+into requests, episode claims and managed transfers. A partial unique index
+enforces one live claim per provider-qualified work and episode. A separate
+index scopes torrent ownership to a downloader connection. A one-off command
+can reference an existing subscription request, and its receipt survives
+completion, failure and restart. Confirmed failures release the claim while
+retaining request history. Uncertain submissions keep their original owner
+and resume through readback. Backfilled files require a previously verified
+local source identity within the captured destination. A subsequent verified
+observation can fill the file index and size.
 
 Provider-qualified identities remain opaque text. Catalog episode numbers remain
 text because their domain permits more than integer download episode positions.

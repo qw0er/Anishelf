@@ -10,7 +10,7 @@ import { ApplicationDatabase } from "../../../src/app/bootstrap/database.js";
 import * as schema from "../../../src/app/schema.js";
 import {
 	writeAcquisitionDestination,
-	writeAcquisitionIntents,
+	writeDownloadRequest,
 } from "../../../src/modules/acquisition/downloads/infrastructure/records.js";
 import { writeAcquisitionFeeds } from "../../../src/modules/acquisition/sources/infrastructure/records.js";
 import {
@@ -296,9 +296,10 @@ test("persists all normalized aggregates, preserves ordered children and survive
 	);
 	writeAcquisitionDestination(store, { ...destination, id: "default" });
 	writeAcquisitionAuthorizations(store, authorization);
-	writeAcquisitionIntents(
+	writeDownloadRequest(
 		store,
-		intent as Parameters<typeof writeAcquisitionIntents>[1],
+		intent as Parameters<typeof writeDownloadRequest>[1],
+		null,
 	);
 	writeTrackingOperations(
 		store,
@@ -539,7 +540,11 @@ test("persists all normalized aggregates, preserves ordered children and survive
 			).toBe(
 				[
 					"acquisition_subscriptions",
-					"acquisition_intents",
+					"acquisition_requests",
+					"acquisition_episode_claims",
+					"acquisition_transfers",
+					"acquisition_transfer_files",
+					"acquisition_transfer_file_targets",
 					"acquisition_watching_policy",
 					"metadata_snapshots",
 					"acquisition_sources",
@@ -559,7 +564,7 @@ test("persists all normalized aggregates, preserves ordered children and survive
 					"SELECT count(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> '__drizzle_migrations'",
 				)
 				.get(),
-		).toEqual({ count: 71 });
+		).toEqual({ count: 76 });
 	} finally {
 		inspected.close();
 	}

@@ -14,6 +14,7 @@ import type { MetadataProvider } from "../../../../src/modules/anime/external-wo
 import { MetadataError } from "../../../../src/modules/anime/external-works/metadata/public.js";
 import { aniListTracking } from "../../../../src/modules/anime/external-works/tracking/infrastructure/provider-mapping.js";
 import { createHttpApp } from "../../../support/http.js";
+import { openMigrationDatabase } from "../../../support/migration-database.js";
 
 const logger = pino({ enabled: false });
 const cleanup: (() => Promise<void>)[] = [];
@@ -363,7 +364,7 @@ test.each([false, true])(
 	async (secondaryCanonical) => {
 		const directory = await mkdtemp(join(tmpdir(), "anishelf-split-"));
 		cleanup.push(() => rm(directory, { recursive: true, force: true }));
-		const initial = ApplicationDatabase.open(directory);
+		const raw = openMigrationDatabase(directory, 18);
 		const connection = {
 			providerKey: "anilist",
 			generation: "generation",
@@ -372,7 +373,19 @@ test.each([false, true])(
 			state: "connected" as const,
 			checkedAt: 1,
 		};
-		initial.tracking.save(connection);
+		raw
+			.prepare(`
+			INSERT INTO tracking_connection (id, generation, account_id, account_name, credential_id, state, checked_at)
+			VALUES (1, ?, ?, ?, ?, ?, ?)
+		`)
+			.run(
+				connection.generation,
+				connection.account.id,
+				connection.account.name,
+				connection.credentialId,
+				connection.state,
+				connection.checkedAt,
+			);
 		const operation: import("../../../../src/modules/anime/external-works/tracking/domain/operation.js").TrackingOperation =
 			{
 				id: "pending-update",
@@ -394,12 +407,34 @@ test.each([false, true])(
 				error: null,
 				updatedAt: 1,
 			};
-		initial.trackingOperations.admit(operation);
-		initial.close();
-		const raw = new Database(join(directory, "anishelf.sqlite"));
-		raw.exec(
-			"DROP INDEX metadata_reference_work_unique; ALTER TABLE preparation_tasks DROP COLUMN snapshot_plan_preserve_subtitles; ALTER TABLE acquisition_subscriptions DROP COLUMN schedule; ALTER TABLE acquisition_intents DROP COLUMN accepted_target; ALTER TABLE catalog_reviews DROP COLUMN decision_origin; ALTER TABLE catalog_reviews DROP COLUMN acquisition; ALTER TABLE tracking_connection DROP COLUMN provider_key; ALTER TABLE tracking_operations DROP COLUMN attempt_episode_baseline; ALTER TABLE tracking_operations DROP COLUMN attempt_automatic; DROP TABLE auth_device_sessions; ALTER TABLE auth_sessions DROP COLUMN generation; DELETE FROM __drizzle_migrations WHERE created_at >= 1793664000000",
-		);
+		raw
+			.prepare(`
+			INSERT INTO tracking_operations (
+				id, account_id, media_id, origin, command_id, intent_at, revision, state, desired_progress,
+				target_present, baseline_present, remote_present, attempt_present, attempt_baseline_present, attempts, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 3, 0, 0, 0, 0, 0, 0, ?)
+		`)
+			.run(
+				operation.id,
+				operation.accountId,
+				operation.mediaId,
+				operation.origin,
+				operation.commandId,
+				operation.intentAt,
+				operation.revision,
+				operation.state,
+				operation.updatedAt,
+			);
+		raw
+			.prepare(
+				"INSERT INTO tracking_commands (account_id, command_id, operation_id, revision) VALUES (?, ?, ?, ?)",
+			)
+			.run(
+				operation.accountId,
+				operation.commandId,
+				operation.id,
+				operation.revision,
+			);
 		const canonical = secondaryCanonical ? "bangumi-old" : "anilist-old";
 		raw
 			.prepare(
@@ -488,11 +523,9 @@ test.each([false, true])(
 test("invalid historical identity groups reject migration atomically", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-invalid-split-"));
 	cleanup.push(() => rm(directory, { recursive: true, force: true }));
-	const initial = ApplicationDatabase.open(directory);
-	initial.close();
-	const raw = new Database(join(directory, "anishelf.sqlite"));
+	const raw = openMigrationDatabase(directory, 18);
 	raw.exec(
-		"DROP INDEX metadata_reference_work_unique; ALTER TABLE preparation_tasks DROP COLUMN snapshot_plan_preserve_subtitles; ALTER TABLE acquisition_subscriptions DROP COLUMN schedule; ALTER TABLE acquisition_intents DROP COLUMN accepted_target; ALTER TABLE catalog_reviews DROP COLUMN decision_origin; ALTER TABLE catalog_reviews DROP COLUMN acquisition; ALTER TABLE tracking_connection DROP COLUMN provider_key; ALTER TABLE tracking_operations DROP COLUMN attempt_episode_baseline; ALTER TABLE tracking_operations DROP COLUMN attempt_automatic; DROP TABLE auth_device_sessions; ALTER TABLE auth_sessions DROP COLUMN generation; DELETE FROM __drizzle_migrations WHERE created_at >= 1793664000000; INSERT INTO metadata_references VALUES ('dangling','bangumi','20','missing')",
+		"INSERT INTO metadata_references VALUES ('dangling','bangumi','20','missing')",
 	);
 	raw.close();
 	expect(() => ApplicationDatabase.open(directory)).toThrow();

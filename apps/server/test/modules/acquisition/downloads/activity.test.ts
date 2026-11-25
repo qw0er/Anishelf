@@ -62,7 +62,7 @@ test("download activity paginates one work with stable ordering and summaries ac
 	).toEqual({ items: [], total: 0, active: 0, attention: 0, candidateIds: [] });
 });
 
-test("worker queries use bounded cursors, retain reservations and redact only expired terminal evidence", async () => {
+test("worker queries use bounded cursors, release terminal claims and redact expired evidence", async () => {
 	const f = await fixture();
 	await f.configure();
 	await f.authorize();
@@ -96,12 +96,21 @@ test("worker queries use bounded cursors, retain reservations and redact only ex
 	);
 	expect(next.map((item) => item.id)).toEqual([original.id]);
 	expect(f.db.acquisitionDownloads.hasActive()).toBe(true);
-	expect(f.db.acquisitionDownloads.reservedEpisode(key, 104)).toBe(true);
+	expect(f.db.acquisitionDownloads.reservedEpisode(key, 103)).toBe(true);
+	expect(f.db.acquisitionDownloads.reservedEpisode(key, 104)).toBe(false);
+	const generation = original.destination.connectionGeneration;
 	expect(
-		f.db.acquisitionDownloads.hashOwner("unresolved:!batch-4", "other"),
+		f.db.acquisitionDownloads.hashOwner(original.hash, generation, "other"),
 	).toBe(true);
 	expect(
-		f.db.acquisitionDownloads.hashOwner("unresolved:!batch-4", "!batch-4"),
+		f.db.acquisitionDownloads.hashOwner(original.hash, generation, original.id),
+	).toBe(false);
+	expect(
+		f.db.acquisitionDownloads.hashOwner(
+			original.hash,
+			"different-account",
+			"other",
+		),
 	).toBe(false);
 	f.db.acquisitionDownloads.prune(original.updatedAt + 1);
 	expect(f.db.acquisitionDownloads.intent("!batch-1")).toMatchObject({
@@ -118,15 +127,19 @@ test("worker queries use bounded cursors, retain reservations and redact only ex
 	expect(f.db.acquisitionDownloads.intent("!batch-5")?.source).toBe(
 		original.source,
 	);
-	expect(f.db.acquisitionDownloads.reservedEpisode(key, 104)).toBe(true);
+	expect(f.db.acquisitionDownloads.reservedEpisode(key, 104)).toBe(false);
 	expect(
 		f.db.acquisitionDownloads.reserve({
 			...original,
-			id: "duplicate",
-			hash: "another",
+			id: "replacement",
+			hash: "unresolved:replacement",
 			episode: 104,
 		}),
-	).toBe(false);
+	).toBe(true);
+	expect(f.db.acquisitionDownloads.episodeIntent(key, 104)?.id).toBe(
+		"replacement",
+	);
+	expect(f.db.acquisitionDownloads.intent("!batch-4")?.state).toBe("missing");
 });
 
 test("Activity keeps older active work on the first page instead of burying it under completed history", async () => {

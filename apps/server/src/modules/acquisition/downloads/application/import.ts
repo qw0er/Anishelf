@@ -38,7 +38,23 @@ export class CompletedDownloadIngestion {
 		}
 		const video = videos[0];
 		if (!video) return;
-		for (const file of files) relativeDownloadPath(file.path);
+		const paths = new Set<string>();
+		const indices = new Set<number>();
+		for (const file of files) {
+			const relativePath = relativeDownloadPath(file.path);
+			if (
+				paths.has(relativePath) ||
+				!Number.isSafeInteger(file.sizeBytes) ||
+				file.sizeBytes < 0 ||
+				(file.index !== undefined &&
+					(!Number.isSafeInteger(file.index) ||
+						file.index < 0 ||
+						indices.has(file.index)))
+			)
+				throw new DownloadError("download_changed");
+			paths.add(relativePath);
+			if (file.index !== undefined) indices.add(file.index);
+		}
 		const path = relativeDownloadPath(posix.join(item.directory, video.path));
 		if (item.ingestion !== "available")
 			this.context.options.logger.info(
@@ -89,7 +105,19 @@ export class CompletedDownloadIngestion {
 			);
 			item = execution.save({ ...item, acceptedTarget });
 		}
-		item = execution.save({ ...item, sourceIdentity: identity });
+		const observation = (file: (typeof files)[number]) => ({
+			index: file.index ?? null,
+			path: file.path,
+			sizeBytes: file.sizeBytes,
+			selected: file.selected,
+		});
+		item = execution.save(
+			{ ...item, sourceIdentity: identity },
+			{
+				video: observation(video),
+				selection: files.map(observation),
+			},
+		);
 		const outcome = await this.context.options.ingestion.ingest(
 			item.workKey,
 			item.episode,

@@ -12,19 +12,35 @@ import {
 	sql,
 } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type { DownloadDestination, DownloadIntent } from "../domain/model.js";
+import {
+	type DownloadDestination,
+	type DownloadIntent,
+	isCanonicalDownloadHash,
+	keepsEpisodeClaim,
+	type VerifiedDownloadFiles,
+} from "../domain/model.js";
 import type { DownloadStore } from "../ports.js";
 import {
 	readAcquisitionDestination,
-	readAcquisitionIntents,
+	readDownloadRequest,
 	writeAcquisitionDestination,
-	writeAcquisitionIntents,
+	writeDownloadRequest,
 } from "./records.js";
 import {
+	acquisitionEpisodeClaims as claims,
+	acquisitionRequestCommands as commands,
 	acquisitionDestination as destination,
 	acquisitionDirectories as directories,
-	acquisitionIntents as intents,
+	acquisitionRequests as requests,
+	acquisitionTransfers as transfers,
 } from "./schema.js";
+
+const terminalStates: DownloadIntent["state"][] = [
+	"available",
+	"missing",
+	"blocked",
+];
+
 export class DownloadRepository implements DownloadStore {
 	constructor(private readonly store: Store) {}
 	transaction<T>(operation: () => T): T {
@@ -57,168 +73,248 @@ export class DownloadRepository implements DownloadStore {
 	}
 
 	summary(workKey: string) {
-		const scope = eq(intents.workKey, workKey);
 		const summary = this.store
 			.select({
 				total: sql<number>`count(*)`,
-				active: sql<number>`coalesce(sum(${intents.state} not in ('available', 'missing', 'blocked')), 0)`,
-				attention: sql<number>`coalesce(sum(${intents.error} is not null), 0)`,
+				active: sql<number>`coalesce(sum(${requests.state} not in ('available', 'missing', 'blocked')), 0)`,
+				attention: sql<number>`coalesce(sum(${requests.error} is not null), 0)`,
 			})
-			.from(intents)
-			.where(scope)
+			.from(claims)
+			.innerJoin(requests, eq(claims.requestId, requests.id))
+			.where(eq(claims.workKey, workKey))
 			.get();
-		return {
-			total: summary?.total ?? 0,
-			active: summary?.active ?? 0,
-			attention: summary?.attention ?? 0,
-		};
+		return summary ?? { total: 0, active: 0, attention: 0 };
 	}
 
 	activity(workKey: string, page: number, pageSize: number) {
-		const scope = eq(intents.workKey, workKey);
 		const summary = this.summary(workKey);
-		const items = this.store
-			.select()
-			.from(intents)
-			.where(scope)
+		const items = this.project(this.store)
+			.where(eq(claims.workKey, workKey))
 			.orderBy(
-				sql`case when ${intents.error} is not null then 0 when ${intents.state} not in ('available', 'missing', 'blocked') then 1 else 2 end`,
-				desc(intents.createdAt),
-				asc(intents.id),
+				sql`case when ${requests.error} is not null then 0 when ${requests.state} not in ('available', 'missing', 'blocked') then 1 else 2 end`,
+				desc(requests.createdAt),
+				asc(requests.id),
 			)
 			.limit(pageSize)
 			.offset((page - 1) * pageSize)
 			.all()
-			.map((row) => readAcquisitionIntents(this.store, row));
+			.map(readDownloadRequest);
 		const candidateIds = this.store
-			.select({
-				id: intents.candidateId,
-			})
-			.from(intents)
-			.where(scope)
+			.select({ id: requests.candidateId })
+			.from(claims)
+			.innerJoin(requests, eq(claims.requestId, requests.id))
+			.where(eq(claims.workKey, workKey))
 			.all()
 			.map((row) => row.id);
-		return {
-			items,
-			total: summary?.total ?? 0,
-			active: summary?.active ?? 0,
-			attention: summary?.attention ?? 0,
-			candidateIds,
-		};
+		return { items, ...summary, candidateIds };
 	}
 	lockedCandidates(workKey: string) {
 		return this.store
-			.select({ id: intents.candidateId })
-			.from(intents)
-			.where(eq(intents.workKey, workKey))
+			.select({ id: requests.candidateId })
+			.from(claims)
+			.innerJoin(requests, eq(claims.requestId, requests.id))
+			.where(and(eq(claims.workKey, workKey), eq(claims.live, true)))
+			.orderBy(asc(requests.candidateId))
 			.all()
 			.map((row) => row.id);
 	}
+	attemptedCandidate(workKey: string, candidateId: string) {
+		return Boolean(
+			this.store
+				.select({ id: requests.id })
+				.from(claims)
+				.innerJoin(requests, eq(claims.requestId, requests.id))
+				.where(
+					and(
+						eq(claims.workKey, workKey),
+						eq(requests.candidateId, candidateId),
+					),
+				)
+				.limit(1)
+				.get(),
+		);
+	}
 	episodeIntent(workKey: string, episode: number) {
-		const row = this.store
-			.select()
-			.from(intents)
-			.where(and(eq(intents.workKey, workKey), eq(intents.episode, episode)))
+		const row = this.project(this.store)
+			.where(
+				and(
+					eq(claims.workKey, workKey),
+					eq(claims.episode, episode),
+					eq(claims.live, true),
+				),
+			)
 			.get();
-		return row ? readAcquisitionIntents(this.store, row) : null;
+		return row ? readDownloadRequest(row) : null;
 	}
 	reservedEpisode(workKey: string, episode: number) {
 		return Boolean(
 			this.store
-				.select({ id: intents.id })
-				.from(intents)
-				.where(and(eq(intents.workKey, workKey), eq(intents.episode, episode)))
+				.select({ id: claims.id })
+				.from(claims)
+				.where(
+					and(
+						eq(claims.workKey, workKey),
+						eq(claims.episode, episode),
+						eq(claims.live, true),
+					),
+				)
 				.get(),
 		);
 	}
-	hashOwner(hash: string, exceptId: string) {
-		return Boolean(
-			this.store
-				.select({ id: intents.id })
-				.from(intents)
-				.where(and(eq(intents.hash, hash), ne(intents.id, exceptId)))
-				.get(),
-		);
+	episodeCommand(commandId: string) {
+		const row = this.project(this.store)
+			.innerJoin(commands, eq(commands.requestId, requests.id))
+			.where(eq(commands.id, commandId))
+			.get();
+		return row ? readDownloadRequest(row) : null;
+	}
+	saveEpisodeCommand(commandId: string, requestId: string) {
+		this.store.insert(commands).values({ id: commandId, requestId }).run();
+	}
+	hashOwner(hash: string, generation: string, exceptId: string) {
+		return this.hasOtherTransfer(this.store, hash, generation, exceptId);
 	}
 	workBatch(afterId: string, limit: number, now: number) {
-		return this.store
-			.select()
-			.from(intents)
+		return this.project(this.store)
 			.where(
 				and(
-					gt(intents.id, afterId),
-					notInArray(intents.state, ["available", "missing", "blocked"]),
-					lte(intents.nextAttemptAt, now),
+					gt(requests.id, afterId),
+					notInArray(requests.state, terminalStates),
+					lte(requests.nextAttemptAt, now),
 				),
 			)
-			.orderBy(asc(intents.id))
+			.orderBy(asc(requests.id))
 			.limit(limit)
 			.all()
-			.map((row) => readAcquisitionIntents(this.store, row));
+			.map(readDownloadRequest);
 	}
 	hasActive() {
 		return Boolean(
 			this.store
-				.select({ id: intents.id })
-				.from(intents)
-				.where(notInArray(intents.state, ["available", "missing", "blocked"]))
+				.select({ id: requests.id })
+				.from(requests)
+				.where(notInArray(requests.state, terminalStates))
 				.limit(1)
 				.get(),
 		);
 	}
 
 	intent(id: string) {
-		const row = this.store
-			.select()
-			.from(intents)
-			.where(eq(intents.id, id))
-			.get();
-		return row ? readAcquisitionIntents(this.store, row) : null;
+		const row = this.project(this.store).where(eq(requests.id, id)).get();
+		return row ? readDownloadRequest(row) : null;
 	}
 	reserve(data: DownloadIntent) {
 		return this.store.transaction(
-			() => {
+			(store) => {
 				if (
-					this.intent(data.id) ||
-					this.reservedEpisode(data.workKey, data.episode) ||
-					this.hashOwner(data.hash, data.id)
+					store
+						.select({ id: requests.id })
+						.from(requests)
+						.where(eq(requests.id, data.id))
+						.get() ||
+					!this.canWrite(store, data)
 				)
 					return false;
-				writeAcquisitionIntents(this.store, data);
+				writeDownloadRequest(store, data, null);
 				return true;
 			},
 			{ behavior: "immediate" },
 		);
 	}
-	saveIntent(data: DownloadIntent) {
-		if (this.intent(data.id)) writeAcquisitionIntents(this.store, data);
+	saveIntent(data: DownloadIntent, files?: VerifiedDownloadFiles) {
+		return this.store.transaction(
+			(store) => {
+				const current = this.project(store)
+					.where(eq(requests.id, data.id))
+					.get();
+				if (
+					!current ||
+					current.claim.workKey !== data.workKey ||
+					current.claim.episode !== data.episode ||
+					!this.canWrite(store, data)
+				)
+					return false;
+				writeDownloadRequest(store, data, current.transfer, files);
+				return true;
+			},
+			{ behavior: "immediate" },
+		);
 	}
 	prune(before: number, onPruned?: (item: DownloadIntent) => void) {
-		this.transaction(() => {
-			const items = this.store
-				.select()
-				.from(intents)
+		this.store.transaction(
+			(store) => {
+				const expired = and(
+					lt(requests.updatedAt, before),
+					inArray(requests.state, ["available", "missing"]),
+					ne(requests.source, ""),
+				);
+				const items = this.project(store).where(expired).all();
+				for (const row of items) onPruned?.(readDownloadRequest(row));
+				store
+					.update(requests)
+					.set({ source: "", title: "", error: null })
+					.where(expired)
+					.run();
+			},
+			{ behavior: "immediate" },
+		);
+	}
+
+	private project(store: Store) {
+		return store
+			.select({ request: requests, claim: claims, transfer: transfers })
+			.from(requests)
+			.innerJoin(claims, eq(claims.requestId, requests.id))
+			.leftJoin(transfers, eq(claims.transferId, transfers.id));
+	}
+	private canWrite(store: Store, value: DownloadIntent) {
+		const live = keepsEpisodeClaim(value);
+		if (
+			live &&
+			store
+				.select({ id: claims.id })
+				.from(claims)
 				.where(
 					and(
-						lt(intents.updatedAt, before),
-						inArray(intents.state, ["available", "missing"]),
-						ne(intents.source, ""),
+						eq(claims.workKey, value.workKey),
+						eq(claims.episode, value.episode),
+						eq(claims.live, true),
+						ne(claims.id, value.id),
 					),
 				)
-				.all();
-			for (const row of items)
-				onPruned?.(readAcquisitionIntents(this.store, row));
-			this.store
-				.update(intents)
-				.set({ source: "", title: "", transfer: null, error: null })
+				.get()
+		)
+			return false;
+		return (
+			(!live && value.state !== "available") ||
+			!this.hasOtherTransfer(
+				store,
+				value.hash,
+				value.destination.connectionGeneration,
+				value.id,
+			)
+		);
+	}
+	private hasOtherTransfer(
+		store: Store,
+		hash: string,
+		generation: string,
+		exceptId: string,
+	) {
+		if (!isCanonicalDownloadHash(hash)) return false;
+		return Boolean(
+			store
+				.select({ id: transfers.id })
+				.from(transfers)
 				.where(
 					and(
-						lt(intents.updatedAt, before),
-						inArray(intents.state, ["available", "missing"]),
-						ne(intents.source, ""),
+						eq(transfers.hash, hash),
+						eq(transfers.destinationConnectionGeneration, generation),
+						eq(transfers.owned, true),
+						ne(transfers.requestId, exceptId),
 					),
 				)
-				.run();
-		});
+				.get(),
+		);
 	}
 }
