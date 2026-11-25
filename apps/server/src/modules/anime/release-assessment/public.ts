@@ -29,7 +29,10 @@ export interface ReleaseAttributes {
 }
 interface ReleaseAssessment {
 	attributes?: ReleaseAttributes;
+	/** The title plausibly identifies a publication whose files could be useful. */
+	inspectionCandidate: boolean;
 	episode: number | null;
+	/** Only a confirmed single regular episode can enter the single-video flow. */
 	eligible: boolean;
 	reasons: string[];
 	version: string;

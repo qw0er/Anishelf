@@ -293,11 +293,14 @@ export class OneOffDownloads {
 						code: null,
 						limited: publication.snapshot.coverage?.limited ?? false,
 					});
+					let packsRequiringInspection = 0;
 					for (const entry of publication.snapshot.entries) {
 						const assessment = options.anime.assessReleaseTitle(
 							entry.title,
 							target,
 						);
+						if (assessment.reasons.includes("pack_requires_inspection"))
+							packsRequiringInspection++;
 						if (
 							!assessment.eligible ||
 							assessment.episode !== initial.episode ||
@@ -310,6 +313,17 @@ export class OneOffDownloads {
 							id: `${publication.snapshot.id}:${entry.id}`,
 						});
 					}
+					if (packsRequiringInspection)
+						options.logger.info(
+							{
+								event: "acquisition.episode_packs_skipped",
+								intentId: initial.id,
+								providerId,
+								count: packsRequiringInspection,
+								reason: "pack_requires_inspection",
+							},
+							"Skipped publications requiring file inspection during single-episode discovery.",
+						);
 				} catch (error) {
 					guard();
 					if (!(error instanceof SourceError)) throw error;

@@ -190,6 +190,9 @@ export class SubscriptionDiscovery {
 						providerId,
 						outcome: attempts.at(-1)?.outcome,
 						eligible: eligible.length,
+						packsRequiringInspection: candidates.filter((candidate) =>
+							candidate.reasons.includes("pack_requires_inspection"),
+						).length,
 					},
 					"Source discovery evaluated a configured provider.",
 				);

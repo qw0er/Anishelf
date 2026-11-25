@@ -1,5 +1,9 @@
 import { expect, test, vi } from "vitest";
 import { TorrentError } from "../../../../src/modules/acquisition/torrent-clients/public.js";
+import {
+	frierenSeasonPackFixture,
+	loadReleaseCorpus,
+} from "../../../support/anime-release-corpus.js";
 
 import {
 	connectedModule,
@@ -194,6 +198,7 @@ test("pre-submission checks exclude another active version and reject stale rele
 	f.anime.assessReleaseTitle.mockReturnValueOnce({
 		episode: 3,
 		eligible: false,
+		inspectionCandidate: false,
 		reasons: ["identity_unconfirmed"],
 		version: "2",
 	});
@@ -201,6 +206,38 @@ test("pre-submission checks exclude another active version and reject stale rele
 	expect(f.add).not.toHaveBeenCalled();
 	item = f.db.acquisitionDownloads.activity(key, 1, 100).items[0];
 	expect(item?.error).toBe("release_evidence_changed");
+});
+
+test("submission rejects a season pack stored by earlier selection as episode 3", async () => {
+	const f = await fixture();
+	const pack = frierenSeasonPackFixture(await loadReleaseCorpus());
+	const subscription = f.db.acquisition.subscription(key);
+	const feed = f.db.acquisition.feed("feed");
+	if (!subscription || !feed) throw new Error("Missing subscription fixture.");
+	seedSubscription(
+		f.db.acquisition,
+		subscription,
+		{
+			...feed,
+			entries: feed.entries.map((entry) => ({ ...entry, title: pack.title })),
+		},
+		f.db.acquisition.candidates(key).map((candidate) => ({
+			...candidate,
+			title: pack.title,
+		})),
+	);
+	f.anime.target.mockResolvedValue(pack.target);
+	f.anime.assessReleaseTitle.mockImplementation(pack.assessReleaseTitle);
+	await f.configure();
+	await f.authorize();
+
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		episode: 3,
+		state: "blocked",
+		error: "release_evidence_changed",
+	});
+	expect(f.add).not.toHaveBeenCalled();
 });
 
 test("subscription save rolls back binding, subscription, candidates and permission together", async () => {

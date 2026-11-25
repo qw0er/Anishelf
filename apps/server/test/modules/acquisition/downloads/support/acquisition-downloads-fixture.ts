@@ -130,6 +130,7 @@ export async function fixture(persistent = false, bundled = false) {
 			() => ({
 				episode: 3,
 				eligible: true,
+				inspectionCandidate: true,
 				reasons: [] as string[],
 				version: "1",
 			}),

@@ -1288,6 +1288,7 @@
 			"identity_unconfirmed": "animation or season could not be confirmed",
 			"unsupported_content": "special, pack or unsupported content",
 			"episode_unconfirmed": "single regular episode could not be confirmed",
+			"pack_requires_inspection": "pack requires file inspection",
 			"download_unavailable": "no supported download link",
 			"outside_scope": "before the starting episode",
 			"already_available": "already in your library",

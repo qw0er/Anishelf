@@ -1276,6 +1276,7 @@
 			"identity_unconfirmed": "无法确认动画或季度",
 			"unsupported_content": "特别篇、合集或不支持的内容",
 			"episode_unconfirmed": "无法确认单个正篇剧集",
+			"pack_requires_inspection": "合集需要检查文件清单",
 			"download_unavailable": "没有受支持的下载链接",
 			"outside_scope": "早于起始集数",
 			"already_available": "已在媒体库中",

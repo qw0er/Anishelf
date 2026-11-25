@@ -20,6 +20,10 @@ import type {
 } from "./public.js";
 import { acquisitionSearchTitles } from "./search-titles.js";
 
+const localizedPackLabel = /(?:合[集辑輯]|全集)版?(?!\p{Script=Han})/u;
+const episodeRangeSeparator =
+	/(?<![\p{L}\p{N}]|\b(?:season|part|cour)\s+)((?:s\d+e|ep?\s*)?\d+)(?:\s*[-‐‑‒–—−~～至]\s*|\s+to\s+)(?:ep?\s*)?(?=\d)/giu;
+
 /** Remote publication evidence never impersonates a confined local source. */
 export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 	constructor(
@@ -97,41 +101,85 @@ export class AnimeReleaseAssessment implements ReleaseAssessmentApi {
 			revision: JSON.stringify([snapshot.snapshotId, availability.revision]),
 		};
 	}
-	assessReleaseTitle(title: string, target: AcquisitionTarget) {
+	assessReleaseTitle(
+		title: string,
+		target: AcquisitionTarget,
+	): ReturnType<ReleaseAssessmentApi["assessReleaseTitle"]> {
 		const evidence = this.parser.extractRelease(title);
-		const candidate = rankCandidates(evidence, [target.work])[0];
-		const version = `${evidence.parserVersion}:${evidence.normalizationVersion}:${candidate?.matcherVersion ?? "unknown"}:rss-single-v1`;
-		const mapping = proposeMapping(evidence, target.work);
-		const reasons: string[] = [];
-		if (
-			!candidate ||
-			candidate.conflicts.length ||
-			!evidence.titles.some((value) =>
-				target.work.titles.some((alias) =>
-					matchingTitle(value, alias, evidence.seasons, evidence.parts),
-				),
-			)
-		)
-			reasons.push("identity_unconfirmed");
-		if (evidence.contentKind !== "regular") reasons.push("unsupported_content");
-		if (
-			evidence.numbering !== "single" ||
-			mapping.targets.length !== 1 ||
-			mapping.unresolved.length
-		)
-			reasons.push("episode_unconfirmed");
-		const mapped = mapping.targets[0];
-		const episode =
-			mapped?.kind === "regular" && /^\d+$/.test(mapped.number)
-				? Number(mapped.number)
+		// Recognize release range delimiters the filename parser may split into
+		// title text and a single endpoint. Keep the original declared attributes.
+		const normalizedRange = title.replace(episodeRangeSeparator, "$1-");
+		const rangeEvidence =
+			evidence.numbering !== "range" && normalizedRange !== title
+				? this.parser.extractRelease(normalizedRange)
 				: null;
-		if (!episode || !Number.isSafeInteger(episode))
-			reasons.push("episode_unconfirmed");
+		const publication =
+			rangeEvidence?.numbering === "range" ? rangeEvidence : evidence;
+		const candidate = rankCandidates(publication, [target.work])[0];
+		const version = `${evidence.parserVersion}:${evidence.normalizationVersion}:${candidate?.matcherVersion ?? "unknown"}:rss-single-v2`;
+		const matchesWork = (title: string) =>
+			target.work.titles.some((alias) =>
+				matchingTitle(title, alias, publication.seasons, publication.parts),
+			);
+		const titleMatches = publication.titles.some(
+			(value) =>
+				matchesWork(value) ||
+				(localizedPackLabel.test(value) &&
+					matchesWork(value.replace(localizedPackLabel, " ").trim())),
+		);
+		const possiblePack =
+			publication.numbering === "range" ||
+			(publication.numbering === "ambiguous" &&
+				publication.rawEpisodes.length > 1) ||
+			(publication.numbering === "unknown" && publication.seasons.length > 0) ||
+			localizedPackLabel.test(title) ||
+			evidence.inputs.some((input) =>
+				input.elements.some(
+					(element) =>
+						element.kind === "release_information" &&
+						/^(batch|complete)$/iu.test(element.value),
+				),
+			);
+		const plausibleIdentity = Boolean(
+			titleMatches &&
+				candidate &&
+				!candidate.identityConflicts?.length &&
+				!candidate.identityUnresolved?.length,
+		);
+		const inspectionCandidate =
+			plausibleIdentity &&
+			target.work.format !== "MOVIE" &&
+			(publication.contentKind === "regular" ||
+				publication.contentKind === "unknown") &&
+			(possiblePack || publication.numbering === "single");
+		const reasons: string[] = [];
+		let episode: number | null = null;
+		if (!plausibleIdentity || (!possiblePack && candidate?.conflicts.length))
+			reasons.push("identity_unconfirmed");
+		if (possiblePack && inspectionCandidate) {
+			reasons.push("pack_requires_inspection");
+		} else {
+			if (publication.contentKind !== "regular")
+				reasons.push("unsupported_content");
+			if (!possiblePack && publication.numbering === "single") {
+				const mapping = proposeMapping(publication, target.work);
+				const mapped = mapping.targets[0];
+				if (
+					mapping.targets.length === 1 &&
+					!mapping.unresolved.length &&
+					mapped?.kind === "regular"
+				)
+					episode = Number(mapped.number);
+			}
+			if (!episode || !Number.isSafeInteger(episode))
+				reasons.push("episode_unconfirmed");
+		}
 		return {
 			episode,
+			inspectionCandidate,
 			attributes: releaseAttributes(evidence),
 			eligible: reasons.length === 0,
-			reasons: [...new Set(reasons)],
+			reasons,
 			version,
 		};
 	}

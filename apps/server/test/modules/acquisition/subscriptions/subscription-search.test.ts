@@ -8,7 +8,14 @@ import { createSourcesModule } from "../../../../src/modules/acquisition/sources
 import { JackettConnection } from "../../../../src/modules/acquisition/sources/jackett/connection.js";
 import { SourceError } from "../../../../src/modules/acquisition/sources/public.js";
 import { SubscriptionsApplication } from "../../../../src/modules/acquisition/subscriptions/application/application.js";
-import type { AcquisitionTarget } from "../../../../src/modules/anime/public.js";
+import type {
+	AcquisitionTarget,
+	ReleaseAssessmentApi,
+} from "../../../../src/modules/anime/public.js";
+import {
+	frierenSeasonPackFixture,
+	loadReleaseCorpus,
+} from "../../../support/anime-release-corpus.js";
 
 const cleanup: (() => unknown)[] = [];
 afterEach(async () => {
@@ -94,13 +101,16 @@ async function fixture() {
 	});
 	const anime = {
 		target: vi.fn(async () => target),
-		assessReleaseTitle: vi.fn((title: string) => ({
-			attributes,
-			episode: 3,
-			eligible: !title.includes("Wrong"),
-			reasons: title.includes("Wrong") ? ["identity_unconfirmed"] : [],
-			version: "v1",
-		})),
+		assessReleaseTitle: vi.fn<ReleaseAssessmentApi["assessReleaseTitle"]>(
+			(title) => ({
+				attributes,
+				episode: 3,
+				eligible: !title.includes("Wrong"),
+				inspectionCandidate: !title.includes("Wrong"),
+				reasons: title.includes("Wrong") ? ["identity_unconfirmed"] : [],
+				version: "v1",
+			}),
+		),
 	};
 	const subscriptions = new SubscriptionsApplication({
 		store: db.acquisition,
@@ -197,12 +207,52 @@ test("saving pins the chosen site; no-match refreshes never fall back to another
 	expect(f.db.acquisition.authorization(workKey)).toBeNull();
 });
 
+test("discovery continues past a site offering only a suspected pack", async () => {
+	const f = await fixture();
+	const pack = frierenSeasonPackFixture(await loadReleaseCorpus());
+	const singleTitle = "[G] Sousou no Frieren S2 - E03 [1080p]";
+	f.anime.target.mockResolvedValue(pack.target);
+	f.anime.assessReleaseTitle.mockImplementation(pack.assessReleaseTitle);
+	f.search.mockImplementation(async ({ indexerId }) => {
+		const first = indexerId === "first";
+		const hash = (first ? "b" : "a").repeat(40);
+		return {
+			entries: [
+				{
+					id: indexerId,
+					observationId: indexerId,
+					title: first ? pack.title : singleTitle,
+					publishedAt: null,
+					hash,
+					downloadUrl: null,
+					download: { kind: "magnet", uri: `magnet:?xt=urn:btih:${hash}` },
+				},
+			],
+			coverage: { limited: false, reason: null, pages: 1, queries: 1 },
+			outcome: "matches",
+		};
+	});
+
+	const result = await f.subscriptions.search(input);
+	expect(result.attempts).toMatchObject([
+		{
+			providerId: "first",
+			outcome: "no_eligible",
+			reasons: ["pack_requires_inspection"],
+		},
+		{ providerId: "second", outcome: "matched" },
+	]);
+	expect(result.source?.providerId).toBe("second");
+	expect(result.releases).toMatchObject([{ title: singleTitle, episode: 3 }]);
+});
+
 test("identity uncertainty and episode scope cannot select a source", async () => {
 	const f = await fixture();
 	f.anime.assessReleaseTitle.mockReturnValue({
 		attributes,
 		episode: 3,
 		eligible: false,
+		inspectionCandidate: false,
 		reasons: ["identity_unconfirmed"],
 		version: "v1",
 	});
@@ -214,6 +264,7 @@ test("identity uncertainty and episode scope cannot select a source", async () =
 		attributes,
 		episode: 3,
 		eligible: true,
+		inspectionCandidate: true,
 		reasons: [],
 		version: "v1",
 	});

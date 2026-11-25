@@ -78,6 +78,17 @@ export class SubmissionAdmission {
 				state: "blocked",
 				error: "release_evidence_changed",
 			});
+			this.context.options.logger.info(
+				{
+					event: "acquisition.release_rejected_at_submission",
+					intentId: item.id,
+					workKey: item.workKey,
+					episode: item.episode,
+					inspectionCandidate: assessment.inspectionCandidate,
+					reasons: assessment.reasons,
+				},
+				"Release no longer qualifies for single-episode submission.",
+			);
 			return null;
 		}
 		if (

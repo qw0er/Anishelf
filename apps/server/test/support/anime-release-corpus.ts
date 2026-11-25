@@ -4,7 +4,10 @@ import { Check } from "typebox/value";
 import { AnitomyIdentificationParser } from "../../src/modules/anime/identification/infrastructure/parser.js";
 import { AnimeReleaseAssessment } from "../../src/modules/anime/release-assessment/application.js";
 import { releaseAttributes } from "../../src/modules/anime/release-assessment/attributes.js";
-import type { ReleaseAssessmentApi } from "../../src/modules/anime/release-assessment/public.js";
+import type {
+	AcquisitionTarget,
+	ReleaseAssessmentApi,
+} from "../../src/modules/anime/release-assessment/public.js";
 import { candidateSchema } from "./anime-identification-evidence.js";
 import { fixtureIdentities } from "./metadata-identities.js";
 
@@ -111,6 +114,35 @@ export async function loadReleaseCorpus(): Promise<Corpus> {
 		),
 	);
 }
+function offlineReleaseAssessor(parser = new AnitomyIdentificationParser()) {
+	return new AnimeReleaseAssessment(
+		parser,
+		{
+			get: async () => {
+				throw new Error("Offline release test must not request metadata.");
+			},
+		},
+		undefined,
+		fixtureIdentities(),
+	);
+}
+export function frierenSeasonPackFixture(corpus: Corpus) {
+	const entry = corpus.cases.find(({ id }) => id === "nyaa-2106580-title");
+	const work = corpus.works.find(({ workId }) => workId === entry?.targetId);
+	if (!entry || !work) throw new Error("Missing Frieren season pack fixture.");
+	const target: AcquisitionTarget = {
+		work: work.candidate,
+		searchTitles: work.candidate.titles.slice(0, 4),
+		availableEpisodes: [],
+		revision: corpus.version,
+	};
+	const assessor = offlineReleaseAssessor();
+	return {
+		title: entry.title,
+		target,
+		assessReleaseTitle: assessor.assessReleaseTitle.bind(assessor),
+	};
+}
 const normalize = (value: unknown) =>
 	Array.isArray(value)
 		? [
@@ -129,16 +161,7 @@ export function evaluateReleaseCorpus(
 ) {
 	validateReleaseCorpus(corpus);
 	const parser = new AnitomyIdentificationParser();
-	const assessor = new AnimeReleaseAssessment(
-		parser,
-		{
-			get: async () => {
-				throw new Error("Offline release test must not request metadata.");
-			},
-		},
-		undefined,
-		fixtureIdentities(),
-	);
+	const assessor = offlineReleaseAssessor(parser);
 	const run = assess ?? assessor.assessReleaseTitle.bind(assessor);
 	const rows = corpus.cases.map((entry) => {
 		let error: string | null = null;

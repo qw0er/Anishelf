@@ -113,6 +113,7 @@ export async function fixture() {
 				assessReleaseTitle: () => ({
 					episode: 3,
 					eligible: true,
+					inspectionCandidate: true,
 					reasons: [],
 					version: "v1",
 				}),

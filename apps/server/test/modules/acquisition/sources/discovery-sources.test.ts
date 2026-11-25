@@ -112,6 +112,7 @@ test("Subscriptions save and refresh an opaque source without protocol configura
 			assessReleaseTitle: (title) => ({
 				episode: Number(title.split(" - ")[1]),
 				eligible: true,
+				inspectionCandidate: true,
 				reasons: [],
 				version: "test",
 			}),

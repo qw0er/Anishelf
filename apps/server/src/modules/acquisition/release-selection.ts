@@ -117,6 +117,7 @@ export function selectCandidates(input: {
 		if (entry.hash && active.has(entry.hash)) reasons.push("existing_download");
 		if (downloadsUnknown) reasons.push("downloader_unavailable");
 		if (
+			assessment.eligible &&
 			!reasons.length &&
 			assessment.episode !== null &&
 			!firstSeen.has(assessment.episode)
@@ -147,7 +148,7 @@ export function selectCandidates(input: {
 			workKey: subscription.workKey,
 			title: entry.title,
 			episode: assessment.episode,
-			status: reasons.length ? "skipped" : "selected",
+			status: assessment.eligible && !reasons.length ? "selected" : "skipped",
 			reasons,
 			version: assessment.version,
 			snapshotId: target.work.snapshotId,

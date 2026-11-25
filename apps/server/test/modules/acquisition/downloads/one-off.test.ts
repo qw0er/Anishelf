@@ -4,6 +4,10 @@ import { JackettConnection } from "../../../../src/modules/acquisition/sources/j
 import { SourceError } from "../../../../src/modules/acquisition/sources/public.js";
 import { TorrentError } from "../../../../src/modules/acquisition/torrent-clients/public.js";
 import {
+	frierenSeasonPackFixture,
+	loadReleaseCorpus,
+} from "../../../support/anime-release-corpus.js";
+import {
 	fixture,
 	fixturePath,
 	hash,
@@ -57,6 +61,7 @@ async function setup(persistent = false) {
 	f.anime.assessReleaseTitle.mockImplementation((title) => ({
 		episode: Number(/- (\d+)/.exec(title)?.[1] ?? 0),
 		eligible: !title.includes("Wrong"),
+		inspectionCandidate: !title.includes("Wrong"),
 		reasons: title.includes("Wrong") ? ["identity_unconfirmed"] : [],
 		version: "1",
 		attributes: {
@@ -134,6 +139,39 @@ test("replayed and concurrent clicks reserve one episode and reject command ID r
 	).rejects.toMatchObject({ code: "ACQUISITION_CONFLICT" });
 	await f.worker.tick();
 	expect(f.add).toHaveBeenCalledTimes(1);
+});
+
+test("single-episode discovery skips a better-seeded pack and submits the ordinary episode", async () => {
+	const { f, input, search } = await setup();
+	const pack = frierenSeasonPackFixture(await loadReleaseCorpus());
+	const singleTitle = "[G] Sousou no Frieren S2 - E03 [1080p]";
+	f.anime.target.mockResolvedValue(pack.target);
+	f.anime.assessReleaseTitle.mockImplementation(pack.assessReleaseTitle);
+	search
+		.mockResolvedValueOnce({
+			entries: [
+				{ ...release("pack", pack.title, "b".repeat(40)), seeders: 500 },
+			],
+			coverage,
+			outcome: "matches",
+		})
+		.mockResolvedValueOnce({
+			entries: [release("single", singleTitle)],
+			coverage,
+			outcome: "matches",
+		});
+
+	await f.worker.requestEpisode(input);
+	await f.worker.tick();
+	expect(f.worker.activity(key).items[0]).toMatchObject({
+		episode: 3,
+		title: singleTitle,
+		state: "bound",
+	});
+	expect(f.add).toHaveBeenCalledTimes(1);
+	expect(f.add.mock.calls[0]?.[0].source).toMatchObject({
+		magnet: `magnet:?xt=urn:btih:${hash}`,
+	});
 });
 
 test("accepted discovery survives restart and never acquires other episodes", async () => {

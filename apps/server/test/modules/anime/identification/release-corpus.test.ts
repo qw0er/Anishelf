@@ -1,11 +1,13 @@
 import { expect, test, vi } from "vitest";
 import {
 	evaluateReleaseCorpus,
+	frierenSeasonPackFixture,
 	loadReleaseCorpus,
 	validateReleaseCorpus,
 } from "../../../support/anime-release-corpus.js";
 
 const corpus = await loadReleaseCorpus();
+const frieren = frierenSeasonPackFixture(corpus);
 function first<T>(items: readonly T[]): T {
 	const item = items[0];
 	if (!item) throw new Error("Missing release fixture.");
@@ -52,6 +54,56 @@ test("every real publication receives attribute evaluation even if it is ineligi
 	expect(report.fields.episode?.total).toBe(3);
 	for (const row of report.rows) expect(row.actual?.attributes).toBeDefined();
 });
+test.each([
+	frieren.title,
+	"[G] Sousou no Frieren S2 - 01-10 [1080p]",
+	"[G] Sousou no Frieren S2 - 01–10 [1080p]",
+	"[G] Sousou no Frieren Season 2 - 01–10 [1080p]",
+	"[G] Sousou no Frieren S02E01-E10 [1080p]",
+	"[G] Sousou no Frieren S2 - 01~10 [1080p]",
+	"[G] Sousou no Frieren S2 [1080p]",
+	"[G] Sousou no Frieren S2 合集 [1080p]",
+])("shortlists %s without claiming a single episode", (title) => {
+	expect(frieren.assessReleaseTitle(title, frieren.target)).toMatchObject({
+		inspectionCandidate: true,
+		eligible: false,
+		episode: null,
+		reasons: ["pack_requires_inspection"],
+	});
+});
+test("END allows a confirmed single finale and an unrelated pack is not shortlisted", () => {
+	expect(
+		frieren.assessReleaseTitle(
+			"[G] Sousou no Frieren Season 2 - E10 END [1080p]",
+			frieren.target,
+		),
+	).toMatchObject({ inspectionCandidate: true, eligible: true, episode: 10 });
+	for (const title of [
+		"[G] Other Anime S2 [Batch]",
+		"[G] Sousou no Frieren S3 [Batch]",
+		"[G] Sousou no Frieren S2 OVA - 01",
+	])
+		expect(
+			frieren.assessReleaseTitle(title, frieren.target),
+			title,
+		).toMatchObject({ inspectionCandidate: false, eligible: false });
+});
+test("a numbered work title and a pack word within a group name leave a single eligible", () => {
+	const target = {
+		...frieren.target,
+		work: {
+			...frieren.target.work,
+			titles: ["86"],
+			titleVariants: [
+				{ value: "86", kind: "primary" as const, language: null },
+			],
+			season: null,
+		},
+	};
+	expect(
+		frieren.assessReleaseTitle("[合集字幕组] 86 - 03 [1080p]", target),
+	).toMatchObject({ inspectionCandidate: true, eligible: true, episode: 3 });
+});
 test("ineligible publication attributes still contribute failures", () => {
 	const original = first(corpus.cases);
 	const entry = {
@@ -60,6 +112,7 @@ test("ineligible publication attributes still contribute failures", () => {
 	};
 	const report = evaluateReleaseCorpus({ ...corpus, cases: [entry] }, () => ({
 		eligible: false,
+		inspectionCandidate: false,
 		episode: null,
 		reasons: ["episode_unconfirmed"],
 		version: "controlled",
@@ -77,6 +130,7 @@ test("expectations never change the supplied subscription target or title", () =
 	});
 	const run = vi.fn(() => ({
 		eligible: true,
+		inspectionCandidate: true,
 		episode: 3,
 		reasons: [],
 		version: "controlled",
