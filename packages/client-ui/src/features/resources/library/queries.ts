@@ -7,6 +7,7 @@ const libraryKeys = {
 
 import { queryOptions } from "@tanstack/react-query";
 import { boundedSignal } from "../../../shared/api/queries.js";
+import { readRetryOptions } from "../../../shared/api/read-retry.js";
 import * as api from "./api.js";
 
 export const libraryQuery = () =>
@@ -22,6 +23,7 @@ export const libraryQuery = () =>
 	});
 export const directoryQuery = (id: string, scope: string) =>
 	queryOptions({
+		...readRetryOptions("directory"),
 		queryKey: libraryKeys.directory(id, scope),
 		queryFn: ({ signal }) =>
 			api.getDirectory(id, { signal: boundedSignal(signal) }),

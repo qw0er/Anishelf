@@ -64,7 +64,7 @@ export function createLibraryRoute({
 				path: "history",
 				loader: historyLoader,
 				element: <HistoryPage />,
-				errorElement: <RouteError kind="directory" />,
+				errorElement: <RouteError kind="history" />,
 			},
 			{
 				path: "settings",
@@ -80,23 +80,23 @@ export function createLibraryRoute({
 			{
 				index: true,
 				element: <AnimeLibraryPage />,
-				errorElement: <RouteError kind="directory" />,
+				errorElement: <RouteError kind="library" />,
 			},
 			{
 				path: "anime/tracked/:mediaId",
 				element: workDetail,
-				errorElement: <RouteError kind="directory" />,
+				errorElement: <RouteError kind="work" />,
 			},
 			{
 				path: "anime/works/:metadataId",
 				element: workDetail,
-				errorElement: <RouteError kind="directory" />,
+				errorElement: <RouteError kind="work" />,
 			},
 			{
 				path: "anime/:id",
 				loader: animeLoader,
 				element: <AnimeDetailPage />,
-				errorElement: <RouteError kind="directory" />,
+				errorElement: <RouteError kind="work" />,
 			},
 			{
 				element: <FilesLayout offlineCache={offlineCache} />,

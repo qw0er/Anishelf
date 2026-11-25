@@ -375,6 +375,39 @@ test("detail shares one download status read across missing episode rows", async
 	).toHaveLength(1);
 });
 
+test("work information recovers after a provider cooldown without replacing the work title", async () => {
+	const local = animeFixture();
+	mockAnime(local);
+	const fallback = requiredFetch(fetcher.getMockImplementation());
+	const detail = animeDetailFixture(local);
+	let retryAt = 0;
+	const reads: number[] = [];
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) !== "/api/anime/details/works/anilist%3Aanime%3A154587")
+			return fallback(input, init);
+		reads.push(Date.now());
+		if (reads.length > 1) return json({ ...detail, local: null });
+		retryAt = Date.now() + 1200;
+		return json({
+			...detail,
+			local: null,
+			metadata: null,
+			metadataError: { code: "rate-limited", message: "Rate limited", retryAt },
+		});
+	});
+	renderApp("/anime/tracked/anilist%3Aanime%3A154587");
+	await screen.findByText("Will retry automatically.");
+	expect(
+		screen.getByRole("heading", { name: detail.displayTitle }),
+	).toBeTruthy();
+	expect(screen.getByText("Could not load work information.")).toBeTruthy();
+	expect(reads).toHaveLength(1);
+	await screen.findByText("Episode 1", {}, { timeout: 4000 });
+	expect(reads).toHaveLength(2);
+	expect(reads[1]).toBeGreaterThanOrEqual(retryAt);
+	expect(screen.queryByText("Could not load work information.")).toBeNull();
+});
+
 test("a tracked detail refetch switches to local episodes while preserving library context", async () => {
 	const local = animeFixture();
 	mockAnime(local);

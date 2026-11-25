@@ -30,6 +30,21 @@
 	"errors": {
 		"pageLabel": "页面错误",
 		"pageLoad": "无法加载此页面。",
+		"animeLibraryLoad": "无法加载番剧库。",
+		"directoryLoad": "无法打开此目录。",
+		"fileLoad": "无法打开此文件。",
+		"historyLoad": "无法加载播放历史。",
+		"workLoad": "无法加载此作品。",
+		"metadataLoad": "无法加载作品资料。",
+		"metadataNotFound": "元数据源未收录此作品。",
+		"metadataRateLimited": "元数据源暂时限制了请求频率。",
+		"viewingLoad": "无法加载观看进度更新。",
+		"recovery": {
+			"retrying": "正在重试…",
+			"scheduled": "将自动重试。",
+			"automatic": "正在自动重试…",
+			"offline": "等待网络恢复后重试。"
+		},
 		"libraryStatus": "无法加载媒体库状态。",
 		"saveSettings": "无法保存设置。",
 		"resourcePathRequired": "请输入资源目录的绝对路径。",

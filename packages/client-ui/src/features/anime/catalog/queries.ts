@@ -4,6 +4,7 @@ import {
 	boundedSignal,
 	queryScopeIdentity,
 } from "../../../shared/api/queries.js";
+import { readRetryOptions } from "../../../shared/api/read-retry.js";
 import { reportMetadataRefresh } from "../metadata/public.js";
 import {
 	getFileReviews,
@@ -15,6 +16,7 @@ import { animeDetailQuery } from "./detail-query.js";
 
 export const localWorkDetailQuery = (id: string, scope: string) =>
 	queryOptions({
+		...readRetryOptions("local-work-detail"),
 		queryKey: ["anime-detail", scope, "local", id],
 		queryFn: async ({ signal, client }) => {
 			const startedAt = Date.now();

@@ -1,14 +1,23 @@
 import { workKey } from "@anishelf/contracts/references";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import {
+	type ComponentProps,
+	type ReactNode,
+	useEffect,
+	useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useParams, useSearchParams } from "react-router";
 import type { AnimeDetailResponse } from "../../../../shared/api/contracts.js";
-import { useQueryScope } from "../../../../shared/api/queries.js";
 import {
-	Button,
-	buttonStyles,
-} from "../../../../shared/components/ui/button.js";
+	queryScopeIdentity,
+	useQueryScope,
+} from "../../../../shared/api/queries.js";
+import {
+	LoadFailure,
+	queryLoadFailure,
+} from "../../../../shared/components/load-failure.js";
+import { buttonStyles } from "../../../../shared/components/ui/button.js";
 import { libraryReturnPath } from "../../../../shared/navigation.js";
 import { airingQuery } from "../../metadata/public.js";
 import { Artwork } from "../../shared/components/artwork.js";
@@ -41,15 +50,23 @@ export function TrackedAnimeDetail({
 			metadataId ? "metadata" : "work",
 		),
 	);
+	const failure = queryLoadFailure(query);
+	const library = params.get("library");
 	if (!query.data)
 		return (
 			<section className="stack-page">
-				<p role={query.error ? "alert" : "status"}>
-					{t(query.error ? "errors.pageLoad" : "anime.loading")}
-				</p>
-				<Button onClick={() => void query.refetch()}>
-					{t("actions.retry")}
-				</Button>
+				{failure ? (
+					<LoadFailure message={t("errors.workLoad")} {...failure}>
+						<Link
+							className={buttonStyles("outline")}
+							to={libraryReturnPath(library)}
+						>
+							{t("anime.back")}
+						</Link>
+					</LoadFailure>
+				) : (
+					<p role="status">{t("anime.loading")}</p>
+				)}
 			</section>
 		);
 	if (query.data.local)
@@ -64,10 +81,15 @@ export function TrackedAnimeDetail({
 		);
 	return (
 		<TrackedDetail
-			key={workKey(query.data.reference)}
+			key={JSON.stringify([
+				queryScopeIdentity(scope),
+				metadataId ?? mediaId,
+				workKey(query.data.reference),
+			])}
 			data={query.data}
-			retry={() => void query.refetch()}
-			library={params.get("library")}
+			retry={query.refetch}
+			fetchStatus={query.fetchStatus}
+			library={library}
 			{...(renderSubscription ? { renderSubscription } : {})}
 			{...(renderEpisodeAction ? { renderEpisodeAction } : {})}
 		/>
@@ -76,12 +98,14 @@ export function TrackedAnimeDetail({
 function TrackedDetail({
 	data,
 	retry,
+	fetchStatus,
 	library,
 	renderSubscription,
 	renderEpisodeAction,
 }: {
 	data: AnimeDetailResponse;
-	retry: () => void;
+	retry: () => Promise<unknown>;
+	fetchStatus: "idle" | "fetching" | "paused";
 	library: string | null;
 	renderSubscription?: (workKey: string, detail: AnimeStatusState) => ReactNode;
 	renderEpisodeAction?: AnimeEpisodeActionSlot;
@@ -107,17 +131,48 @@ function TrackedDetail({
 		},
 		status.error,
 	);
-	const metadata = {
-		data: data.metadata,
-		error: data.metadataError,
-		refetch: retry,
-	};
+	const metadata = data.metadata;
+	const failure = data.metadataError;
+	const [retries, setRetries] = useState(0);
+	const retryAt = failure?.retryAt ?? null;
+	const failureCode = failure?.code;
+	const retryScheduled =
+		!metadata &&
+		retries < 2 &&
+		(failureCode === "unavailable" ||
+			failureCode === "storage-unavailable" ||
+			failureCode === "busy" ||
+			(failureCode === "rate-limited" && retryAt !== null));
+
+	useEffect(() => {
+		if (!retryScheduled || fetchStatus !== "idle") return;
+		const delay = Math.max(1000 * 2 ** retries, (retryAt ?? 0) - Date.now());
+		const timer = setTimeout(() => {
+			console.debug("UI metadata retry requested", {
+				attempt: retries + 1,
+				code: failureCode,
+			});
+			setRetries(retries + 1);
+			void retry();
+		}, delay);
+		return () => clearTimeout(timer);
+	}, [retryScheduled, fetchStatus, retries, retryAt, failureCode, retry]);
+
+	let retryState: ComponentProps<typeof LoadFailure>["retryState"];
+	if (fetchStatus === "paused") retryState = "offline";
+	else if (fetchStatus === "fetching") retryState = "retrying";
+	else if (retryScheduled) retryState = "scheduled";
+	let failureDetail: string | undefined;
+	if (failureCode === "not-found") failureDetail = t("errors.metadataNotFound");
+	else if (failureCode === "rate-limited")
+		failureDetail = t("errors.metadataRateLimited");
+
 	// Provider images are proxied so they share the backend artwork cache and HTTP policy.
 	const artwork = (kind: "cover" | "banner") =>
 		kind === "cover"
 			? (data.metadata?.data.coverUrl ?? null)
 			: (data.metadata?.data.bannerUrl ?? null);
-	const info = data.metadata?.data;
+	const info = metadata?.data;
 	const summary = viewing.snapshot?.entry;
 	const title = info
 		? data.displayTitle
@@ -132,7 +187,7 @@ function TrackedDetail({
 				{t("anime.back")}
 			</Link>
 			<p className="surface-panel">{t("trackingList.noLocal")}</p>
-			{metadata.data && info ? (
+			{metadata && info ? (
 				<>
 					<WorkMetadataHeader
 						airedCount={timeline.aired}
@@ -153,7 +208,7 @@ function TrackedDetail({
 								year: info.year,
 								episodeCount: info.episodeCount,
 							},
-							metadata: metadata.data,
+							metadata,
 						}}
 					/>
 					<section className="space-y-3">
@@ -166,8 +221,8 @@ function TrackedDetail({
 						/>
 					</section>
 					<AiringStatus query={airing} metadata={data.metadata} />
-					<WorkSynopsis data={{ metadata: metadata.data }} />
-					<WorkMetadataExtras data={{ metadata: metadata.data }} />
+					<WorkSynopsis data={{ metadata }} />
+					<WorkMetadataExtras data={{ metadata }} />
 					<RelatedWorks
 						key={info.reference.id}
 						workId={info.reference.id}
@@ -183,19 +238,22 @@ function TrackedDetail({
 							<Artwork url={summary.coverUrl} title={title} />
 						</div>
 					)}
-					{metadata.error ? (
-						<div role="alert">
-							<p>{t("errors.pageLoad")}</p>
-							<Button variant="outline" onClick={() => void metadata.refetch()}>
-								{t("actions.retry")}
-							</Button>
-						</div>
+					{failure ? (
+						<LoadFailure
+							message={t("errors.metadataLoad")}
+							detail={failureDetail}
+							retryState={retryState}
+							retry={() => {
+								setRetries(0);
+								void retry();
+							}}
+						/>
 					) : (
 						<p role="status">{t("anime.loading")}</p>
 					)}
 				</>
 			)}
-			{!metadata.data && renderSubscription?.(mediaId, status)}
+			{!metadata && renderSubscription?.(mediaId, status)}
 		</section>
 	);
 }

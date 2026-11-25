@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useQueryScope } from "../../../shared/api/queries.js";
+import { readRetryOptions } from "../../../shared/api/read-retry.js";
 import {
 	accountQuery,
 	trackingIdentity,
@@ -8,8 +9,11 @@ import {
 import type { LibraryFilters } from "./api.js";
 import { animeLibraryQuery } from "./queries.js";
 
+const readRetry = readRetryOptions("anime-library");
+
 /** Only account-scoped reads include viewing filters and private list entries. */
 export function useLibraryData(filters: LibraryFilters, enabled: boolean) {
+	const client = useQueryClient();
 	const account = useQuery(accountQuery());
 	const identity = account.data?.account
 		? trackingIdentity(account.data)
@@ -17,8 +21,13 @@ export function useLibraryData(filters: LibraryFilters, enabled: boolean) {
 	const appliedFilters = identity
 		? filters
 		: { ...filters, viewingStatus: "all" as const };
+	const options = animeLibraryQuery(appliedFilters, useQueryScope(), identity);
 	const query = useQuery({
-		...animeLibraryQuery(appliedFilters, useQueryScope(), identity),
+		...options,
+		...readRetry,
+		retry: (failureCount, error) =>
+			!client.getQueryData(options.queryKey) &&
+			readRetry.retry(failureCount, error),
 		enabled,
 	});
 	const refresh = useTrackingRefresh(account.data);
@@ -28,6 +37,9 @@ export function useLibraryData(filters: LibraryFilters, enabled: boolean) {
 		retryAccount: account.refetch,
 		data: query.data,
 		error: query.error,
+		failureReason: query.failureReason,
+		errorUpdateCount: query.errorUpdateCount,
+		fetchStatus: query.fetchStatus,
 		isPending: query.isPending,
 		isFetching: query.isFetching,
 		refetch: query.refetch,

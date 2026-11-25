@@ -5,12 +5,14 @@ import {
 	boundedSignal,
 	queryScopeIdentity,
 } from "../../../shared/api/queries.js";
+import { readRetryOptions } from "../../../shared/api/read-retry.js";
 export const animeDetailQuery = (
 	key: string,
 	scope: string,
 	identity: "work" | "metadata" = "work",
 ) =>
 	queryOptions({
+		...readRetryOptions("work-detail"),
 		queryKey: ["anime-detail", scope, identity, key],
 		queryFn: async ({ signal, client }) => {
 			const startedAt = Date.now();

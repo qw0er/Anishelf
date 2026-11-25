@@ -13,6 +13,11 @@ export function NavigationPending() {
 		navigation.state !== "idle",
 		navigation.location?.key,
 	);
+	const destination = navigation.location?.pathname;
+	let message = "loading.page";
+	if (destination?.startsWith("/files/")) message = "navigation.loadingFile";
+	else if (destination?.startsWith("/directories/"))
+		message = "navigation.loadingFiles";
 	return (
 		<>
 			{" "}
@@ -22,11 +27,7 @@ export function NavigationPending() {
 					role="status"
 				>
 					<Spinner />
-					<p>
-						{navigation.location.pathname.startsWith("/files/")
-							? t("navigation.loadingFile")
-							: t("navigation.loadingFiles")}
-					</p>
+					<p>{t(message)}</p>
 					<Link
 						className={buttonStyles("outline")}
 						to={`${location.pathname}${location.search}`}

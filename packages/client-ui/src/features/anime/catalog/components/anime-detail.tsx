@@ -13,12 +13,16 @@ import {
 	useQueryScope,
 } from "../../../../shared/api/queries.js";
 import {
+	LoadFailure,
+	queryLoadFailure,
+} from "../../../../shared/components/load-failure.js";
+import {
 	Button,
 	buttonStyles,
 } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { toast } from "../../../../shared/components/ui/toast.js";
-import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
+import { libraryReturnPath } from "../../../../shared/navigation.js";
 import { airingQuery } from "../../metadata/public.js";
 import {
 	episodeViewing,
@@ -56,18 +60,19 @@ export function AnimeDetail({
 	const scope = useQueryScope();
 	const query = useQuery(localWorkDetailQuery(id, scope));
 	const { t } = useTranslation();
+	const [params] = useSearchParams();
+	const failure = queryLoadFailure(query);
 	if (!query.data)
-		return query.error ? (
+		return failure ? (
 			<section className="stack-page">
-				<p role="alert">
-					{t(getErrorTranslationKey(query.error) ?? "errors.pageLoad")}
-				</p>
-				<Button variant="outline" onClick={() => void query.refetch()}>
-					{t("actions.retry")}
-				</Button>
-				<Link to="/" className={buttonStyles("outline")}>
-					{t("anime.back")}
-				</Link>
+				<LoadFailure message={t("errors.workLoad")} {...failure}>
+					<Link
+						to={libraryReturnPath(params.get("library"))}
+						className={buttonStyles("outline")}
+					>
+						{t("anime.back")}
+					</Link>
+				</LoadFailure>
 			</section>
 		) : (
 			<div role="status" aria-label={t("anime.loading")}>

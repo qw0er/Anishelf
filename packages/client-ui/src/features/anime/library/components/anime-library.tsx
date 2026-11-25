@@ -4,10 +4,13 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useSearchParams } from "react-router";
 import { getClientRuntime } from "../../../../shared/api/connection.js";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
+import {
+	LoadFailure,
+	queryLoadFailure,
+} from "../../../../shared/components/load-failure.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
 import { Button } from "../../../../shared/components/ui/button.js";
 import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
-import { getErrorTranslationKey } from "../../../../shared/lib/error-translation.js";
 import { TrackingFeedback } from "../../tracking/public.js";
 import { activeLibraryFilters, libraryFilters, librarySearch } from "../api.js";
 import { useLibraryData } from "../use-library-data.js";
@@ -95,6 +98,7 @@ export function AnimeLibrary({
 	const viewingEnabled = Boolean(query.account?.account);
 	const activeFilters = activeLibraryFilters(filters, viewingEnabled);
 	const filtered = activeFilters.length > 0;
+	const failure = !query.data && queryLoadFailure(query);
 	return (
 		<section
 			className="stack-page library-page"
@@ -148,21 +152,10 @@ export function AnimeLibrary({
 				/>
 			) : (
 				<>
-					{query.error && !query.data && (
-						<div role="alert" className="space-y-2">
-							<p>
-								{t(getErrorTranslationKey(query.error) ?? "errors.pageLoad")}
-							</p>
-							<Button
-								variant="outline"
-								disabled={query.isFetching}
-								onClick={() => void query.refetch()}
-							>
-								{t("actions.retry")}
-							</Button>
-						</div>
+					{failure && (
+						<LoadFailure message={t("errors.animeLibraryLoad")} {...failure} />
 					)}
-					{query.isPending && !query.error && (
+					{query.isPending && !failure && (
 						<div
 							role="status"
 							aria-label={t("anime.loading")}

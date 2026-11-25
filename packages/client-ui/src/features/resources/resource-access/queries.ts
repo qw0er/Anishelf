@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { boundedSignal } from "../../../shared/api/queries.js";
+import { readRetryOptions } from "../../../shared/api/read-retry.js";
 import * as api from "./api.js";
 
 const resourceKeys = {
@@ -7,6 +8,7 @@ const resourceKeys = {
 };
 export const fileQuery = (id: string, scope: string) =>
 	queryOptions({
+		...readRetryOptions("file"),
 		queryKey: resourceKeys.file(id, scope),
 		queryFn: ({ signal }) => api.getFile(id, { signal: boundedSignal(signal) }),
 	});

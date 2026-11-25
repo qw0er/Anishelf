@@ -30,6 +30,21 @@
 	"errors": {
 		"pageLabel": "Page error",
 		"pageLoad": "This page could not be loaded.",
+		"animeLibraryLoad": "Could not load the anime library.",
+		"directoryLoad": "Could not open this folder.",
+		"fileLoad": "Could not open this file.",
+		"historyLoad": "Could not load viewing history.",
+		"workLoad": "Could not load this work.",
+		"metadataLoad": "Could not load work information.",
+		"metadataNotFound": "The metadata source has no information for this work.",
+		"metadataRateLimited": "The metadata source is receiving too many requests.",
+		"viewingLoad": "Could not load viewing progress updates.",
+		"recovery": {
+			"retrying": "Retrying…",
+			"scheduled": "Will retry automatically.",
+			"automatic": "Retrying automatically…",
+			"offline": "Waiting for a connection to retry."
+		},
 		"libraryStatus": "Could not load library status.",
 		"saveSettings": "Could not save settings.",
 		"resourcePathRequired": "Enter an absolute resource directory path.",

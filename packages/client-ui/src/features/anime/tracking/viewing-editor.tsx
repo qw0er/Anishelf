@@ -8,6 +8,11 @@ import type {
 	TrackingOperationResponse,
 	TrackingUpdateRequest,
 } from "../../../shared/api/contracts.js";
+import { readRetryOptions } from "../../../shared/api/read-retry.js";
+import {
+	LoadFailure,
+	queryLoadFailure,
+} from "../../../shared/components/load-failure.js";
 import { Button } from "../../../shared/components/ui/button.js";
 import {
 	Dialog,
@@ -24,6 +29,8 @@ import {
 import { operationsQuery } from "./operations.js";
 import { useTrackingMutation } from "./use-tracking-mutation.js";
 import type { ViewingState } from "./use-viewing-state.js";
+
+const viewingReadRetry = readRetryOptions("viewing-editor");
 
 type Status = NonNullable<TrackingEntryResponse["entry"]>["status"];
 export function ViewingEditor({
@@ -42,9 +49,11 @@ export function ViewingEditor({
 	};
 	const operations = useQuery({
 		...operationsQuery(identity),
-		enabled: Boolean(identity.accountId && identity.generation),
+		...(open ? viewingReadRetry : {}),
+		enabled: open && Boolean(identity.accountId && identity.generation),
 	});
 	const operation = operations.data?.find((op) => op.mediaId === mediaId);
+	const failure = !operations.data && queryLoadFailure(operations);
 	if (snapshot?.state !== "connected" || snapshot.fetchedAt === null)
 		return null;
 	return (
@@ -60,15 +69,10 @@ export function ViewingEditor({
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent>
 					<DialogTitle>{t("trackingUpdate.edit")}</DialogTitle>
-					{operations.isPending ? (
+					{failure ? (
+						<LoadFailure message={t("errors.viewingLoad")} {...failure} />
+					) : operations.isPending ? (
 						<p role="status">{t("anime.loading")}</p>
-					) : operations.error ? (
-						<div role="alert">
-							<p>{t("errors.pageLoad")}</p>
-							<Button onClick={() => void operations.refetch()}>
-								{t("actions.retry")}
-							</Button>
-						</div>
 					) : (
 						<ViewingForm
 							key={`${snapshot.generation}:${operation?.revision ?? 0}`}

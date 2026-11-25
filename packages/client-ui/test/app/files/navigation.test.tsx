@@ -180,6 +180,22 @@ test("unknown URLs provide a root link", async () => {
 	expect(screen.getByTestId("location").textContent).toBe("/");
 });
 
+test("opening a file recovers automatically from a temporary server failure", async () => {
+	const fallback = fetcher.getMockImplementation();
+	let fileReads = 0;
+	fetcher.mockImplementation(async (input, init) => {
+		if (String(input) === "/api/files/file-1" && ++fileReads === 1)
+			return json({}, 503);
+		if (!fallback) throw new Error("Missing mock");
+		return fallback(input, init);
+	});
+	renderApp();
+	await openFile();
+	await screen.findByLabelText("Video: Episode 01.mp4", {}, { timeout: 4000 });
+	expect(fileReads).toBe(2);
+	expect(screen.queryByText("Could not open this file.")).toBeNull();
+});
+
 test("a missing file shows safe feedback and can be retried", async () => {
 	appFixture.fileError = true;
 	renderApp();
@@ -188,6 +204,10 @@ test("a missing file shows safe feedback and can be retried", async () => {
 		"This file is no longer available. Scan the library again.",
 	);
 	expect(screen.queryByLabelText("Video: Episode 01.mp4")).toBeNull();
+	expect(screen.getByText("Could not open this file.")).toBeTruthy();
+	expect(
+		fetcher.mock.calls.filter(([path]) => path === "/api/files/file-1"),
+	).toHaveLength(1);
 	appFixture.fileError = false;
 	fireEvent.click(screen.getByRole("button", { name: "Retry file" }));
 	await screen.findByLabelText("Video: Episode 01.mp4");

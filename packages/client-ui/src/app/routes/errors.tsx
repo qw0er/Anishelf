@@ -1,5 +1,4 @@
 import { offlineCachePath } from "@anishelf/contracts/offline-cache";
-import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
 	Link,
@@ -8,71 +7,75 @@ import {
 	useSearchParams,
 } from "react-router";
 import { useOfflineCache } from "../../features/playback/ui.js";
-import { Button, buttonStyles } from "../../shared/components/ui/button.js";
-import { InlineError } from "../../shared/components/ui/inline-error.js";
-import { Spinner } from "../../shared/components/ui/spinner.js";
-import { useDelayedPending } from "../../shared/hooks/use-delayed-pending.js";
-import { getErrorTranslationKey } from "../../shared/lib/error-translation.js";
-import { animeReturnPath, directoryPath } from "../../shared/navigation.js";
+import { LoadFailure } from "../../shared/components/load-failure.js";
+import { buttonStyles } from "../../shared/components/ui/button.js";
+import {
+	animeReturnPath,
+	directoryPath,
+	libraryReturnPath,
+} from "../../shared/navigation.js";
 import { ServerConnectionLink } from "../components/server-connection-link.js";
+
+const loadMessages = {
+	page: "errors.pageLoad",
+	directory: "errors.directoryLoad",
+	file: "errors.fileLoad",
+	history: "errors.historyLoad",
+	library: "errors.animeLibraryLoad",
+	work: "errors.workLoad",
+} as const;
+
+function recoveryLink(
+	kind: keyof typeof loadMessages,
+	params: URLSearchParams,
+) {
+	switch (kind) {
+		case "file": {
+			const detail = animeReturnPath(params);
+			return detail
+				? { to: detail, label: "anime.backToDetail" }
+				: {
+						to: directoryPath(params.get("directory") || "root"),
+						label: "navigation.backToFiles",
+					};
+		}
+		case "directory":
+			return { to: directoryPath("root"), label: "navigation.goToRoot" };
+		case "work":
+			return {
+				to: libraryReturnPath(params.get("library")),
+				label: "anime.back",
+			};
+		default:
+			return { to: "/", label: "anime.back" };
+	}
+}
 
 export default function RouteError({
 	kind,
 }: {
-	kind: "directory" | "file" | "page";
+	kind: keyof typeof loadMessages;
 }) {
 	const { t } = useTranslation();
 	const offlineCache = useOfflineCache();
 	const error = useRouteError();
 	const revalidator = useRevalidator();
 	const [searchParams] = useSearchParams();
-	const retrying = revalidator.state !== "idle";
-	const showRetrying = useDelayedPending(retrying);
+	const recovery = recoveryLink(kind, searchParams);
 	return (
 		<section
-			className={
-				kind === "page"
-					? "page-container page-content flex min-w-0 flex-col gap-4"
-					: "flex min-w-0 flex-col gap-4"
-			}
+			className={kind === "page" ? "page-container page-content" : "min-w-0"}
 			aria-label={t("errors.pageLabel")}
 		>
-			<InlineError>
-				{t(getErrorTranslationKey(error) ?? "errors.pageLoad")}
-			</InlineError>
-			<div className="action-row">
-				<Button
-					type="button"
-					variant="outline"
-					disabled={retrying}
-					aria-busy={retrying}
-					onClick={() => void revalidator.revalidate()}
-				>
-					{showRetrying ? (
-						<Spinner />
-					) : (
-						<RefreshCw size={16} aria-hidden="true" />
-					)}
-					{kind === "file" ? t("player.retry") : t("actions.retry")}
-				</Button>
-				<Link
-					className={buttonStyles("outline")}
-					to={
-						kind === "file"
-							? (animeReturnPath(searchParams) ??
-								directoryPath(searchParams.get("directory") || "root"))
-							: kind === "directory"
-								? "/directories/root"
-								: "/"
-					}
-				>
-					{kind === "file"
-						? t(
-								animeReturnPath(searchParams)
-									? "anime.backToDetail"
-									: "navigation.backToFiles",
-							)
-						: t("navigation.goToRoot")}
+			<LoadFailure
+				message={t(loadMessages[kind])}
+				error={error}
+				retry={() => void revalidator.revalidate()}
+				retryLabel={kind === "file" ? t("player.retry") : undefined}
+				retryState={revalidator.state === "idle" ? undefined : "retrying"}
+			>
+				<Link className={buttonStyles("outline")} to={recovery.to}>
+					{t(recovery.label)}
 				</Link>
 				<ServerConnectionLink />
 				{offlineCache && (
@@ -80,7 +83,7 @@ export default function RouteError({
 						{t("offlineCache.open")}
 					</Link>
 				)}
-			</div>
+			</LoadFailure>
 		</section>
 	);
 }
