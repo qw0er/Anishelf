@@ -1,6 +1,6 @@
 import { sep } from "node:path";
+import type { IdentificationSourcePath } from "@anishelf/anime-identification";
 import { relativePathParts } from "../../../../platform/paths.js";
-import type { IdentificationSourcePath } from "../ports.js";
 
 export function identificationSourcePath(
 	relativePath: string,

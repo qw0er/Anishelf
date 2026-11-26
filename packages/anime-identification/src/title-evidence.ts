@@ -1,5 +1,5 @@
 import { Converter } from "opencc-js/t2cn";
-import { animeNameParser } from "../anitomy-adapter.js";
+import { animeNameParser } from "./anitomy-adapter.ts";
 
 const simplify = Converter({ from: "t", to: "cn" });
 
@@ -8,22 +8,24 @@ export const normalizeTitle = (value: string) =>
 		.replace(/[^\p{L}\p{N}]+/gu, "")
 		.trim();
 
-/** Parse explicit ordinals; bare Roman numerals need a complete-title match. */
-export function titleEvidence(value: string) {
-	const normalized = value.normalize("NFKC");
-	const { title, seasons, parts, numberedTitle } =
-		animeNameParser.title(normalized);
+export function romanSeasonEvidence(value: string): string | null {
 	const roman =
 		/(?:^|[\s\p{Script=Han}\p{Script=Katakana}\p{Script=Hiragana}])(II|III|IV|V|VI|VII|VIII|IX|X)(?=$|[\s:：-])/u.exec(
-			normalized,
+			value.normalize("NFKC"),
 		);
-	const romanSeason = roman
+	return roman
 		? String(
 				["II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"].indexOf(
 					roman[1] ?? "",
 				) + 2,
 			)
 		: null;
+}
+
+/** Parse explicit ordinals; bare Roman numerals need a complete-title match. */
+export function titleEvidence(value: string) {
+	const { title, seasons, parts, numberedTitle } = animeNameParser.title(value);
+	const romanSeason = romanSeasonEvidence(value);
 	return { title, seasons, parts, romanSeason, numberedTitle };
 }
 

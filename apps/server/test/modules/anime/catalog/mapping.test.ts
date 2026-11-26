@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { expect, test } from "vitest";
 import { IdentificationApplication } from "../../../../src/modules/anime/identification/application/identification.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import { createHttpApp } from "../../../support/http.js";
 

@@ -1,5 +1,5 @@
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { IdentificationApplication } from "./application/identification.js";
-import { AnitomyIdentificationParser } from "./infrastructure/parser.js";
 import type { IdentificationMetadata } from "./public.js";
 
 export function createIdentificationApplication(

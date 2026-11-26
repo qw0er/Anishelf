@@ -1,6 +1,6 @@
+import type { ExtractionEvidence } from "@anishelf/anime-identification";
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { expect, test, vi } from "vitest";
-import type { ExtractionEvidence } from "../../../../src/modules/anime/identification/domain/model.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import {
 	evaluateParsingCorpus,
 	loadParsingCorpus,

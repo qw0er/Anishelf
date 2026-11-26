@@ -1,13 +1,16 @@
-import { identificationDefaults } from "../defaults.js";
+import { identificationDefaults } from "./defaults.ts";
 import type {
 	ExtractionEvidence,
 	MappingProposal,
 	WorkCandidate,
-} from "./model.js";
+} from "./model.ts";
 
 export function proposeMapping(
-	evidence: ExtractionEvidence,
-	work: WorkCandidate,
+	evidence: Pick<
+		ExtractionEvidence,
+		"contentKind" | "numbering" | "rawEpisodes" | "selectedEpisodes"
+	>,
+	work: Pick<WorkCandidate, "format" | "episodeCount">,
 ): MappingProposal {
 	const episodes = evidence.selectedEpisodes ?? evidence.rawEpisodes;
 	const result: MappingProposal = {
@@ -75,4 +78,21 @@ export function proposeMapping(
 		}
 	}
 	return result;
+}
+
+/** Preview accepts the original episode numbers and applies the offset itself. */
+export function mappingSelection(
+	mapping: Pick<MappingProposal, "targets" | "numbering">,
+) {
+	const offset = mapping.numbering?.offset ?? 0;
+	return {
+		offset,
+		targets: offset
+			? mapping.targets.map((target) =>
+					target.kind === "regular"
+						? { ...target, number: String(Number(target.number) - offset) }
+						: target,
+				)
+			: mapping.targets,
+	};
 }

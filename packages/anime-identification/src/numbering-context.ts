@@ -1,10 +1,19 @@
 import { dirname, normalize } from "node:path";
-import { proposeMapping } from "./mapping.js";
-import { rankCandidates } from "./matching.js";
-import type { IdentificationResult, WorkCandidate } from "./model.js";
-import { matchingTitle } from "./title-evidence.js";
+import { proposeMapping } from "./mapping.ts";
+import { rankCandidates } from "./matching.ts";
+import type { IdentificationResult, WorkCandidate } from "./model.ts";
+import { matchingTitle } from "./title-evidence.ts";
 
-function scope(result: IdentificationResult, work: WorkCandidate) {
+type NumberingFile = Pick<
+	IdentificationResult,
+	"source" | "evidence" | "metadataStatus" | "proposals"
+>;
+
+function scope(
+	result: NumberingFile,
+	work: WorkCandidate,
+	directoryOf: (path: string) => string,
+) {
 	const seasons = [...new Set(result.evidence.seasons.map(Number))];
 	if (
 		seasons.length !== 1 ||
@@ -15,13 +24,13 @@ function scope(result: IdentificationResult, work: WorkCandidate) {
 	const path = result.source.relativePath;
 	return JSON.stringify([
 		result.source.scopeId,
-		dirname(normalize(path)),
+		directoryOf(path),
 		seasons[0],
 		work.reference,
 	]);
 }
 
-function leafMatches(result: IdentificationResult, work: WorkCandidate) {
+function leafMatches(result: NumberingFile, work: WorkCandidate) {
 	const leaf = result.evidence.inputs
 		.find((input) => input.mode === "basename")
 		?.elements.find((element) => element.kind === "title")?.value;
@@ -39,7 +48,10 @@ function leafMatches(result: IdentificationResult, work: WorkCandidate) {
 }
 
 /** Publication-local rules corroborated by explicit local numbers, never relation order. */
-export function applyNumberingContext(results: IdentificationResult[]): void {
+export function applyNumberingContext(
+	results: NumberingFile[],
+	directoryOf = (path: string) => dirname(normalize(path)),
+): void {
 	const anchors = new Map<
 		string,
 		{
@@ -87,7 +99,7 @@ export function applyNumberingContext(results: IdentificationResult[]): void {
 			!leafMatches(result, proposal.candidate.work)
 		)
 			continue;
-		const key = scope(result, proposal.candidate.work);
+		const key = scope(result, proposal.candidate.work, directoryOf);
 		if (!key) continue;
 		const values = anchors.get(key) ?? [];
 		values.push({
@@ -111,7 +123,7 @@ export function applyNumberingContext(results: IdentificationResult[]): void {
 		result.proposals = result.proposals
 			.map((proposal) => {
 				if (!leafMatches(result, proposal.candidate.work)) return proposal;
-				const key = scope(result, proposal.candidate.work);
+				const key = scope(result, proposal.candidate.work, directoryOf);
 				const values = key ? anchors.get(key) : undefined;
 				if (
 					!values ||

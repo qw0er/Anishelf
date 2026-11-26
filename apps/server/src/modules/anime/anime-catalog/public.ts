@@ -1,5 +1,5 @@
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import type { MetadataApi } from "../external-works/metadata/public.js";
-import type { IdentificationResult } from "../identification/public.js";
 import type {
 	AcceptedAcquisitionTarget,
 	AcquisitionCommitGuard,
@@ -25,7 +25,7 @@ import type {
 export type * from "./domain/model.js";
 export interface AnimeCatalogApi {
 	associateAcquisition(
-		result: import("../identification/public.js").IdentificationResult,
+		result: IdentificationResult,
 		provenance: AcquisitionProvenance,
 		signal: AbortSignal,
 		guard?: AcquisitionCommitGuard,
@@ -36,7 +36,7 @@ export interface AnimeCatalogApi {
 	): Promise<AcquisitionReview | null>;
 	reusableAcquisitions(
 		sources: readonly import("../../resources/public.js").SourceIdentity[],
-	): Promise<import("../identification/public.js").IdentificationResult[]>;
+	): Promise<IdentificationResult[]>;
 	reusableIdentification(
 		sources: readonly import("../../resources/public.js").SourceIdentity[],
 		fingerprint: string,

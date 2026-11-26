@@ -1,11 +1,11 @@
+import type { WorkCandidate } from "@anishelf/anime-identification";
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import {
 	automaticBlockers,
 	automaticProposal,
 } from "../../src/modules/anime/anime-catalog/domain/admission.js";
 import type { ReviewRecord } from "../../src/modules/anime/anime-catalog/domain/model.js";
 import { IdentificationApplication } from "../../src/modules/anime/identification/application/identification.js";
-import { AnitomyIdentificationParser } from "../../src/modules/anime/identification/infrastructure/parser.js";
-import type { WorkCandidate } from "../../src/modules/anime/identification/public.js";
 import type { ReportedCorpus } from "./anime-reported-cases.js";
 
 export async function evaluateReportedCorpus(corpus: ReportedCorpus) {

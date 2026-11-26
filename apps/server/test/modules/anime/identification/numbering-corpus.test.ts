@@ -1,7 +1,9 @@
+import {
+	AnitomyIdentificationParser,
+	applyNumberingContext,
+	proposeMapping,
+} from "@anishelf/anime-identification";
 import { expect, test, vi } from "vitest";
-import { proposeMapping } from "../../../../src/modules/anime/identification/domain/mapping.js";
-import { applyNumberingContext } from "../../../../src/modules/anime/identification/domain/numbering-context.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import {
 	evaluateNumberingCorpus,
 	loadNumberingCorpus,

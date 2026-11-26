@@ -1,15 +1,21 @@
 import { createHash } from "node:crypto";
-import { animeNameParser } from "../anitomy-adapter.js";
-import { identificationDefaults } from "../defaults.js";
+import { animeNameParser } from "./anitomy-adapter.ts";
+import { identificationDefaults } from "./defaults.ts";
 import type {
 	ExtractionElement,
 	ExtractionEvidence,
 	ExtractionInput,
-} from "../domain/model.js";
-import type {
-	IdentificationParser,
-	IdentificationSourcePath,
-} from "../ports.js";
+} from "./model.ts";
+export interface IdentificationSourcePath {
+	relativePath: string;
+	filename: string;
+	ancestors: string[];
+}
+
+export interface IdentificationParser {
+	readonly version: string;
+	extract(paths: readonly IdentificationSourcePath[]): ExtractionEvidence[];
+}
 
 function values(elements: ExtractionElement[], kind: string): string[] {
 	return elements
@@ -31,34 +37,60 @@ export class AnitomyIdentificationParser implements IdentificationParser {
 		return this.extractEvidence(title, title, [], contextFingerprint([title]));
 	}
 	extract(sources: readonly IdentificationSourcePath[]): ExtractionEvidence[] {
-		const paths = sources.map(({ relativePath }) => relativePath);
-		const together = animeNameParser.parseTogether(paths);
-		const fingerprint = contextFingerprint(paths);
-		return sources.map(({ relativePath, filename, ancestors }, index) =>
-			this.extractEvidence(
-				relativePath,
-				filename,
-				[
-					...ancestors.map(
-						(input): ExtractionInput => ({
-							mode: "ancestor",
-							input,
-							elements: animeNameParser.parse(input),
-						}),
-					),
-					{
-						mode: "path",
-						input: relativePath,
-						elements: animeNameParser.parsePath(relativePath),
-					},
-					{
-						mode: "together",
-						input: relativePath,
-						elements: together[index] ?? [],
-					},
-				],
-				fingerprint,
-			),
+		const directories = new Map<
+			string,
+			{ source: IdentificationSourcePath; index: number }[]
+		>();
+		for (const [index, source] of sources.entries()) {
+			const key = JSON.stringify(source.ancestors);
+			const siblings = directories.get(key) ?? [];
+			siblings.push({ source, index });
+			directories.set(key, siblings);
+		}
+		const evidence = new Array<ExtractionEvidence>(sources.length);
+		for (const siblings of directories.values()) {
+			const paths = siblings.map(({ source }) => source.relativePath);
+			const together = animeNameParser.parseTogether(paths);
+			const fingerprint = contextFingerprint(paths);
+			for (const [offset, { source, index }] of siblings.entries()) {
+				evidence[index] = this.extractFile(
+					source,
+					together[offset] ?? [],
+					fingerprint,
+				);
+			}
+		}
+		return evidence;
+	}
+
+	private extractFile(
+		{ relativePath, filename, ancestors }: IdentificationSourcePath,
+		together: ExtractionElement[],
+		fingerprint: string,
+	): ExtractionEvidence {
+		return this.extractEvidence(
+			relativePath,
+			filename,
+			[
+				...ancestors.map(
+					(input): ExtractionInput => ({
+						mode: "ancestor",
+						input,
+						elements: animeNameParser.parse(input),
+					}),
+				),
+				{
+					mode: "path",
+					input: relativePath,
+					elements: animeNameParser.parsePath(relativePath),
+				},
+				{
+					mode: "together",
+					input: relativePath,
+					elements: together,
+				},
+			],
+			fingerprint,
 		);
 	}
 

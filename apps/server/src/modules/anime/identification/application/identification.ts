@@ -1,20 +1,19 @@
+import {
+	applyNumberingContext,
+	type ExtractionEvidence,
+	type IdentificationParser,
+	type IdentificationResult,
+	type IdentificationSourcePath,
+	identificationDefaults,
+	identificationSearchQueries,
+	proposeMapping,
+	rankCandidates,
+	type WorkCandidate,
+} from "@anishelf/anime-identification";
 import { DomainError } from "../../../../shared/errors.js";
 import type { SourceIdentity } from "../../../resources/public.js";
-import { identificationDefaults as policy } from "../defaults.js";
-import { proposeMapping } from "../domain/mapping.js";
-import { rankCandidates } from "../domain/matching.js";
-import type {
-	ExtractionEvidence,
-	IdentificationResult,
-	WorkCandidate,
-} from "../domain/model.js";
-import { applyNumberingContext } from "../domain/numbering-context.js";
-import { identificationSearchQueries } from "../domain/search-queries.js";
-import type {
-	IdentificationMetadata,
-	IdentificationParser,
-	IdentificationSourcePath,
-} from "../ports.js";
+import { identificationWorkflowDefaults as policy } from "../defaults.js";
+import type { IdentificationMetadata } from "../ports.js";
 import type { IdentificationApi } from "../public.js";
 import { identificationSourcePath } from "./source-path.js";
 
@@ -27,7 +26,7 @@ export class IdentificationApplication implements IdentificationApi {
 			metadata?: IdentificationMetadata;
 		},
 	) {
-		this.version = `${options.parser.version}:${policy.matcherVersion}:metadata-${options.metadata ? "enabled" : "reserved"}`;
+		this.version = `${options.parser.version}:${identificationDefaults.matcherVersion}:metadata-${options.metadata ? "enabled" : "reserved"}`;
 	}
 	async identify(
 		sources: readonly SourceIdentity[],

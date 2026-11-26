@@ -1,15 +1,15 @@
 import { fuzzy } from "fast-fuzzy";
-import { identificationDefaults } from "../defaults.js";
+import { identificationDefaults } from "./defaults.ts";
 import type {
 	ExtractionEvidence,
 	RankedCandidate,
 	WorkCandidate,
-} from "./model.js";
+} from "./model.ts";
 import {
 	matchingTitle,
 	normalizeTitle as normalize,
 	titleEvidence,
-} from "./title-evidence.js";
+} from "./title-evidence.ts";
 
 export function rankCandidates(
 	evidence: ExtractionEvidence,

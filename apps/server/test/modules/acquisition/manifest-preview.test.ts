@@ -339,3 +339,40 @@ test("complete season requires distinct regular episodes and a known count", () 
 		),
 	).toMatchObject({ episodes: [1, 2, 3], complete: false });
 });
+
+test("manifest coverage uses corroborating episode numbers only within the same directory", () => {
+	const title = "Ocean Season 2";
+	const target = {
+		...frieren.target,
+		work: {
+			reference: { id: "ocean-season-2" },
+			snapshotId: "frozen",
+			titles: [title],
+			year: null,
+			format: "TV",
+			episodeCount: 12,
+			season: "2",
+			part: null,
+		},
+	};
+	const files = [
+		"Ocean - 13 (S02E01).mkv",
+		"Ocean - 14 (S02E02).mkv",
+		"Ocean - 15.mkv",
+	].map((name, index) => ({ index, path: `${title}/${name}` }));
+	expect(frieren.mapReleaseFiles(title, target, files)).toMatchObject({
+		episodes: [1, 2, 3],
+		videos: [
+			{ index: 0, episodes: [1] },
+			{ index: 1, episodes: [2] },
+			{ index: 2, episodes: [3] },
+		],
+	});
+
+	const separateDirectories = files.map((file) =>
+		file.index === 1 ? { ...file, path: `Disc 2/${file.path}` } : file,
+	);
+	expect(
+		frieren.mapReleaseFiles(title, target, separateDirectories),
+	).toMatchObject({ episodes: [1, 2] });
+});

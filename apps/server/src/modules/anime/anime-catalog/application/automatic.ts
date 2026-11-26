@@ -1,4 +1,7 @@
-import type { IdentificationResult } from "../../identification/public.js";
+import {
+	type IdentificationResult,
+	mappingSelection,
+} from "@anishelf/anime-identification";
 import { automaticProposal } from "../domain/admission.js";
 import type { AssociationApplication } from "./associations.js";
 import type { CatalogContext } from "./context.js";
@@ -51,18 +54,7 @@ export class AutomaticAdmission {
 							{
 								reviewId: record.id,
 								revision: record.revision,
-								targets: proposal.mapping.targets.map((target) =>
-									proposal.mapping.numbering
-										? {
-												...target,
-												number: String(
-													Number(target.number) -
-														proposal.mapping.numbering.offset,
-												),
-											}
-										: target,
-								),
-								offset: proposal.mapping.numbering?.offset ?? 0,
+								...mappingSelection(proposal.mapping),
 								reason:
 									"Automatically identified from an unambiguous title and episode mapping.",
 							},

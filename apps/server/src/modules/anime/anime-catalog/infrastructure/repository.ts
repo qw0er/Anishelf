@@ -1,3 +1,4 @@
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import { and, asc, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
 import { DomainError } from "../../../../shared/errors.js";
@@ -8,7 +9,6 @@ import type {
 	SourceRegistry,
 } from "../../../resources/public.js";
 import { metadataWorks } from "../../external-works/metadata/persistence.js";
-import type { IdentificationResult } from "../../identification/public.js";
 
 import type {
 	Association,

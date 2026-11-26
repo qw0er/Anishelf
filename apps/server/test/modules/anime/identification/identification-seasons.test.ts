@@ -1,10 +1,12 @@
+import type { WorkCandidate } from "@anishelf/anime-identification";
+import {
+	AnitomyIdentificationParser,
+	titleEvidence,
+} from "@anishelf/anime-identification";
 import { expect, test } from "vitest";
 import { automaticProposal } from "../../../../src/modules/anime/anime-catalog/domain/admission.js";
 import type { ReviewRecord } from "../../../../src/modules/anime/anime-catalog/domain/model.js";
 import { IdentificationApplication } from "../../../../src/modules/anime/identification/application/identification.js";
-import { titleEvidence } from "../../../../src/modules/anime/identification/domain/title-evidence.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
-import type { WorkCandidate } from "../../../../src/modules/anime/identification/public.js";
 import { loadReportedCorpus } from "../../../support/anime-reported-cases.js";
 import { evaluateReportedCorpus } from "../../../support/anime-reported-corpus.js";
 

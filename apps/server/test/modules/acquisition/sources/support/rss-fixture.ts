@@ -1,12 +1,12 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import pino from "pino";
 import { afterEach, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../../src/app/bootstrap/database.js";
 import { createAcquisitionModule } from "../../../../../src/modules/acquisition/create.js";
 import type { FeedTransport } from "../../../../../src/modules/acquisition/sources/rss/ports.js";
-import { AnitomyIdentificationParser } from "../../../../../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../../../../../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../../../../../src/modules/anime/release-assessment/application.js";
 import { fixtureIdentities } from "../../../../support/metadata-identities.js";

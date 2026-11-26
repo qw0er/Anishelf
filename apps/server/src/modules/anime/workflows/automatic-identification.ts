@@ -1,3 +1,7 @@
+import {
+	type IdentificationResult,
+	identificationDefaults,
+} from "@anishelf/anime-identification";
 import type { Logger } from "pino";
 import { DomainError } from "../../../shared/errors.js";
 import type {
@@ -8,11 +12,8 @@ import type {
 	SourceIdentity,
 } from "../../resources/public.js";
 import type { AnimeCatalogApi, ReviewItem } from "../anime-catalog/public.js";
-import { identificationDefaults } from "../identification/defaults.js";
-import type {
-	IdentificationApi,
-	IdentificationResult,
-} from "../identification/public.js";
+import { identificationWorkflowDefaults } from "../identification/defaults.js";
+import type { IdentificationApi } from "../identification/public.js";
 
 import {
 	identificationFingerprint,
@@ -314,7 +315,7 @@ export class AutomaticIdentificationCoordinator {
 					this.retryTimer = setTimeout(() => {
 						for (const id of this.retryDirectories) this.pending.add(id);
 						this.request();
-					}, identificationDefaults.automaticRetryMs);
+					}, identificationWorkflowDefaults.automaticRetryMs);
 					this.retryTimer.unref();
 				}
 			});
@@ -442,13 +443,13 @@ export class AutomaticIdentificationCoordinator {
 				for (
 					let start = 0;
 					start < unidentified.length;
-					start += identificationDefaults.parserGroupSize
+					start += identificationWorkflowDefaults.parserGroupSize
 				)
 					results.push(
 						...(await this.options.identification.identify(
 							unidentified.slice(
 								start,
-								start + identificationDefaults.parserGroupSize,
+								start + identificationWorkflowDefaults.parserGroupSize,
 							),
 							signal,
 							{ refreshMetadata: forced },

@@ -1,6 +1,6 @@
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import { asc, eq } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type { IdentificationResult } from "../../identification/public.js";
 import type { AcquisitionProvenance } from "../../public.js";
 import * as s from "./schema.js";
 

@@ -10,6 +10,7 @@ const sourceRoots = [
 	"apps/server/src",
 	"apps/web/src",
 	"apps/desktop/src",
+	"packages/anime-identification/src",
 	"packages/client-ui/src",
 	"packages/contracts/src",
 	"packages/client-core/src",
@@ -18,6 +19,7 @@ const sourceRoots = [
 export async function checkArchitecture(baseDir = process.cwd()) {
 	for (const relative of [
 		"apps/server/src/modules/anime",
+		"packages/anime-identification/src",
 		"packages/client-ui/src/features/anime",
 	]) {
 		const directory = join(baseDir, relative);

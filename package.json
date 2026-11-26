@@ -8,6 +8,7 @@
 		"apps/desktop",
 		"apps/server",
 		"apps/web",
+		"packages/anime-identification",
 		"packages/contracts",
 		"packages/client-core",
 		"packages/client-ui"
@@ -32,7 +33,7 @@
 		"check": "npm run biome:check && npm run lint && npm run typecheck && npm test",
 		"test:installer": "node scripts/test-installer.mjs",
 		"test:deployment": "npm run test:installer && node --test deployment/qbittorrent-init.test.mjs deployment/jackett-init.test.mjs",
-		"test": "npm run architecture:test && npm run test:deployment && npm run test --workspace @anishelf/web && npm run test --workspace @anishelf/desktop && npm run test --workspace @anishelf/client-core && npm run test --workspace @anishelf/backend && npm run test --workspace @anishelf/client-ui",
+		"test": "npm run architecture:test && npm run test:deployment && npm run test --workspace @anishelf/web && npm run test --workspace @anishelf/desktop && npm run test --workspace @anishelf/client-core && npm run test --workspace @anishelf/anime-identification && npm run test --workspace @anishelf/backend && npm run test --workspace @anishelf/client-ui",
 		"pretest:e2e": "npm run build --workspace @anishelf/backend --workspace @anishelf/web",
 		"test:e2e": "playwright test",
 		"pretest:e2e:desktop": "npm run build --workspace @anishelf/backend --workspace @anishelf/desktop",

@@ -1,4 +1,4 @@
-import { matchingTitle } from "../../identification/public.js";
+import { matchingTitle } from "@anishelf/anime-identification";
 import { catalogDefaults } from "../defaults.js";
 import type { ReviewRecord } from "./model.js";
 

@@ -1,9 +1,9 @@
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import { DomainError } from "../../../../shared/errors.js";
 import {
 	MetadataError,
 	workTitle,
 } from "../../external-works/metadata/public.js";
-import type { IdentificationResult } from "../../identification/public.js";
 import { catalogDefaults as policy } from "../defaults.js";
 import { conflict, invalid, text } from "../domain/mapping.js";
 import type { ReviewItem } from "../domain/model.js";

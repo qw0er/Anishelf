@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
+import {
+	AnitomyIdentificationParser,
+	releaseAttributes,
+} from "@anishelf/anime-identification";
 import { type Static, Type } from "typebox";
 import { Check } from "typebox/value";
-import { AnitomyIdentificationParser } from "../../src/modules/anime/identification/infrastructure/parser.js";
 import { AnimeReleaseAssessment } from "../../src/modules/anime/release-assessment/application.js";
-import { releaseAttributes } from "../../src/modules/anime/release-assessment/attributes.js";
 import type {
 	AcquisitionTarget,
 	ReleaseAssessmentApi,

@@ -1,5 +1,5 @@
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { expect, test, vi } from "vitest";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import {
 	evaluateParsingCorpus,
 	loadParsingCorpus,

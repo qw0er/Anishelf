@@ -1,3 +1,4 @@
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { MockAgent } from "undici";
 import { expect, test, vi } from "vitest";
 import { parseRss } from "../../../../src/modules/acquisition/sources/rss/parser.js";
@@ -6,7 +7,6 @@ import {
 	RssTransport,
 	rssUrl,
 } from "../../../../src/modules/acquisition/sources/rss/transport.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import {
 	assessor,
 	cleanup,

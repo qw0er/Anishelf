@@ -1,7 +1,7 @@
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { expect, test } from "vitest";
 import { airedEpisodeCount } from "../../../../src/modules/anime/external-works/metadata/public.js";
 import { IdentificationApplication } from "../../../../src/modules/anime/identification/application/identification.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import { createIdentificationMetadata } from "../../../../src/modules/anime/integration/identification-metadata.js";
 import { createHttpApp } from "../../../support/http.js";
 

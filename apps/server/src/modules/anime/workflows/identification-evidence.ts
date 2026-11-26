@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import type { SourceIdentity } from "../../resources/public.js";
-import type { IdentificationResult } from "../identification/public.js";
 
 export function identificationFingerprint(
 	version: string,

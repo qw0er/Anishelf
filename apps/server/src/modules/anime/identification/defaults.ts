@@ -1,15 +1,7 @@
-export const identificationDefaults = {
+export const identificationWorkflowDefaults = {
 	maximumFiles: 500,
 	automaticRetryMs: 5000,
 	parserGroupSize: 50,
-	maximumQueries: 3,
 	maximumBatchQueries: 100,
 	metadataTimeoutMs: 15000,
-	maximumCandidates: 10,
-	maximumRange: 100,
-	maximumEpisode: 10000,
-	matcherVersion: "anitomy-metadata-title-v7",
-	normalizationVersion: "anitomy-title-sources-v6",
-	missingSeasonPrimaryPenalty: 12,
-	missingSeasonAliasPenalty: 3,
 } as const;

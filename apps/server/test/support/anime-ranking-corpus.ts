@@ -1,12 +1,14 @@
 import { readFile } from "node:fs/promises";
-import { type Static, Type } from "typebox";
-import { Check } from "typebox/value";
-import { identificationDefaults } from "../../src/modules/anime/identification/defaults.js";
-import { rankCandidates } from "../../src/modules/anime/identification/domain/matching.js";
 import type {
 	ExtractionEvidence,
 	WorkCandidate,
-} from "../../src/modules/anime/identification/domain/model.js";
+} from "@anishelf/anime-identification";
+import {
+	identificationDefaults,
+	rankCandidates,
+} from "@anishelf/anime-identification";
+import { type Static, Type } from "typebox";
+import { Check } from "typebox/value";
 
 import {
 	candidateSchema,

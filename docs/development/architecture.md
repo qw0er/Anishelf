@@ -112,15 +112,17 @@ presentation timings shared within a feature live in its `defaults.ts`.
 
 | Workspace | Internal workspace dependencies |
 | --- | --- |
-| `apps/server/` | `@anishelf/contracts` |
+| `apps/server/` | `@anishelf/anime-identification`, `@anishelf/contracts` |
 | `apps/web/` | `@anishelf/client-ui`, `@anishelf/client-core`, `@anishelf/contracts` |
-| `packages/client-ui/` | `@anishelf/client-core`, `@anishelf/contracts` |
+| `packages/client-ui/` | `@anishelf/anime-identification/mapping`, `@anishelf/client-core`, `@anishelf/contracts` |
 | `packages/client-core/` | `@anishelf/contracts` |
 | `packages/contracts/` | None |
+| `packages/anime-identification/` | None |
 
 Application hosts consume the public React entry and stylesheet. The
 dependency check rejects host imports of UI internals, server imports of
-client code, and shared package imports of application code or Node builtins.
+client code, and Node builtins in browser workspaces. Browser consumers use
+the identification workspace's `/mapping` export.
 Biome rejects direct browser globals in the protocol and API client sources.
 
 The React application lives in `packages/client-ui/`. A host configures one
@@ -245,12 +247,20 @@ flowchart LR
 
 | Owner | Boundary |
 | --- | --- |
-| Identification | Stateless parsing/ranking/proposals; no database, HTTP or Catalog dependency |
+| Identification workspace | Stateless name parsing, work matching, episode proposals and release evidence |
+| Identification application | Validated resource paths, metadata search and local recognition batches |
 | Metadata | Shared current work descriptions, provider cache, immutable evidence, artwork and refresh |
 | Catalog | Local work/episode identity, confirmed associations, manual decisions and Review |
 | Tracking | Account credentials, confirmed list cache, viewing intent, submission/conflicts |
 | Anime Library | Read-only join of Catalog and Tracking with filtering/pagination |
 | Provider protocols | AniList and Bangumi typed clients, response validation, shared pacing and cancellation |
+
+The private `@anishelf/anime-identification` workspace consumes names, paths and
+candidate metadata supplied by its callers. Local recognition and release
+assessment share its parser, work matching, episode mapping and directory
+numbering rules. The Review form uses the browser-safe mapping export to prefill
+episode targets for manually selected works. Backend code owns scanning, metadata
+access, video and sidecar selection, download admission and Catalog persistence.
 
 Identification uses consistent title normalization for ranking and admission and
 retains explicit ordinal provenance. Local filenames, release titles and metadata

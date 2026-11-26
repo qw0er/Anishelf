@@ -1,15 +1,19 @@
 import { expect, test } from "vitest";
-import { animeNameParser } from "../../../../src/modules/anime/identification/anitomy-adapter.js";
-import { proposeMapping } from "../../../../src/modules/anime/identification/domain/mapping.js";
-import { titleEvidence } from "../../../../src/modules/anime/identification/domain/title-evidence.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
-import type { WorkCandidate } from "../../../../src/modules/anime/identification/public.js";
-
-import { fixtureIdentificationPath } from "../../../support/anime-parsing-corpus.js";
+import { animeNameParser } from "../src/anitomy-adapter.ts";
+import {
+	AnitomyIdentificationParser,
+	proposeMapping,
+	titleEvidence,
+	type WorkCandidate,
+} from "../src/index.ts";
 
 const parser = new AnitomyIdentificationParser();
-const extract = (path: string) =>
-	parser.extract([fixtureIdentificationPath(path)])[0];
+const sourcePath = (relativePath: string) => {
+	const ancestors = relativePath.split("/");
+	const filename = ancestors.pop() ?? "";
+	return { relativePath, ancestors, filename };
+};
+const extract = (path: string) => parser.extract([sourcePath(path)])[0];
 const work: WorkCandidate = {
 	reference: { id: "1" },
 	snapshotId: "test",
@@ -20,6 +24,17 @@ const work: WorkCandidate = {
 	season: "2",
 	part: null,
 };
+test("parses each directory as a separate sibling group and preserves input order", () => {
+	const first = "Ocean Season 2/Ocean - 13.mkv";
+	const second = "Other Show/Other - 01.mkv";
+	const third = "Ocean Season 2/Ocean - 14.mkv";
+	const siblings = parser.extract([first, third].map(sourcePath));
+	expect(parser.extract([first, second, third].map(sourcePath))).toEqual([
+		siblings[0],
+		extract(second),
+		siblings[1],
+	]);
+});
 test("maps a bounded leaf range, ignoring the ancestor batch range", () => {
 	const evidence = extract("Show [01-12]/Show - 01-02.mkv");
 	if (!evidence) throw new Error("Missing evidence");

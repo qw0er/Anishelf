@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
+import type { ExtractionEvidence } from "@anishelf/anime-identification";
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { type Static, Type } from "typebox";
 import { Check } from "typebox/value";
 import { identificationSourcePath } from "../../src/modules/anime/identification/application/source-path.js";
-import type { ExtractionEvidence } from "../../src/modules/anime/identification/domain/model.js";
-import { AnitomyIdentificationParser } from "../../src/modules/anime/identification/infrastructure/parser.js";
 import { evidenceSchema } from "./anime-identification-evidence.js";
 import {
 	parsingFields as fields,

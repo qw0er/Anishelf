@@ -1,15 +1,7 @@
-export { proposeMapping } from "./domain/mapping.js";
-export { rankCandidates } from "./domain/matching.js";
-export type {
-	ExtractionEvidence,
-	IdentificationResult,
-	WorkCandidate,
-} from "./domain/model.js";
-export { matchingTitle, titleEvidence } from "./domain/title-evidence.js";
-export type { IdentificationMetadata, IdentificationParser } from "./ports.js";
-
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import type { SourceIdentity } from "../../resources/public.js";
-import type { IdentificationResult } from "./domain/model.js";
+
+export type { IdentificationMetadata } from "./ports.js";
 
 /** Callers supply confined, validated identities and own scheduling/persistence. */
 export interface IdentificationApi {

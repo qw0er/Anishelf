@@ -1,5 +1,5 @@
 import { parse, parse_path, parse_together } from "anitomy-ng";
-import type { ExtractionElement } from "./domain/model.js";
+import type { ExtractionElement } from "./model.ts";
 
 const ordinals: Record<string, number> = {
 	一: 1,

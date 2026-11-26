@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
+import {
+	type ExtractionEvidence,
+	type ReleaseParser,
+	releaseFilenameMatchesEpisode,
+} from "@anishelf/anime-identification";
 import { workReference } from "@anishelf/contracts/references";
 import { DomainError } from "../../../shared/errors.js";
 import type {
@@ -11,14 +16,11 @@ import type {
 	CatalogMetadata,
 } from "../anime-catalog/public.js";
 import type { MetadataIdentitiesApi } from "../external-works/metadata/public.js";
-import type { ExtractionEvidence } from "../identification/public.js";
-import { matchingTitle } from "../identification/public.js";
 import type {
 	AcceptedAcquisitionTarget,
 	AcquisitionCommitGuard,
 	AcquisitionProvenance,
 } from "../public.js";
-import type { ReleaseParser } from "./public.js";
 
 export class AcquisitionIngestion {
 	constructor(
@@ -131,23 +133,17 @@ export class AcquisitionIngestion {
 		}
 		evidence.relativePath = identity.relativePath;
 		const metadata = this.metadata.snapshot(target.snapshotId);
-		const titleMatches =
+		const filenameMatches =
 			metadata.kind === "detail" &&
-			evidence.titles.some((title) =>
-				metadata.data.titles.some((alias) =>
-					matchingTitle(title, alias.value, evidence.seasons, evidence.parts),
-				),
+			releaseFilenameMatchesEpisode(
+				evidence,
+				metadata.data.titles.map(({ value }) => value),
+				episode,
 			);
 		const warnings = [
 			...new Set([
 				...(provenance?.warnings ?? []),
-				...(evidence.numbering !== "single" ||
-				evidence.rawEpisodes.length !== 1 ||
-				!/^\d+$/.test(evidence.rawEpisodes[0] ?? "") ||
-				Number(evidence.rawEpisodes[0]) !== episode ||
-				!titleMatches
-					? ["filename_target_unconfirmed"]
-					: []),
+				...(filenameMatches ? [] : ["filename_target_unconfirmed"]),
 			]),
 		];
 		const receipt: AcquisitionProvenance = provenance

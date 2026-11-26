@@ -1,6 +1,6 @@
+import type { ExtractionEvidence } from "@anishelf/anime-identification";
+import { releaseAttributes } from "@anishelf/anime-identification";
 import { type Static, Type } from "typebox";
-import type { ExtractionEvidence } from "../../src/modules/anime/identification/domain/model.js";
-import { releaseAttributes } from "../../src/modules/anime/release-assessment/attributes.js";
 
 const text = Type.String({ minLength: 1 });
 const ordinals = Type.Array(Type.Integer({ minimum: 0 }), {

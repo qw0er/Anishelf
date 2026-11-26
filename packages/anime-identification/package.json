@@ -1,0 +1,24 @@
+{
+	"name": "@anishelf/anime-identification",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"license": "AGPL-3.0-only",
+	"exports": {
+		".": "./src/index.ts",
+		"./mapping": "./src/mapping.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"anitomy-ng": "1.0.10",
+		"fast-fuzzy": "1.12.0",
+		"opencc-js": "1.4.2"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.6",
+		"vitest": "^5.1.1"
+	}
+}

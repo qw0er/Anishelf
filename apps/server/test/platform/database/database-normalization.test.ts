@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import Database from "better-sqlite3";
 import { is } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -29,7 +30,6 @@ import {
 	writeTrackingListCache,
 	writeTrackingOperations,
 } from "../../../src/modules/anime/external-works/tracking/infrastructure/records.js";
-import type { IdentificationResult } from "../../../src/modules/anime/identification/public.js";
 import { writePreparationTasks } from "../../../src/modules/media/preparation/infrastructure/records.js";
 import { writePlaybackCompletions } from "../../../src/modules/playback/progress/infrastructure/records.js";
 import { writeAuthSessions } from "../../../src/modules/system/authentication/infrastructure/records.js";

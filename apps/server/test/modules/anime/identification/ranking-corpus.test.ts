@@ -1,6 +1,8 @@
+import {
+	AnitomyIdentificationParser,
+	rankCandidates,
+} from "@anishelf/anime-identification";
 import { expect, test, vi } from "vitest";
-import { rankCandidates } from "../../../../src/modules/anime/identification/domain/matching.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import {
 	evaluateRankingCorpus,
 	loadRankingCorpus,

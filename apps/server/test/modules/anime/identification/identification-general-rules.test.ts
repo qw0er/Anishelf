@@ -1,3 +1,10 @@
+import type { WorkCandidate } from "@anishelf/anime-identification";
+import {
+	AnitomyIdentificationParser,
+	matchingTitle,
+	normalizeTitle,
+	titleEvidence,
+} from "@anishelf/anime-identification";
 import { expect, test } from "vitest";
 import { safeReview } from "../../../../src/modules/anime/anime-catalog/application/context.js";
 import {
@@ -6,13 +13,6 @@ import {
 } from "../../../../src/modules/anime/anime-catalog/domain/admission.js";
 import type { ReviewRecord } from "../../../../src/modules/anime/anime-catalog/domain/model.js";
 import { IdentificationApplication } from "../../../../src/modules/anime/identification/application/identification.js";
-import {
-	matchingTitle,
-	normalizeTitle,
-	titleEvidence,
-} from "../../../../src/modules/anime/identification/domain/title-evidence.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
-import type { WorkCandidate } from "../../../../src/modules/anime/identification/public.js";
 
 const work = (titles: string[], id = "1"): WorkCandidate => ({
 	titles,

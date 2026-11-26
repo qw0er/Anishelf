@@ -1,3 +1,4 @@
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import type { Logger } from "pino";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
@@ -5,7 +6,6 @@ import { AnimeCatalogApplication } from "./anime-catalog/application/catalog.js"
 import { AnimeLibraryQueries } from "./anime-library/application/library.js";
 import { createExternalWorks } from "./external-works/create.js";
 import { registerAnimeHttp } from "./http.js";
-import { AnitomyIdentificationParser } from "./identification/infrastructure/parser.js";
 import { createIdentificationMetadata } from "./integration/identification-metadata.js";
 import type { AnimePersistence } from "./persistence.js";
 import type { AnimeApi } from "./public.js";

@@ -289,6 +289,20 @@ module.exports = {
 			to: { path: "^apps/(?:web|desktop)/|^packages/client-(?:core|ui)/" },
 		},
 		{
+			name: "anime-identification-is-independent",
+			severity: "error",
+			from: { path: "^packages/anime-identification/src/" },
+			to: { path: "^apps/|^packages/(?!anime-identification/)" },
+		},
+		{
+			name: "clients-use-browser-safe-anime-mapping",
+			severity: "error",
+			from: {
+				path: "^(?:apps/web/src/|apps/desktop/src/renderer/|packages/client-(?:core|ui)/src/)",
+			},
+			to: { path: "^packages/anime-identification/src/(?!mapping\\.ts$)" },
+		},
+		{
 			name: "contracts-do-not-import-consumers",
 			severity: "error",
 			from: { path: "^packages/contracts/src/" },

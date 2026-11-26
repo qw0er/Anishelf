@@ -1,5 +1,14 @@
-import type { ExtractionEvidence } from "../identification/public.js";
-import type { ReleaseAttributes } from "./public.js";
+import type { ExtractionEvidence } from "./model.ts";
+
+export interface ReleaseAttributes {
+	subtitleLanguages: string[];
+	subtitleFormats: string[];
+	resolutions: number[];
+	videoCodecs: string[];
+	sources: string[];
+	releaseGroups: string[];
+	revision: number;
+}
 
 /** Release declarations only: never infer subtitle language from a group, title or site. */
 export function releaseAttributes(

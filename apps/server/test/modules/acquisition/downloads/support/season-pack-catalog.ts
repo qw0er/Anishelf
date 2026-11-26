@@ -1,7 +1,7 @@
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { vi } from "vitest";
 import { AnimeCatalogApplication } from "../../../../../src/modules/anime/anime-catalog/application/catalog.js";
 import type { CatalogMetadata } from "../../../../../src/modules/anime/anime-catalog/public.js";
-import { AnitomyIdentificationParser } from "../../../../../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../../../../../src/modules/anime/public.js";
 import { AcquisitionIngestion } from "../../../../../src/modules/anime/release-assessment/ingestion.js";
 import type {

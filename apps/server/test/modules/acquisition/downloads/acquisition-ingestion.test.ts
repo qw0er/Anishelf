@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
@@ -10,7 +11,6 @@ import type {
 	CachedMetadata,
 	WorkDetails,
 } from "../../../../src/modules/anime/external-works/metadata/domain/source-model.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import { AnimeReleaseAssessment } from "../../../../src/modules/anime/release-assessment/application.js";
 import { AcquisitionIngestion } from "../../../../src/modules/anime/release-assessment/ingestion.js";
 import { AutomaticIdentificationCoordinator } from "../../../../src/modules/anime/workflows/automatic-identification.js";

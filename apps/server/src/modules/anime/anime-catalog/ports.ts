@@ -1,10 +1,10 @@
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import type {
 	RegisteredSource,
 	SourceIdentity,
 	SourceRegistry,
 } from "../../resources/public.js";
 import type { MetadataApi } from "../external-works/metadata/public.js";
-import type { IdentificationResult } from "../identification/public.js";
 import type {
 	Association,
 	CatalogQuery,

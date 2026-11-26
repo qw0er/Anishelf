@@ -10,6 +10,7 @@ COPY package.json package-lock.json ./
 COPY apps/server/package.json ./apps/server/package.json
 COPY apps/web/package.json ./apps/web/package.json
 COPY apps/desktop/package.json ./apps/desktop/package.json
+COPY packages/anime-identification/package.json ./packages/anime-identification/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/client-core/package.json ./packages/client-core/package.json
 COPY packages/client-ui/package.json ./packages/client-ui/package.json
@@ -25,6 +26,7 @@ ENV ANISHELF_BUILD_TAG=$ANISHELF_BUILD_TAG \
 RUN npm ci && npm rebuild better-sqlite3
 
 FROM dependencies AS backend-build
+COPY packages/anime-identification/src/ ./packages/anime-identification/src/
 COPY packages/contracts/src/ ./packages/contracts/src/
 COPY apps/server/ ./apps/server/
 RUN npm run build --workspace @anishelf/backend \
@@ -34,6 +36,7 @@ RUN npm run build --workspace @anishelf/backend \
     && mkdir -p apps/server/node_modules
 
 FROM dependencies AS web-build
+COPY packages/anime-identification/src/ ./packages/anime-identification/src/
 COPY packages/client-ui/ ./packages/client-ui/
 COPY packages/client-core/src/ ./packages/client-core/src/
 COPY packages/contracts/src/ ./packages/contracts/src/
@@ -56,6 +59,7 @@ RUN apt-get update \
     && mkdir -p /var/lib/anishelf /data/media \
     && chown -R node:node /var/lib/anishelf /data
 COPY --from=backend-build /app/node_modules ./node_modules
+COPY --from=backend-build /app/packages/anime-identification ./packages/anime-identification
 COPY --from=backend-build /app/packages/contracts ./packages/contracts
 COPY --from=backend-build /app/apps/server/package.json ./apps/server/package.json
 COPY --from=backend-build /app/apps/server/build-info.json ./apps/server/build-info.json

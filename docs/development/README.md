@@ -4,10 +4,10 @@
 
 The npm workspaces live in `apps/desktop/` (Electron shell), `apps/server/` (Fastify backend), `apps/web/`
 (browser entry and PWA), `packages/client-ui/` (React app and tests),
-`packages/client-core/` (shared API client), and `packages/contracts/`
-(shared HTTP protocol). The packages export TypeScript directly. Node.js 26
-loads server-side contract exports at runtime and Vite bundles the shared code
-used by the Web app.
+`packages/client-core/` (shared API client), `packages/contracts/` (shared HTTP
+protocol), and `packages/anime-identification/` (resource recognition).
+These packages export TypeScript directly. Node.js loads server-side workspace
+exports at runtime, and Vite bundles the shared code used by the Web app.
 
 ## Local development
 

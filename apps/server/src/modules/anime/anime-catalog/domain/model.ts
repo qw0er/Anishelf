@@ -1,12 +1,12 @@
 import type {
+	ExtractionEvidence,
+	IdentificationResult,
+} from "@anishelf/anime-identification";
+import type {
 	CachedMetadata,
 	WorkReference as ProviderReference,
 	WorkDetails,
 } from "../../external-works/metadata/public.js";
-import type {
-	ExtractionEvidence,
-	IdentificationResult,
-} from "../../identification/public.js";
 import type { AcquisitionProvenance } from "../../public.js";
 
 export interface EpisodeTarget {

@@ -1,3 +1,4 @@
+import { romanSeasonEvidence } from "@anishelf/anime-identification";
 import type { MetadataTitle } from "./model.js";
 import type { WorkDetails, WorkSummary } from "./source-model.js";
 
@@ -12,17 +13,7 @@ const ordinal = (text: string) =>
 const base = (text: string) => ordinal(text.normalize("NFKC").toLowerCase());
 function scopes(text: string) {
 	const value = base(text);
-	const roman =
-		/(?:^|[\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])(II|III|IV|V|VI|VII|VIII|IX|X)(?=$|[\s:：-])/u.exec(
-			text.normalize("NFKC"),
-		);
-	const romanSeason = roman
-		? String(
-				["II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"].indexOf(
-					roman[1] ?? "",
-				) + 2,
-			)
-		: null;
+	const romanSeason = romanSeasonEvidence(text);
 	const matches = (pattern: RegExp) =>
 		[...value.matchAll(pattern)]
 			.map((match) => String(Number(match[1])))

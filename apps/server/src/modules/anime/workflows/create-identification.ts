@@ -1,11 +1,9 @@
+import type { IdentificationResult } from "@anishelf/anime-identification";
 import type { Logger } from "pino";
 import type { LibraryApi, ResourceAccessApi } from "../../resources/public.js";
 import type { AnimeCatalogApi } from "../anime-catalog/public.js";
 import { createIdentificationApplication } from "../identification/create.js";
-import type {
-	IdentificationMetadata,
-	IdentificationResult,
-} from "../identification/public.js";
+import type { IdentificationMetadata } from "../identification/public.js";
 import { AutomaticIdentificationCoordinator } from "./automatic-identification.js";
 
 /** Recognition needs neither database availability nor an HTTP entry point. */

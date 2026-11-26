@@ -1,14 +1,16 @@
 import { readFile } from "node:fs/promises";
-import { type Static, Type } from "typebox";
-import { Check } from "typebox/value";
-import { identificationDefaults } from "../../src/modules/anime/identification/defaults.js";
-import { proposeMapping } from "../../src/modules/anime/identification/domain/mapping.js";
 import type {
 	IdentificationResult,
 	MappingProposal,
 	RankedCandidate,
-} from "../../src/modules/anime/identification/domain/model.js";
-import { applyNumberingContext } from "../../src/modules/anime/identification/domain/numbering-context.js";
+} from "@anishelf/anime-identification";
+import {
+	applyNumberingContext,
+	identificationDefaults,
+	proposeMapping,
+} from "@anishelf/anime-identification";
+import { type Static, Type } from "typebox";
+import { Check } from "typebox/value";
 import {
 	candidateSchema,
 	evidenceSchema,

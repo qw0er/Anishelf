@@ -1,8 +1,10 @@
 import type {
-	ExtractionEvidence,
-	IdentificationParser,
+	ReleaseAssessment,
+	ReleaseAttributes,
 	WorkCandidate,
-} from "../identification/public.js";
+} from "@anishelf/anime-identification";
+
+export type { ReleaseAttributes } from "@anishelf/anime-identification";
 
 export interface AcquisitionTarget {
 	airing?: {
@@ -18,25 +20,6 @@ export interface AcquisitionTarget {
 	work: WorkCandidate;
 	availableEpisodes: number[];
 	revision: string;
-}
-export interface ReleaseAttributes {
-	subtitleLanguages: string[];
-	subtitleFormats: string[];
-	resolutions: number[];
-	videoCodecs: string[];
-	sources: string[];
-	releaseGroups: string[];
-	revision: number;
-}
-interface ReleaseAssessment {
-	attributes?: ReleaseAttributes;
-	/** The title plausibly identifies a publication whose files could be useful. */
-	inspectionCandidate: boolean;
-	episode: number | null;
-	/** Only a confirmed single regular episode can enter the single-video flow. */
-	eligible: boolean;
-	reasons: string[];
-	version: string;
 }
 export interface ReleaseFileCoverage {
 	episodes: number[];
@@ -59,7 +42,4 @@ export interface ReleaseAssessmentApi {
 		target: AcquisitionTarget,
 		files: readonly { index: number; path: string }[],
 	): ReleaseFileCoverage;
-}
-export interface ReleaseParser extends Pick<IdentificationParser, "extract"> {
-	extractRelease(title: string): ExtractionEvidence;
 }

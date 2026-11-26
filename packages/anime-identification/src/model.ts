@@ -1,5 +1,3 @@
-import type { SourceIdentity } from "../../../resources/public.js";
-
 interface WorkReference {
 	id: string;
 }
@@ -86,7 +84,13 @@ interface WorkProposal {
 	mapping: MappingProposal;
 }
 export interface IdentificationResult {
-	source: SourceIdentity;
+	/** Opaque, caller-supplied source identity and version. */
+	source: {
+		scopeId: string;
+		relativePath: string;
+		fileId: string;
+		sourceVersion: string;
+	};
 	evidence: ExtractionEvidence;
 	status: "parsed" | "proposed" | "unresolved";
 	metadataStatus: "not-configured" | "searched" | "failed";

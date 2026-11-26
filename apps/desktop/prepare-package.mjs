@@ -24,7 +24,19 @@ const backendDir = join(rootDir, "apps/server");
 const { dependencies: backendDependencies } = JSON.parse(
 	await readFile(join(backendDir, "package.json"), "utf8"),
 );
-delete backendDependencies["@anishelf/contracts"];
+const { dependencies: identificationDependencies } = JSON.parse(
+	await readFile(
+		join(rootDir, "packages/anime-identification/package.json"),
+		"utf8",
+	),
+);
+// Bundle workspace sources and ship their external dependencies, including the parser's WASM.
+const backendRuntimeDependencies = {
+	...backendDependencies,
+	...identificationDependencies,
+};
+delete backendRuntimeDependencies["@anishelf/contracts"];
+delete backendRuntimeDependencies["@anishelf/anime-identification"];
 
 console.info("desktop.package.preparing", { stagingDir });
 await rm(stagingDir, { recursive: true, force: true });
@@ -46,7 +58,7 @@ await build({
 	platform: "node",
 	format: "esm",
 	target: "node24",
-	external: Object.keys(backendDependencies),
+	external: Object.keys(backendRuntimeDependencies),
 });
 await cp(join(backendDir, "migrations"), join(stagingDir, "dist/migrations"), {
 	recursive: true,
@@ -99,7 +111,10 @@ await writeFile(
 			license: rootPackage.license,
 			type: "module",
 			main: "dist/main/index.js",
-			dependencies: { ...backendDependencies, ...desktopMainDependencies },
+			dependencies: {
+				...backendRuntimeDependencies,
+				...desktopMainDependencies,
+			},
 			build: {
 				appId: "app.anishelf.desktop",
 				artifactName: `anishelf-desktop-\${version}-\${arch}.\${ext}`,

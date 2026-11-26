@@ -18,6 +18,7 @@ test("manual zero and unknown TV numbering do not become regular episode one", (
 	const item = reviewFixture();
 	item.evidence.rawEpisodes = ["00"];
 	item.evidence.numbering = "single";
+	item.evidence.contentKind = "special";
 	expect(mappingDefaults(item, reference, "TV", 10)).toMatchObject({
 		kind: "special",
 		numbers: "0",
@@ -25,6 +26,18 @@ test("manual zero and unknown TV numbering do not become regular episode one", (
 	});
 	item.evidence.rawEpisodes = [];
 	item.evidence.numbering = "unknown";
+	expect(mappingDefaults(item, reference, "TV", 10).numbers).toBe("");
+});
+test("manual lookup prefills a mapped range only within the selected work", () => {
+	const item = reviewFixture();
+	item.evidence.rawEpisodes = ["1", "3"];
+	expect(mappingDefaults(item, reference, "TV", 3).numbers).toBe("1, 2, 3");
+	expect(mappingDefaults(item, reference, "TV", 2).numbers).toBe("");
+});
+test("manual lookup leaves decimal episode notation for the user to correct", () => {
+	const item = reviewFixture();
+	item.evidence.rawEpisodes = ["1.0"];
+	item.evidence.numbering = "single";
 	expect(mappingDefaults(item, reference, "TV", 10).numbers).toBe("");
 });
 test("saved mappings default only for their project work", () => {

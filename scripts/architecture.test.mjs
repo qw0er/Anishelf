@@ -40,6 +40,7 @@ async function scan(files) {
 			"apps/server/src/shared/empty.ts": "export {};",
 			"apps/web/src/empty.ts": "export {};",
 			"apps/desktop/src/empty.ts": "export {};",
+			"packages/anime-identification/src/empty.ts": "export {};",
 			"packages/client-ui/src/empty.ts": "export {};",
 			"packages/contracts/src/empty.ts": "export {};",
 			"packages/client-core/src/empty.ts": "export {};",
@@ -99,6 +100,24 @@ test("allows Electron processes to use the desktop IPC contract and main to asse
 });
 
 for (const [name, files] of [
+	[
+		"anime-identification-is-independent",
+		{
+			"packages/anime-identification/src/model.ts":
+				"export type { Value } from '../../../apps/server/src/shared/example.js';",
+			"apps/server/src/shared/example.ts":
+				"export interface Value { id: string }",
+		},
+	],
+	[
+		"clients-use-browser-safe-anime-mapping",
+		{
+			"packages/client-ui/src/review.ts":
+				"export { parse } from '../../anime-identification/src/index.js';",
+			"packages/anime-identification/src/index.ts":
+				"export function parse() {}",
+		},
+	],
 	[
 		"desktop-renderer-does-not-import-main-or-electron",
 		{

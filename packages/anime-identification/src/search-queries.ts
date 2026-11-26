@@ -1,5 +1,5 @@
-import { identificationDefaults } from "../defaults.js";
-import type { ExtractionEvidence } from "./model.js";
+import { identificationDefaults } from "./defaults.ts";
+import type { ExtractionEvidence } from "./model.ts";
 
 /** Shared by production identification and the small offline search replay. */
 export function identificationSearchQueries(

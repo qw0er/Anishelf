@@ -1,5 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type {
+	IdentificationResult,
+	WorkCandidate,
+} from "@anishelf/anime-identification";
+import {
+	AnitomyIdentificationParser,
+	identificationDefaults,
+} from "@anishelf/anime-identification";
 import {
 	automaticBlockers,
 	automaticProposal,
@@ -7,12 +15,6 @@ import {
 } from "../../src/modules/anime/anime-catalog/domain/admission.js";
 import type { ReviewRecord } from "../../src/modules/anime/anime-catalog/domain/model.js";
 import { IdentificationApplication } from "../../src/modules/anime/identification/application/identification.js";
-import { identificationDefaults } from "../../src/modules/anime/identification/defaults.js";
-import { AnitomyIdentificationParser } from "../../src/modules/anime/identification/infrastructure/parser.js";
-import type {
-	IdentificationResult,
-	WorkCandidate,
-} from "../../src/modules/anime/identification/public.js";
 import { type AnimeCase, corpusDirectory, loadCorpus } from "./anime-corpus.js";
 import { productionNumbering } from "./production-numbering.js";
 

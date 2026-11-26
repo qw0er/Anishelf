@@ -1,5 +1,5 @@
+import { identificationSearchQueries } from "@anishelf/anime-identification";
 import { expect, test, vi } from "vitest";
-import { identificationSearchQueries } from "../../../../src/modules/anime/identification/domain/search-queries.js";
 import {
 	evaluateRetrievalCorpus,
 	loadRetrievalCorpus,

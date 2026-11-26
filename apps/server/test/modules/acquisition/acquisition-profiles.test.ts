@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { AnitomyIdentificationParser } from "@anishelf/anime-identification";
 import { expect, test } from "vitest";
 import type { ReleaseEvidence } from "../../../src/modules/acquisition/sources/public.js";
 import { parseRss } from "../../../src/modules/acquisition/sources/rss/parser.js";
@@ -15,7 +16,6 @@ import {
 	loadAcquisitionProfiles,
 	parseAcquisitionProfiles,
 } from "../../../src/modules/acquisition/subscriptions/infrastructure/profiles.js";
-import { AnitomyIdentificationParser } from "../../../src/modules/anime/identification/infrastructure/parser.js";
 import type { AcquisitionTarget } from "../../../src/modules/anime/public.js";
 import { AnimeReleaseAssessment } from "../../../src/modules/anime/release-assessment/application.js";
 import { fixtureIdentities } from "../../support/metadata-identities.js";

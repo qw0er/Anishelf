@@ -8,16 +8,18 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
+import {
+	AnitomyIdentificationParser,
+	proposeMapping,
+	type WorkCandidate,
+} from "@anishelf/anime-identification";
 import { parse } from "anitomy-ng";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { IdentificationApplication } from "../../../../src/modules/anime/identification/application/identification.js";
-import { proposeMapping } from "../../../../src/modules/anime/identification/domain/mapping.js";
-import { AnitomyIdentificationParser } from "../../../../src/modules/anime/identification/infrastructure/parser.js";
 import type {
 	IdentificationApi,
 	IdentificationMetadata,
-	WorkCandidate,
 } from "../../../../src/modules/anime/identification/public.js";
 import { AutomaticIdentificationCoordinator } from "../../../../src/modules/anime/workflows/automatic-identification.js";
 import { createIdentificationModule } from "../../../../src/modules/anime/workflows/create-identification.js";

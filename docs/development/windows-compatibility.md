@@ -95,7 +95,7 @@ Consumers instead require POSIX paths:
 - download ingestion joins with `posix.join`
   ([import.ts:41-L44](../../apps/server/src/modules/acquisition/downloads/application/import.ts#L41-L44));
 - numbering context groups by `lastIndexOf("/")`
-  ([numbering-context.ts:14-L19](../../apps/server/src/modules/anime/identification/domain/numbering-context.ts#L14-L19)).
+  ([numbering-context.ts:14-L19](https://github.com/qw0er/Anishelf/blob/f00eeb2bd7332319ce9a66785ce80ea60e20425a/apps/server/src/modules/anime/identification/domain/numbering-context.ts#L14-L19)).
 
 **Impact:**
 

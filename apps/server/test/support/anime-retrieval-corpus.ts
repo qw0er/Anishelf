@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
+import { identificationSearchQueries } from "@anishelf/anime-identification";
 import { type Static, Type } from "typebox";
 import { Check } from "typebox/value";
-import { identificationSearchQueries } from "../../src/modules/anime/identification/domain/search-queries.js";
 
 const text = Type.String({ minLength: 1 });
 const strings = Type.Array(text);
