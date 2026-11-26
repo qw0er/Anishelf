@@ -47,7 +47,8 @@ Playback starts with the original file by default. Use **Playback options** to
 select an existing prepared copy, or [prepare a compatible copy](manual-preparation.md)
 manually. You can also [open the original in an external player](external-players.md).
 In the desktop app, **Download video** saves the original and shows progress in
-the playback menu.
+the playback menu. You can also cache episodes or videos for offline playback;
+see the [desktop guide](../../apps/desktop/README.md).
 
 ## Bangumi viewing progress
 

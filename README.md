@@ -11,9 +11,9 @@ from a browser or desktop client.
 
 ## Features
 
-- **Organize your library.** Scan multiple media directories, browse files and
-  posters, and automatically identify anime and episodes. Review uncertain matches
-  and choose between available versions.
+- **Organize your library.** Scan multiple media directories, browse files,
+  posters and related works, and automatically identify anime and episodes.
+  Review uncertain matches and choose between available versions.
 - **Watch your way.** Play supported media in Web and desktop with
   libmedia-react-player and its bundled software decoding fallback. Select audio
   and subtitle tracks, jump to chapters, and resume from saved progress. Use
@@ -23,8 +23,9 @@ from a browser or desktop client.
   collection and synchronize viewing status and eligible episode progress.
   Playback history is shared by clients connected to the same server.
 - **Find and download releases.** Search configured sources, choose release
-  preferences, subscribe to works or download individual episodes. Connect
-  qBittorrent to follow downloads through verification and library import.
+  preferences, subscribe to works (including selective season-pack downloads) or
+  download individual episodes. Connect qBittorrent to follow downloads through
+  verification and library import.
 - **Automate what you choose.** Optionally create subscriptions from your connected
   account's Watching list. Monitor activity and review items that need attention.
 
@@ -50,9 +51,10 @@ require HTTPS; HTTP is available for loopback addresses. Web and desktop clients
 connected to the same server share the library and playback history.
 
 Install FFmpeg and FFprobe separately for media probing and transcoding. Desktop
-settings also offer command-based external players, optional launch at login and
-close to tray. See the [desktop guide](apps/desktop/README.md) for configuration,
-platform details and troubleshooting.
+settings also offer command-based external players, offline video caching,
+optional launch at login and close to tray. See the
+[desktop guide](apps/desktop/README.md) for configuration, platform details and
+troubleshooting.
 
 ## Server quick start
 

@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.2.0
+
+### Added
+
+- Add offline video caching and playback in the desktop app. Cache episodes or
+  videos (along with supported external subtitles) to the desktop profile, track
+  progress, retry interrupted transfers, and resume from saved local positions
+  under **Files → Offline cache**, media action menus, and login or connection
+  error screens. See the [desktop guide](https://github.com/qw0er/Anishelf/blob/main/apps/desktop/README.md).
+- Support selective season-pack downloads in subscriptions and acquisition.
+  Anishelf inspects torrent manifests, selects missing episodes and matching
+  external subtitles at or after the starting episode, extends compatible
+  managed torrents, and imports season-pack files independently. Requires
+  qBittorrent 5.2.0 or later with metadata preview and file priorities at add
+  time; single-episode downloads reject suspected packs. See
+  [Subscriptions and Watching](https://github.com/qw0er/Anishelf/blob/main/docs/guide/watching-automation.md#selective-season-packs).
+- Load and link related anime works on detail pages.
+- Resume Jackett search pagination across subscription checks every five minutes
+  when aired episodes are missing and more pages are available, persisting
+  progress across restarts. See
+  [Subscriptions and Watching](https://github.com/qw0er/Anishelf/blob/main/docs/guide/watching-automation.md#everyday-behavior).
+- Expand desktop external player discovery across macOS, Linux, and Windows,
+  including user shell `PATH`, app bundles, Homebrew/MacPorts, WinGet, and
+  Scoop locations. See [External players](https://github.com/qw0er/Anishelf/blob/main/docs/guide/external-players.md#desktop).
+
+### Changed
+
+- Upgrade `libmedia-react-player` to `1.5.0`, adding support for external bitmap
+  subtitles (PGS, VobSub, `.mks`, and DVB-SUB) and persisted playback
+  preferences (audio, subtitle, and playback rate).
+- Consolidate resource identification into `@anishelf/anime-identification` and
+  extract the FFmpeg/FFprobe wrapper into `@anishelf/media-tools`.
+
+### Fixed
+
+- Lower the playback auto-completion threshold to 87%.
+- Load page content reliably after navigation in the UI.
+
 ## 2.1.0
 
 ### Added
