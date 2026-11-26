@@ -1,5 +1,6 @@
 import { type ActionFunctionArgs, redirect } from "react-router";
-import { saveSettings } from "../../features/settings/public.js";
+import { libraryQuery } from "../../features/resources/public.js";
+import { saveSettings, settingsQuery } from "../../features/settings/public.js";
 import { isRequestCancelled } from "../../shared/api/client.js";
 import {
 	executeMutation,
@@ -25,14 +26,13 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 	)
 		return { error: "errors.resourcePathsInvalid" };
 	try {
-		await executeMutation(() =>
+		const saved = await executeMutation(() =>
 			saveSettings({ resourceRoots }, { signal: request.signal }),
 		);
-		await getQueryClient().invalidateQueries({
-			queryKey: ["settings"],
-			refetchType: "none",
-		});
-		await getQueryClient().cancelQueries({
+		const client = getQueryClient();
+		const settingsKey = settingsQuery().queryKey;
+		await client.cancelQueries({ queryKey: settingsKey });
+		await client.cancelQueries({
 			predicate: (query) =>
 				[
 					"library",
@@ -47,7 +47,7 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 					"history",
 				].includes(String(query.queryKey[0])),
 		});
-		await getQueryClient().invalidateQueries({
+		await client.invalidateQueries({
 			refetchType: "none",
 			predicate: (query) =>
 				[
@@ -63,6 +63,8 @@ export async function settingsAction({ request }: ActionFunctionArgs) {
 					"history",
 				].includes(String(query.queryKey[0])),
 		});
+		client.setQueryData(settingsKey, saved);
+		void client.invalidateQueries({ queryKey: libraryQuery().queryKey });
 		toast.add({
 			type: "success",
 			title: i18n.t("settingsPage.saved"),

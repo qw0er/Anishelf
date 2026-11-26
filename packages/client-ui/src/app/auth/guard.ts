@@ -14,20 +14,26 @@ async function requireAuthentication(request: Request) {
 		);
 	}
 }
-/** Guard each matched loader: React Router may execute parent and children concurrently. */
+/** Guard explicit loaders and actions, which may run independently of the parent. */
 export function authenticatedRoute(route: RouteObject): RouteObject {
 	const loader = route.loader;
 	const action = route.action;
 	return {
 		...route,
-		loader: async (args: LoaderFunctionArgs) => {
-			await requireAuthentication(args.request);
-			return typeof loader === "function" ? loader(args) : null;
-		},
+		...(typeof loader === "function"
+			? {
+					loader: async (args: LoaderFunctionArgs) => {
+						await requireAuthentication(args.request);
+						args.request.signal.throwIfAborted();
+						return loader(args);
+					},
+				}
+			: {}),
 		...(typeof action === "function"
 			? {
 					action: async (args: LoaderFunctionArgs) => {
 						await requireAuthentication(args.request);
+						args.request.signal.throwIfAborted();
 						return action(args);
 					},
 				}

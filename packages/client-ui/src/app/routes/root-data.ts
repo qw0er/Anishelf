@@ -19,10 +19,12 @@ export async function libraryLoader({ request }: LoaderFunctionArgs) {
 		};
 	} catch (error) {
 		if (request.signal.aborted || isRequestCancelled(error)) throw error;
+		const errorKey = getErrorTranslationKey(error) ?? "errors.libraryStatus";
+		console.debug("client.library_bootstrap_failed", { errorKey });
 		return {
 			library: null,
 			settings: null,
-			error: getErrorTranslationKey(error) ?? "errors.libraryStatus",
+			error: errorKey,
 		};
 	}
 }

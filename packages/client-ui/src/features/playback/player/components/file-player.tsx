@@ -23,6 +23,42 @@ import { usePlaybackController } from "../hooks/use-playback-controller.js";
 import { PlaybackActionsMenu } from "./external-player-menu.js";
 import { PlaybackVersionSelection } from "./version-selection.js";
 import VideoPlayer from "./video-player.js";
+
+export function PlayerHeader({
+	title,
+	returnDirectoryId,
+	returnTo,
+}: {
+	title?: string;
+	returnDirectoryId: string;
+	returnTo: string | null;
+}) {
+	const { t } = useTranslation();
+	const backLabel = t(
+		returnTo ? "anime.backToDetail" : "navigation.backToFiles",
+	);
+	return (
+		<header className="flex min-w-0 items-center gap-2">
+			<Tooltip content={backLabel}>
+				<Link
+					className={buttonStyles("ghost", "size-11 shrink-0 p-0")}
+					aria-label={backLabel}
+					to={returnTo ?? directoryPath(returnDirectoryId)}
+				>
+					<ArrowLeft size={20} aria-hidden="true" />
+				</Link>
+			</Tooltip>
+			{title ? (
+				<h1 className="line-clamp-2 min-w-0 break-all text-base font-semibold sm:text-xl">
+					{title}
+				</h1>
+			) : (
+				<Skeleton className="h-6 w-48" />
+			)}
+		</header>
+	);
+}
+
 export default function FilePlayer({
 	data,
 	displayTitle,
@@ -76,28 +112,11 @@ export default function FilePlayer({
 			className="flex min-w-0 flex-col gap-3 sm:gap-4"
 			aria-label={t("player.label")}
 		>
-			<header className="flex min-w-0 items-center gap-2">
-				<Tooltip
-					content={t(
-						returnTo ? "anime.backToDetail" : "navigation.backToFiles",
-					)}
-				>
-					<Link
-						className={buttonStyles("ghost", "size-11 shrink-0 p-0")}
-						aria-label={t(
-							returnTo ? "anime.backToDetail" : "navigation.backToFiles",
-						)}
-						to={
-							returnTo ?? directoryPath(returnDirectoryId || data.file.parentId)
-						}
-					>
-						<ArrowLeft size={20} aria-hidden="true" />
-					</Link>
-				</Tooltip>
-				<h1 className="line-clamp-2 min-w-0 break-all text-base font-semibold sm:text-xl">
-					{title}
-				</h1>
-			</header>
+			<PlayerHeader
+				title={title}
+				returnDirectoryId={returnDirectoryId || data.file.parentId}
+				returnTo={returnTo ?? null}
+			/>
 			{selection.loading && (
 				<div role="status" aria-label={t("loading.generic")}>
 					<Skeleton className="aspect-video w-full" />

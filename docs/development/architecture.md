@@ -182,7 +182,10 @@ Disposing a connection aborts its requests, stops the active player, and clears
 session and query state. Authentication transitions load a fresh page and connection.
 The host selects the router and how to restart a session. The React app checks
 sessions when the host reports foreground activity and reports session loss to
-the host. Ordinary navigation uses the active router.
+the host. The protected shell bootstraps the session and resource scope when it
+mounts. Ordinary navigation commits the destination before its page queries
+complete. Actions and loaders that resolve a redirect still authenticate before
+executing.
 
 Server-state caching uses TanStack Query, shared query definitions and a QueryClient.
 Stable query keys, freshness/retention policies and app-coordinated invalidation
@@ -377,7 +380,7 @@ subscription summaries and download counts. Status reads do not load metadata or
 download task pages. Activity and candidate diagnostics load when opened. Local IDs become authoritative
 when a tracked work acquires a local Catalog entry; replace navigation preserves
 query context and mounted playback state. Heavy candidate diagnostics load on demand. Local-ID and provider-key detail reads
-seed each other's cache using the original request timestamp; loaders and components
+seed each other's cache using the original request timestamp. The detail pages
 share freshness policies. Download activity only drives lightweight status polling.
 Subscription commands invalidate the affected work rather than every detail.
 The Library can read confirmed Catalog works while account lookup is pending or

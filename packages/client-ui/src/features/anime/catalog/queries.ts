@@ -43,7 +43,6 @@ export const localWorkDetailQuery = (id: string, scope: string) =>
 			query.queryKey[3] === id
 				? previous
 				: undefined,
-		// Reuse the route loader result when the detail component mounts.
 		staleTime: 60_000,
 		gcTime: 15 * 60_000,
 		refetchOnWindowFocus: true,

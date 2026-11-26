@@ -75,9 +75,20 @@ export function AnimeDetail({
 				</LoadFailure>
 			</section>
 		) : (
-			<div role="status" aria-label={t("anime.loading")}>
-				<Skeleton className="h-64 w-full" />
-			</div>
+			<section className="stack-page">
+				<div>
+					<Link
+						to={libraryReturnPath(params.get("library"))}
+						className={buttonStyles("outline")}
+					>
+						<ArrowLeft size={16} aria-hidden="true" />
+						{t("anime.back")}
+					</Link>
+				</div>
+				<div role="status" aria-label={t("anime.loading")}>
+					<Skeleton className="h-64 w-full" />
+				</div>
+			</section>
 		);
 	return (
 		<LocalWorkDetail

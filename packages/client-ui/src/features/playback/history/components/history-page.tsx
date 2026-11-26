@@ -1,15 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { History, Library, Play } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLoaderData } from "react-router";
-import type { HistoryResponse } from "../../../../shared/api/contracts.js";
+import { Link } from "react-router";
 import { useQueryScope } from "../../../../shared/api/queries.js";
 import { EmptyState } from "../../../../shared/components/empty-state.js";
+import {
+	LoadFailure,
+	queryLoadFailure,
+} from "../../../../shared/components/load-failure.js";
 import { PageHeader } from "../../../../shared/components/page-header.js";
 import { buttonStyles } from "../../../../shared/components/ui/button.js";
 import { Card, CardContent } from "../../../../shared/components/ui/card.js";
 import { Progress } from "../../../../shared/components/ui/progress.js";
 import { RefreshButton } from "../../../../shared/components/ui/refresh-button.js";
+import { Skeleton } from "../../../../shared/components/ui/skeleton.js";
 import { Tooltip } from "../../../../shared/components/ui/tooltip.js";
 import { useRefreshError } from "../../../../shared/hooks/use-refresh-error.js";
 import { filePath } from "../../../../shared/navigation.js";
@@ -20,18 +25,35 @@ function timestamp(ms: number): string {
 	return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-export default function HistoryPage() {
+export default function HistoryPage({
+	loadRecovery,
+}: {
+	loadRecovery?: ReactNode;
+}) {
 	const { t, i18n } = useTranslation();
-	const initial = useLoaderData<HistoryResponse>();
-	const query = useQuery({ ...historyQuery(useQueryScope()) });
+	const query = useQuery(historyQuery(useQueryScope()));
 	useRefreshError(
 		"playback-history",
 		query.data ? query.error : null,
 		query.errorUpdatedAt,
 		() => void query.refetch(),
 	);
-	const history = query.data ?? initial;
-	if (query.error && !query.data) throw query.error;
+	const history = query.data;
+	const failure = queryLoadFailure(query);
+	const initialState = failure ? (
+		<LoadFailure message={t("errors.historyLoad")} {...failure}>
+			{loadRecovery}
+		</LoadFailure>
+	) : (
+		<div
+			role="status"
+			aria-label={t("loading.pageLabel")}
+			className="space-y-3"
+		>
+			<Skeleton className="h-12 w-full" />
+			<Skeleton className="h-12 w-full" />
+		</div>
+	);
 	return (
 		<section className="stack-page" aria-labelledby="history-title">
 			<PageHeader
@@ -48,7 +70,10 @@ export default function HistoryPage() {
 			/>
 			<Card>
 				<CardContent>
-					{history.availability === "unknown" || history.items.length === 0 ? (
+					{!history ? (
+						initialState
+					) : history.availability === "unknown" ||
+						history.items.length === 0 ? (
 						<EmptyState
 							embedded
 							icon={<History size={24} />}

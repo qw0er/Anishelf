@@ -1,4 +1,5 @@
 import { offlineCachePath } from "@anishelf/contracts/offline-cache";
+import type { ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	Link,
@@ -57,33 +58,70 @@ export default function RouteError({
 	kind: keyof typeof loadMessages;
 }) {
 	const { t } = useTranslation();
-	const offlineCache = useOfflineCache();
 	const error = useRouteError();
 	const revalidator = useRevalidator();
-	const [searchParams] = useSearchParams();
-	const recovery = recoveryLink(kind, searchParams);
 	return (
 		<section
 			className={kind === "page" ? "page-container page-content" : "min-w-0"}
 			aria-label={t("errors.pageLabel")}
 		>
-			<LoadFailure
-				message={t(loadMessages[kind])}
+			<RouteLoadFailure
+				kind={kind}
 				error={error}
 				retry={() => void revalidator.revalidate()}
-				retryLabel={kind === "file" ? t("player.retry") : undefined}
 				retryState={revalidator.state === "idle" ? undefined : "retrying"}
-			>
+			/>
+		</section>
+	);
+}
+
+export function RouteLoadFailure({
+	kind,
+	hideReturnLink = false,
+	...failure
+}: Pick<
+	ComponentProps<typeof LoadFailure>,
+	"error" | "retry" | "retryState"
+> & {
+	kind: keyof typeof loadMessages;
+	hideReturnLink?: boolean;
+}) {
+	const { t } = useTranslation();
+	return (
+		<LoadFailure
+			message={t(loadMessages[kind])}
+			{...failure}
+			retryLabel={kind === "file" ? t("player.retry") : undefined}
+		>
+			<RouteRecovery kind={kind} hideReturnLink={hideReturnLink} />
+		</LoadFailure>
+	);
+}
+
+export function RouteRecovery({
+	kind,
+	hideReturnLink = false,
+}: {
+	kind: keyof typeof loadMessages;
+	hideReturnLink?: boolean;
+}) {
+	const { t } = useTranslation();
+	const offlineCache = useOfflineCache();
+	const [params] = useSearchParams();
+	const recovery = recoveryLink(kind, params);
+	return (
+		<>
+			{!hideReturnLink && (
 				<Link className={buttonStyles("outline")} to={recovery.to}>
 					{t(recovery.label)}
 				</Link>
-				<ServerConnectionLink />
-				{offlineCache && (
-					<Link className={buttonStyles("outline")} to={offlineCachePath}>
-						{t("offlineCache.open")}
-					</Link>
-				)}
-			</LoadFailure>
-		</section>
+			)}
+			<ServerConnectionLink />
+			{offlineCache && (
+				<Link className={buttonStyles("outline")} to={offlineCachePath}>
+					{t("offlineCache.open")}
+				</Link>
+			)}
+		</>
 	);
 }

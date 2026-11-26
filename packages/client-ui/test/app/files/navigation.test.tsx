@@ -1,11 +1,14 @@
 // @vitest-environment happy-dom
 
+import { createMemoryRouter } from "react-router";
 import { expect, test, vi } from "vitest";
+import { ClientApp, createClientRoutes } from "../../../src/app/client-app.js";
 import { queryClient } from "../../setup.js";
 import { mockPlayer } from "../../support/mock-libmedia.js";
 import {
 	act,
 	fireEvent,
+	render,
 	screen,
 	waitFor,
 	within,
@@ -245,7 +248,65 @@ test.each([false, true])(
 	},
 );
 
-test("returning while file metadata is pending aborts and discards the old response", async () => {
+test("a directory opens before its listing arrives and remains navigable", async () => {
+	const implementation = fetcher.getMockImplementation();
+	let signal: AbortSignal | null | undefined;
+	fetcher.mockImplementation((input, init) => {
+		if (String(input) === "/api/directories/season-1") {
+			signal = init?.signal;
+			return new Promise(() => {});
+		}
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	renderApp();
+	fireEvent.click(await screen.findByRole("link", { name: "Season 1" }));
+	await screen.findByRole("status", { name: "Loading files…" });
+	expect(screen.getByTestId("location").textContent).toBe(
+		"/directories/season-1",
+	);
+	expect(signal?.aborted).toBe(false);
+	fireEvent.click(screen.getByRole("button", { name: "History back" }));
+	await screen.findByRole("link", { name: "Season 1" });
+	expect(signal?.aborted).toBe(true);
+});
+
+test("an authenticated navigation shows history while its data is still pending", async () => {
+	const implementation = fetcher.getMockImplementation();
+	let historySignal: AbortSignal | null | undefined;
+	fetcher.mockImplementation((input, init) => {
+		if (input === "/api/history") {
+			historySignal = init?.signal;
+			return new Promise(() => {});
+		}
+		if (!implementation) throw new Error("Missing mock");
+		return implementation(input, init);
+	});
+	const router = createMemoryRouter(
+		createClientRoutes({ loginElement: <h1>Sign in</h1> }),
+		{
+			initialEntries: ["/directories/root"],
+		},
+	);
+	try {
+		render(<ClientApp router={router} />);
+		await screen.findByRole("link", { name: "Season 1" });
+		fireEvent.click(screen.getByRole("link", { name: "History" }));
+		await screen.findByRole("heading", { name: "Playback history" });
+		expect(router.state.location.pathname).toBe("/history");
+		expect(historySignal?.aborted).toBe(false);
+		expect(
+			fetcher.mock.calls.filter(([path]) => path === "/api/auth/session"),
+		).toHaveLength(1);
+		fireEvent.click(screen.getByRole("link", { name: "Files" }));
+		await screen.findByRole("link", { name: "Season 1" });
+		expect(historySignal?.aborted).toBe(true);
+	} finally {
+		router.dispose();
+	}
+});
+
+test("returning from the visible player shell aborts and discards pending file metadata", async () => {
 	const implementation = fetcher.getMockImplementation();
 	let signal: AbortSignal | null | undefined;
 	let resolve: ((response: Response) => void) | undefined;
@@ -261,9 +322,11 @@ test("returning while file metadata is pending aborts and discards the old respo
 	});
 	renderApp();
 	await openFile();
-	expect(screen.queryByText("Loading file…")).toBeNull();
-	await screen.findByText("Loading file…");
-	fireEvent.click(screen.getByRole("link", { name: "Cancel navigation" }));
+	await screen.findByRole("status", { name: "Loading file…" });
+	expect(screen.getByTestId("location").textContent).toBe(
+		"/files/file-1?directory=season-1",
+	);
+	fireEvent.click(screen.getByRole("link", { name: "Back to files" }));
 	await screen.findByRole("link", { name: "Episode 01.mp4" });
 	expect(signal?.aborted).toBe(true);
 	await act(async () => {

@@ -10,20 +10,14 @@ import App from "../App.js";
 import { FilesLayout, PreparedMediaRoute } from "../components/files-layout.js";
 import InitialLoading from "../components/initial-loading.js";
 import { WorkAcquisitionPanel } from "../components/work-acquisition-panel.js";
-import { animeLoader } from "./anime-data.js";
-import RouteError from "./errors.js";
-import { historyLoader } from "./history-data.js";
+import RouteError, { RouteRecovery } from "./errors.js";
 import { AnimeDetailPage } from "./pages/anime-detail-page.js";
 import { AnimeLibraryPage } from "./pages/anime-library-page.js";
 import { DirectoryPage } from "./pages/directory-page.js";
 import { NotFoundPage } from "./pages/not-found-page.js";
 import { PlayerPage } from "./pages/player-page.js";
 import { SettingsPage } from "./pages/settings-page.js";
-import {
-	directoryLoader,
-	fileLoader,
-	locateFileLoader,
-} from "./resources-data.js";
+import { locateFileLoader } from "./resources-data.js";
 import { libraryLoader } from "./root-data.js";
 import { settingsAction } from "./settings-data.js";
 export function createLibraryRoute({
@@ -55,6 +49,8 @@ export function createLibraryRoute({
 		path: "/",
 		element: <App />,
 		loader: libraryLoader,
+		// The mounted shell owns refreshes and session checks after bootstrap.
+		shouldRevalidate: () => false,
 		errorElement: <RouteError kind="page" />,
 		hydrateFallbackElement: <InitialLoading />,
 		children: [
@@ -62,8 +58,9 @@ export function createLibraryRoute({
 			{ path: "review", element: <ReviewPage /> },
 			{
 				path: "history",
-				loader: historyLoader,
-				element: <HistoryPage />,
+				element: (
+					<HistoryPage loadRecovery={<RouteRecovery kind="history" />} />
+				),
 				errorElement: <RouteError kind="history" />,
 			},
 			{
@@ -94,7 +91,6 @@ export function createLibraryRoute({
 			},
 			{
 				path: "anime/:id",
-				loader: animeLoader,
 				element: <AnimeDetailPage />,
 				errorElement: <RouteError kind="work" />,
 			},
@@ -103,7 +99,6 @@ export function createLibraryRoute({
 				children: [
 					{
 						path: "directories/:id",
-						loader: directoryLoader,
 						element: <DirectoryPage />,
 						errorElement: <RouteError kind="directory" />,
 					},
@@ -117,7 +112,6 @@ export function createLibraryRoute({
 			},
 			{
 				path: "files/:id",
-				loader: fileLoader,
 				element: <PlayerPage />,
 				errorElement: <RouteError kind="file" />,
 			},

@@ -155,7 +155,6 @@ export function SettingsPage({
 					>
 						<MetadataSourceSettings />
 						<ResourceSettings
-							key={JSON.stringify(settings.resourceRoots)}
 							settings={settings}
 							disabled={scanning || scanPending}
 						/>

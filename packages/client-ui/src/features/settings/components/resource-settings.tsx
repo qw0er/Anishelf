@@ -39,6 +39,7 @@ export default function ResourceSettings({
 						className="flex min-w-0 flex-col gap-4"
 					>
 						<ResourcePathList
+							key={JSON.stringify(settings.resourceRoots)}
 							paths={settings.resourceRoots}
 							disabled={disabled || saving}
 							chooseDirectory={platform.chooseDirectory}
