@@ -26,12 +26,17 @@ export interface SourcesApi {
 	snapshot(input: SourceInput | string): SourceSnapshot | null;
 	fetch(
 		input: SourceInput | string,
-		options?: { refresh?: boolean },
+		options?: SourceFetchOptions,
 	): Promise<SourcePublication>;
 	readContent(reference: string, signal: AbortSignal): Promise<DownloadContent>;
 	isContentCurrent(reference: string): boolean;
 	readonly connector: SourceConnectorApi;
 	test(input: SourceInput | string): Promise<SourceTestResult>;
+}
+export interface SourceFetchOptions {
+	refresh?: boolean;
+	/** Saved subscriptions may continue or suspend historical collection. */
+	history?: "continue" | "hold";
 }
 /** Source evidence and candidate writes share one synchronous transaction. */
 export interface SourcePublication {

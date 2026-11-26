@@ -52,11 +52,15 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 			logger: options.logger,
 		});
 		this.discovery = new SubscriptionDiscovery(this.context);
-		this.pending = new PendingSubscriptions(this.context, this.discovery);
 		this.worker = new SubscriptionWorker(
 			this.context,
 			(subscription, feed, target) =>
 				this.evaluateCandidates(subscription, feed, target),
+		);
+		this.pending = new PendingSubscriptions(
+			this.context,
+			this.discovery,
+			(initial) => this.worker.pollSource(initial.snapshot, { initial }),
 		);
 	}
 	async list() {
@@ -224,19 +228,12 @@ export class SubscriptionsApplication implements SubscriptionsApi {
 					"Manual check retries pending source discovery without its local delay.",
 				);
 				await this.pending.resolve(subscription, true);
-				const resolved = this.options.store.subscription(workKey);
-				if (resolved && this.context.runnable(resolved) && resolved.feedId) {
-					const feed = this.options.sources.snapshot(
-						resolved.sourceInput ?? resolved.feedId,
-					);
-					if (feed) await this.worker.pollSource(feed, true);
-				}
 				return this.get(workKey);
 			}
 			const source = subscription.sourceInput ?? subscription.feedId;
 			const feed = source ? this.options.sources.snapshot(source) : null;
 			if (!feed) conflict();
-			await this.worker.pollSource(feed, true);
+			await this.worker.pollSource(feed, { manual: true });
 			return this.get(workKey);
 		});
 	}

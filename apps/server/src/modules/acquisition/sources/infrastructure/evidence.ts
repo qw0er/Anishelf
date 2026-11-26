@@ -70,7 +70,7 @@ export class SourceEvidence {
 			source?.binding.kind === "jackett" ? null : this.feeds.feed(id);
 		const failures = feed?.failures ?? source?.failures ?? 0;
 		const nextAttemptAt =
-			failures || snapshot.checkedAt === null
+			failures || snapshot.checkedAt === null || snapshot.jackettHistory
 				? snapshot.nextAttemptAt
 				: snapshot.checkedAt + this.context.refreshIntervalMs();
 		if (nextAttemptAt !== snapshot.nextAttemptAt) {

@@ -8,6 +8,7 @@ import type { SourceLifecycleStore } from "../infrastructure/store.js";
 import { JackettSource } from "../jackett/application.js";
 import type { JackettConnection } from "../jackett/connection.js";
 import type {
+	SourceFetchOptions,
 	SourceInput,
 	SourcePublication,
 	SourceSnapshot,
@@ -28,6 +29,14 @@ export interface SourcesApplicationOptions {
 	now?: () => number;
 }
 
+function needsHistoryCollection(record: SourceRead["record"]) {
+	// Bounded previews can already cover the available pages on smaller sites.
+	return (
+		record.coverage?.reason === "page_limit" ||
+		record.coverage?.reason === "item_limit"
+	);
+}
+
 /** Private implementation. Consumers receive the unified API from createSourcesModule. */
 export class SourcesApplication {
 	private readonly context: SourceContext;
@@ -42,7 +51,11 @@ export class SourcesApplication {
 	private readonly fetching = new Map<string, Promise<SourceSnapshot>>();
 	private readonly reusable = new Map<
 		string,
-		{ read: SourceRead; previousRevision: string | null }
+		{
+			read: SourceRead;
+			previousRevision: string | null;
+			history: SourceFetchOptions["history"];
+		}
 	>();
 	private scheduler: SourceScheduler | undefined;
 	private closing: Promise<void> | undefined;
@@ -94,8 +107,9 @@ export class SourcesApplication {
 		});
 	}
 	private project(record: SourceRead["record"]): SourceSnapshot {
+		const { jackettHistory: _jackettHistory, ...evidence } = record;
 		return Object.freeze({
-			...record,
+			...evidence,
 			...(record.coverage
 				? { coverage: Object.freeze({ ...record.coverage }) }
 				: {}),
@@ -160,22 +174,35 @@ export class SourcesApplication {
 		this.prepared.set(result, { read, previousRevision });
 		return result;
 	}
-	private usable(record: SourceRead["record"]) {
+	private usable(
+		record: SourceRead["record"],
+		history?: SourceFetchOptions["history"],
+	) {
 		const age = record.entries.length
 			? this.context.refreshIntervalMs()
 			: Math.min(this.context.refreshIntervalMs(), 5 * 60_000);
 		if (
 			record.checkedAt === null ||
 			record.error ||
+			// Old business-accepted snapshots may omit later keywords.
+			record.coverage?.reason === "accepted" ||
 			record.checkedAt + age <= this.context.now()
 		)
 			return false;
-		// Old business-accepted snapshots may omit later keywords; collect them again.
-		return record.coverage?.reason !== "accepted";
+		if (history === "continue")
+			return record.jackettHistory
+				? record.nextAttemptAt > this.context.now()
+				: !needsHistoryCollection(record);
+		if (history === "hold" && record.jackettHistory?.active) return false;
+		return true;
 	}
-	private remember(read: SourceRead, previousRevision: string | null) {
+	private remember(
+		read: SourceRead,
+		previousRevision: string | null,
+		history: SourceFetchOptions["history"],
+	) {
 		this.reusable.delete(read.record.id);
-		this.reusable.set(read.record.id, { read, previousRevision });
+		this.reusable.set(read.record.id, { read, previousRevision, history });
 		let entries = [...this.reusable.values()].reduce(
 			(count, value) => count + value.read.record.entries.length,
 			0,
@@ -191,14 +218,16 @@ export class SourcesApplication {
 	async collect(
 		reference: SourceReference,
 		refresh = false,
+		history?: SourceFetchOptions["history"],
 	): Promise<SourceSnapshot> {
 		this.context.open();
 		const plan = this.query.plan(reference);
 		if (!plan) this.rss.configuration(reference);
+		const mode = plan ? history : undefined;
 		const saved = this.evidence.read(reference.id);
 		if (saved?.error && saved.nextAttemptAt > this.context.now())
 			throw new SourceError(saved.error, saved.nextAttemptAt);
-		if (refresh) return this.refresh(reference);
+		if (refresh) return this.refresh(reference, mode);
 		const cached = this.reusable.get(reference.id);
 		const cachedCurrent =
 			cached &&
@@ -207,7 +236,12 @@ export class SourcesApplication {
 				(cached.previousRevision === null &&
 					(!saved || (saved.checkedAt === null && !saved.error))));
 		const cachedUsable =
-			cachedCurrent && cached.read.valid() && this.usable(cached.read.record);
+			cachedCurrent &&
+			(mode === cached.history ||
+				saved?.revision === cached.read.record.revision ||
+				(!cached.history && !needsHistoryCollection(cached.read.record))) &&
+			cached.read.valid() &&
+			this.usable(cached.read.record, mode);
 		if (
 			cached &&
 			cachedUsable &&
@@ -224,7 +258,7 @@ export class SourcesApplication {
 			return this.prepare(cached.read);
 		}
 		if (cached && !cachedUsable) this.reusable.delete(reference.id);
-		if (saved && this.usable(saved)) {
+		if (saved && this.usable(saved, mode)) {
 			const read: SourceRead = {
 				record: saved,
 				generation: plan?.generation ?? null,
@@ -244,27 +278,31 @@ export class SourcesApplication {
 			);
 			return this.prepare(read);
 		}
-		return this.refresh(reference);
+		return this.refresh(reference, mode);
 	}
-	async refresh(reference: SourceReference): Promise<SourceSnapshot> {
+	async refresh(
+		reference: SourceReference,
+		history?: SourceFetchOptions["history"],
+	): Promise<SourceSnapshot> {
 		this.context.open();
 		// Validate provenance before coalescing: another instance cannot borrow an in-flight reference.
 		const query = Boolean(this.query.plan(reference));
 		if (!query) this.rss.configuration(reference);
-		const current = this.fetching.get(reference.id);
+		const key = history ? `${reference.id}:${history}` : reference.id;
+		const current = this.fetching.get(key);
 		if (current) return current;
 		if (this.fetching.size >= 32) throw new SourceError("source_busy");
 		const previousRevision = this.evidence.read(reference.id)?.revision ?? null;
 		const task = (async () => {
 			const read = await (query
-				? this.query.refresh(reference)
+				? this.query.refresh(reference, history)
 				: this.rss.refresh(reference));
 			this.context.open();
-			this.remember(read, previousRevision);
+			this.remember(read, previousRevision, history);
 			return this.prepare(read, previousRevision);
 		})();
-		this.fetching.set(reference.id, task);
-		void task.finally(() => this.fetching.delete(reference.id)).catch(() => {});
+		this.fetching.set(key, task);
+		void task.finally(() => this.fetching.delete(key)).catch(() => {});
 		return task;
 	}
 	isCurrent(result: SourceSnapshot) {
@@ -282,12 +320,34 @@ export class SourcesApplication {
 		const prepared = this.prepared.get(result);
 		if (!prepared || !this.isCurrent(result))
 			throw new SourceError("source_conflict");
+		const before = this.evidence.read(result.id)?.jackettHistory;
 		this.options.store.transaction(() => {
 			if (!this.isCurrent(result)) throw new SourceError("source_conflict");
 			prepared.read.persist();
 			this.downloads.publish(prepared.read.record, prepared.read.generation);
 			writeCandidates();
 		});
+		const after = prepared.read.record.jackettHistory;
+		if (after && JSON.stringify(before) !== JSON.stringify(after)) {
+			const action = after.active
+				? before?.active
+					? "advanced"
+					: "started"
+				: "stopped";
+			this.options.logger.info(
+				{
+					event: "acquisition.jackett_history",
+					sourceId: result.id,
+					action,
+					keywords: after.scan.keywords.map(
+						(cursor) =>
+							cursor &&
+							("offset" in cursor ? { offset: cursor.offset } : cursor),
+					),
+				},
+				"Jackett history progress published.",
+			);
+		}
 		this.options.logger.debug(
 			{
 				event: "acquisition.source_published",
@@ -299,7 +359,7 @@ export class SourcesApplication {
 	}
 	async fetch(
 		input: SourceInput | string,
-		options: { refresh?: boolean } = {},
+		options: SourceFetchOptions = {},
 	): Promise<SourcePublication> {
 		const reference =
 			typeof input === "string"
@@ -309,7 +369,11 @@ export class SourcesApplication {
 		this.bind(reference);
 		const previous = this.snapshot(reference.id);
 		try {
-			const result = await this.collect(reference, options.refresh);
+			const result = await this.collect(
+				reference,
+				options.refresh,
+				options.history,
+			);
 			const prepared = this.prepared.get(result);
 			if (!prepared) throw new SourceError("source_conflict");
 			return Object.freeze({

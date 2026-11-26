@@ -5,10 +5,22 @@ export interface SourceEntry extends ReleaseAttributes {
 	guid?: string;
 	sourceId?: string;
 	generation?: string;
+	observedAt?: number;
 	download?: ReleaseDownload | null;
 	downloadUrl: string | null;
 }
+export type JackettScanStop = "end" | "missing_pagination" | "repeated_page";
+export interface JackettScan {
+	/** Indexed by the immutable, normalized title order in the source binding. */
+	keywords: readonly (
+		| { offset: number; overlap: number; fingerprints: readonly string[] }
+		| { stop: JackettScanStop }
+		| null
+	)[];
+	firstKeyword: number;
+}
 export interface SourceRecord {
+	jackettHistory?: { scan: JackettScan; active: boolean };
 	coverage?: SearchCoverage;
 	outcome?: "matches" | "no_match";
 	id: string;
@@ -43,6 +55,7 @@ export class SourceError extends Error {
 
 export const sourcePolicy = {
 	refreshIntervalMs: 30 * 60_000,
+	historyIntervalMs: 5 * 60_000,
 	requestIntervalMs: 5000,
 	jackettRequestIntervalMs: 10000,
 	retryMaximumMs: 60 * 60_000,

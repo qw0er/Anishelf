@@ -4,6 +4,7 @@ import {
 	type SourcePublication,
 	type SourceSnapshot,
 } from "../../sources/public.js";
+import { needsHistory, waitingForAiring } from "../domain/airing-schedule.js";
 import type { Candidate, Subscription } from "../domain/model.js";
 import type { SubscriptionsContext } from "./context.js";
 export class SubscriptionWorker {
@@ -17,11 +18,15 @@ export class SubscriptionWorker {
 			target: AcquisitionTarget,
 		) => Promise<Candidate[]>,
 	) {}
-	pollSource(feed: SourceSnapshot, manual = false): Promise<void> {
+	pollSource(
+		feed: SourceSnapshot,
+		options: { manual?: boolean; initial?: SourcePublication } = {},
+	): Promise<void> {
+		const { manual = false, initial } = options;
 		if (manual) this.manualSources.add(feed.id);
 		const current = this.polling.get(feed.id);
 		if (current) return current;
-		const task = this.runSource(feed, manual);
+		const task = this.runSource(feed, { manual, initial });
 		this.polling.set(feed.id, task);
 		void task
 			.finally(() => {
@@ -31,16 +36,26 @@ export class SubscriptionWorker {
 			.catch(() => {});
 		return task;
 	}
-	private async runSource(feed: SourceSnapshot, manual: boolean) {
+	private async runSource(
+		feed: SourceSnapshot,
+		{
+			manual,
+			initial,
+		}: { manual: boolean; initial: SourcePublication | undefined },
+	) {
 		try {
 			const owners = this.context.options.store
 				.subscriptions()
 				.filter(
 					(item) => this.context.runnable(item) && item.feedId === feed.id,
 				);
-			await Promise.all(
-				owners.map((sub) => this.context.scheduling.ensure(sub)),
+			const targets = await Promise.all(
+				owners.map(
+					async (sub) =>
+						[sub.workKey, await this.context.scheduling.read(sub)] as const,
+				),
 			);
+			const byWork = new Map(targets);
 			this.context.open();
 			const currentOwners = owners.flatMap((owner) => {
 				const sub = this.context.options.store.subscription(owner.workKey);
@@ -52,16 +67,35 @@ export class SubscriptionWorker {
 					: [];
 			});
 			manual ||= this.manualSources.has(feed.id);
-			const owner = currentOwners.find(
-				(sub) => manual || this.context.scheduling.maySearch(sub),
+			const due = currentOwners.find(
+				(sub) => initial || manual || this.context.scheduling.maySearch(sub),
 			);
+			// A new owner of a shared source can assess its saved evidence immediately.
+			const owner =
+				due ??
+				currentOwners.find(
+					(sub) =>
+						feed.checkedAt !== null &&
+						sub.schedule?.lastAttemptAt == null &&
+						(!sub.schedule || !waitingForAiring(sub.schedule)),
+				);
 			if (!owner) return;
 			for (const sub of currentOwners)
 				this.context.scheduling.attempted(sub, manual);
-			const publication = await this.context.options.sources.fetch(
-				owner.sourceInput ?? feed.id,
-				{ refresh: feed.checkedAt !== null },
+			const scan = currentOwners.some((sub) =>
+				needsHistory(sub, byWork.get(sub.workKey) ?? null, this.context.now()),
 			);
+			const publication =
+				initial ??
+				(await this.context.options.sources.fetch(
+					owner.sourceInput ?? feed.id,
+					due
+						? {
+								refresh: feed.checkedAt !== null,
+								history: scan ? "continue" : "hold",
+							}
+						: {},
+				));
 			const updated = publication.snapshot;
 			this.context.open();
 			const subscriptions = this.context.options.store

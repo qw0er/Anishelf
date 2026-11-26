@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pino from "pino";
 import { MockAgent } from "undici";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
 import { SourcesApplication } from "../../../../src/modules/acquisition/sources/application/application.js";
 import { SourceRequestGate } from "../../../../src/modules/acquisition/sources/infrastructure/request-gate.js";
@@ -655,6 +655,74 @@ test("page limit bounds work and lower advertised limits are used", async () => 
 		reason: "page_limit",
 		pages: 3,
 	});
+	f.agent.assertNoPendingInterceptors();
+});
+
+test("a continuation round refreshes every title's homepage before reading overlapping historical pages", async () => {
+	let now = 1_000;
+	const f = wire({ now: () => now });
+	const request = vi.spyOn(f.transport, "api");
+	f.api({ t: "caps" }, caps.replace('default="2"', 'default="4"'));
+	const titles = ["Example", "Alternate"];
+	const expectPage = (
+		title: string,
+		offset: number,
+		ids: string[],
+		total = 30,
+	) =>
+		f.api(
+			{ t: "search", q: title, limit: "4", offset: String(offset) },
+			page(
+				ids
+					.map((id) => `<item><title>${id}</title><guid>${id}</guid></item>`)
+					.join(""),
+				`<torznab:response offset="${offset}" total="${total}"/>`,
+			),
+		);
+	const first = ["23", "22", "21", "20"];
+	const middle = ["19", "18", "17", "16"];
+	const last = ["15", "14", "13", "12"];
+	expectPage("Example", 0, first);
+	expectPage("Alternate", 0, ["A"], 1);
+	expectPage("Example", 4, middle);
+	expectPage("Example", 8, last);
+	const query = { ...plan, titles };
+	const initial = await f.client.search(query, signal(), {
+		keywords: [null, null],
+		firstKeyword: 0,
+	});
+	expect(
+		request.mock.calls.slice(1).map(([, query]) => [query.q, query.offset]),
+	).toEqual([
+		["Example", "0"],
+		["Alternate", "0"],
+		["Example", "4"],
+		["Example", "8"],
+	]);
+	expect(initial.scan?.keywords).toMatchObject([
+		{ offset: 12, overlap: 1 },
+		{ stop: "end" },
+	]);
+
+	now += 5 * 60_000;
+	expectPage("Example", 0, ["24", ...first.slice(0, 3)]);
+	expectPage("Alternate", 0, ["A"], 1);
+	expectPage("Example", 11, ["13", "12", "11", "10"]);
+	// The source ignored the next offset and returned the homepage again.
+	expectPage("Example", 15, ["24", ...first.slice(0, 3)]);
+	const next = await f.client.search(query, signal(), initial.scan);
+	expect(next.entries.map(({ title }) => title)).toContain("24");
+	expect(next.entries.map(({ title }) => title)).toContain("10");
+	expect(next.coverage).toEqual({
+		limited: true,
+		reason: "repeated_page",
+		pages: 4,
+		queries: 2,
+	});
+	expect(next.scan?.keywords).toEqual([
+		{ stop: "repeated_page" },
+		{ stop: "end" },
+	]);
 	f.agent.assertNoPendingInterceptors();
 });
 

@@ -1,5 +1,6 @@
 import { DomainError } from "../../../../shared/errors.js";
 import { SourceError, type SourcePublication } from "../../sources/public.js";
+import { needsHistory } from "../domain/airing-schedule.js";
 import type {
 	SubscriptionSearchInput,
 	SubscriptionSearchResult,
@@ -17,14 +18,24 @@ import {
 	shortlistPacks,
 } from "./coverage.js";
 
+type SearchSource = NonNullable<SubscriptionSearchResult["source"]>;
+export interface DiscoveryCollection {
+	source: SearchSource;
+	publication: SourcePublication;
+}
+interface DiscoveryOptions {
+	permitted?: () => boolean;
+	refresh?: boolean;
+	collected?(publications: readonly DiscoveryCollection[]): void;
+}
+
 /** Discovery prepares a choice; only saving a subscription can grant download permission. */
 export class SubscriptionDiscovery {
 	private readonly running = new Set<string>();
 	constructor(private readonly context: SubscriptionsContext) {}
 	search(
 		input: SubscriptionSearchInput,
-		permitted?: () => boolean,
-		refresh = false,
+		options: DiscoveryOptions = {},
 	): Promise<SubscriptionSearchResult> {
 		if (this.running.has(input.workKey) || this.running.size >= 2)
 			throw new DomainError(
@@ -33,13 +44,12 @@ export class SubscriptionDiscovery {
 			);
 		this.running.add(input.workKey);
 		return this.context
-			.tracked(() => this.run(input, permitted, refresh))
+			.tracked(() => this.run(input, options))
 			.finally(() => this.running.delete(input.workKey));
 	}
 	private async run(
 		input: SubscriptionSearchInput,
-		permitted?: () => boolean,
-		refresh = false,
+		{ permitted, refresh = false, collected }: DiscoveryOptions,
 	): Promise<SubscriptionSearchResult> {
 		const { options } = this.context;
 		const settings = options.sources.connector.settings();
@@ -127,12 +137,20 @@ export class SubscriptionDiscovery {
 			);
 		guard();
 		const attempts: SubscriptionSearchResult["attempts"] = [];
-		type SearchSource = NonNullable<SubscriptionSearchResult["source"]>;
-		const publications: {
-			source: SearchSource;
-			publication: SourcePublication;
-			attempt: number;
-		}[] = [];
+		const publications: (DiscoveryCollection & { attempt: number })[] = [];
+		const history = collected
+			? needsHistory(
+					{
+						startEpisode: input.startEpisode,
+						schedule:
+							options.store.subscription(input.workKey)?.schedule ?? null,
+					},
+					target,
+					this.context.now(),
+				)
+				? "continue"
+				: "hold"
+			: undefined;
 		const assess = (
 			publication: SourcePublication,
 		): Parameters<typeof selectCandidates>[0] => ({
@@ -210,6 +228,7 @@ export class SubscriptionDiscovery {
 			eligible: ReturnType<typeof selectCandidates>,
 		) => {
 			options.sources.snapshot(source);
+			collected?.(publications);
 			return {
 				source,
 				attempts,
@@ -230,7 +249,10 @@ export class SubscriptionDiscovery {
 				titles,
 			};
 			try {
-				const publication = await options.sources.fetch(source, { refresh });
+				const publication = await options.sources.fetch(source, {
+					refresh,
+					...(history ? { history } : {}),
+				});
 				guard();
 				const attempt = attempts.length;
 				attempts.length++;
@@ -375,6 +397,7 @@ export class SubscriptionDiscovery {
 			const best = ranked[0];
 			if (best) return result(best.source, best.eligible);
 		}
+		collected?.(publications);
 		return { source: null, attempts, releases: [] };
 	}
 }

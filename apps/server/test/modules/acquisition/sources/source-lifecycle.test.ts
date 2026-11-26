@@ -175,6 +175,78 @@ test("coalesced requests share one revision; older same-query results and delaye
 	expect(() => f.sources.publish({ ...newer })).toThrow();
 });
 
+test("history progress and evidence are published atomically and ordinary fetches cannot advance or erase the cursor", async () => {
+	const f = await fixture();
+	const firstScan = {
+		keywords: [{ offset: 12, overlap: 1, fingerprints: [] }, null],
+		firstKeyword: 0,
+	};
+	f.sources.bind(f.reference);
+	const id = f.reference.id;
+	f.search.mockResolvedValueOnce({ ...f.result, scan: firstScan });
+	const first = await f.sources.fetch(id, { history: "continue" });
+	expect(first.snapshot).not.toHaveProperty("jackettHistory");
+	first.commit(() => {});
+	expect(
+		f.database.acquisition.source(id)?.snapshot?.jackettHistory?.scan,
+	).toEqual(firstScan);
+
+	f.setClock(301_000);
+	const nextScan = {
+		...firstScan,
+		keywords: [{ offset: 18, overlap: 1, fingerprints: [] }, null],
+	};
+	f.search.mockResolvedValueOnce({
+		...f.result,
+		entries: [],
+		outcome: "no_match",
+		scan: nextScan,
+	});
+	const advanced = await f.sources.fetch(id, {
+		history: "continue",
+		refresh: true,
+	});
+	const ordinary = await f.sources.fetch(id);
+	expect(ordinary.snapshot.revision).toBe(first.snapshot.revision);
+	expect(f.search.mock.calls[1]?.[1]).toEqual(firstScan);
+	expect(() =>
+		advanced.commit(() => {
+			throw new Error("candidate write failed");
+		}),
+	).toThrow("candidate write failed");
+	expect(f.sources.snapshot(id)).toEqual(first.snapshot);
+	expect(
+		f.database.acquisition.source(id)?.snapshot?.jackettHistory?.scan,
+	).toEqual(firstScan);
+
+	const stale = await f.sources.fetch(id, { refresh: true });
+	advanced.commit(() => {});
+	expect(() => stale.commit(() => {})).toThrow(SourceError);
+	expect(advanced.snapshot.entries).toEqual(first.snapshot.entries);
+	const latest = await f.sources.fetch(id, { refresh: true });
+	latest.commit(() => {});
+	expect(f.database.acquisition.source(id)?.snapshot).toMatchObject({
+		jackettHistory: { scan: nextScan, active: true },
+		nextAttemptAt: 601_000,
+	});
+	expect(f.search.mock.calls[3]?.[1]).toBeUndefined();
+
+	f.setClock(601_000);
+	f.search.mockRejectedValueOnce(new SourceError("rate_limited", 901_000));
+	await expect(
+		f.sources.fetch(id, { history: "continue", refresh: true }),
+	).rejects.toMatchObject({ code: "rate_limited" });
+	expect(f.database.acquisition.source(id)?.snapshot).toMatchObject({
+		jackettHistory: { scan: nextScan },
+		nextAttemptAt: 901_000,
+	});
+	const calls = f.search.mock.calls.length;
+	await expect(
+		f.sources.fetch(id, { history: "continue", refresh: true }),
+	).rejects.toMatchObject({ retryAt: 901_000 });
+	expect(f.search).toHaveBeenCalledTimes(calls);
+});
+
 test("generation changes fence saved bindings and in-flight evidence without inheriting new credentials", async () => {
 	const f = await fixture();
 	vi.useFakeTimers();

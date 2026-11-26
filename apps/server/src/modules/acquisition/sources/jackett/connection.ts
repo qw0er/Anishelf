@@ -258,12 +258,15 @@ export class JackettConnection {
 			};
 		});
 	}
-	async search(input: SourceQuery) {
+	async search(
+		input: SourceQuery,
+		scan?: Parameters<JackettClient["search"]>[2],
+	) {
 		const plan = this.plan(input),
 			started = Date.now();
 		try {
 			const result = await this.run(plan.generation, (client, signal) =>
-				client.search(plan, signal),
+				client.search(plan, signal, scan),
 			);
 			this.logger.info(
 				{

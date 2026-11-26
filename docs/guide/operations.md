@@ -118,7 +118,7 @@ independent of the default encoding profile.
 
 | Setting | Behavior |
 | --- | --- |
-| Source refresh interval | RSS and Jackett refresh on a fixed 30-minute interval. Use **Check now** in a subscription's actions to request an immediate check. |
+| Source refresh interval | RSS and Jackett normally refresh every 30 minutes. Jackett subscriptions with aired gaps and older search results still to scan continue every five minutes. Use **Check now** in a subscription's actions to request an immediate check. |
 | Failed-source retries | Follow source backoff and rate limits |
 | Default selection profile | Global choice with optional per-subscription override |
 | Watching creation | Optional, default off; creates ordinary subscriptions |

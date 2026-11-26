@@ -29,11 +29,12 @@ export class JackettQueryCache<T> {
 			ttlMs: number;
 			weight: number;
 		}>,
+		options: { refresh?: boolean } = {},
 	): Promise<{ value: T; cache: "hit" | "shared" | "miss" }> {
 		if (this.closed || signal.aborted)
 			throw new SourceError("request_cancelled");
 		const cached = this.saved.get(key);
-		if (cached && cached.expiresAt > this.now()) {
+		if (!options.refresh && cached && cached.expiresAt > this.now()) {
 			this.saved.delete(key);
 			this.saved.set(key, cached);
 			return { value: cached.value, cache: "hit" };

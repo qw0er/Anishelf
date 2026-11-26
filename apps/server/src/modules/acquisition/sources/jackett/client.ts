@@ -1,9 +1,13 @@
-import { createHash } from "node:crypto";
 import type { Logger } from "pino";
 import type { SourceQuery } from "../domain/binding.js";
 import type { ReleaseDownload } from "../domain/download.js";
-import { type SourceEntry, SourceError } from "../domain/model.js";
+import {
+	type JackettScan,
+	type SourceEntry,
+	SourceError,
+} from "../domain/model.js";
 import type { SourceRequestGate } from "../infrastructure/request-gate.js";
+import { pageFingerprint, readHistory } from "./history.js";
 import type { JackettCapabilities, SearchCoverage } from "./model.js";
 import { JackettQueryCache } from "./query-cache.js";
 import type { JackettTransport } from "./transport.js";
@@ -90,6 +94,7 @@ export class JackettClient {
 		limit: number,
 		offset: number,
 		signal: AbortSignal,
+		refresh = false,
 	) {
 		const key = JSON.stringify([
 			this.transport.generation,
@@ -98,46 +103,73 @@ export class JackettClient {
 			limit,
 			offset,
 		]);
-		const result = await this.pages.read(key, signal, async (shared) => {
-			let weight = 0;
-			const parsed = await this.response(
-				id,
-				{ t: "search", q: title, limit: String(limit), offset: String(offset) },
-				shared,
-				(xml) => {
-					weight = Buffer.byteLength(xml);
-					return releases(
-						xml,
-						{ id, generation: this.transport.generation },
-						(url) => this.transport.download(url, id),
-					);
-				},
-			);
-			const observedAt = this.now();
-			return {
-				value: {
-					...parsed,
-					entries: parsed.entries.map((entry) => ({
-						...entry,
-						title: this.transport.redact(entry.title),
-						guid: this.transport.redact(entry.guid ?? ""),
-						seedersObservedAt: entry.seeders == null ? null : observedAt,
-					})),
-				},
-				ttlMs: parsed.count ? 10 * 60_000 : 5 * 60_000,
-				weight,
-			};
-		});
+		const result = await this.pages.read(
+			key,
+			signal,
+			async (shared) => {
+				let weight = 0;
+				const parsed = await this.response(
+					id,
+					{
+						t: "search",
+						q: title,
+						limit: String(limit),
+						offset: String(offset),
+					},
+					shared,
+					(xml) => {
+						weight = Buffer.byteLength(xml);
+						return releases(
+							xml,
+							{ id, generation: this.transport.generation },
+							(url) => this.transport.download(url, id),
+						);
+					},
+				);
+				const observedAt = this.now();
+				return {
+					value: {
+						...parsed,
+						entries: parsed.entries.map((entry) => ({
+							...entry,
+							title: this.transport.redact(entry.title),
+							guid: this.transport.redact(entry.guid ?? ""),
+							observedAt,
+							seedersObservedAt: entry.seeders == null ? null : observedAt,
+						})),
+					},
+					ttlMs: parsed.count ? 10 * 60_000 : 5 * 60_000,
+					weight,
+				};
+			},
+			{ refresh },
+		);
 		this.cacheLog(id, "search_page", result.cache);
 		return result.value;
 	}
-	async search(plan: SourceQuery, signal: AbortSignal) {
+	async search(
+		plan: SourceQuery,
+		signal: AbortSignal,
+		scan?: JackettScan,
+	): Promise<{
+		entries: SourceEntry[];
+		coverage: SearchCoverage;
+		outcome: "matches" | "no_match";
+		scan?: JackettScan;
+	}> {
 		if (plan.generation !== this.transport.generation)
 			throw new SourceError("source_conflict");
 		const titles = titleQueries(plan.titles),
 			id = indexerId(plan.indexerId);
 		const caps = await this.capabilities(id, signal);
 		if (!caps.search) throw new SourceError("unsupported_capability");
+		if (scan)
+			return readHistory(
+				titles,
+				(title, offset) =>
+					this.page(id, title, caps.limit, offset, signal, offset === 0),
+				scan,
+			);
 		const coverage: SearchCoverage = {
 			limited: false,
 			reason: null,
@@ -153,14 +185,7 @@ export class JackettClient {
 			for (let page = 0; page < 3; page++) {
 				const result = await this.page(id, title, caps.limit, offset, signal);
 				coverage.pages++;
-				const fingerprint = createHash("sha256")
-					.update(
-						result.entries
-							.map((entry) => entry.id)
-							.sort()
-							.join("\n"),
-					)
-					.digest("hex");
+				const fingerprint = pageFingerprint(result);
 				if (seen.has(fingerprint) && result.count > 0) {
 					coverage.limited = true;
 					coverage.reason = "repeated_page";

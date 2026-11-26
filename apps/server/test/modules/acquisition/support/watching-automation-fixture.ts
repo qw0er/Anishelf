@@ -9,7 +9,10 @@ import { JackettConnection } from "../../../../src/modules/acquisition/sources/j
 import { SubscriptionsApplication } from "../../../../src/modules/acquisition/subscriptions/application/application.js";
 import { WatchingApplication } from "../../../../src/modules/acquisition/watching/application/application.js";
 import type { WatchingSnapshot } from "../../../../src/modules/acquisition/watching/public.js";
-import type { AcquisitionTarget } from "../../../../src/modules/anime/public.js";
+import type {
+	AcquisitionTarget,
+	ReleaseAssessmentApi,
+} from "../../../../src/modules/anime/public.js";
 
 export const cleanup: (() => unknown)[] = [];
 
@@ -24,7 +27,9 @@ export const config = {
 	backlog: "progress" as const,
 };
 
-export async function fixture() {
+export async function fixture(
+	assessReleaseTitle?: ReleaseAssessmentApi["assessReleaseTitle"],
+) {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-watching-"));
 	cleanup.push(() => rm(directory, { recursive: true, force: true }));
 	let clock = 1000000;
@@ -110,13 +115,15 @@ export async function fixture() {
 			sources: sources.api,
 			anime: {
 				target: readTarget,
-				assessReleaseTitle: () => ({
-					episode: 3,
-					eligible: true,
-					inspectionCandidate: true,
-					reasons: [],
-					version: "v1",
-				}),
+				assessReleaseTitle:
+					assessReleaseTitle ??
+					(() => ({
+						episode: 3,
+						eligible: true,
+						inspectionCandidate: true,
+						reasons: [],
+						version: "v1",
+					})),
 			},
 			downloads,
 			lockedCandidates: (key) => db.acquisitionDownloads.lockedCandidates(key),

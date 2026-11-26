@@ -31,6 +31,20 @@ export function waitingForAiring(schedule: AiringSchedule) {
 		"release_delay",
 	].includes(schedule.reason);
 }
+export function needsHistory(
+	sub: Pick<Subscription, "startEpisode" | "schedule">,
+	target: AcquisitionTarget | null,
+	now: number,
+) {
+	if (!target) return false;
+	const schedule = scheduleAiring(sub, target, now, 0);
+	const total = target.work.episodeCount;
+	return (
+		schedule.episode !== null &&
+		(total === null || schedule.episode <= total) &&
+		!waitingForAiring(schedule)
+	);
+}
 /** Airing is a search hint, never release eligibility or download authorization. All times are epoch milliseconds. */
 export function scheduleAiring(
 	sub: Pick<Subscription, "startEpisode" | "schedule">,

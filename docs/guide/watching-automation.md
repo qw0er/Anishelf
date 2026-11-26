@@ -62,6 +62,14 @@ per pass. Unresolved discovery retries after five minutes; **Check updates** byp
 that local wait and collection cache while respecting transport limits. Source refresh defaults to 30
 minutes. Limits are 64 subscriptions and 500 current Watching or Rewatching works.
 
+When aired episodes are missing and a Jackett search has more pages, the
+subscription checks every five minutes. Each check reads the newest page for
+each title and continues from its saved position in the older results. Releases
+from earlier checks remain available for selection, up to 2,000 per source.
+Pending discovery saves progress for each site it checks, and a restart resumes
+from the last saved position. Ordinary refresh resumes when the scan ends or
+the aired gaps are covered. Source cooldowns still apply.
+
 ## Selective season packs
 
 For initial automatic discovery, Anishelf compares the requested episodes that

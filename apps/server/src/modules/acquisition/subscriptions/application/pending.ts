@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { SourcePublication } from "../../sources/public.js";
 import type { Subscription } from "../domain/model.js";
 import {
 	acquisitionProfileFingerprint,
@@ -6,7 +7,10 @@ import {
 	defaultAcquisitionProfileId,
 } from "../domain/profiles.js";
 import type { SubscriptionsContext } from "./context.js";
-import type { SubscriptionDiscovery } from "./discovery.js";
+import type {
+	DiscoveryCollection,
+	SubscriptionDiscovery,
+} from "./discovery.js";
 
 /** A persisted subscription may wait for a site; no download permission exists until binding succeeds. */
 export class PendingSubscriptions {
@@ -14,6 +18,7 @@ export class PendingSubscriptions {
 	constructor(
 		private readonly context: SubscriptionsContext,
 		private readonly discovery: SubscriptionDiscovery,
+		private readonly onBound: (publication: SourcePublication) => Promise<void>,
 	) {}
 	tick(): Promise<void> {
 		if (this.running) return this.running;
@@ -70,6 +75,10 @@ export class PendingSubscriptions {
 			);
 		};
 		let discovery = sub.discovery;
+		let collected: readonly DiscoveryCollection[] = [];
+		const checkpoint = () => {
+			for (const { publication } of collected) publication.commit(() => {});
+		};
 		const retain = (reason: string, retryAt = 0) => {
 			if (!current()) return;
 			options.store.saveSubscription(
@@ -109,8 +118,13 @@ export class PendingSubscriptions {
 					startEpisode: sub.startEpisode,
 					profileId: sub.profileId ?? null,
 				},
-				current,
-				force,
+				{
+					permitted: current,
+					refresh: force,
+					collected: (publications) => {
+						collected = publications;
+					},
+				},
 			);
 			if (!current()) return;
 			if (!permitted()) {
@@ -133,16 +147,24 @@ export class PendingSubscriptions {
 					);
 					return;
 				}
-				retain(
-					result.attempts.some((attempt) => attempt.outcome === "unavailable")
-						? "discovery_unavailable"
-						: "no_eligible_source",
-				);
+				options.store.transaction(() => {
+					checkpoint();
+					retain(
+						result.attempts.some((attempt) => attempt.outcome === "unavailable")
+							? "discovery_unavailable"
+							: "no_eligible_source",
+					);
+				});
 				return;
 			}
 			const source = result.source;
+			const selected = collected.find(
+				(entry) => entry.source === source,
+			)?.publication;
+			let bound = false;
 			options.store.transaction(() => {
 				if (!current() || !permitted()) return;
+				checkpoint();
 				const feed = options.sources.snapshot(source);
 				if (!feed) return;
 				const resolved = {
@@ -162,6 +184,7 @@ export class PendingSubscriptions {
 						startEpisode: sub.startEpisode,
 						...scope.target,
 					});
+				bound = true;
 				options.logger.info(
 					{
 						event: "acquisition.subscription_source_bound",
@@ -172,6 +195,7 @@ export class PendingSubscriptions {
 					"Background discovery bound the subscription and its accepted download scope.",
 				);
 			});
+			if (bound && selected) await this.onBound(selected);
 		} catch {
 			retain("discovery_unavailable");
 		}

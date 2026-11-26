@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest";
+import { readHistory } from "../../../src/modules/acquisition/sources/jackett/history.js";
 import { SubscriptionDiscovery } from "../../../src/modules/acquisition/subscriptions/application/discovery.js";
 
 import {
@@ -9,6 +10,142 @@ import {
 } from "./support/watching-automation-fixture.js";
 
 setupTestLifecycle();
+
+test.each(["bound", "pending"] as const)(
+	"%s subscriptions can find a new episode and an old gap in the same round after a restart",
+	async (state) => {
+		const f = await fixture((title) => {
+			const match = /^Frieren - (\d+)$/.exec(title);
+			return {
+				episode: match ? Number(match[1]) : null,
+				eligible: !!match,
+				inspectionCandidate: false,
+				reasons: [],
+				version: "v1",
+			};
+		});
+		f.target.work.episodeCount = 24;
+		f.target.airing = {
+			status: "RELEASING",
+			nextEpisode: { episode: 24, airingAt: 4_600_000 },
+			fetchedAt: 1_000_000,
+			stale: false,
+			refreshError: false,
+		};
+		required(f.snapshot.entries[0]).progress = 0;
+		const makeEntry = (title: string, id: string) => ({
+			id,
+			observationId: id,
+			title,
+			publishedAt: null,
+			downloadUrl: null,
+			hash: null,
+			download: {
+				kind: "magnet" as const,
+				uri: `magnet:?xt=urn:btih:${"a".repeat(40)}`,
+			},
+		});
+		const calls: number[] = [];
+		let nextRound = false;
+		f.search.mockImplementation(async ({ titles }, scan) => {
+			if (!scan)
+				return {
+					entries: [makeEntry("Frieren - 24", "new")],
+					coverage: { limited: false, reason: null, pages: 1, queries: 1 },
+					outcome: "matches",
+				};
+			return readHistory(
+				titles,
+				async (_title, offset) => {
+					calls.push(offset);
+					const title =
+						nextRound && offset === 0
+							? "Frieren - 24"
+							: offset === 4
+								? "Frieren - 01"
+								: state === "bound" && offset === 0
+									? "Frieren - 23"
+									: `Unrelated ${offset}`;
+					const id = nextRound && offset === 0 ? "new" : String(offset);
+					return {
+						entries: [makeEntry(title, id)],
+						offset,
+						total: 12,
+						count: 1,
+					};
+				},
+				scan,
+			);
+		});
+		if (state === "pending") {
+			await f.enable();
+			await f.watching.tick();
+		} else {
+			await f.subscriptions.save({
+				workKey,
+				revision: null,
+				source: { kind: "automatic" },
+				startEpisode: 1,
+				target: null,
+			});
+		}
+		await f.subscriptions.resolvePending();
+		expect(calls).toEqual([0, 1, 2]);
+		const saved = required(f.db.acquisition.sources()[0]);
+		expect(saved.snapshot?.jackettHistory?.scan.keywords).toMatchObject([
+			{ offset: 3 },
+		]);
+		expect(saved.snapshot?.nextAttemptAt).toBe(1_300_000);
+		expect(f.db.acquisition.subscription(workKey)?.feedId).toBe(
+			state === "bound" ? saved.id : null,
+		);
+		expect(
+			f.db.acquisition
+				.candidates(workKey)
+				.some(({ episode }) => episode === 23),
+		).toBe(state === "bound");
+
+		await f.watching.close();
+		await f.subscriptions.close();
+		await f.sources.runtime.close();
+		f.db.close();
+		const reopened = await f.open();
+		nextRound = true;
+		const check = () =>
+			state === "bound"
+				? reopened.subscriptions.refreshSource(saved.id)
+				: reopened.subscriptions.resolvePending();
+		f.advanceBy(299_999);
+		await check();
+		expect(calls).toEqual([0, 1, 2]);
+		f.advanceBy(1);
+		await check();
+		expect(calls).toEqual([0, 1, 2, 0, 3, 4]);
+		expect(reopened.db.acquisition.subscription(workKey)?.feedId).toBe(
+			saved.id,
+		);
+		const selected = reopened.db.acquisition
+			.candidates(workKey)
+			.filter(({ chosen }) => chosen)
+			.map(({ episode }) => episode)
+			.sort();
+		expect(selected).toEqual(state === "bound" ? [1, 23, 24] : [1, 24]);
+
+		f.target.availableEpisodes = Array.from(
+			{ length: 23 },
+			(_, index) => index + 1,
+		);
+		const revision = required(
+			reopened.db.acquisition.subscription(workKey),
+		).revision;
+		await reopened.subscriptions.refresh(workKey, revision);
+		expect(reopened.db.acquisition.source(saved.id)?.snapshot).toMatchObject({
+			jackettHistory: { active: false, scan: { keywords: [{ offset: 5 }] } },
+			nextAttemptAt: 3_100_000,
+		});
+		expect(calls).toHaveLength(6);
+	},
+);
 
 test("empty discovery retains intent, freezes its creation scope, retries and survives reopen", async () => {
 	const f = await fixture();

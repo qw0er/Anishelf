@@ -618,9 +618,10 @@ evidence without sending a new upstream request.
 Prepared and published evidence is reused for the configured refresh interval
 (default 30 minutes); empty results are reusable for at most five minutes. Prepared
 reuse is bounded to 64 sources / 10,000 entries and preserves source revision and
-connection fences. Diagnostic/discovery results remain uncommitted until an
-ordinary candidate transaction publishes them. Every cache hit still runs the
-consumer's current local/profile assessment and permission checks.
+connection fences. Diagnostics and interactive discovery leave evidence uncommitted.
+Saved subscriptions also checkpoint source evidence while waiting to bind a site.
+Every cache hit still runs the consumer's current local/profile assessment and
+permission checks.
 
 Jackett raw pages have bounded, connection-scoped caches (10 minutes for matches,
 five for empty pages, at most 128 pages / 10 MiB); capability results last 15 minutes.
@@ -628,7 +629,12 @@ Identical in-flight requests coalesce, and canceling one reader leaves other
 readers running. All consumers search each configured title keyword and merge
 results by release ID before business assessment. Eligible results never stop later
 keywords or pages. Pagination and item limits still bound collection and expose
-partial coverage; old business-accepted snapshots are recollected. RSS continues
+partial coverage. Subscriptions with aired gaps check every five minutes while
+older pages remain. Each round refreshes every keyword's homepage and advances
+private per-keyword positions within the existing page budget. The source
+snapshot stores those positions and up to 2,000 deduplicated release observations.
+Source publication fences positions and observations together, and
+`acquisition.jackett_history` records progress transitions. RSS continues
 conditional ETag/Last-Modified requests and retains evidence on 304.
 Torrent contents share a separate bounded 10-minute cache (64 entries / 32 MiB),
 with connection/authorization validation before reuse and independent cancellation.
