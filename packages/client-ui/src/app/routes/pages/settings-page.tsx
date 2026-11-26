@@ -6,7 +6,7 @@ import {
 	Play,
 	UserRound,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import {
@@ -58,6 +58,7 @@ function sectionPath(
 	section: SettingsSection,
 ): string {
 	const next = new URLSearchParams(params);
+	next.delete("checkUpdates");
 	next.set("section", section);
 	return `/settings?${next.toString()}`;
 }
@@ -74,7 +75,18 @@ export function SettingsPage({
 	const navigationRef = useCompactNavigation();
 	const preparation = usePreparationContext();
 	const { t } = useTranslation();
-	const [params] = useSearchParams();
+	const [params, setParams] = useSearchParams();
+	const clearCheckUpdates = useCallback(() => {
+		setParams(
+			(current) => {
+				if (!current.has("checkUpdates")) return current;
+				const next = new URLSearchParams(current);
+				next.delete("checkUpdates");
+				return next;
+			},
+			{ replace: true },
+		);
+	}, [setParams]);
 	const requestedSection = params.get("section");
 	const activeSection: SettingsSection =
 		isSettingsSection(requestedSection) &&
@@ -131,7 +143,12 @@ export function SettingsPage({
 							{desktopSettings}
 						</div>
 					)}
-					{activeSection === "about" && <AboutSettings />}
+					{activeSection === "about" && (
+						<AboutSettings
+							autoCheckKey={params.get("checkUpdates")}
+							onAutoCheckStarted={clearCheckUpdates}
+						/>
+					)}
 					<div
 						className={activeSection === "library" ? "stack-page" : "hidden"}
 						data-settings-section="library"

@@ -2,16 +2,20 @@ import { randomUUID } from "node:crypto";
 import { readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { app, Menu, nativeImage, Tray } from "electron";
+import { type DesktopLocale, resolveDesktopLocale } from "./locale.js";
 
 export class DesktopTray {
 	private readonly path: string;
+	private locale: DesktopLocale;
 	private tray: Tray | undefined;
 
 	constructor(
 		private readonly showWindow: () => void,
 		private readonly iconPath: string,
+		initialLocale = app.getLocale(),
 	) {
 		this.path = join(app.getPath("userData"), "tray.json");
+		this.locale = resolveDesktopLocale(initialLocale);
 		try {
 			if (JSON.parse(readFileSync(this.path, "utf8")) === true)
 				this.tray = this.createTray();
@@ -25,6 +29,15 @@ export class DesktopTray {
 
 	get enabled(): boolean {
 		return this.tray !== undefined;
+	}
+
+	setLanguage(language: string): void {
+		const next = resolveDesktopLocale(language);
+		if (next === this.locale) return;
+		this.locale = next;
+		if (!this.tray) return;
+		this.tray.setContextMenu(this.buildContextMenu());
+		console.debug("desktop.tray_language_updated", { locale: this.locale });
 	}
 
 	setEnabled(value: unknown): void {
@@ -67,26 +80,28 @@ export class DesktopTray {
 
 		const tray = new Tray(icon);
 		try {
-			const chinese = app.getLocale().toLowerCase().startsWith("zh");
 			tray.setToolTip("Anishelf");
-			tray.setContextMenu(
-				Menu.buildFromTemplate([
-					{
-						label: chinese ? "打开 Anishelf" : "Open Anishelf",
-						click: () => this.showWindow(),
-					},
-					{
-						label: chinese ? "退出 Anishelf" : "Quit Anishelf",
-						click: () => app.quit(),
-					},
-				]),
-			);
+			tray.setContextMenu(this.buildContextMenu());
 			tray.on("click", this.showWindow);
 			return tray;
 		} catch (error) {
 			tray.destroy();
 			throw error;
 		}
+	}
+
+	private buildContextMenu(): Menu {
+		const chinese = this.locale === "zh-CN";
+		return Menu.buildFromTemplate([
+			{
+				label: chinese ? "打开 Anishelf" : "Open Anishelf",
+				click: () => this.showWindow(),
+			},
+			{
+				label: chinese ? "退出 Anishelf" : "Quit Anishelf",
+				click: () => app.quit(),
+			},
+		]);
 	}
 
 	private save(enabled: boolean): void {

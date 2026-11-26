@@ -42,6 +42,13 @@ in the tray menu to show the window and **Quit Anishelf** to exit and stop the
 bundled backend. On Linux, tray visibility depends on the desktop environment.
 Launching Anishelf again brings the existing window back.
 
+On macOS, Anishelf provides a native application menu bar with **About
+Anishelf**, **Check for Updates…**, **Settings…** (`Cmd+,`), **Go** navigation
+shortcuts (`Cmd+[` / `Cmd+]` and `Cmd+1` through `Cmd+6`), window recovery via
+**Window → Show Main Window**, and project links under **Help**. Developer
+tools in **View** are shown only in unpackaged builds, and both the macOS menu
+bar and the tray menu follow the in-app language setting.
+
 In **Settings → Desktop → Startup**, enable **Launch Anishelf when you sign in
 to your computer** to start the desktop app when you sign in. The bundled
 backend starts with it. When the tray is enabled, the window stays hidden in

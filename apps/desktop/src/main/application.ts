@@ -10,7 +10,7 @@ import {
 	session,
 	type WebContents,
 } from "electron";
-import type { ServerSignInResult } from "../ipc/desktop.js";
+import type { DesktopMenuCommand, ServerSignInResult } from "../ipc/desktop.js";
 import { registerDesktopIpc } from "./ipc.js";
 import { downloadMedia, revealDownload } from "./native/download.js";
 import { createExternalPlayerService } from "./native/external-players.js";
@@ -19,6 +19,7 @@ import {
 	createDesktopLoginItem,
 	LAUNCH_AT_LOGIN_FLAG,
 } from "./native/login-item.js";
+import { DesktopMenu } from "./native/menu.js";
 import { chooseResourceDirectory } from "./native/resource-directory.js";
 import { DesktopTray } from "./native/tray.js";
 import { DesktopUpdateChecker } from "./native/updates.js";
@@ -130,9 +131,13 @@ function logLocalShutdownFailure(error: unknown) {
 
 export class DesktopApplication {
 	private readonly windows = new Set<WebContents>();
+	private readonly readyMenuWindows = new Set<WebContents>();
 	private readonly cleanup: Array<() => void> = [];
 	private offlineCache: DesktopOfflineCache | undefined;
 	private tray: DesktopTray | undefined;
+	private menu: DesktopMenu | undefined;
+	private pendingMenuCommand: DesktopMenuCommand | undefined;
+	private desktopLanguage = app.getLocale();
 	private openingWindow = false;
 	private switching = false;
 	private disposed = false;
@@ -164,8 +169,30 @@ export class DesktopApplication {
 				: connectLocalBackend(connection);
 		this.activateServer(server);
 		await this.initializeCache();
-		this.tray = new DesktopTray(() => this.showWindow(), iconPath());
+		this.tray = new DesktopTray(
+			() => this.showWindow(),
+			iconPath(),
+			this.desktopLanguage,
+		);
 		this.cleanup.push(() => this.tray?.dispose());
+		if (process.platform === "darwin") {
+			this.menu = new DesktopMenu({
+				appName: "Anishelf",
+				packaged: app.isPackaged,
+				locale: this.desktopLanguage,
+				actions: {
+					showWindow: () => this.showWindow(),
+					navigate: (path) =>
+						this.dispatchMenuCommand({ kind: "navigate", path }),
+					checkForUpdates: () =>
+						this.dispatchMenuCommand({ kind: "checkForUpdates" }),
+					history: (direction) =>
+						this.dispatchMenuCommand({ kind: "history", direction }),
+					openExternal,
+				},
+			});
+			this.cleanup.push(() => this.menu?.dispose());
+		}
 		this.cleanup.push(() => this.detachCredentials?.());
 		const externalPlayers = createExternalPlayerService(
 			app.getPath("userData"),
@@ -193,6 +220,9 @@ export class DesktopApplication {
 							this.offlineCache?.close(sender, lease),
 					},
 					checkForUpdates: () => updates.check(),
+					setLanguage: async (language) => this.setLanguage(language),
+					consumePendingMenuCommand: async (sender) =>
+						this.consumePendingMenuCommand(sender),
 					getLaunchAtLogin: async () => {
 						try {
 							return loginItem.state();
@@ -513,12 +543,15 @@ export class DesktopApplication {
 		this.windows.add(contents);
 		contents.once("destroyed", () => {
 			this.offlineCache?.closeWindow(contents);
+			this.readyMenuWindows.delete(contents);
 			this.windows.delete(contents);
 			this.hiddenWindowMode = undefined;
 		});
 		contents.on("did-start-navigation", ({ isSameDocument, isMainFrame }) => {
-			if (isMainFrame && !isSameDocument)
+			if (isMainFrame && !isSameDocument) {
 				this.offlineCache?.closeWindow(contents);
+				this.readyMenuWindows.delete(contents);
+			}
 		});
 		contents.on("will-navigate", (event, url) => {
 			// Session changes reload the same local document with a new hash route.
@@ -536,5 +569,60 @@ export class DesktopApplication {
 			titleBar: "overlay",
 			titleBarHeight,
 		});
+	}
+
+	private setLanguage(language: unknown): void {
+		if (
+			typeof language !== "string" ||
+			language.trim().length === 0 ||
+			language.length > 32
+		)
+			throw new Error("Expected a language code.");
+		this.desktopLanguage = language.trim();
+		this.menu?.setLanguage(this.desktopLanguage);
+		this.tray?.setLanguage(this.desktopLanguage);
+	}
+
+	private dispatchMenuCommand(command: DesktopMenuCommand): void {
+		if (this.disposed) return;
+		if (command.kind === "history") {
+			const contents = this.windows.values().next().value;
+			if (
+				!contents ||
+				contents.isDestroyed() ||
+				!this.readyMenuWindows.has(contents)
+			)
+				return;
+			contents.send("desktop:menu:command", command);
+			console.debug("desktop.menu_command_dispatched", {
+				kind: command.kind,
+				direction: command.direction,
+			});
+			return;
+		}
+		this.showWindow();
+		const contents = this.windows.values().next().value;
+		if (
+			contents &&
+			!contents.isDestroyed() &&
+			this.readyMenuWindows.has(contents)
+		) {
+			contents.send("desktop:menu:command", command);
+			console.debug("desktop.menu_command_dispatched", { kind: command.kind });
+			return;
+		}
+		this.pendingMenuCommand = command;
+		console.debug("desktop.menu_command_queued", { kind: command.kind });
+	}
+
+	private consumePendingMenuCommand(
+		sender: WebContents,
+	): DesktopMenuCommand | null {
+		this.readyMenuWindows.add(sender);
+		const command = this.pendingMenuCommand ?? null;
+		this.pendingMenuCommand = undefined;
+		if (command)
+			console.debug("desktop.menu_command_consumed", { kind: command.kind });
+		return command;
 	}
 }

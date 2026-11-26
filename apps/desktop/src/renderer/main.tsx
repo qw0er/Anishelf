@@ -9,7 +9,9 @@ import { offlineCachePath } from "@anishelf/contracts/offline-cache";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createHashRouter } from "react-router";
+import type { DesktopMenuCommand } from "../ipc/desktop.js";
 import { DesktopLoginPage } from "./auth/login-page.js";
+import { syncDesktopLanguage } from "./desktop-language.js";
 import { createDesktopPlatform } from "./platform/platform.js";
 import { createDesktopServerClient } from "./server/connection.js";
 import { DesktopExternalPlayerSettings } from "./settings/external-player-settings.js";
@@ -66,6 +68,16 @@ async function start() {
 		restartSession: (path) => session.restart(path),
 		serverConnectionPath: "/login",
 	});
+	const stopLanguageSync = syncDesktopLanguage(desktop);
+	let unsubscribeMenu: (() => void) | undefined;
+	let disposed = false;
+	const dispose = () => {
+		if (disposed) return;
+		disposed = true;
+		unsubscribeMenu?.();
+		stopLanguageSync();
+		runtime.dispose();
+	};
 	try {
 		const router = createHashRouter(
 			createClientRoutes({
@@ -112,12 +124,44 @@ async function start() {
 				),
 			}),
 		);
-		if (!session.attach(() => runtime.dispose(), router)) return;
+		if (!session.attach(dispose, router)) {
+			dispose();
+			return;
+		}
+		unsubscribeMenu = desktop.onMenuCommand((command) =>
+			handleMenuCommand(command, router, session),
+		);
 		render(router);
+		void desktop
+			.consumePendingMenuCommand()
+			.then((command) => {
+				if (command) handleMenuCommand(command, router, session);
+			})
+			.catch((error: unknown) => {
+				console.warn("desktop.menu_pending_command_failed", { error });
+			});
 	} catch (error) {
-		runtime.dispose();
+		dispose();
 		throw error;
 	}
+}
+
+function handleMenuCommand(
+	command: DesktopMenuCommand,
+	router: ReturnType<typeof createHashRouter>,
+	session: ClientSessionLifecycle,
+) {
+	if (command.kind === "navigate") {
+		session.navigate(command.path);
+		return;
+	}
+	if (command.kind === "checkForUpdates") {
+		session.navigate(
+			`/settings?section=about&checkUpdates=${encodeURIComponent(String(Date.now()))}`,
+		);
+		return;
+	}
+	void router.navigate(command.direction === "back" ? -1 : 1);
 }
 
 function render(router: ReturnType<typeof createHashRouter>) {

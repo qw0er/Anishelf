@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import Markdown from "react-markdown";
 import { request } from "../../../shared/api/client.js";
@@ -56,7 +56,13 @@ function BuildDetails({ label, info }: { label: string; info: BuildInfo }) {
 	);
 }
 
-export function AboutSettings() {
+export function AboutSettings({
+	autoCheckKey = null,
+	onAutoCheckStarted,
+}: {
+	autoCheckKey?: string | null;
+	onAutoCheckStarted?: () => void;
+} = {}) {
 	const { t, i18n } = useTranslation();
 	const { buildInfo: clientBuild, changelog, platform } = getClientRuntime();
 	const desktop = platform.updates.kind === "desktop";
@@ -105,6 +111,19 @@ export function AboutSettings() {
 			info.data.commit !== clientBuild.commit ||
 			info.data.channel !== clientBuild.channel);
 	const current = desktop ? clientBuild : (info.data ?? clientBuild);
+	const lastAutoCheckRef = useRef<string | null>(null);
+	const onAutoCheckStartedRef = useRef(onAutoCheckStarted);
+	useEffect(() => {
+		onAutoCheckStartedRef.current = onAutoCheckStarted;
+	}, [onAutoCheckStarted]);
+	const checkMutate = check.mutate;
+	useEffect(() => {
+		if (!autoCheckKey || autoCheckKey === lastAutoCheckRef.current) return;
+		if (!desktop && !info.data) return;
+		lastAutoCheckRef.current = autoCheckKey;
+		checkMutate();
+		onAutoCheckStartedRef.current?.();
+	}, [autoCheckKey, checkMutate, desktop, info.data]);
 	return (
 		<div className="stack-page">
 			<Card className="settings-section lg:grid">

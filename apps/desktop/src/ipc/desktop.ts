@@ -51,9 +51,17 @@ export interface DesktopUpdateCheck {
 	downloads?: readonly { name: string; url: string }[];
 }
 
+export type DesktopMenuCommand =
+	| { kind: "navigate"; path: string }
+	| { kind: "checkForUpdates" }
+	| { kind: "history"; direction: "back" | "forward" };
+
 export interface DesktopBridge {
 	offlineCache: OfflineCacheHost;
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
+	setLanguage(language: string): Promise<void>;
+	consumePendingMenuCommand(): Promise<DesktopMenuCommand | null>;
+	onMenuCommand(listener: (command: DesktopMenuCommand) => void): () => void;
 	getLaunchAtLogin(): Promise<DesktopLoginItemState>;
 	setLaunchAtLogin(enabled: boolean): Promise<void>;
 	getCloseToTray(): Promise<boolean>;

@@ -129,3 +129,32 @@ test("shows the desktop build and uses the desktop updater without backend build
 		"/api/system/info",
 	]);
 });
+
+test("runs an automatic update check when requested by autoCheckKey", async () => {
+	vi.spyOn(api, "request").mockRejectedValue(new Error("offline"));
+	const check = vi.fn().mockResolvedValue({
+		status: "current",
+		checkedAt: "2026-10-24T00:00:00Z",
+		latest: {
+			version: "v1.0.2",
+			url: "https://github.com/qw0er/Anishelf/releases/tag/v1.0.2",
+		},
+	});
+	const updates = testPlatform.updates;
+	testPlatform.updates = { kind: "desktop", check };
+	onTestFinished(() => {
+		testPlatform.updates = updates;
+	});
+	const onAutoCheckStarted = vi.fn();
+	const { rerender } = render(
+		<AboutSettings autoCheckKey="1" onAutoCheckStarted={onAutoCheckStarted} />,
+	);
+	await screen.findByText("You are up to date.");
+	expect(check).toHaveBeenCalledTimes(1);
+	expect(onAutoCheckStarted).toHaveBeenCalledTimes(1);
+
+	rerender(
+		<AboutSettings autoCheckKey="1" onAutoCheckStarted={onAutoCheckStarted} />,
+	);
+	expect(check).toHaveBeenCalledTimes(1);
+});

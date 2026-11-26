@@ -1,4 +1,4 @@
-import type { DesktopBridge } from "../ipc/desktop.js";
+import type { DesktopBridge, DesktopMenuCommand } from "../ipc/desktop.js";
 
 const { contextBridge, ipcRenderer } =
 	require("electron") as typeof import("electron");
@@ -38,6 +38,20 @@ const desktop: DesktopBridge = {
 			symbolColor,
 		),
 	checkForUpdates: () => ipcRenderer.invoke("desktop:check-for-updates"),
+	setLanguage: (language) =>
+		ipcRenderer.invoke("desktop:language:set", language),
+	consumePendingMenuCommand: () =>
+		ipcRenderer.invoke("desktop:menu:consume-pending"),
+	onMenuCommand(listener) {
+		const receive = (
+			_event: Electron.IpcRendererEvent,
+			command: DesktopMenuCommand,
+		) => listener(command);
+		ipcRenderer.on("desktop:menu:command", receive);
+		return () => {
+			ipcRenderer.off("desktop:menu:command", receive);
+		};
+	},
 	getServerConnection: () => ipcRenderer.invoke("desktop:server-connection"),
 	useLocalBackend: () => ipcRenderer.invoke("desktop:use-local-backend"),
 	signIn: (origin, password) =>

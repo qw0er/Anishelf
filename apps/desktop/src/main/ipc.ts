@@ -3,6 +3,7 @@ import { ipcMain, type WebContents } from "electron";
 import type {
 	DesktopBridge,
 	DesktopLoginItemState,
+	DesktopMenuCommand,
 	DesktopUpdateCheck,
 	ExternalPlayerListResponse,
 	ServerSignInResult,
@@ -31,6 +32,10 @@ export interface DesktopIpcHandlers {
 		close(sender: WebContents, lease: unknown): Promise<void>;
 	};
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
+	setLanguage(language: unknown): Promise<void>;
+	consumePendingMenuCommand(
+		sender: WebContents,
+	): Promise<DesktopMenuCommand | null>;
 	getLaunchAtLogin(): Promise<DesktopLoginItemState>;
 	setLaunchAtLogin(enabled: unknown): Promise<void>;
 	getCloseToTray(): Promise<boolean>;
@@ -97,6 +102,12 @@ export function registerDesktopIpc(
 
 	try {
 		handle("desktop:check-for-updates", () => handlers.checkForUpdates());
+		handle("desktop:language:set", (_, language) =>
+			handlers.setLanguage(language),
+		);
+		handle("desktop:menu:consume-pending", (sender) =>
+			handlers.consumePendingMenuCommand(sender),
+		);
 		handle("desktop:login-item:get", () => handlers.getLaunchAtLogin());
 		handle("desktop:login-item:set", (_, enabled) =>
 			handlers.setLaunchAtLogin(enabled),
