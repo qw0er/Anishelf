@@ -30,7 +30,7 @@ export interface PreparedMediaInventory {
 		sourceAudioStreamIndices: number[];
 		sizeBytes: number;
 		mimeType: string;
-		info: import("../../../platform/media/model.js").MediaInfo;
+		info: import("@anishelf/media-tools").MediaInfo;
 		updatedAtMs: number;
 	}[];
 }

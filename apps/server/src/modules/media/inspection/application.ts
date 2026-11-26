@@ -1,6 +1,5 @@
+import { type MediaInfo, MediaToolError } from "@anishelf/media-tools";
 import type { Logger } from "pino";
-import type { MediaInfo } from "../../../platform/media/index.js";
-import { MediaToolError } from "../../../platform/media/index.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type {

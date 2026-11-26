@@ -1,8 +1,8 @@
 import { join } from "node:path";
+import { MediaTools } from "@anishelf/media-tools";
 import { createSystemModule } from "../../modules/system/create.js";
 import type { Environment } from "../../platform/environment.js";
 import { ApplicationLogging } from "../../platform/logging/index.js";
-import { MediaTools } from "../../platform/media/index.js";
 import { DomainError } from "../../shared/errors.js";
 import { openDatabase } from "./database.js";
 import type { createHttpApp } from "./http.js";

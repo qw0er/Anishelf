@@ -1,14 +1,16 @@
 import { mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+	type MediaProcessingPlan,
+	parseMediaInfo,
+	unknownMediaCapabilities,
+} from "@anishelf/media-tools";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { MediaInspectionApplication } from "../../../../src/modules/media/inspection/application.js";
 import { MediaProcessingApplication } from "../../../../src/modules/media/preparation/execution/application/processing.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
-import { unknownMediaCapabilities } from "../../../../src/platform/media/capability-model.js";
-import type { MediaProcessingPlan } from "../../../../src/platform/media/specification.js";
-import { parseMediaInfo } from "../../../../src/platform/media/tools.js";
 import { MemoryInspectionStore } from "../../../support/inspection-store.js";
 import { createLibraryModule } from "../../../support/library.js";
 import { settingsStore } from "../../../support/settings-store.js";

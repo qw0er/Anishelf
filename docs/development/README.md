@@ -5,7 +5,8 @@
 The npm workspaces live in `apps/desktop/` (Electron shell), `apps/server/` (Fastify backend), `apps/web/`
 (browser entry and PWA), `packages/client-ui/` (React app and tests),
 `packages/client-core/` (shared API client), `packages/contracts/` (shared HTTP
-protocol), and `packages/anime-identification/` (resource recognition).
+protocol), `packages/anime-identification/` (resource recognition), and
+`packages/media-tools/` (FFmpeg/FFprobe wrapper).
 These packages export TypeScript directly. Node.js loads server-side workspace
 exports at runtime, and Vite bundles the shared code used by the Web app.
 
@@ -87,8 +88,8 @@ Add structured lifecycle/failure logs when changing business behavior.
 3. Review and commit generated SQL and migration metadata with the change.
 4. Verify upgrade preservation and restart behavior using a disk-backed fixture.
 
-Ship `apps/server/migrations/` and the `packages/contracts/` workspace with
-`apps/server/dist`. Startup applies committed migrations;
+Ship `apps/server/migrations/`, `packages/contracts/`, and `packages/media-tools/`
+workspaces with `apps/server/dist`. Startup applies committed migrations;
 do not use destructive schema push at runtime. Back up before upgrades; rollback
 requires a matching database backup. See [database design](database-design.md).
 

@@ -1,8 +1,7 @@
 import type { FileHandle } from "node:fs/promises";
 import type { PreparedMediaItem } from "@anishelf/contracts/http";
+import type { MediaExecutionProgress, MediaInfo } from "@anishelf/media-tools";
 import type { Logger } from "pino";
-import type { MediaExecutionProgress } from "../../../platform/media/events.js";
-import type { MediaInfo } from "../../../platform/media/model.js";
 import type {
 	ResolvedSource,
 	ResourceAccessApi,

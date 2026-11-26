@@ -30,13 +30,18 @@ const { dependencies: identificationDependencies } = JSON.parse(
 		"utf8",
 	),
 );
+const { dependencies: mediaToolsDependencies } = JSON.parse(
+	await readFile(join(rootDir, "packages/media-tools/package.json"), "utf8"),
+);
 // Bundle workspace sources and ship their external dependencies, including the parser's WASM.
 const backendRuntimeDependencies = {
 	...backendDependencies,
 	...identificationDependencies,
+	...mediaToolsDependencies,
 };
 delete backendRuntimeDependencies["@anishelf/contracts"];
 delete backendRuntimeDependencies["@anishelf/anime-identification"];
+delete backendRuntimeDependencies["@anishelf/media-tools"];
 
 console.info("desktop.package.preparing", { stagingDir });
 await rm(stagingDir, { recursive: true, force: true });

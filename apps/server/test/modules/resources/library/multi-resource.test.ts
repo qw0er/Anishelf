@@ -10,6 +10,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
+import { parseMediaInfo } from "@anishelf/media-tools";
 import pino from "pino";
 import { afterEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
@@ -20,7 +21,6 @@ import { LibraryIndex } from "../../../../src/modules/resources/library/infrastr
 import { resourceRootId } from "../../../../src/modules/resources/resource-access/domain/identity.js";
 import { ResourceAccess } from "../../../../src/modules/resources/resource-access/infrastructure/access.js";
 import { ConfigurationService } from "../../../../src/modules/system/configuration/application/service.js";
-import { parseMediaInfo } from "../../../../src/platform/media/tools.js";
 import { createHttpApp } from "../../../support/http.js";
 import { MemoryInspectionStore } from "../../../support/inspection-store.js";
 import { createLibraryModule } from "../../../support/library.js";

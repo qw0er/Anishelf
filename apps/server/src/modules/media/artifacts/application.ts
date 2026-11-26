@@ -1,7 +1,9 @@
 import type { PreparedMediaItem } from "@anishelf/contracts/http";
+import {
+	type MediaExecutionProgress,
+	MediaToolError,
+} from "@anishelf/media-tools";
 import PQueue from "p-queue";
-import { MediaToolError } from "../../../platform/media/errors.js";
-import type { MediaExecutionProgress } from "../../../platform/media/events.js";
 import { DomainError } from "../../../shared/errors.js";
 import type { ResolvedSource } from "../../resources/public.js";
 import type { ProcessedMedia } from "../preparation/execution/public.js";

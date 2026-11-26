@@ -44,6 +44,7 @@ async function scan(files) {
 			"packages/client-ui/src/empty.ts": "export {};",
 			"packages/contracts/src/empty.ts": "export {};",
 			"packages/client-core/src/empty.ts": "export {};",
+			"packages/media-tools/src/empty.ts": "export {};",
 			...files,
 		};
 		for (const [name, source] of Object.entries(sources)) {
@@ -283,8 +284,24 @@ for (const [name, files] of [
 		"domain-does-not-load-platform-adapters",
 		{
 			"apps/server/src/modules/test/a/domain/model.ts":
-				"export { value } from '../../../../platform/media/tools.js';",
-			"apps/server/src/platform/media/tools.ts": "export const value = 1;",
+				"export { value } from '../../../../platform/filesystem.js';",
+			"apps/server/src/platform/filesystem.ts": "export const value = 1;",
+		},
+	],
+	[
+		"media-tools-does-not-import-consumers",
+		{
+			"packages/media-tools/src/tools.ts":
+				"export { value } from '../../../apps/server/src/shared/value.js';",
+			"apps/server/src/shared/value.ts": "export const value = 1;",
+		},
+	],
+	[
+		"clients-do-not-import-media-tools",
+		{
+			"packages/client-ui/src/leak.ts":
+				"export { value } from '../../media-tools/src/index.js';",
+			"packages/media-tools/src/index.ts": "export const value = 1;",
 		},
 	],
 	[
@@ -886,4 +903,13 @@ test("defaults cannot load application implementations", async () => {
 	assert.ok(
 		violations.includes("public-and-policy-do-not-load-implementation"),
 	);
+});
+
+test("domain cannot load media-tools adapters", async () => {
+	const violations = await scan({
+		"apps/server/src/modules/test/a/domain/model.ts":
+			"export { value } from '../../../../../../../packages/media-tools/src/tools.js';",
+		"packages/media-tools/src/tools.ts": "export const value = 1;",
+	});
+	assert.ok(violations.includes("domain-does-not-load-platform-adapters"));
 });

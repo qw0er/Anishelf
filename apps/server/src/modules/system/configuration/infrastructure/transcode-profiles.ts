@@ -1,12 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { TranscodeProfilesFileSchema } from "@anishelf/contracts/schemas/transcode-profiles";
-import { Check, Errors } from "typebox/value";
-import { parseDocument } from "yaml";
 import {
 	validateEncodingOptions,
 	validEncodingOptions,
-} from "../../../../platform/media/encoding-policy.js";
+} from "@anishelf/media-tools/encoding-policy";
+import { Check, Errors } from "typebox/value";
+import { parseDocument } from "yaml";
 import { DomainError } from "../../../../shared/errors.js";
 import { freeze } from "../../../../shared/policy.js";
 import type { ProfileCatalogIssue } from "../../../../shared/profile-issue.js";

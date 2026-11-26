@@ -116,7 +116,7 @@ module.exports = {
 			name: "no-unresolved-source-imports",
 			severity: "error",
 			from: {
-				path: "^(?:apps/(?:server|web|desktop)|packages/(?:contracts|client-core|client-ui))/src",
+				path: "^(?:apps/(?:server|web|desktop)|packages/(?:contracts|client-core|client-ui|media-tools))/src",
 			},
 			to: {
 				couldNotResolve: true,
@@ -128,7 +128,7 @@ module.exports = {
 			name: "no-runtime-cycles",
 			severity: "error",
 			from: {
-				path: "^(?:apps/(?:server|web|desktop)|packages/(?:contracts|client-core|client-ui))/src",
+				path: "^(?:apps/(?:server|web|desktop)|packages/(?:contracts|client-core|client-ui|media-tools))/src",
 			},
 			to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
 		},
@@ -171,7 +171,7 @@ module.exports = {
 			severity: "error",
 			from: { path: `^${modulePath}domain/` },
 			to: {
-				path: "^apps/server/src/platform/",
+				path: "^(?:apps/server/src/platform/|packages/media-tools/src/)",
 				pathNot: "(?:policy|config|model|errors)\\.ts$",
 				dependencyTypesNot: ["type-only"],
 			},
@@ -306,7 +306,21 @@ module.exports = {
 			name: "contracts-do-not-import-consumers",
 			severity: "error",
 			from: { path: "^packages/contracts/src/" },
-			to: { path: "^apps/|^packages/(?:client-core|client-ui)/" },
+			to: { path: "^apps/|^packages/(?:client-core|client-ui|media-tools)/" },
+		},
+		{
+			name: "media-tools-does-not-import-consumers",
+			severity: "error",
+			from: { path: "^packages/media-tools/src/" },
+			to: { path: "^apps/|^packages/(?!contracts/|media-tools/)" },
+		},
+		{
+			name: "clients-do-not-import-media-tools",
+			severity: "error",
+			from: {
+				path: "^(?:apps/(?:web|desktop)|packages/client-(?:core|ui))/src/",
+			},
+			to: { path: "^packages/media-tools/" },
 		},
 		{
 			name: "client-core-does-not-import-apps-or-ui",

@@ -1,6 +1,6 @@
+import type { MediaInfo } from "@anishelf/media-tools";
 import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { Store } from "../../../../platform/database/store.js";
-import type { MediaInfo } from "../../../../platform/media/model.js";
 import { freeze } from "../../../../shared/policy.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { SourceRegistry } from "../../../resources/public.js";

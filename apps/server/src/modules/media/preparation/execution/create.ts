@@ -1,12 +1,9 @@
-import type { Logger } from "pino";
-import {
-	FfmpegExecutionAdapter,
-	type MediaTools,
-} from "../../../../platform/media/index.js";
+import { FfmpegExecutionAdapter, type MediaTools } from "@anishelf/media-tools";
 import {
 	type MediaToolPolicy,
 	mediaToolPolicy,
-} from "../../../../platform/media/policy.js";
+} from "@anishelf/media-tools/policy";
+import type { Logger } from "pino";
 import type { ResourceAccessApi } from "../../../resources/public.js";
 import type { MediaInspectionApi } from "../../inspection/public.js";
 import { MediaProcessingApplication } from "./application/processing.js";

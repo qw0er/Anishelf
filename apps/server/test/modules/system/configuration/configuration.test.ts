@@ -11,6 +11,8 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { runTool } from "@anishelf/media-tools";
+import { mediaToolPolicy } from "@anishelf/media-tools/policy";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
@@ -34,8 +36,6 @@ import {
 	validateResourceAccessPolicy,
 } from "../../../../src/modules/resources/resource-access/policy.js";
 import { ConfigurationService } from "../../../../src/modules/system/configuration/application/service.js";
-import { mediaToolPolicy } from "../../../../src/platform/media/policy.js";
-import { runTool } from "../../../../src/platform/media/process.js";
 import { createHttpApp } from "../../../support/http.js";
 import { createLibraryModule } from "../../../support/library.js";
 

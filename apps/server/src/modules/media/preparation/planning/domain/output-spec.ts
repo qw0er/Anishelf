@@ -1,4 +1,4 @@
-import type { MediaProcessingPlan } from "../../../../../platform/media/specification.js";
+import type { MediaProcessingPlan } from "@anishelf/media-tools";
 import type { DeepReadonly } from "../../../../../shared/policy.js";
 import type { TranscodeProfile } from "../../../../system/public.js";
 import type {

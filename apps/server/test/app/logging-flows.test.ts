@@ -1,7 +1,7 @@
+import { runTool } from "@anishelf/media-tools";
+import { mediaToolPolicy } from "@anishelf/media-tools/policy";
 import pino from "pino";
 import { expect, test } from "vitest";
-import { mediaToolPolicy } from "../../src/platform/media/policy.js";
-import { runTool } from "../../src/platform/media/process.js";
 import { createHttpApp } from "../support/http.js";
 
 function capture(level: string) {

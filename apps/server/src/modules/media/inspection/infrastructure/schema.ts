@@ -1,6 +1,6 @@
+import type { MediaInfo } from "@anishelf/media-tools";
 import { sql } from "drizzle-orm";
 import { check, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import type { MediaInfo } from "../../../../platform/media/model.js";
 export const mediaInspections = sqliteTable(
 	"media_inspections",
 	{

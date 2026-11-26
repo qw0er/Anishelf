@@ -1,9 +1,9 @@
+import type { EncodingValidation } from "@anishelf/media-tools";
 import type { Logger } from "pino";
 import {
 	captureRuntimeEnvironment,
 	type RuntimeEnvironment,
 } from "../../../../platform/environment.js";
-import type { EncodingValidation } from "../../../../platform/media/encoding.js";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";

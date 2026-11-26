@@ -1,9 +1,9 @@
-import { asc, eq } from "drizzle-orm";
-import type { Store } from "../../../../platform/database/store.js";
 import {
 	legacyAudio,
 	legacyVideo,
-} from "../../../../platform/media/encoding-policy.js";
+} from "@anishelf/media-tools/encoding-policy";
+import { asc, eq } from "drizzle-orm";
+import type { Store } from "../../../../platform/database/store.js";
 import * as s from "./schema.js";
 import type { PreparationRecord } from "./task-record.js";
 

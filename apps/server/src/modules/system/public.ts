@@ -17,10 +17,7 @@ import type {
 export interface SystemApi extends SettingsStore {
 	readonly transcodeRevision?: string;
 	readonly transcodeValidation?: Readonly<
-		Record<
-			string,
-			import("../../platform/media/encoding.js").EncodingValidation
-		>
+		Record<string, import("@anishelf/media-tools").EncodingValidation>
 	>;
 	configureTranscodeValidation?(
 		validator: import("./configuration/profile.js").TranscodeProfileValidator,

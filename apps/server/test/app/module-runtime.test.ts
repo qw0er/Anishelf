@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { MediaTools } from "@anishelf/media-tools";
 import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../src/app/bootstrap/database.js";
@@ -12,7 +13,6 @@ import { createResourcesModule } from "../../src/modules/resources/create.js";
 import { libraryPolicy } from "../../src/modules/resources/library/policy.js";
 import { resourceRootId } from "../../src/modules/resources/resource-access/domain/identity.js";
 import { createSystemModule } from "../../src/modules/system/create.js";
-import { MediaTools } from "../../src/platform/media/index.js";
 
 test("large modules expose capability objects and quiesce without destroying shared sources", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "anishelf-module-runtime-"));

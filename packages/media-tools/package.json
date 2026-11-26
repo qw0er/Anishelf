@@ -1,0 +1,29 @@
+{
+	"name": "@anishelf/media-tools",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"license": "AGPL-3.0-only",
+	"exports": {
+		".": "./src/index.ts",
+		"./acceptance-policy": "./src/acceptance-policy.ts",
+		"./encoding-policy": "./src/encoding-policy.ts",
+		"./errors": "./src/errors.ts",
+		"./policy": "./src/policy.ts",
+		"./stream-copy-policy": "./src/stream-copy-policy.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@anishelf/contracts": "1.0.0",
+		"file-type": "^22.3.0",
+		"typebox": "^1.4.7"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.6",
+		"pino": "^10.4.0",
+		"vitest": "^5.1.1"
+	}
+}

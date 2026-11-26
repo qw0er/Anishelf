@@ -1,4 +1,4 @@
-import type { MediaInfo } from "../../../platform/media/model.js";
+import type { MediaInfo } from "@anishelf/media-tools";
 import type { DeepReadonly } from "../../../shared/policy.js";
 import type {
 	MediaPlanningResult,

@@ -1,7 +1,7 @@
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { MediaToolError } from "@anishelf/media-tools";
 import { expect, test, vi } from "vitest";
-import { MediaToolError } from "../../../../src/platform/media/index.js";
 
 import {
 	completed,

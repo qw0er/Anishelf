@@ -14,6 +14,7 @@ COPY packages/anime-identification/package.json ./packages/anime-identification/
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/client-core/package.json ./packages/client-core/package.json
 COPY packages/client-ui/package.json ./packages/client-ui/package.json
+COPY packages/media-tools/package.json ./packages/media-tools/package.json
 COPY scripts/build-info.mjs ./scripts/build-info.mjs
 ARG ANISHELF_BUILD_TAG=""
 ARG ANISHELF_BUILD_COMMIT=""
@@ -28,6 +29,7 @@ RUN npm ci && npm rebuild better-sqlite3
 FROM dependencies AS backend-build
 COPY packages/anime-identification/src/ ./packages/anime-identification/src/
 COPY packages/contracts/src/ ./packages/contracts/src/
+COPY packages/media-tools/src/ ./packages/media-tools/src/
 COPY apps/server/ ./apps/server/
 RUN npm run build --workspace @anishelf/backend \
     && rm -rf node_modules apps/server/node_modules apps/web/node_modules \
@@ -61,6 +63,7 @@ RUN apt-get update \
 COPY --from=backend-build /app/node_modules ./node_modules
 COPY --from=backend-build /app/packages/anime-identification ./packages/anime-identification
 COPY --from=backend-build /app/packages/contracts ./packages/contracts
+COPY --from=backend-build /app/packages/media-tools ./packages/media-tools
 COPY --from=backend-build /app/apps/server/package.json ./apps/server/package.json
 COPY --from=backend-build /app/apps/server/build-info.json ./apps/server/build-info.json
 COPY --from=backend-build /app/apps/server/node_modules ./apps/server/node_modules

@@ -1,4 +1,4 @@
-import type { MediaExecutionProgress } from "../../../../platform/media/events.js";
+import type { MediaExecutionProgress } from "@anishelf/media-tools";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PreparationArtifacts } from "../../artifacts/public.js";
 import type {

@@ -14,6 +14,7 @@ const sourceRoots = [
 	"packages/client-ui/src",
 	"packages/contracts/src",
 	"packages/client-core/src",
+	"packages/media-tools/src",
 ];
 
 export async function checkArchitecture(baseDir = process.cwd()) {

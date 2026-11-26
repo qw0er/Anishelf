@@ -3,7 +3,7 @@ import type {
 	PreparedMediaDeleteResponse,
 	PreparedMediaQuery,
 } from "@anishelf/contracts/http";
-import type { MediaProcessingPlan } from "../../../../platform/media/specification.js";
+import type { MediaProcessingPlan } from "@anishelf/media-tools";
 import { DomainError } from "../../../../shared/errors.js";
 import { fingerprint } from "../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../shared/policy.js";

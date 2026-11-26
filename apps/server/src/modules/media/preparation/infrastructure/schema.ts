@@ -2,6 +2,7 @@ import {
 	preparationFailureReasons,
 	preparationStatuses,
 } from "@anishelf/contracts/schemas/preparation";
+import type { MediaInfo } from "@anishelf/media-tools";
 import { sql } from "drizzle-orm";
 import {
 	check,
@@ -12,7 +13,6 @@ import {
 	text,
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import type { MediaInfo } from "../../../../platform/media/model.js";
 import { mediaSources } from "../../../resources/persistence.js";
 import type { PreparationSettingsSnapshot } from "../snapshot.js";
 

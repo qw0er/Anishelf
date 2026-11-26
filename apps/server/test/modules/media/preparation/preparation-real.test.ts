@@ -7,6 +7,7 @@ import type {
 	PlaybackSelectionResponse,
 	PlaybackSessionResponse,
 } from "@anishelf/contracts/http";
+import { FfmpegExecutionAdapter, MediaTools } from "@anishelf/media-tools";
 import pino from "pino";
 import { expect, test, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../src/app/bootstrap/database.js";
@@ -24,10 +25,6 @@ import { PlaybackSelectionApplication } from "../../../../src/modules/playback/p
 import { PlaybackApplication } from "../../../../src/modules/playback/progress/application/playback.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
 import { builtinTranscodeProfiles } from "../../../../src/modules/system/configuration/public.js";
-import {
-	FfmpegExecutionAdapter,
-	MediaTools,
-} from "../../../../src/platform/media/index.js";
 import { createHttpApp } from "../../../support/http.js";
 import { MemoryInspectionStore } from "../../../support/inspection-store.js";
 import { createLibraryModule } from "../../../support/library.js";

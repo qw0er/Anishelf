@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
+import { FfmpegExecutionAdapter, MediaTools } from "@anishelf/media-tools";
 import { expect, test } from "vitest";
 import {
 	describeAudio,
@@ -12,10 +13,6 @@ import { validateProcessedMedia } from "../../../../src/modules/media/preparatio
 import { resolveExecutionPlan } from "../../../../src/modules/media/preparation/planning/domain/execution-plan.js";
 import { expectedOutputSpec } from "../../../../src/modules/media/preparation/planning/domain/output-spec.js";
 import { builtinTranscodeProfiles } from "../../../../src/modules/system/configuration/public.js";
-import {
-	FfmpegExecutionAdapter,
-	MediaTools,
-} from "../../../../src/platform/media/index.js";
 
 const run = promisify(execFile);
 test("manual Matroska preparation preserves subtitles, fonts, chapters and dispositions", async () => {

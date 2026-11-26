@@ -1,3 +1,4 @@
+import type { MediaTools } from "@anishelf/media-tools";
 import type { Logger } from "pino";
 import { createAcquisitionModule } from "../../modules/acquisition/create.js";
 import { createAnimeModule } from "../../modules/anime/create.js";
@@ -7,7 +8,6 @@ import { createResourcesModule } from "../../modules/resources/create.js";
 import { createAuthenticationModule } from "../../modules/system/create.js";
 import { registerSystemHttp } from "../../modules/system/http.js";
 import type { SystemApi } from "../../modules/system/public.js";
-import type { MediaTools } from "../../platform/media/index.js";
 import { registerAnimeDetailRoutes } from "../anime-detail.js";
 import { closeModules } from "../lifecycle.js";
 import type { ApplicationDatabase } from "./database.js";

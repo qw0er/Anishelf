@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
-import type { Logger } from "pino";
-import type { MediaProcessEvent } from "../../../../../platform/media/events.js";
-import type { MediaStream } from "../../../../../platform/media/index.js";
 import {
 	checkExecutionCapabilities,
 	MediaExecutionCapabilityError,
 	MediaOutputBudgetError,
+	type MediaProcessEvent,
+	type MediaStream,
 	MediaToolError,
-} from "../../../../../platform/media/index.js";
+} from "@anishelf/media-tools";
+import type { Logger } from "pino";
 import { type DeepReadonly, freeze } from "../../../../../shared/policy.js";
 import type { ResourceAccessApi } from "../../../../resources/public.js";
 import type { MediaInspectionApi } from "../../../inspection/public.js";

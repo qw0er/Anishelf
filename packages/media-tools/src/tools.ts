@@ -1,0 +1,301 @@
+import { stat } from "node:fs/promises";
+import { isAbsolute } from "node:path";
+import { fileTypeFromFile } from "file-type";
+import { detectMediaCapabilities } from "./capabilities.ts";
+import type { ServerMediaCapabilities } from "./capability-model.ts";
+import { codecDescriptor } from "./codec-descriptor.ts";
+import type { MediaToolsConfig, MediaToolsPolicy } from "./config.ts";
+import { captureExecutableSearch } from "./environment.ts";
+import { MediaToolError } from "./errors.ts";
+import type { MediaToolsLogger } from "./logger.ts";
+import type { MediaContainer, MediaInfo, ToolStatus } from "./model.ts";
+import {
+	type EncodingProfileShape,
+	inspectEncodingProfiles,
+	type OptionHelp,
+	parseOptionHelp,
+} from "./option-catalog.ts";
+import {
+	type DeepReadonly,
+	mediaToolPolicy,
+	validateMediaToolPolicy,
+} from "./policy.ts";
+import { parseMediaInfo, probeRecord } from "./probe-parser.ts";
+import { runTool } from "./process.ts";
+import type { MediaProcessingPlan } from "./specification.ts";
+import { MediaToolDiscovery } from "./tool-discovery.ts";
+
+export { parseMediaInfo } from "./probe-parser.ts";
+
+async function localFile(path: string): Promise<void> {
+	if (!isAbsolute(path) || path.includes("\0"))
+		throw new MediaToolError(
+			"INVALID_INPUT",
+			"Media input must be an absolute local file path.",
+		);
+	try {
+		if (!(await stat(path)).isFile()) throw new Error("Not a file");
+	} catch (cause) {
+		throw new MediaToolError(
+			"INVALID_INPUT",
+			"Media input is not an accessible regular file.",
+			{ cause },
+		);
+	}
+}
+
+export class MediaTools {
+	private readonly discovery: MediaToolDiscovery;
+	private readonly policy: DeepReadonly<MediaToolsPolicy>;
+	private readonly logger: MediaToolsLogger | undefined;
+	private capabilityInventory: Promise<ServerMediaCapabilities> | undefined;
+	private capabilityTools: string | undefined;
+	private optionCache = new Map<string, Promise<OptionHelp>>();
+	private optionFailures = new Map<string, number>();
+
+	private constructor(
+		discovery: MediaToolDiscovery,
+		policy: DeepReadonly<MediaToolsPolicy>,
+		logger?: MediaToolsLogger,
+	) {
+		this.discovery = discovery;
+		this.policy = policy;
+		this.logger = logger;
+	}
+
+	static create(
+		config: MediaToolsConfig = {
+			ffmpegPath: "ffmpeg",
+			ffprobePath: "ffprobe",
+		},
+		policy: DeepReadonly<MediaToolsPolicy> = {
+			mediaTools: mediaToolPolicy,
+		},
+		environment = captureExecutableSearch(),
+		logger?: MediaToolsLogger,
+	): MediaTools {
+		validateMediaToolPolicy(policy.mediaTools);
+		const toolLogger = logger?.child?.({ module: "media-tools" }) ?? logger;
+		const discovery = new MediaToolDiscovery(
+			config,
+			policy.mediaTools,
+			environment,
+			toolLogger,
+		);
+		return new MediaTools(discovery, policy, toolLogger);
+	}
+
+	toolStatus(tool: "ffmpeg" | "ffprobe"): Promise<ToolStatus> {
+		return this.discovery.get(tool);
+	}
+
+	/** Rebuild cached capabilities when a failed tool recovers. */
+	async capabilities(): Promise<ServerMediaCapabilities> {
+		const [ffmpeg, ffprobe] = await Promise.all([
+			this.toolStatus("ffmpeg"),
+			this.toolStatus("ffprobe"),
+		]);
+		const key = JSON.stringify([ffmpeg, ffprobe]);
+		if (!this.capabilityInventory || this.capabilityTools !== key) {
+			this.capabilityTools = key;
+			this.capabilityInventory = detectMediaCapabilities(
+				{ ffmpeg, ffprobe },
+				this.policy.mediaTools,
+				this.logger,
+			);
+		}
+		return structuredClone(await this.capabilityInventory);
+	}
+
+	async validateProfiles<T extends EncodingProfileShape>(
+		profiles: DeepReadonly<T[]>,
+		refresh = false,
+	) {
+		if (refresh) {
+			this.optionCache.clear();
+			this.optionFailures.clear();
+			this.capabilityInventory = undefined;
+		}
+		const server = await this.capabilities();
+		const tool = await this.toolStatus("ffmpeg");
+		return inspectEncodingProfiles(profiles, server, async (topic) => {
+			if (!tool.available) return { options: new Map(), available: false };
+			const key = JSON.stringify([tool.path, tool.version, topic]);
+			if (
+				(this.optionFailures.get(key) ?? Number.POSITIVE_INFINITY) +
+					this.policy.mediaTools.detectionRetryIntervalMs <=
+				Date.now()
+			) {
+				this.optionCache.delete(key);
+				this.optionFailures.delete(key);
+			}
+			let pending = this.optionCache.get(key);
+			if (!pending) {
+				this.logger?.debug(
+					{ event: "media.option_detection_started", topic },
+					"Reading FFmpeg option metadata.",
+				);
+				pending = runTool(
+					tool.path,
+					["-hide_banner", "-h", topic],
+					{
+						timeoutMs: this.policy.mediaTools.detectionTimeoutMs,
+						maxBytes: this.policy.mediaTools.capabilityMaximumBytes * 8,
+					},
+					this.policy.mediaTools,
+					this.logger,
+				)
+					.then((source) => parseOptionHelp(source, topic !== "full"))
+					.catch(() => {
+						this.optionFailures.set(key, Date.now());
+						this.logger?.warn(
+							{ event: "media.option_detection_failed", topic },
+							"FFmpeg option information could not be read.",
+						);
+						return { options: new Map(), available: false };
+					});
+				this.optionCache.set(key, pending);
+			}
+			return pending;
+		});
+	}
+
+	async validatePlan(plan: DeepReadonly<MediaProcessingPlan>): Promise<void> {
+		const audios = plan.audioTracks?.map((track) => track.parameters) ?? [
+			plan.audioParameters,
+		];
+		const checked = await this.validateProfiles(
+			audios.map((audio, index) => ({
+				id: String(index),
+				container: plan.container,
+				video: plan.videoParameters ?? { encoder: "copy", codec: "" },
+				audio: audio ?? { encoder: "copy", codec: "" },
+				globalOptions: plan.globalOptions,
+				inputOptions: plan.inputOptions,
+				muxerOptions: plan.muxerOptions,
+			})),
+		);
+		if (
+			Object.values(checked.validation).some((v) => v.status === "unsupported")
+		)
+			throw new MediaToolError(
+				"CAPABILITY_MISSING",
+				"The execution parameters are unsupported by this FFmpeg build.",
+			);
+	}
+
+	async probe(path: string, signal?: AbortSignal): Promise<MediaInfo> {
+		const executable = await this.executable("ffprobe");
+		await localFile(path);
+		// Signature detection is supplemental; incomplete headers must not suppress FFprobe.
+		const detectionTimeout = AbortSignal.timeout(
+			this.policy.mediaTools.detectionTimeoutMs,
+		);
+		const detected = await fileTypeFromFile(path, {
+			signal: signal
+				? AbortSignal.any([signal, detectionTimeout])
+				: detectionTimeout,
+		}).catch(() => undefined);
+		const containers: Readonly<Record<string, MediaContainer>> = {
+			mp4: "mp4",
+			mov: "quicktime",
+			mkv: "matroska",
+			webm: "webm",
+		};
+		const info = parseMediaInfo(
+			await runTool(
+				executable,
+				[
+					"-v",
+					"error",
+					"-protocol_whitelist",
+					"file,pipe",
+					"-show_format",
+					"-show_streams",
+					"-show_chapters",
+					"-show_pixel_formats",
+					"-of",
+					"json",
+					"-i",
+					path,
+				],
+				signal ? { signal } : {},
+				this.policy.mediaTools,
+				this.logger,
+			),
+			detected ? (containers[detected.ext] ?? null) : null,
+		);
+		// Probe initialization data for all audio/video streams. Dumping every
+		// attachment would copy embedded fonts into the probe output and exhaust its bound.
+		for (const stream of info.streams.filter(
+			(stream) =>
+				["video", "audio"].includes(stream.type) && !stream.attachedPicture,
+		)) {
+			if (
+				!stream ||
+				!["h264", "hevc", "aac", "av1"].includes(stream.codec ?? "")
+			)
+				continue;
+			try {
+				const data = probeRecord(
+					JSON.parse(
+						await runTool(
+							executable,
+							[
+								"-v",
+								"error",
+								"-protocol_whitelist",
+								"file,pipe",
+								"-select_streams",
+								String(stream.index),
+								"-show_entries",
+								"stream=index,codec_name,codec_tag_string,profile,extradata",
+								"-show_data",
+								"-of",
+								"json",
+								"-i",
+								path,
+							],
+							signal ? { signal } : {},
+							{
+								...this.policy.mediaTools,
+								maximumOutputBytes: Math.min(
+									this.policy.mediaTools.maximumOutputBytes,
+									256 * 1024,
+								),
+								executionTimeoutMs: Math.min(
+									this.policy.mediaTools.executionTimeoutMs,
+									5000,
+								),
+							},
+							this.logger,
+						),
+					),
+				);
+				if (Array.isArray(data.streams)) {
+					const details = data.streams
+						.map(probeRecord)
+						.find((candidate) => candidate.index === stream.index);
+					stream.codecString = details ? codecDescriptor(details) : null;
+				}
+			} catch {
+				signal?.throwIfAborted();
+				this.logger?.debug(
+					{
+						event: "media.codec_description_unavailable",
+						streamIndex: stream.index,
+					},
+					"Exact codec description is unavailable.",
+				);
+			}
+		}
+		return info;
+	}
+
+	private async executable(tool: "ffmpeg" | "ffprobe"): Promise<string> {
+		const status = await this.toolStatus(tool);
+		if (!status.available)
+			throw new MediaToolError("TOOL_UNAVAILABLE", status.message);
+		return status.path;
+	}
+}

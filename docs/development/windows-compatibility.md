@@ -252,7 +252,7 @@ Windows check with FFmpeg outside PATH.
 ([start-backend.ts:55-L78](../../apps/server/src/app/bootstrap/start-backend.ts#L55-L78),
 [media-tools.ts:6-L27](../../apps/server/src/app/bootstrap/media-tools.ts#L6-L27)),
 detection has a 30-second timeout
-([policy.ts:8](../../apps/server/src/platform/media/policy.ts#L8)), and the
+([policy.ts:16](../../packages/media-tools/src/policy.ts#L16)), and the
 desktop gives up after 20 seconds
 ([local-backend.ts:6](../../apps/desktop/src/main/server/local-backend.ts#L6)).
 
@@ -273,7 +273,7 @@ detection; cold Windows launch measurements.
 
 **Evidence:** FFmpeg is spawned without a process group or Job Object and stops
 via `SIGTERM`/`SIGKILL`
-([processing-process.ts:122-L138](../../apps/server/src/platform/media/processing-process.ts#L122-L138));
+([processing-process.ts:137-L153](../../packages/media-tools/src/processing-process.ts#L137-L153));
 on Windows both are forced termination of that single process. The desktop kills
 only the backend utility process after its shutdown budget
 ([local-backend.ts:100-L124](../../apps/desktop/src/main/server/local-backend.ts#L100-L124)).

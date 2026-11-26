@@ -1,5 +1,5 @@
 import type { AutoPreparationPreset } from "@anishelf/contracts/auto-preparation";
-import type { MediaProcessingPlan } from "../../../platform/media/specification.js";
+import type { MediaProcessingPlan } from "@anishelf/media-tools";
 import type { DeepReadonly } from "../../../shared/policy.js";
 
 /** Persisted encoding settings. Source identity and plan identity live in their indexed records. */

@@ -1,12 +1,9 @@
+import type { MediaInfo, MediaStream } from "@anishelf/media-tools";
 import {
 	codecLevel,
 	normalizeMediaProfile,
-} from "../../../../../platform/media/acceptance-policy.js";
-import { MediaToolError } from "../../../../../platform/media/errors.js";
-import type {
-	MediaInfo,
-	MediaStream,
-} from "../../../../../platform/media/model.js";
+} from "@anishelf/media-tools/acceptance-policy";
+import { MediaToolError } from "@anishelf/media-tools/errors";
 import { type DeepReadonly, freeze } from "../../../../../shared/policy.js";
 import type { expectedOutputSpec } from "../../planning/public.js";
 import type { MediaExecutionRequest } from "../ports.js";

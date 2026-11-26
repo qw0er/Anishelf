@@ -6,6 +6,7 @@ import type {
 	PreparationRequest,
 	PreparationStartResponse,
 } from "@anishelf/contracts/http";
+import { parseMediaInfo } from "@anishelf/media-tools";
 import pino from "pino";
 import { afterEach, expect, vi } from "vitest";
 import { ApplicationDatabase } from "../../../../../src/app/bootstrap/database.js";
@@ -29,7 +30,6 @@ import {
 	builtinTranscodeProfiles,
 	type TranscodeProfile,
 } from "../../../../../src/modules/system/configuration/public.js";
-import { parseMediaInfo } from "../../../../../src/platform/media/tools.js";
 import { createHttpApp } from "../../../../support/http.js";
 import { MemoryInspectionStore } from "../../../../support/inspection-store.js";
 import { createLibraryModule } from "../../../../support/library.js";

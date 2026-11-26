@@ -1,10 +1,10 @@
-import { canMux } from "../../../../../platform/media/acceptance-policy.js";
-import { filterName } from "../../../../../platform/media/encoding-policy.js";
-import type { MediaProcessingPlan } from "../../../../../platform/media/specification.js";
+import type { MediaProcessingPlan } from "@anishelf/media-tools";
+import { canMux } from "@anishelf/media-tools/acceptance-policy";
+import { filterName } from "@anishelf/media-tools/encoding-policy";
 import {
 	matchesAudioTarget,
 	matchesVideoTarget,
-} from "../../../../../platform/media/stream-copy-policy.js";
+} from "@anishelf/media-tools/stream-copy-policy";
 import { fingerprint } from "../../../../../shared/fingerprint.js";
 import { type DeepReadonly, freeze } from "../../../../../shared/policy.js";
 import type { TranscodeProfile } from "../../../../system/public.js";

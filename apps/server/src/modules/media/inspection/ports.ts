@@ -1,4 +1,4 @@
-import type { MediaInfo } from "../../../platform/media/model.js";
+import type { MediaInfo } from "@anishelf/media-tools";
 import type { ResolvedSource } from "../../resources/public.js";
 export class MediaInspectionBusyError extends Error {
 	constructor() {

@@ -1,4 +1,4 @@
-import type { MediaStream } from "../../../platform/media/model.js";
+import type { MediaStream } from "@anishelf/media-tools";
 
 interface StreamIdentity {
 	index: number;

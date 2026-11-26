@@ -1,6 +1,11 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+	type MediaInfo,
+	MediaToolError,
+	type MediaTools,
+} from "@anishelf/media-tools";
 import pino from "pino";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { MediaInspectionApplication } from "../../../../src/modules/media/inspection/application.js";
@@ -11,11 +16,6 @@ import {
 import type { LibraryApplication } from "../../../../src/modules/resources/library/application/library.js";
 import { LibraryIndex } from "../../../../src/modules/resources/library/infrastructure/index.js";
 import { ResourceAccess } from "../../../../src/modules/resources/resource-access/infrastructure/access.js";
-import {
-	type MediaInfo,
-	MediaToolError,
-	type MediaTools,
-} from "../../../../src/platform/media/index.js";
 import { createHttpApp } from "../../../support/http.js";
 import { MemoryInspectionStore } from "../../../support/inspection-store.js";
 import { createLibraryModule } from "../../../support/library.js";

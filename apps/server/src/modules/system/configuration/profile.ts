@@ -3,7 +3,7 @@ import type {
 	EncodingOptions,
 	EncodingValidation,
 	VideoEncoding,
-} from "../../../platform/media/encoding.js";
+} from "@anishelf/media-tools";
 import { fingerprint } from "../../../shared/fingerprint.js";
 import type { DeepReadonly } from "../../../shared/policy.js";
 

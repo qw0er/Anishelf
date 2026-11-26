@@ -1,8 +1,8 @@
 import {
 	MediaOutputBudgetError,
+	MediaProcessError,
 	MediaToolError,
-} from "../../../../platform/media/index.js";
-import { MediaProcessError } from "../../../../platform/media/processing-process.js";
+} from "@anishelf/media-tools";
 import { DomainError } from "../../../../shared/errors.js";
 import type { PreparationFailureReason } from "../domain/model.js";
 export function preparationFailure(error: unknown): PreparationFailureReason {

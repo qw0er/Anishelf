@@ -43,7 +43,8 @@
 				"apps/web/**",
 				"packages/client-core/**",
 				"packages/client-ui/**",
-				"packages/contracts/**"
+				"packages/contracts/**",
+				"packages/media-tools/**"
 			],
 			"linter": {
 				"rules": {

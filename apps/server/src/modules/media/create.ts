@@ -1,11 +1,12 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import type { Logger } from "pino";
-import type { MediaTools } from "../../platform/media/index.js";
+import type { MediaTools } from "@anishelf/media-tools";
 import {
+	type MediaToolPolicy,
 	mediaToolPolicy,
 	validateMediaToolPolicy,
-} from "../../platform/media/policy.js";
+} from "@anishelf/media-tools/policy";
+import type { Logger } from "pino";
 import { defaultSortingPolicy } from "../../shared/sorting.js";
 import type { ResourcesApi } from "../resources/public.js";
 import type { SystemApi } from "../system/public.js";
@@ -41,7 +42,7 @@ export interface MediaModulePolicy {
 	preparation: import("./preparation/policy.js").PreparationPolicy;
 	subtitles: import("./subtitles/policy.js").SubtitlePolicy;
 	library: import("../../shared/sorting.js").SortingPolicy;
-	mediaTools: import("../../platform/media/policy.js").MediaToolPolicy;
+	mediaTools: MediaToolPolicy;
 }
 export async function createMediaModule(options: {
 	system: SystemApi;

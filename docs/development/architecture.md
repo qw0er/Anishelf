@@ -51,7 +51,7 @@ AniList supplies metadata and tracking; Bangumi supplies metadata only.
 | --- | --- |
 | `app/` | Composition, HTTP setup, staged shutdown |
 | `modules/` | Six business modules and their private implementations |
-| `platform/` | SQLite, filesystem/process mechanisms, media tools, logging |
+| `platform/` | SQLite, filesystem/process mechanisms, runtime environment, logging |
 | `transport/` | HTTP security, streaming, errors, shared projections |
 | `shared/` | Small internal concepts without business dependencies |
 
@@ -112,12 +112,13 @@ presentation timings shared within a feature live in its `defaults.ts`.
 
 | Workspace | Internal workspace dependencies |
 | --- | --- |
-| `apps/server/` | `@anishelf/anime-identification`, `@anishelf/contracts` |
+| `apps/server/` | `@anishelf/anime-identification`, `@anishelf/contracts`, `@anishelf/media-tools` |
 | `apps/web/` | `@anishelf/client-ui`, `@anishelf/client-core`, `@anishelf/contracts` |
 | `packages/client-ui/` | `@anishelf/anime-identification/mapping`, `@anishelf/client-core`, `@anishelf/contracts` |
 | `packages/client-core/` | `@anishelf/contracts` |
 | `packages/contracts/` | None |
 | `packages/anime-identification/` | None |
+| `packages/media-tools/` | `@anishelf/contracts` |
 
 Application hosts consume the public React entry and stylesheet. The
 dependency check rejects host imports of UI internals, server imports of

@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readdir, statfs } from "node:fs/promises";
 import { join } from "node:path";
+import type { MediaInfo } from "@anishelf/media-tools";
 import type { Logger } from "pino";
 import {
 	isWindowsSharingError,
@@ -8,7 +9,6 @@ import {
 	renameFile,
 	syncDirectory,
 } from "../../../platform/filesystem.js";
-import type { MediaInfo } from "../../../platform/media/model.js";
 import { storageRules } from "../../../platform/storage.js";
 import type { PreparedArtifact } from "../preparation/public.js";
 import { InvalidPreparedMediaError } from "./public.js";

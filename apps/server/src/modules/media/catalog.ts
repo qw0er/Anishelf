@@ -1,7 +1,6 @@
 import { originalTimeline } from "@anishelf/contracts/media";
+import { type MediaInfo, MediaToolError } from "@anishelf/media-tools";
 import type { Logger } from "pino";
-import { MediaToolError } from "../../platform/media/errors.js";
-import type { MediaInfo } from "../../platform/media/model.js";
 import { DomainError } from "../../shared/errors.js";
 import { fingerprint } from "../../shared/fingerprint.js";
 import type { ResourceAccessApi } from "../resources/public.js";

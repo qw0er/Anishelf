@@ -1,10 +1,10 @@
-import type { ServerMediaCapabilities } from "../../../../platform/media/capability-model.js";
-import type { MediaProcessEvent } from "../../../../platform/media/events.js";
 import type {
 	MediaInfo,
+	MediaProcessEvent,
 	MediaProcessingOptions,
-} from "../../../../platform/media/model.js";
-import type { MediaProcessingPlan } from "../../../../platform/media/specification.js";
+	MediaProcessingPlan,
+	ServerMediaCapabilities,
+} from "@anishelf/media-tools";
 import type { DeepReadonly } from "../../../../shared/policy.js";
 /** Immutable work specification shared by planners and execution consumers. */
 export interface MediaExecutionSpecification {

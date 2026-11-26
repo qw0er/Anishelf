@@ -521,3 +521,14 @@ test.each([
 		parseDeploymentConfig({ ANISHELF_ALLOWED_HOSTS: value }),
 	).toThrow("ANISHELF_ALLOWED_HOSTS");
 });
+
+test("configures executable overrides independently", () => {
+	const ffmpegPath = join(tmpdir(), "tools", "ffmpeg");
+	const ffprobePath = join(tmpdir(), "tools", "ffprobe");
+	expect(
+		parseDeploymentConfig({ ANISHELF_FFMPEG_PATH: ffmpegPath }).mediaTools,
+	).toEqual({ ffmpegPath, ffprobePath: "ffprobe" });
+	expect(
+		parseDeploymentConfig({ ANISHELF_FFPROBE_PATH: ffprobePath }).mediaTools,
+	).toEqual({ ffmpegPath: "ffmpeg", ffprobePath });
+});
