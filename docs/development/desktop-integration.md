@@ -49,8 +49,6 @@ The groups are in suggested priority order.
   position on `suspend` and on `lock-screen` (macOS and Windows). On `resume`,
   it checks the backend session, retries pending progress saves, and refreshes
   subscription and download state. Playback remains paused after wake.
-- **Mini player.** Add an optional compact, always-on-top window
-  (`setAlwaysOnTop`) for watching alongside other work.
 
 ### 2. Native notifications
 
@@ -122,10 +120,7 @@ during that interval would require a separate push channel.
 ### 5. System appearance and behaviour
 
 - Follow system theme changes live through `nativeTheme.on('updated')` or a
-  `matchMedia` change listener. Consider using the system accent colour.
-- Consider `electron-updater` for automatic updates. Unsigned Windows and macOS
-  builds limit the experience, and AppImage support is the strongest. A smaller
-  first step is a background update check that sends a native notification.
+  `matchMedia` change listener.
 - Use `shell.openPath` to open local files with the default application.
 
 ## Suggested first step
