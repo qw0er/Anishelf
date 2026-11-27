@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,6 +29,7 @@ import {
 import { DesktopMenu } from "./native/menu.js";
 import { PlaybackPower } from "./native/playback-power.js";
 import { chooseResourceDirectory } from "./native/resource-directory.js";
+import { TaskbarProgress } from "./native/taskbar-progress.js";
 import { DesktopTray } from "./native/tray.js";
 import { DesktopUpdateChecker } from "./native/updates.js";
 import { DesktopOfflineCache } from "./offline-cache/cache.js";
@@ -139,6 +141,7 @@ function logLocalShutdownFailure(error: unknown) {
 export class DesktopApplication {
 	private readonly windows = new Set<WebContents>();
 	private readonly playbackPower = new Map<WebContents, PlaybackPower>();
+	private readonly taskbarProgress = new TaskbarProgress();
 	private readonly readyMenuWindows = new Set<WebContents>();
 	private readonly cleanup: Array<() => void> = [];
 	private offlineCache: DesktopOfflineCache | undefined;
@@ -176,6 +179,7 @@ export class DesktopApplication {
 				? await this.openExternalServer(connection)
 				: connectLocalBackend(connection);
 		this.activateServer(server);
+		this.cleanup.push(() => this.taskbarProgress.dispose());
 		await this.initializeCache();
 		this.tray = new DesktopTray(
 			() => this.showWindow(),
@@ -301,8 +305,25 @@ export class DesktopApplication {
 						);
 					},
 					openExternal,
-					downloadFile: async (sender, url, filename, id) =>
-						downloadMedia(sender, this.server.origin, url, filename, id),
+					downloadFile: async (sender, url, filename, id) => {
+						const taskKey = `download:${randomUUID()}`;
+						return downloadMedia(
+							sender,
+							this.server.origin,
+							url,
+							filename,
+							id,
+							(percent) => {
+								if (percent === undefined)
+									this.taskbarProgress.clearTask(taskKey);
+								else
+									this.taskbarProgress.setTask(
+										taskKey,
+										percent === null ? null : percent / 100,
+									);
+							},
+						);
+					},
 					revealDownload,
 					listExternalPlayers: () => externalPlayers.list(),
 					addExternalPlayer: (draft) => externalPlayers.add(draft),
@@ -421,6 +442,7 @@ export class DesktopApplication {
 					};
 				},
 				(entry, id) => {
+					this.taskbarProgress.setOfflineCacheEntry(id, entry);
 					for (const window of this.windows)
 						if (!window.isDestroyed())
 							window.send("desktop:cache:changed", entry, id);
@@ -584,13 +606,18 @@ export class DesktopApplication {
 		this.windows.add(contents);
 		const power = new PlaybackPower(powerSaveBlocker, startHidden);
 		this.playbackPower.set(contents, power);
+		this.taskbarProgress.attach(window);
 		window.on("hide", () => power.setHidden(true));
-		window.on("show", () => power.setHidden(false));
+		window.on("show", () => {
+			power.setHidden(false);
+			this.taskbarProgress.refresh(window);
+		});
 		contents.on("did-navigate", () => power.setPlaying(false));
 		contents.on("render-process-gone", () => power.setPlaying(false));
 		contents.once("destroyed", () => {
 			power.setPlaying(false);
 			this.playbackPower.delete(contents);
+			this.taskbarProgress.detach(window);
 			this.offlineCache?.closeWindow(contents);
 			this.readyMenuWindows.delete(contents);
 			this.windows.delete(contents);

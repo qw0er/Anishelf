@@ -19,9 +19,10 @@ settings.
 | Theme | `prefers-color-scheme` is read once at startup. No live updates, no accent colour. | `apps/desktop/src/renderer/main.tsx` |
 | Language | Follows `app.getLocale()` unless the user stores a language. The tray and menu follow the in-app language. | `apps/desktop/src/main` |
 | Media session | Sets `navigator.mediaSession` metadata (work title, episode, poster), playback/position state and play, pause, seek, previous and next handlers. Runtime verification on each desktop backend remains pending. | `packages/client-ui/src/features/playback/media-session.ts` |
+| Taskbar progress | Aggregates media download and offline cache progress into `BrowserWindow.setProgressBar`. | `apps/desktop/src/main/native/taskbar-progress.ts` |
 
 Not implemented: native notifications,
-taskbar progress, badge counts, Windows thumbnail toolbar and jump lists, macOS
+badge counts, Windows thumbnail toolbar and jump lists, macOS
 dock menu, a custom URL protocol, file associations, drag and drop,
 picture-in-picture or mini player, live theme following, and automatic update
 installation.
@@ -91,8 +92,9 @@ during that interval would require a separate push channel.
 
 ### 3. Taskbar, dock and tray
 
-- **Progress.** Show download and offline cache progress with
-  `BrowserWindow.setProgressBar`.
+- **Progress.** Implemented in
+  `apps/desktop/src/main/native/taskbar-progress.ts` to show download and
+  offline cache progress with `BrowserWindow.setProgressBar`.
 - **Badge.** Show the number of items needing review or new episodes with
   `app.setBadgeCount` (supported on macOS and some Linux desktops).
 - **Tray menu.** Add Continue watching (the three most recent works), Today's

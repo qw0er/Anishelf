@@ -19,6 +19,7 @@ export function downloadMedia(
 	value: unknown,
 	filename: unknown,
 	id: unknown,
+	onProgress?: (percent: number | null | undefined) => void,
 ) {
 	if (typeof filename !== "string") throw new Error("Invalid download name.");
 	if (
@@ -57,14 +58,17 @@ export function downloadMedia(
 				if (!id) resolve(true);
 			},
 			progress(item) {
-				if (!id || sender.isDestroyed() || !item.getSavePath()) return;
+				if (!id || !item.getSavePath()) return;
 				const percent = downloadPercent(item);
 				if (percent === lastPercent) return;
 				lastPercent = percent;
-				sender.send("desktop:download-progress", id, percent);
+				onProgress?.(percent);
+				if (!sender.isDestroyed())
+					sender.send("desktop:download-progress", id, percent);
 			},
 		}).then(
 			(path) => {
+				if (id) onProgress?.(undefined);
 				console.info(
 					path === null
 						? "desktop.download_cancelled"
@@ -80,6 +84,7 @@ export function downloadMedia(
 				resolve(path !== null);
 			},
 			(error: unknown) => {
+				if (id) onProgress?.(undefined);
 				console.warn("desktop.download_failed");
 				reject(error);
 			},

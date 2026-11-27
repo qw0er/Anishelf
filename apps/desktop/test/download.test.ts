@@ -22,23 +22,32 @@ function startDownload() {
 		setSaveDialogOptions: vi.fn(),
 	});
 	const send = vi.fn();
+	const onProgress = vi.fn();
 	const sender = {
 		session,
 		send,
 		isDestroyed: () => false,
 		downloadURL: () => session.emit("will-download", {}, item, sender),
 	} as unknown as WebContents;
-	const result = downloadMedia(sender, origin, url, "video.mkv", id);
-	return { sender, item, send, result };
+	const result = downloadMedia(
+		sender,
+		origin,
+		url,
+		"video.mkv",
+		id,
+		onProgress,
+	);
+	return { sender, item, send, onProgress, result };
 }
 
 test("reports progress after save selection and reveals the actual saved path", async () => {
-	const { sender, item, send, result } = startDownload();
+	const { sender, item, send, onProgress, result } = startDownload();
 	expect(item.setSaveDialogOptions).toHaveBeenCalledWith({
 		defaultPath: "video.mkv",
 	});
 	item.emit("updated", {}, "progressing");
 	expect(send).not.toHaveBeenCalled();
+	expect(onProgress).not.toHaveBeenCalled();
 	await expect(revealDownload(sender, id)).rejects.toThrow();
 
 	item.getSavePath.mockReturnValue("/downloads/renamed.mkv");
@@ -50,9 +59,11 @@ test("reports progress after save selection and reveals the actual saved path", 
 		["desktop:download-progress", id, null],
 		["desktop:download-progress", id, 42],
 	]);
+	expect(onProgress.mock.calls).toEqual([[null], [42]]);
 
 	item.emit("done", {}, "completed");
 	await expect(result).resolves.toBe(true);
+	expect(onProgress).toHaveBeenLastCalledWith(undefined);
 	expect(item.listenerCount("updated")).toBe(0);
 	await revealDownload(sender, id);
 	expect(showItemInFolder).toHaveBeenCalledWith("/downloads/renamed.mkv");
@@ -62,10 +73,12 @@ test("treats a cancelled save separately from an interrupted transfer", async ()
 	const cancelled = startDownload();
 	cancelled.item.emit("done", {}, "cancelled");
 	await expect(cancelled.result).resolves.toBe(false);
+	expect(cancelled.onProgress).toHaveBeenLastCalledWith(undefined);
 
 	const interrupted = startDownload();
 	interrupted.item.emit("done", {}, "interrupted");
 	await expect(interrupted.result).rejects.toThrow(/interrupted/);
+	expect(interrupted.onProgress).toHaveBeenLastCalledWith(undefined);
 });
 
 test("keeps a manual save and a managed cache transfer independent", async () => {
