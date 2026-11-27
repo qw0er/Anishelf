@@ -1,26 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="930" viewBox="0 0 1200 930" role="img" aria-labelledby="title desc">
 <title id="title">Anishelf system architecture</title>
-<desc id="desc">Browser connects through an optional TLS proxy to Caddy Web, which serves React and proxies API traffic to one private Node backend. Six modules own System, Resources, Media, Playback, Anime and Acquisition. They use SQLite, confined media storage, FFmpeg and external services through their owning adapters. Backend reads original media; qBittorrent writes downloads.</desc>
+<desc id="desc">Browser clients connect through an optional TLS proxy to Caddy Web, which serves React and proxies API traffic to one Node backend; the Electron desktop client runs the shared React UI with offline cache and connects via device API to a bundled or external backend. Six modules own System, Resources, Media, Playback, Anime and Acquisition. They use SQLite, confined media storage, FFmpeg and external services through their owning adapters. Backend confines original media access; qBittorrent writes downloads.</desc>
 <defs>
 <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#64748b"/></marker>
 </defs>
 <rect width="1200" height="930" fill="#f8fafc"/>
 <g font-family="DejaVu Sans, Arial, sans-serif" fill="#172a43">
 <text x="40" y="48" font-size="28" font-weight="700">Anishelf · System architecture</text>
-<text x="40" y="79" font-size="16" fill="#475569">One browser origin · One backend process · Six business modules</text>
-<rect x="40" y="110" width="300" height="100" rx="12" fill="#eff6ff" stroke="#cbd5e1"/>
-<text x="60" y="142" font-size="20" font-weight="700">Browser</text>
-<text x="60" y="170" font-size="17" fill="#475569">React UI · playback</text>
-<rect x="450" y="110" width="300" height="100" rx="12" fill="#eff6ff" stroke="#cbd5e1"/>
-<text x="470" y="142" font-size="20" font-weight="700">TLS proxy (optional)</text>
-<text x="470" y="170" font-size="17" fill="#475569">HTTPS and domain access</text>
-<rect x="860" y="110" width="300" height="100" rx="12" fill="#eff6ff" stroke="#cbd5e1"/>
-<text x="880" y="142" font-size="20" font-weight="700">Web · Caddy</text>
-<text x="880" y="170" font-size="16" fill="#475569">SPA + /api proxy · host :3000</text>
-<path d="M340 160 H445" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<path d="M750 160 H855" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<path d="M1010 210 V245" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="1030" y="236" font-size="14" fill="#475569">private API</text>
+<text x="40" y="79" font-size="16" fill="#475569">Web and Electron desktop clients · One backend process · Six business modules</text>
+<rect x="40" y="105" width="240" height="105" rx="12" fill="#eff6ff" stroke="#cbd5e1"/>
+<text x="58" y="137" font-size="19" font-weight="700">Browser</text>
+<text x="58" y="165" font-size="15" fill="#475569">React UI · playback</text>
+<text x="58" y="188" font-size="14" fill="#475569">Cookie + CSRF · PWA</text>
+<rect x="325" y="105" width="240" height="105" rx="12" fill="#eff6ff" stroke="#cbd5e1"/>
+<text x="343" y="137" font-size="19" font-weight="700">TLS proxy (optional)</text>
+<text x="343" y="165" font-size="15" fill="#475569">HTTPS and domain access</text>
+<rect x="610" y="105" width="240" height="105" rx="12" fill="#eff6ff" stroke="#cbd5e1"/>
+<text x="628" y="137" font-size="19" font-weight="700">Web · Caddy</text>
+<text x="628" y="165" font-size="15" fill="#475569">SPA + /api proxy · :3000</text>
+<rect x="895" y="105" width="265" height="105" rx="12" fill="#eff6ff" stroke="#93c5fd"/>
+<text x="913" y="137" font-size="19" font-weight="700">Desktop · Electron</text>
+<text x="913" y="165" font-size="15" fill="#475569">Shared React UI · offline cache</text>
+<text x="913" y="188" font-size="14" fill="#475569">Bundled or external server</text>
+<path d="M280 157 H320" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M565 157 H605" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M730 210 V245" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="742" y="236" font-size="14" fill="#475569">private API</text>
+<path d="M1027 210 V245" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1039" y="236" font-size="14" fill="#475569">device API</text>
 <rect x="40" y="250" width="1120" height="400" rx="16" fill="#eef2ff" stroke="#a5b4fc"/>
 <text x="60" y="282" font-size="21" font-weight="700">Backend · Node.js</text>
 <text x="370" y="282" font-size="15" fill="#475569">App assembles modules · HTTP delegates to public contracts</text>
@@ -67,7 +74,7 @@
 <text x="60" y="795" font-size="13" fill="#475569">Settings and private credentials</text>
 <rect x="325" y="710" width="265" height="130" rx="12" fill="#f0fdf4" stroke="#cbd5e1"/>
 <text x="345" y="742" font-size="20" font-weight="700">Media storage</text>
-<text x="345" y="770" font-size="13" fill="#475569">Backend: original media read-only</text>
+<text x="345" y="770" font-size="13" fill="#475569">Backend: confined original media access</text>
 <text x="345" y="795" font-size="13" fill="#475569">qBittorrent: completed downloads</text>
 <rect x="610" y="710" width="265" height="130" rx="12" fill="#f0fdf4" stroke="#cbd5e1"/>
 <text x="630" y="742" font-size="20" font-weight="700">FFprobe / FFmpeg</text>
@@ -78,5 +85,5 @@
 <text x="915" y="770" font-size="15" fill="#475569">AniList · Bangumi · RSS / Jackett</text>
 <text x="915" y="795" font-size="15" fill="#475569">qBittorrent API</text>
 <text x="40" y="880" font-size="16" fill="#475569">Business collaboration uses in-process APIs; flow diagrams in the architecture guide show the main workflows.</text>
-<text x="40" y="907" font-size="14" fill="#64748b">Container topology shown. Source installs may host the SPA directly from Node.</text>
+<text x="40" y="907" font-size="14" fill="#64748b">Web container and desktop topologies shown. Backend can also run standalone or serve the SPA directly.</text>
 </g></svg>

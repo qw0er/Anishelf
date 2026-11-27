@@ -1,10 +1,11 @@
 # Anishelf Architecture
 
-Anishelf runs one Node.js backend with six business modules. React uses its HTTP
-API; business modules collaborate through in-process public contracts. SQLite
+Anishelf runs one Node.js backend with six business modules. Both the Web app
+and the Electron desktop app share a React UI that talks to the backend over
+HTTP; business modules collaborate through in-process public contracts. SQLite
 stores durable state, and Resources confines access to original media.
 
-[Development](README.md) · [Database](database-design.md) · [UI design](design-system.md) · [Deployment](../guide/deployment.md)
+[Development](README.md) · [Clients](clients.md) · [Database](database-design.md) · [UI design](design-system.md) · [Deployment](../guide/deployment.md)
 
 ## Document responsibility
 
@@ -16,12 +17,19 @@ when the feature is scoped, not inferred from delivered implementation details.
 
 ## System structure
 
-![Anishelf system architecture: browser, Web proxy, six backend modules and infrastructure](architecture.svg)
+![Anishelf system architecture: browser, desktop client, Web proxy, six backend modules and infrastructure](architecture.svg)
 
-Backend serves the API and media by default. Set `ANISHELF_FRONTEND_DIR` to
-an existing Web build to serve the SPA from Backend as well. The packaged
-Web service uses Caddy to serve the SPA and proxy `/api` to Backend on one
-browser origin. A host proxy provides HTTPS for Web or direct API access.
+Backend serves the API and media by default and can run standalone (including
+`--no-web` backend-only deployments). Set `ANISHELF_FRONTEND_DIR` to an
+existing Web build to serve the SPA from Backend as well. The packaged Web
+service uses Caddy to serve the SPA and proxy `/api` to Backend on one browser
+origin. A host proxy provides HTTPS for Web or direct API access.
+
+The Electron desktop app (`apps/desktop/`) runs the same shared React UI
+locally under `anishelf://desktop`. By default it starts a bundled Backend
+process on loopback and signs in automatically with an in-memory device
+session; it can also connect directly to an external server over HTTPS (or
+loopback HTTP) using persisted device credentials.
 
 The Web service worker fetches SPA navigations from the network first and uses
 cached pages or the precached entry only when offline. It checks for a new worker
@@ -35,15 +43,16 @@ worker script. The packaged Web service caches fingerprinted assets.
 | --- | --- | --- |
 | System | Authentication, sessions, settings, profiles, build identity and update checks | Platform configuration and persistence |
 | Resources | Roots, filesystem monitoring, atomic index, confined source access | System |
-| Media | Actual asset descriptions, inspection, inspection, manual preparation, published artifacts and external subtitles | Resources, System, FFprobe/FFmpeg |
-| Playback | Listening intent, actual asset selection, sessions, resume/history, completion observations | Resources, Media; injected Anime observation port |
-| Anime | Metadata, identification, Catalog/Review, Tracking, combined Library, AniList and Bangumi protocols | Resources, System, AniList, Bangumi |
+| Media | Actual asset descriptions, inspection, manual preparation, published artifacts and external subtitles | Resources, System, `@anishelf/media-tools` (FFprobe/FFmpeg) |
+| Playback | Viewing intent, actual asset selection, sessions, resume/history, completion observations | Resources, Media; injected Anime observation port |
+| Anime | Metadata, identification, Catalog/Review, Tracking, combined Library, AniList and Bangumi protocols | Resources, System, `@anishelf/anime-identification`, AniList, Bangumi |
 | Acquisition | Watching creation, Sources, Subscriptions, Downloads, TorrentClients | Anime, Resources, Jackett/RSS, qBittorrent |
 
 Module creation and lifecycle stay with each owner. App injects complete modules
 and coordinates shutdown; HTTP handlers validate/project requests and delegate to
-applications. Backend reads originals and exposes confirmed move/delete commands through Resources; qBittorrent writes downloads.
-AniList supplies metadata and tracking; Bangumi supplies metadata only.
+applications. Backend reads originals and exposes confirmed move/delete commands
+through Resources; qBittorrent writes downloads. Both AniList and Bangumi supply
+metadata and Tracking (one connected tracking account at a time).
 
 ## Source organization and dependency boundaries
 
@@ -108,12 +117,13 @@ live in the server's platform layer.
 Avoid aliases or forwarding files that only rename a contract constant. Frontend
 presentation timings shared within a feature live in its `defaults.ts`.
 
-### Frontend ownership
+### Frontend and desktop ownership
 
 | Workspace | Internal workspace dependencies |
 | --- | --- |
 | `apps/server/` | `@anishelf/anime-identification`, `@anishelf/contracts`, `@anishelf/media-tools` |
 | `apps/web/` | `@anishelf/client-ui`, `@anishelf/client-core`, `@anishelf/contracts` |
+| `apps/desktop/` | `@anishelf/client-ui`, `@anishelf/client-core`, `@anishelf/contracts` |
 | `packages/client-ui/` | `@anishelf/anime-identification/mapping`, `@anishelf/client-core`, `@anishelf/contracts` |
 | `packages/client-core/` | `@anishelf/contracts` |
 | `packages/contracts/` | None |
@@ -121,14 +131,17 @@ presentation timings shared within a feature live in its `defaults.ts`.
 | `packages/media-tools/` | `@anishelf/contracts` |
 
 Application hosts consume the public React entry and stylesheet. The
-dependency check rejects host imports of UI internals, server imports of
-client code, and Node builtins in browser workspaces. Browser consumers use
-the identification workspace's `/mapping` export.
+dependency check rejects host imports of UI internals, desktop imports of
+`apps/web/`, client imports of server or `@anishelf/media-tools`, server
+imports of client code, and Node builtins in browser workspaces and the desktop
+renderer. Browser consumers use the identification workspace's `/mapping` export.
 Biome rejects direct browser globals in the protocol and API client sources.
 
 The React application lives in `packages/client-ui/`. A host configures one
 client runtime with its connection, build information, changelog, platform
-capabilities and navigation callbacks before creating the router. The package exports the
+capabilities and navigation callbacks before creating the router. The client
+runtime also initializes global system theme watching and persists the user's
+theme preference with an explicit follow-system mode. The package exports the
 route definitions, the app with its providers, and the shared stylesheet.
 `apps/web/` mounts the app with a browser router and owns the HTML entry,
 Vite configuration, public assets and service worker registration. Its platform
@@ -139,11 +152,53 @@ each capability and retains DOM APIs for rendering, layout and media.
 In `apps/web/src/` and `apps/desktop/src/renderer/`, the top-level files are
 the application entry and stylesheet. Host-specific sign-in pages live in
 `auth/`. Platform integrations live in `platform/`, including Web service
-worker registration and desktop external players. The desktop renderer's
-`server/` owns its API connection and device-session adapter.
-Each host supplies its external-player form from `settings/`. The shared
-playback settings page hosts the form and shares the player list and add and
-remove actions across clients.
+worker registration and desktop external players, video downloads and system
+media controls. The desktop renderer's `server/` owns its API connection and
+device-session adapter. Each host supplies its external-player form from
+`settings/`. The shared playback settings page hosts the form and shares the
+player list and add and remove actions across clients.
+
+#### Desktop host and offline cache
+
+`apps/desktop/` separates Electron process layers with architecture-enforced
+boundaries:
+
+| Desktop layer | Responsibility and boundary |
+| --- | --- |
+| `src/main/` | Process lifecycle, bundled backend, device tokens, `anishelf://desktop` protocol, offline cache, window state and native OS integrations; cannot import `renderer/`, `preload/` or `@anishelf/client-{core,ui}` |
+| `src/preload/` | Narrow `contextBridge` surface; imports only `electron` and type-only `ipc/` contracts |
+| `src/ipc/` | Type-only IPC contract definitions; depends only on type-only `@anishelf/contracts/offline-cache` |
+| `src/renderer/` | Shared React UI host (`auth/`, `platform/`, `server/`, `settings/`); cannot import `main/`, `preload/`, `electron` or Node builtins |
+
+Within `src/main/`, sibling `native/`, `renderer/` and `server/` directories do
+not cross-import; `main/application.ts` and `main/ipc.ts` own cross-module
+wiring. Single-instance locking ensures a second launch restores the existing
+window.
+
+- **Server connection:** By default `main/server/local-backend.ts` starts the
+  bundled Backend on `127.0.0.1` with data under the desktop profile's
+  `backend/` directory (`.temp/desktop/backend/` in development) and
+  authenticates via an in-memory local device session. External server mode
+  connects over HTTPS (or loopback HTTP) and stores per-origin device tokens
+  encrypted on disk when OS secure storage is available.
+- **Offline video cache:** `main/offline-cache/` caches original video files
+  and supported external subtitles into the desktop profile's `offline-cache/`
+  directory, indexed by a local SQLite database (`better-sqlite3` + Drizzle).
+  Downloads stage atomically with progress reporting and retry. Cached files
+  remain playable across server switches or sign-out via reader leases and a
+  local loopback HTTP stream server (`stream.ts`), with local resume positions
+  persisted on the device.
+- **Native integrations:** `main/native/` provides command-based external
+  player discovery (user shell `PATH`, app bundles, Homebrew/MacPorts, WinGet
+  and Scoop) and detached launch without a shell; native file downloads with
+  progress, reveal-in-folder and retry; a native resource directory picker for
+  the bundled backend; saved window state with an integrated title bar; optional
+  close-to-tray and launch-at-login; quick-navigation tray and macOS Dock menus
+  backed by a pending-review badge monitor; a macOS native menu bar synced with
+  the in-app language; taskbar download and offline-cache progress; display-sleep
+  prevention during playback; system sleep, lock and resume handling (pausing
+  active playback and refreshing server state on resume); OS system media
+  controls; desktop update checks; and default Linux NVIDIA VA-API enablement.
 
 | Layer | Responsibility |
 | --- | --- |
@@ -245,8 +300,8 @@ flowchart LR
     Review --> Catalog
     Catalog --> Library[Combined Library and work detail]
     Tracking[Tracking list] --> Library
-    Provider[AniList] <--> Metadata
-    Provider <--> Tracking
+    Providers[AniList / Bangumi] <--> Metadata
+    Providers <--> Tracking
 ```
 
 | Owner | Boundary |
@@ -298,9 +353,15 @@ created and saved Catalog decisions remain authoritative.
 
 External Works owns metadata and tracking under `anime/external-works/`. Its factory
 assembles source adapters, the permanent identity registry, metadata cache/artwork,
-tracking credentials, account state and synchronization workers. AniList supports
-metadata and Tracking; Bangumi currently supports metadata only. Catalog, resource
-files and local playback history retain their own identities and lifecycles.
+tracking credentials, account state and synchronization workers. Both AniList and
+Bangumi support metadata and Tracking; one tracking account can be connected at a
+time. Catalog, resource files and local playback history retain their own
+identities and lifecycles.
+
+Directory identification fingerprints persist in Catalog alongside saved
+recognition evidence so unchanged directories reuse prior identification results
+across backend restarts. Reuse keys include the configured metadata source and
+are bypassed by explicit Review re-identification.
 
 Each permanent project work ID (`reference: { id }`) identifies exactly one source
 entry. Source identities are explicit in metadata responses. Cross-source identity linking, ID aliases, field composition and cross-source Tracking
@@ -359,9 +420,12 @@ initiate verification. Detail headers display only the selected primary title,
 without an alternative-title list or expansion control.
 Unsupported capabilities return `unavailable: true`. Immutable historical snapshots
 remain confirmation evidence; new current reads never compose source fields.
-Tracking resolves the work's own source ID. Bangumi works show unsupported Tracking;
-AniList works without an account show a connection action. Existing queued AniList
-updates retain their captured target and delivery state.
+Detail pages load and link related works on demand from the work's own source
+(both AniList and Bangumi; non-anime relations link externally).
+Tracking resolves the work's own source ID and requires a matching connected
+account for that provider (AniList or Bangumi). Works from another provider show
+a provider-mismatch or connection action rather than syncing across sources.
+Existing queued updates retain their captured target and delivery state.
 
 ### Metadata implementation responsibilities
 
@@ -410,11 +474,16 @@ See [WI10 delivery and validation](../implemented-requirements.md#library-and-de
 
 Media compiles and executes explicit manual preparation commands; Playback binds
 existing bytes and owns source-level viewing progress. `libmedia-react-player`
-handles browser demuxing, decoding, controls and embedded subtitles, including
-styled ASS/SSA with attached fonts. Media owns version-bound discovery and
-delivery of sidecars. Playback and manual preparation run independently.
+(with its bundled WebAssembly SIMD decoding fallback) handles browser demuxing,
+decoding, controls, persisted playback preferences (audio, subtitle and playback
+rate) and embedded subtitles—including styled ASS/SSA with attached fonts as
+well as PGS, VobSub and DVB subtitles in Matroska. Media owns version-bound
+discovery and delivery of external text and bitmap sidecars (including PGS,
+VobSub, `.mks` and DVB-SUB). Playback and manual preparation run independently.
 
-Media organizes inspection, preparation/planning, preparation/execution, artifacts,
+`@anishelf/media-tools` owns FFmpeg/FFprobe discovery, runtime capability
+inspection and media processing execution as a standalone workspace. Media
+organizes inspection, preparation/planning, preparation/execution, artifacts,
 subtitles and the asset catalog separately. Tasks own execution snapshots;
 completed assets describe inspected output independently of mutable profiles.
 Resources fences original-file access. Artifacts retains atomic publication,
@@ -430,7 +499,8 @@ See the [playback design and validation scope](playback.md#runtime-distribution-
 ## Playback Completion Observation
 
 Playback records eligible normal-play completion observations durably alongside
-progress. A handoff worker sends them to Tracking; seeking alone does not establish
+progress (default policy: 87% completion ratio and at least 30 seconds of normal
+play). A handoff worker sends them to Tracking; seeking alone does not establish
 completion. Playback sessions and monotonically ordered saves fence stale writes.
 
 ## Tracking Persistence and Submission
@@ -456,10 +526,15 @@ flowchart LR
 | Baseline, desired fields, immutable attempt | Retry or reconcile without replacing unrelated remote fields |
 | Confirmed list and pending intent | Keep remote truth separate from requested changes in the UI |
 
-Targets must resolve to confirmed, unambiguous Catalog mappings. Automatic observations
-also capture account/manual versions. A remote write already accepted cannot be
-recalled; AniList has no atomic conditional mutation, so concurrent remote edits
-between read and write remain possible.
+Targets must resolve to confirmed, unambiguous Catalog mappings matching the
+connected provider (AniList or Bangumi). Automatic observations also capture
+account/manual versions. Bangumi Tracking connects via a personal access token
+and maps subject collections plus regular-episode collections: automatic
+completions advance a continuous main-episode sequence, while manual progress
+edits update the main-episode range and preserve special-episode marks (Bangumi
+does not support `rewatching`). A remote write already accepted cannot be
+recalled; neither AniList nor Bangumi provides atomic conditional mutations, so
+concurrent remote edits between read and write remain possible.
 
 ## Acquisition
 
@@ -517,12 +592,41 @@ not submit tasks. Downloads also accepts durable one-off episode requests throug
 `POST /api/acquisition/downloads/episodes`. These reserve the episode before source
 discovery and carry their own authorization, independent of subscription lifecycle.
 Shared pure release ranking preserves subscription wait periods; one-off discovery
-queries all configured sites for exactly one episode and bypasses waiting. Missing
-or unavailable releases stop until an explicit retry. Configuration revisions fence
-new submissions, while uncertain submissions reconcile their accepted identity. Downloads retains planning, admission, reservations, uncertain
-submission recovery, completion policy (`downloads/domain/completion.ts`) and
-verified ingestion. Changing an account/client generation still fences old tasks
-and requires explicit recovery.
+queries all configured sites for exactly one episode, bypasses waiting and rejects
+suspected season packs. Missing or unavailable releases stop until an explicit
+retry. Configuration revisions fence new submissions, while uncertain submissions
+reconcile their accepted identity. `downloads/transfers/` is isolated from Anime,
+Resources and Subscriptions and manages torrent submission, reconciliation and
+selective file transfers. Downloads retains planning, admission, reservations,
+episode claims, uncertain submission recovery, completion policy
+(`downloads/domain/completion.ts`) and verified ingestion. Changing an
+account/client generation still fences old tasks and requires explicit recovery.
+
+### Selective season-pack downloads
+
+Subscriptions support coverage-based selective season-pack downloads when the
+configured downloader supports metadata preview and add-time file priorities
+(qBittorrent 5.2.0 or later):
+
+- **Manifest preview and coverage planning:** Subscriptions shortlist candidate
+  packs from release evidence and inspect their torrent file manifests through
+  the downloader. Coverage planning selects missing episodes at or after the
+  subscription's `startEpisode` along with matching external subtitles, reusing
+  compatible managed torrents when available.
+- **Episode claims and managed transfers:** Downloads persists episode claims
+  and managed file-selection transfers (`ManagedFileSelection`). One persisted
+  operation owns the writer slot per managed torrent so newly needed episodes
+  can extend an existing managed torrent's selected files without re-adding or
+  corrupting concurrent priority updates.
+- **Independent file import:** `ManifestDownloadIngestion` verifies and imports
+  each planned video file and its sidecars independently once completed,
+  rechecking downloader generation, ownership, selection currency and local file
+  size/version before handing off to Anime ingestion.
+
+Single-video and season-pack imports both reuse the work, episode and release
+accepted at submission time after verifying task ownership and file version;
+manual Catalog decisions, conflicting targets and ambiguous layouts still route
+to Review.
 
 Adapters normalize transfer states and errors rather than exposing protocol strings.
 Only known stable states with progress 1 and zero remaining bytes allow import;
@@ -568,10 +672,17 @@ status. Switching within this group preserves subscriptions and saved configurat
 
 Disabling Watching or leaving both active statuses stops automatic acquisition while
 manual subscriptions remain independent. Account/scope changes require renewed confirmation. Starting episode is fixed at creation. Check updates can retry pending
-discovery immediately, subject to source limits. Watching activation uses the saved
-subscription-default release profile. A default change fences pending activation
-and automatic acquisition until a new preview is confirmed. Saved profiles and starting
-episodes remain stable; the work editor explicitly converts automatic ownership to manual.
+discovery immediately, subject to source limits. Watching-created subscriptions
+follow the current global subscription-default release profile rather than freezing
+the profile saved at creation: changing the default re-evaluates unreserved choices
+without requiring another activation preview, while reserved and submitted downloads
+keep their selection and an unavailable default blocks new selections with an
+actionable message. The work editor explicitly converts automatic ownership to manual.
+Manual and automatic subscriptions also schedule checks around known airing
+information (`airing-schedule.ts`), planning the next check 15 minutes after a
+scheduled airing rather than polling repeatedly during the pre-airing window, and
+falling back to bounded regular checks when airing data is missing, stale or
+unreliable.
 Both ownership types become completed after full verified local coverage of their known
 episode range. Completed records retain history and stop source polling; metadata checks
 can reopen expanded ranges, while explicit resume overrides completion of the same range. [Operator behavior](../guide/watching-automation.md)
@@ -729,8 +840,11 @@ media links.
 
 Electron loads the shared interface locally and sends API requests directly to
 Backend. Its main process adds the device credential to requests from the desktop
-window. The desktop CORS policy grants access to the exact app origin. Web continues
-to use cookie authentication and CSRF protection.
+window—using an in-memory local device session (`local-device-session.ts`) for
+the bundled backend and persisted, per-origin device tokens (30-day expiry,
+bound to the server password) for external servers. The desktop CORS policy
+grants access to the exact `anishelf://desktop` origin. Web continues to use
+cookie authentication and CSRF protection.
 
 `ANISHELF_PUBLIC_ORIGIN` is an optional fixed external address, not a Host
 allowlist or a Backend login gate. Standard Compose passes it to both Web and
@@ -754,8 +868,8 @@ headers or credentials; an Origin mismatch returns actionable proxy guidance.
 
 | Owner | Trigger / cadence |
 | --- | --- |
-| Resources | Native events, stability wait, manual scan and recovery reconciliation |
-| Sources | 30-second scheduler; default successful refresh every 30 minutes; bounded failure backoff |
+| Resources | Native events (Linux/macOS), 60-minute scheduled refresh (Windows), stability wait, manual scan and recovery reconciliation |
+| Sources | 30-second scheduler; airing-aware subscription check timing (15-minute post-airing release delay); default successful refresh every 30 minutes; bounded failure backoff |
 | Pending subscriptions / Watching | Separate 30-second workers, at most five resolutions/creations per pass; unresolved discovery retries after five minutes |
 | Tracking / playback handoff | Durable admission/startup wakeups and bounded failure retries |
 | Catalog metadata | Initial delayed check, then 15-minute passes; refresh only stale unfinished work |
@@ -786,7 +900,10 @@ source access, provider scheduling and persistence outlive their consumers.
 
 The installer generates a fresh deployment bundle and delegates to the container
 runtime/systemd. `deployment.json` saves installation choices for reconfiguration;
-explicit flags override those defaults. Generated Compose files contain only the
+explicit flags override those defaults. `--no-web` generates backend-only
+Compose or Quadlet deployments without the Web service. Container deployments
+store application state in `/var/lib/anishelf`; local development isolates data
+per checkout under `.temp/backend/` and `.temp/desktop/`. Generated Compose files contain only the
 selected services and initializers, without profiles; unused credential mounts,
 connection hints and volume declarations are omitted. Quadlet generation selects
 the corresponding units and Backend connection mounts. Operators manage deployments
@@ -897,10 +1014,13 @@ cache and only allows `lain.bgm.tv` in addition to AniList's image host.
 
 Bangumi's `eps` supplies the declared episode count; `total_episodes` counts database
 chapters and is not used as a regular-episode count. Premiere dates never imply
-finished/releasing status. Unsupported schedules, relations and canonical episode
-catalogs remain unavailable. Scores are projected to the existing 0–100 scale.
-Bangumi Tracking and a canonical cross-source episode catalog remain unavailable.
-Source-specific capabilities are handled inside the project Metadata boundary.
+finished/releasing status. Related works are supported: anime relations project
+to work summaries and non-anime subjects project to external links. Scores are
+projected to the existing 0–100 scale. Bangumi Tracking is supported via personal
+access tokens using subject and regular-episode collections; airing schedules
+and a canonical cross-source episode catalog remain unavailable.
+Source-specific capabilities are handled inside the project Metadata and Tracking
+boundaries.
 
 ### Acquisition search title selection
 
