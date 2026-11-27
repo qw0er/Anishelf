@@ -31,6 +31,8 @@ const desktop: DesktopBridge = {
 		ipcRenderer.invoke("desktop:login-item:set", enabled),
 	getCloseToTray: () => ipcRenderer.invoke("desktop:tray:get"),
 	setCloseToTray: (enabled) => ipcRenderer.invoke("desktop:tray:set", enabled),
+	setVideoPlaying: (playing) =>
+		ipcRenderer.invoke("desktop:playback:set-playing", playing),
 	setWindowControlsColors: (color, symbolColor) =>
 		ipcRenderer.invoke(
 			"desktop:window-controls:set-colors",

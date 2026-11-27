@@ -1,6 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { _electron as electron, expect, type Page } from "@playwright/test";
+import {
+	type ElectronApplication,
+	_electron as electron,
+	expect,
+	type Page,
+} from "@playwright/test";
 import {
 	animeDetailFixture,
 	animeFixture,
@@ -132,6 +137,22 @@ function sendMediaAction(page: Page, detail: MediaSessionActionDetails) {
 	}, detail);
 }
 
+async function captureDisplayBlocker(app: ElectronApplication) {
+	const probe = await app.evaluateHandle(({ powerSaveBlocker }) => {
+		const start = powerSaveBlocker.start.bind(powerSaveBlocker);
+		let blockerId: number | undefined;
+		powerSaveBlocker.start = (type) => {
+			const id = start(type);
+			if (type === "prevent-display-sleep") blockerId = id;
+			return id;
+		};
+		return () =>
+			blockerId !== undefined && powerSaveBlocker.isStarted(blockerId);
+	});
+	return (active: boolean) =>
+		expect.poll(() => probe.evaluate((isActive) => isActive())).toBe(active);
+}
+
 test("plays a cached video and sidecar after a restart with the server stopped", async ({
 	backend,
 }) => {
@@ -153,6 +174,7 @@ test("plays a cached video and sidecar after a restart with the server stopped",
 	const online = await launch();
 	try {
 		const window = await online.firstWindow();
+		const expectDisplayBlocker = await captureDisplayBlocker(online);
 		await window.getByLabel("Password", { exact: true }).fill(backend.password);
 		await window.getByRole("button", { name: "Sign in", exact: true }).click();
 		const files = window
@@ -168,11 +190,14 @@ test("plays a cached video and sidecar after a restart with the server stopped",
 		await sample.click();
 		await waitForPlayer(window, animeTitle);
 		await expectMediaSession(window, "none", null);
+		await expectDisplayBlocker(false);
 		await player(window, animeTitle).press("Space");
 		await expectMediaSession(window, "playing", animeTitle);
+		await expectDisplayBlocker(true);
 		await expectArtwork(window, "blob:", 192);
 		await files.click();
 		await expectMediaSession(window, "none", null);
+		await expectDisplayBlocker(false);
 		await window
 			.getByRole("button", { name: "File actions", exact: true })
 			.click();
@@ -196,12 +221,14 @@ test("plays a cached video and sidecar after a restart with the server stopped",
 	let savedPosition: number;
 	try {
 		const window = await offline.firstWindow();
+		const expectDisplayBlocker = await captureDisplayBlocker(offline);
 		await window.goto(new URL("#/offline-cache", window.url()).href);
 		await expect(window.getByText(sampleName, { exact: true })).toBeVisible();
 		await captureMediaSession(window);
 		await window.getByRole("link", { name: "Play", exact: true }).click();
 		await startPlayback(window);
 		await expectMediaSession(window, "playing", sampleName);
+		await expectDisplayBlocker(true);
 		await expectArtwork(window, "data:", 1024);
 		await selectSubtitle(window, /external/i);
 		await expect(
@@ -210,13 +237,16 @@ test("plays a cached video and sidecar after a restart with the server stopped",
 		const transport = player(window).locator(".lmp-transport");
 		const nativeWindow = await offline.browserWindow(window);
 		await nativeWindow.evaluate((window) => window.hide());
+		await expectDisplayBlocker(false);
 		await sendMediaAction(window, { action: "pause" });
 		await expectMediaSession(window, "paused", sampleName);
 		await sendMediaAction(window, { action: "play" });
 		await expectMediaSession(window, "playing", sampleName);
+		await nativeWindow.evaluate((window) => window.show());
+		await expectDisplayBlocker(true);
 		await sendMediaAction(window, { action: "pause" });
 		await expectMediaSession(window, "paused", sampleName);
-		await nativeWindow.evaluate((window) => window.show());
+		await expectDisplayBlocker(false);
 		await expect(transport).toHaveAttribute("aria-label", "Play");
 		await sendMediaAction(window, { action: "seekto", seekTime: 12 });
 		await expect
@@ -252,13 +282,20 @@ test("plays a cached video and sidecar after a restart with the server stopped",
 	const resumed = await launch();
 	try {
 		const window = await resumed.firstWindow();
+		const expectDisplayBlocker = await captureDisplayBlocker(resumed);
 		await window.goto(cachedUrl);
+		await captureMediaSession(window);
 		await waitForPlayer(window);
 		await expect
 			.poll(async () =>
 				Math.abs(Number(await position(window).inputValue()) - savedPosition),
 			)
 			.toBeLessThanOrEqual(500);
+		await startPlayback(window);
+		await expectDisplayBlocker(true);
+		await sendMediaAction(window, { action: "seekto", seekTime: 22 });
+		await expectMediaSession(window, "none", null);
+		await expectDisplayBlocker(false);
 	} finally {
 		await resumed.close();
 	}

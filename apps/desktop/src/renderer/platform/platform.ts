@@ -17,6 +17,12 @@ export async function createDesktopPlatform(
 ): Promise<ClientPlatform> {
 	const externalPlayers = await createDesktopExternalPlayers(desktop);
 	const media = navigator.mediaSession;
+	const displayRequests = new Set<symbol>();
+	function setVideoPlaying(playing: boolean) {
+		void desktop.setVideoPlaying(playing).catch((error: unknown) => {
+			console.warn("desktop.playback_power_update_failed", { playing, error });
+		});
+	}
 	function requestDownload(url: string, filename: string) {
 		return desktop.downloadFile(url, filename).catch(() => {
 			console.warn("platform.download_failed");
@@ -32,6 +38,15 @@ export async function createDesktopPlatform(
 		...(media && {
 			systemMedia: createSystemMediaHost(media, options.fetchResource),
 		}),
+		keepDisplayAwake() {
+			const request = Symbol();
+			displayRequests.add(request);
+			if (displayRequests.size === 1) setVideoPlaying(true);
+			return () => {
+				if (displayRequests.delete(request) && displayRequests.size === 0)
+					setVideoPlaying(false);
+			};
+		},
 		offlineCache: {
 			host: desktop.offlineCache,
 			server: options.cacheServer ?? "local",

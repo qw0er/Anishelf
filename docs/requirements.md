@@ -240,6 +240,10 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
   offline access, manage cached files, and resume playback from a local position.
   See the [desktop guide](../apps/desktop/README.md).
 
+- **Desktop playback power:** Keep the display and system awake during built-in
+  playback, including offline playback. Release the request when playback stops
+  or the playback window closes, including when it closes to the tray.
+
 Mobile clients and mobile offline viewing remain future work. iPhone fullscreen
 should keep playback controls usable. A TV application
 is outside the planned scope. See the [client design](development/clients.md).

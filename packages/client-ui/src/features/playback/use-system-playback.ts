@@ -18,7 +18,10 @@ type Attempt = Pick<
 	| "positionMs"
 	| "durationMs"
 	| "playbackRate"
-> & { session?: SystemMediaSession };
+> & {
+	session?: SystemMediaSession;
+	releaseDisplay?: () => void;
+};
 
 async function runAction(
 	player: LibmediaPlayerHandle,
@@ -43,29 +46,30 @@ async function runAction(
 		await player.seekTo(Math.round(Math.max(0, Math.min(target, durationMs))));
 }
 
-export function useSystemMediaSession(
+export function useSystemPlayback(
 	player: RefObject<LibmediaPlayerHandle | null>,
 	title: string,
 	artworkUrl?: string,
 ) {
 	const { connection, platform } = getClientRuntime();
-	const host = platform.systemMedia;
+	const { systemMedia: host, keepDisplayAwake } = platform;
 	const signal = connection.signal;
 	const attempt = useRef<Attempt>(null);
 
 	const close = useCallback(() => {
 		const current = attempt.current;
 		attempt.current = null;
+		current?.releaseDisplay?.();
 		current?.session?.close();
 	}, []);
 	useLayoutEffect(() => {
-		if (!host) return;
+		if (!host && !keepDisplayAwake) return;
 		signal.addEventListener("abort", close, { once: true });
 		return () => {
 			signal.removeEventListener("abort", close);
 			close();
 		};
-	}, [close, host, signal]);
+	}, [close, host, keepDisplayAwake, signal]);
 	useLayoutEffect(() => {
 		attempt.current?.session?.setMetadata({ title, artworkUrl });
 	}, [title, artworkUrl]);
@@ -87,7 +91,11 @@ export function useSystemMediaSession(
 
 	return {
 		ready({ sessionId, positionMs, durationMs }: LibmediaPlaybackProgress) {
-			if (!host || signal.aborted || attempt.current?.sessionId === sessionId)
+			if (
+				(!host && !keepDisplayAwake) ||
+				signal.aborted ||
+				attempt.current?.sessionId === sessionId
+			)
 				return;
 			close();
 			attempt.current = {
@@ -115,6 +123,12 @@ export function useSystemMediaSession(
 			current.status = status;
 			current.seeking = seeking;
 			current.playbackRate = playbackRate;
+			if (status === "playing" && keepDisplayAwake) {
+				current.releaseDisplay ??= keepDisplayAwake();
+			} else {
+				current.releaseDisplay?.();
+				delete current.releaseDisplay;
+			}
 			if (status === "ended") {
 				current.session?.close();
 				delete current.session;

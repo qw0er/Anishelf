@@ -40,6 +40,7 @@ export interface DesktopIpcHandlers {
 	setLaunchAtLogin(enabled: unknown): Promise<void>;
 	getCloseToTray(): Promise<boolean>;
 	setCloseToTray(enabled: unknown): Promise<void>;
+	setVideoPlaying(sender: WebContents, playing: unknown): Promise<void>;
 	setWindowControlsColors(
 		sender: WebContents,
 		color: unknown,
@@ -116,6 +117,7 @@ export function registerDesktopIpc(
 		handle("desktop:tray:set", (_, enabled) =>
 			handlers.setCloseToTray(enabled),
 		);
+		handle("desktop:playback:set-playing", handlers.setVideoPlaying);
 		handle(
 			"desktop:window-controls:set-colors",
 			handlers.setWindowControlsColors,

@@ -21,7 +21,7 @@ import { Link, useLocation, useParams } from "react-router";
 import { Button, buttonStyles } from "../../../shared/components/ui/button.js";
 import { InlineError } from "../../../shared/components/ui/inline-error.js";
 import { Skeleton } from "../../../shared/components/ui/skeleton.js";
-import { useSystemMediaSession } from "../use-system-media-session.js";
+import { useSystemPlayback } from "../use-system-playback.js";
 import { useOfflineCache } from "./state.js";
 
 const LibmediaPlayer = lazy(async () => ({
@@ -67,7 +67,7 @@ function OfflineVideo({
 }) {
 	const { t, i18n } = useTranslation();
 	const player = useRef<LibmediaPlayerHandle>(null);
-	const systemMedia = useSystemMediaSession(player, data.name);
+	const systemPlayback = useSystemPlayback(player, data.name);
 	const position = useRef(data.positionMs);
 	const lastWrite = useRef(0);
 	const ready = useRef(false);
@@ -117,16 +117,16 @@ function OfflineVideo({
 				onReady={(event) => {
 					ready.current = true;
 					if (event.initialPositionResult?.restored !== false)
-						systemMedia.ready(event);
+						systemPlayback.ready(event);
 				}}
 				onTimeUpdate={(event) => {
 					if (!ended.current) record(event.positionMs, false);
-					systemMedia.positionChanged(event);
+					systemPlayback.positionChanged(event);
 				}}
 				onSeeked={(event) => {
 					ended.current = false;
 					record(event.positionMs, true);
-					systemMedia.positionChanged(event);
+					systemPlayback.positionChanged(event);
 				}}
 				onPlaybackStateChange={(event) => {
 					const { status } = event;
@@ -136,7 +136,7 @@ function OfflineVideo({
 							player.current?.getSnapshot().positionMs ?? position.current,
 							true,
 						);
-					systemMedia.playbackStateChanged(event);
+					systemPlayback.playbackStateChanged(event);
 				}}
 				onEnded={() => {
 					ended.current = true;
@@ -144,7 +144,7 @@ function OfflineVideo({
 				}}
 				onError={(failure) => {
 					if (failure.fatal && failure.reason !== "aborted") {
-						systemMedia.close();
+						systemPlayback.close();
 						console.warn("offline_cache.playback_failed", {
 							reason: failure.reason,
 						});

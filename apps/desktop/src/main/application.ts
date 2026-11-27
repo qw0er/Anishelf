@@ -7,6 +7,7 @@ import {
 	BrowserWindow,
 	clipboard,
 	net,
+	powerSaveBlocker,
 	session,
 	type WebContents,
 } from "electron";
@@ -20,6 +21,7 @@ import {
 	LAUNCH_AT_LOGIN_FLAG,
 } from "./native/login-item.js";
 import { DesktopMenu } from "./native/menu.js";
+import { PlaybackPower } from "./native/playback-power.js";
 import { chooseResourceDirectory } from "./native/resource-directory.js";
 import { DesktopTray } from "./native/tray.js";
 import { DesktopUpdateChecker } from "./native/updates.js";
@@ -131,6 +133,7 @@ function logLocalShutdownFailure(error: unknown) {
 
 export class DesktopApplication {
 	private readonly windows = new Set<WebContents>();
+	private readonly playbackPower = new Map<WebContents, PlaybackPower>();
 	private readonly readyMenuWindows = new Set<WebContents>();
 	private readonly cleanup: Array<() => void> = [];
 	private offlineCache: DesktopOfflineCache | undefined;
@@ -247,6 +250,11 @@ export class DesktopApplication {
 							throw new Error("Desktop tray unavailable.");
 						this.tray.setEnabled(enabled);
 					},
+					setVideoPlaying: async (sender, playing) => {
+						if (typeof playing !== "boolean")
+							throw new Error("Expected a video playback state.");
+						this.playbackPower.get(sender)?.setPlaying(playing);
+					},
 					setWindowControlsColors: async (sender, color, symbolColor) => {
 						if (process.platform === "darwin") return;
 						const hexColor = /^#[0-9a-f]{6}$/i;
@@ -322,6 +330,8 @@ export class DesktopApplication {
 
 	dispose(): void {
 		this.disposed = true;
+		for (const power of this.playbackPower.values()) power.setPlaying(false);
+		this.playbackPower.clear();
 		for (const cleanup of this.cleanup.splice(0).reverse()) cleanup();
 	}
 
@@ -541,7 +551,15 @@ export class DesktopApplication {
 		if (process.platform !== "darwin") window.removeMenu();
 		const contents = window.webContents;
 		this.windows.add(contents);
+		const power = new PlaybackPower(powerSaveBlocker, startHidden);
+		this.playbackPower.set(contents, power);
+		window.on("hide", () => power.setHidden(true));
+		window.on("show", () => power.setHidden(false));
+		contents.on("did-navigate", () => power.setPlaying(false));
+		contents.on("render-process-gone", () => power.setPlaying(false));
 		contents.once("destroyed", () => {
+			power.setPlaying(false);
+			this.playbackPower.delete(contents);
 			this.offlineCache?.closeWindow(contents);
 			this.readyMenuWindows.delete(contents);
 			this.windows.delete(contents);
