@@ -166,6 +166,22 @@ export class CatalogRepository implements CatalogStore {
 			hasNextPage: rows.length > perPage,
 		};
 	}
+	countPendingReviews(scopeIds: readonly string[]): number {
+		if (scopeIds.length === 0) return 0;
+		const row = this.store
+			.select({ total: sql<number>`count(*)` })
+			.from(catalogReviews)
+			.innerJoin(mediaSources, eq(mediaSources.id, catalogReviews.id))
+			.where(
+				and(
+					inArray(mediaSources.rootId, [...scopeIds]),
+					eq(catalogReviews.decision, "pending"),
+					eq(catalogReviews.available, true),
+				),
+			)
+			.get();
+		return row?.total ?? 0;
+	}
 	publish(
 		scopeIds: readonly string[],
 		items: Parameters<CatalogStore["publish"]>[1],

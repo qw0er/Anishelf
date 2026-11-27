@@ -1,16 +1,74 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { app, Menu, nativeImage, Tray } from "electron";
+import {
+	app,
+	Menu,
+	type MenuItemConstructorOptions,
+	nativeImage,
+	Tray,
+} from "electron";
 import { type DesktopLocale, resolveDesktopLocale } from "./locale.js";
+import {
+	buildQuickNavigationItems,
+	normalizeBadgeCount,
+} from "./quick-navigation.js";
+
+export interface TrayMenuActions {
+	showWindow(): void;
+	navigate(path: string): void;
+	quit(): void;
+}
+
+const trayCopyByLocale: Record<DesktopLocale, { open: string; quit: string }> =
+	{
+		en: {
+			open: "Open Anishelf",
+			quit: "Quit Anishelf",
+		},
+		"zh-CN": {
+			open: "打开 Anishelf",
+			quit: "退出 Anishelf",
+		},
+	};
+
+/** Build the system tray context menu template for the current locale. */
+export function buildTrayMenuTemplate(options: {
+	locale: string;
+	actions: TrayMenuActions;
+	pendingReviewCount?: number;
+}): MenuItemConstructorOptions[] {
+	const locale = resolveDesktopLocale(options.locale);
+	const copy = trayCopyByLocale[locale];
+	const pendingReviewCount = options.pendingReviewCount ?? 0;
+
+	return [
+		{
+			label: copy.open,
+			click: () => options.actions.showWindow(),
+		},
+		{ type: "separator" },
+		...buildQuickNavigationItems({
+			locale,
+			navigate: (path) => options.actions.navigate(path),
+			pendingReviewCount,
+		}),
+		{ type: "separator" },
+		{
+			label: copy.quit,
+			click: () => options.actions.quit(),
+		},
+	];
+}
 
 export class DesktopTray {
 	private readonly path: string;
 	private locale: DesktopLocale;
+	private pendingReviewCount = 0;
 	private tray: Tray | undefined;
 
 	constructor(
-		private readonly showWindow: () => void,
+		private readonly actions: TrayMenuActions,
 		private readonly iconPath: string,
 		initialLocale = app.getLocale(),
 	) {
@@ -38,6 +96,15 @@ export class DesktopTray {
 		if (!this.tray) return;
 		this.tray.setContextMenu(this.buildContextMenu());
 		console.debug("desktop.tray_language_updated", { locale: this.locale });
+	}
+
+	setPendingReviewCount(count: number): void {
+		const next = normalizeBadgeCount(count);
+		if (next === this.pendingReviewCount) return;
+		this.pendingReviewCount = next;
+		if (!this.tray) return;
+		this.tray.setContextMenu(this.buildContextMenu());
+		console.debug("desktop.tray_review_count_updated", { count: next });
 	}
 
 	setEnabled(value: unknown): void {
@@ -82,7 +149,7 @@ export class DesktopTray {
 		try {
 			tray.setToolTip("Anishelf");
 			tray.setContextMenu(this.buildContextMenu());
-			tray.on("click", this.showWindow);
+			tray.on("click", () => this.actions.showWindow());
 			return tray;
 		} catch (error) {
 			tray.destroy();
@@ -91,17 +158,13 @@ export class DesktopTray {
 	}
 
 	private buildContextMenu(): Menu {
-		const chinese = this.locale === "zh-CN";
-		return Menu.buildFromTemplate([
-			{
-				label: chinese ? "打开 Anishelf" : "Open Anishelf",
-				click: () => this.showWindow(),
-			},
-			{
-				label: chinese ? "退出 Anishelf" : "Quit Anishelf",
-				click: () => app.quit(),
-			},
-		]);
+		return Menu.buildFromTemplate(
+			buildTrayMenuTemplate({
+				locale: this.locale,
+				actions: this.actions,
+				pendingReviewCount: this.pendingReviewCount,
+			}),
+		);
 	}
 
 	private save(enabled: boolean): void {

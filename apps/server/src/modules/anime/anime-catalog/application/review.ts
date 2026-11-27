@@ -275,6 +275,16 @@ export class ReviewApplication {
 		this.context.options.sources.assertAccessRevision(scope.revision);
 		return { ...result, items };
 	}
+	async summary(): Promise<{ pending: number }> {
+		const scope = await this.context.scope();
+		// Rely on persisted availability rather than stat-ing every file so periodic badge polling does not wake idle storage.
+		const pending =
+			scope.ids.length === 0 || !this.context.options.sources.hasSnapshot
+				? 0
+				: this.context.options.store.countPendingReviews(scope.ids);
+		this.context.options.sources.assertAccessRevision(scope.revision);
+		return { pending };
+	}
 	private async decision(
 		id: string,
 		revision: number,

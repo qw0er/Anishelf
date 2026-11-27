@@ -86,6 +86,7 @@ export interface AnimeCatalogApi {
 		page?: number;
 		perPage?: number;
 	}): Promise<Page<ReviewItem>>;
+	reviewSummary(): Promise<{ pending: number }>;
 	preview(request: PreviewRequest): Promise<CatalogPreview>;
 	confirm(request: Confirmation): Promise<ConfirmationResult>;
 	reject(id: string, revision: number, reason: string): Promise<ReviewItem>;

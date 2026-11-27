@@ -12,6 +12,7 @@ import {
 	CatalogReviewListSchema,
 	CatalogReviewQuerySchema,
 	CatalogReviewSchema,
+	CatalogReviewSummarySchema,
 	CatalogSourceSchema,
 	IdentificationStatusSchema,
 	LocalWorkDetailSchema,
@@ -131,6 +132,15 @@ export function registerCatalogRoutes(
 			},
 		},
 		async (request) => catalog.source(request.params.id),
+	);
+	app.get(
+		"/api/catalog/reviews/summary",
+		{
+			schema: {
+				response: { 200: CatalogReviewSummarySchema },
+			},
+		},
+		async () => catalog.reviewSummary(),
 	);
 	app.get(
 		"/api/catalog/reviews/:id",

@@ -19,6 +19,7 @@ import type {
 	ServerSignInResult,
 } from "../ipc/desktop.js";
 import { registerDesktopIpc } from "./ipc.js";
+import { DesktopDockMenu } from "./native/dock-menu.js";
 import { downloadMedia, revealDownload } from "./native/download.js";
 import { createExternalPlayerService } from "./native/external-players.js";
 import { openExternal } from "./native/links.js";
@@ -29,6 +30,11 @@ import {
 import { DesktopMenu } from "./native/menu.js";
 import { PlaybackPower } from "./native/playback-power.js";
 import { chooseResourceDirectory } from "./native/resource-directory.js";
+import {
+	DesktopBadge,
+	isReviewMutationPath,
+	ReviewBadgeMonitor,
+} from "./native/review-badge.js";
 import { TaskbarProgress } from "./native/taskbar-progress.js";
 import { DesktopTray } from "./native/tray.js";
 import { DesktopUpdateChecker } from "./native/updates.js";
@@ -147,6 +153,9 @@ export class DesktopApplication {
 	private offlineCache: DesktopOfflineCache | undefined;
 	private tray: DesktopTray | undefined;
 	private menu: DesktopMenu | undefined;
+	private dockMenu: DesktopDockMenu | undefined;
+	private badge: DesktopBadge | undefined;
+	private reviewBadgeMonitor: ReviewBadgeMonitor | undefined;
 	private pendingMenuCommand: DesktopMenuCommand | undefined;
 	private desktopLanguage = app.getLocale();
 	private openingWindow = false;
@@ -159,6 +168,7 @@ export class DesktopApplication {
 	private server!: ConnectedServer;
 	private readonly tokenStores = new Map<string, DeviceTokenStore>();
 	private detachCredentials?: () => void;
+	private detachReviewWatcher?: () => void;
 
 	constructor(
 		private readonly onFailure: (error: unknown) => void,
@@ -182,7 +192,12 @@ export class DesktopApplication {
 		this.cleanup.push(() => this.taskbarProgress.dispose());
 		await this.initializeCache();
 		this.tray = new DesktopTray(
-			() => this.showWindow(),
+			{
+				showWindow: () => this.showWindow(),
+				navigate: (path) =>
+					this.dispatchMenuCommand({ kind: "navigate", path }),
+				quit: () => app.quit(),
+			},
 			iconPath(),
 			this.desktopLanguage,
 		);
@@ -204,8 +219,34 @@ export class DesktopApplication {
 				},
 			});
 			this.cleanup.push(() => this.menu?.dispose());
+			if (app.dock) {
+				this.dockMenu = new DesktopDockMenu({
+					dock: app.dock,
+					locale: this.desktopLanguage,
+					navigate: (path) =>
+						this.dispatchMenuCommand({ kind: "navigate", path }),
+				});
+				this.cleanup.push(() => this.dockMenu?.dispose());
+			}
 		}
+		this.badge = new DesktopBadge({
+			platform: process.platform,
+			setBadgeCount: (count) => app.setBadgeCount(count),
+		});
+		this.cleanup.push(() => this.badge?.dispose());
+		this.reviewBadgeMonitor = new ReviewBadgeMonitor({
+			server: () => this.currentServerAuth(),
+			fetch: (url, init) => net.fetch(url, init),
+			onCountChange: (count) => {
+				this.badge?.setCount(count);
+				this.tray?.setPendingReviewCount(count);
+				this.dockMenu?.setPendingReviewCount(count);
+			},
+		});
+		this.cleanup.push(() => this.reviewBadgeMonitor?.dispose());
+		this.reviewBadgeMonitor.start();
 		this.cleanup.push(() => this.detachCredentials?.());
+		this.cleanup.push(() => this.detachReviewWatcher?.());
 		const externalPlayers = createExternalPlayerService(
 			app.getPath("userData"),
 		);
@@ -287,8 +328,10 @@ export class DesktopApplication {
 					signIn: (origin, password) => this.signIn(origin, password),
 					clearDeviceToken: async (origin) => {
 						const server = this.server;
-						if (server.kind === "external" && origin === server.origin)
+						if (server.kind === "external" && origin === server.origin) {
 							await server.tokens.set(null);
+							this.reviewBadgeMonitor?.resetForServer();
+						}
 					},
 					copyText: async (text) => {
 						if (typeof text !== "string")
@@ -405,6 +448,7 @@ export class DesktopApplication {
 
 	private dispatchPowerEvent(event: DesktopPowerEvent): void {
 		console.debug("desktop.power_event", { event });
+		if (event === "resume") this.reviewBadgeMonitor?.refresh();
 		for (const contents of this.windows) {
 			if (
 				!contents.isDestroyed() &&
@@ -419,6 +463,20 @@ export class DesktopApplication {
 		return this.offlineCache;
 	}
 
+	private currentServerAuth() {
+		const server = this.server;
+		return {
+			key: server.kind === "local" ? "local" : server.origin,
+			origin: server.origin,
+			authorization: () => {
+				if (server !== this.server) return undefined;
+				return server.kind === "local"
+					? `Bearer ${server.deviceToken}`
+					: server.tokens.authorization();
+			},
+		};
+	}
+
 	private async initializeCache() {
 		const directory = join(app.getPath("userData"), "offline-cache");
 		let cache: DesktopOfflineCache | undefined;
@@ -428,19 +486,7 @@ export class DesktopApplication {
 				directory,
 				new OfflineCacheStore(join(directory, "index.sqlite")),
 				session.fromPartition("offline-cache-downloads"),
-				() => {
-					const server = this.server;
-					return {
-						key: server.kind === "local" ? "local" : server.origin,
-						origin: server.origin,
-						authorization: () => {
-							if (server !== this.server) return undefined;
-							return server.kind === "local"
-								? `Bearer ${server.deviceToken}`
-								: server.tokens.authorization();
-						},
-					};
-				},
+				() => this.currentServerAuth(),
 				(entry, id) => {
 					this.taskbarProgress.setOfflineCacheEntry(id, entry);
 					for (const window of this.windows)
@@ -479,7 +525,30 @@ export class DesktopApplication {
 					: server.tokens.authorization(),
 			this.windows,
 		);
+		this.detachReviewWatcher?.();
+		session.defaultSession.webRequest.onCompleted(
+			{ urls: [`${server.origin}/api/catalog/*`] },
+			(details) => {
+				if (
+					details.method !== "POST" ||
+					details.statusCode < 200 ||
+					details.statusCode >= 300 ||
+					!details.webContents ||
+					!this.windows.has(details.webContents)
+				)
+					return;
+				const parsed = URL.parse(details.url);
+				if (
+					parsed?.origin === server.origin &&
+					isReviewMutationPath(parsed.pathname)
+				)
+					this.reviewBadgeMonitor?.refresh();
+			},
+		);
+		this.detachReviewWatcher = () =>
+			session.defaultSession.webRequest.onCompleted(null);
 		this.server = server;
+		this.reviewBadgeMonitor?.resetForServer();
 		console.info("desktop.server_configured", { origin: server.origin });
 	}
 
@@ -513,6 +582,7 @@ export class DesktopApplication {
 			if (this.disposed) return { status: "busy" };
 			const leavingLocal = this.server.kind === "local";
 			if (server !== this.server) this.activateServer(server);
+			else this.reviewBadgeMonitor?.resetForServer();
 			if (leavingLocal)
 				await this.stopLocalBackend().catch(logLocalShutdownFailure);
 			console.info("desktop.device_signed_in", { origin });
@@ -611,6 +681,7 @@ export class DesktopApplication {
 		window.on("show", () => {
 			power.setHidden(false);
 			this.taskbarProgress.refresh(window);
+			this.reviewBadgeMonitor?.refresh();
 		});
 		contents.on("did-navigate", () => power.setPlaying(false));
 		contents.on("render-process-gone", () => power.setPlaying(false));
@@ -656,6 +727,7 @@ export class DesktopApplication {
 			throw new Error("Expected a language code.");
 		this.desktopLanguage = language.trim();
 		this.menu?.setLanguage(this.desktopLanguage);
+		this.dockMenu?.setLanguage(this.desktopLanguage);
 		this.tray?.setLanguage(this.desktopLanguage);
 	}
 

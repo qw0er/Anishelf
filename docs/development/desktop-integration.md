@@ -10,22 +10,20 @@ settings.
 
 | Area | Status | Location |
 | --- | --- | --- |
-| Tray | Optional close to tray. Menu has **Open Anishelf** and **Quit Anishelf** only. | `apps/desktop/src/main/native/tray.ts` |
+| Tray | Optional close to tray. Menu includes **Open Anishelf**, quick navigation shortcuts (including pending review count), and **Quit Anishelf**. | `apps/desktop/src/main/native/tray.ts` |
 | Launch at login | Login item on Windows and macOS, XDG autostart entry on Linux. | `apps/desktop/src/main/native/login-item.ts` |
 | Single instance | `second-instance` shows the window. Its argv is ignored. | `apps/desktop/src/main/index.ts` |
 | macOS menu | About, Check for Updates…, Settings, Go shortcuts, Window, Help. | `apps/desktop/src/main/native/menu.ts` |
+| macOS dock menu | Quick navigation shortcuts (Library, History, Offline Cache, Review with pending count, Subscriptions) via `app.dock.setMenu`. | `apps/desktop/src/main/native/dock-menu.ts` |
+| Badge | Displays pending review count via `app.setBadgeCount` on macOS and Linux, backed by `GET /api/catalog/reviews/summary`. | `apps/desktop/src/main/native/review-badge.ts` |
 | Update check | Queries GitHub `releases/latest` and links to the matching package. No download or install. | `apps/desktop/src/main/native/updates.ts` |
 | Downloads | Progress in the playback menu, **Show in folder** from an in-app toast. | `apps/desktop/src/main/native/download.ts` |
 | Theme | `prefers-color-scheme` is read once at startup. No live updates, no accent colour. | `apps/desktop/src/renderer/main.tsx` |
-| Language | Follows `app.getLocale()` unless the user stores a language. The tray and menu follow the in-app language. | `apps/desktop/src/main` |
+| Language | Follows `app.getLocale()` unless the user stores a language. The tray, Dock menu, and menu bar follow the in-app language. | `apps/desktop/src/main` |
 | Media session | Sets `navigator.mediaSession` metadata (work title, episode, poster), playback/position state and play, pause, seek, previous and next handlers. Runtime verification on each desktop backend remains pending. | `packages/client-ui/src/features/playback/media-session.ts` |
 | Taskbar progress | Aggregates media download and offline cache progress into `BrowserWindow.setProgressBar`. | `apps/desktop/src/main/native/taskbar-progress.ts` |
 
-Not implemented: native notifications,
-badge counts, Windows thumbnail toolbar and jump lists, macOS
-dock menu, a custom URL protocol, file associations, drag and drop,
-picture-in-picture or mini player, live theme following, and automatic update
-installation.
+Not implemented: native notifications
 
 ## Proposed directions
 
@@ -95,16 +93,15 @@ during that interval would require a separate push channel.
 - **Progress.** Implemented in
   `apps/desktop/src/main/native/taskbar-progress.ts` to show download and
   offline cache progress with `BrowserWindow.setProgressBar`.
-- **Badge.** Show the number of items needing review or new episodes with
-  `app.setBadgeCount` (supported on macOS and some Linux desktops).
-- **Tray menu.** Add Continue watching (the three most recent works), Today's
-  episodes, Pause or resume downloads, Scan library and Open offline cache.
-- **Windows.** Add play, pause, previous and next to the thumbnail toolbar with
-  `setThumbarButtons`. Add recently watched works with `setUserTasks` or
-  `setJumpList`.
-- **macOS.** Add a dock menu with `app.dock.setMenu`.
-- **Linux.** Add desktop entry `Actions`, such as Continue watching and Open
-  offline cache.
+- **Badge.** Implemented in `apps/desktop/src/main/native/review-badge.ts` to
+  show the pending review count via `app.setBadgeCount` (supported on macOS and
+  some Linux desktops), backed by `GET /api/catalog/reviews/summary`.
+- **Tray menu.** Implemented in `apps/desktop/src/main/native/tray.ts` with
+  static quick-navigation links (Library, History, Offline Cache, Review with
+  pending count, Subscriptions).
+- **macOS.** Implemented in `apps/desktop/src/main/native/dock-menu.ts` to
+  provide static quick-navigation items and the pending review count via
+  `app.dock.setMenu`.
 
 ### 4. System appearance and behaviour
 
@@ -113,11 +110,9 @@ during that interval would require a separate push channel.
 
 ## Suggested first step
 
-Implement native notifications and the extended tray menu next.
+Implement native notifications next.
 Start with offline cache events to verify tray delivery and click navigation.
-Then add the backend event feed for subscription imports and review items. Deep links
-support notification navigation and opening the desktop app from Web, so they
-fit a second stage.
+Then add the backend event feed for subscription imports and review items.
 
 Log every integration point, including registration failures and unsupported
 platforms, so that support for each desktop environment can be diagnosed.

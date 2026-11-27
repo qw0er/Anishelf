@@ -280,6 +280,9 @@ const page = <T extends ReturnType<typeof Type.Object>>(item: T) =>
 		hasNextPage: Type.Boolean(),
 	});
 export const CatalogReviewListSchema = page(review);
+export const CatalogReviewSummarySchema = Type.Object({
+	pending: Type.Integer({ minimum: 0 }),
+});
 export const CatalogPreviewRequestSchema = Type.Object(
 	{
 		reference: reference,

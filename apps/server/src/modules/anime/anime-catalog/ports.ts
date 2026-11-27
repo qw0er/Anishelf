@@ -51,6 +51,7 @@ export interface CatalogStore extends SourceRegistry {
 		perPage: number,
 		reference?: MetadataLink["reference"],
 	): Page<ReviewRecord>;
+	countPendingReviews(scopeIds: readonly string[]): number;
 	work(id: string): LocalWork | null;
 	/** Associated works across saved roots, paged by stable ID for background work. */
 	refreshWorks(afterId: string, limit: number): LocalWork[];
