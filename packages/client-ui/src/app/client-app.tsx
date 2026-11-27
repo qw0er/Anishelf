@@ -20,7 +20,7 @@ import {
 } from "../shared/api/connection.js";
 import { Toaster } from "../shared/components/ui/toast.js";
 import { initializeLanguage } from "../shared/i18n.js";
-import { watchSystemTheme } from "../shared/theme.js";
+import { initializeTheme } from "../shared/theme.js";
 import { authenticatedRoute } from "./auth/guard.js";
 import AppHeader from "./components/app-header.js";
 import { FilesNavigation } from "./components/files-layout.js";
@@ -32,7 +32,7 @@ export async function initializeClient(host: ClientHost) {
 	try {
 		await initializeLanguage(host.platform);
 		watchServerResume(runtime);
-		watchSystemTheme(runtime.connection.signal);
+		initializeTheme(host.platform, runtime.connection.signal);
 		return runtime;
 	} catch (error) {
 		runtime.dispose();

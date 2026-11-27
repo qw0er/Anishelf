@@ -104,24 +104,10 @@ during that interval would require a separate push channel.
 - **Linux.** Add desktop entry `Actions`, such as Continue watching and Open
   offline cache.
 
-### 4. Deep links and file handling
-
-- **`anishelf://` protocol.** Register it with `app.setAsDefaultProtocolClient`
-  and support routes such as `anishelf://work/<id>` and
-  `anishelf://play/<id>`. Handle `open-url` on macOS and parse the argv of
-  `second-instance` on Windows and Linux. With deep links, the browser, the Web
-  client, notifications and scripts can open the desktop app on a specific
-  page. Validate every route before navigating.
-- **Drag and drop.** Dropping a folder adds it as a resource directory when the
-  app uses the bundled backend. Dropping a video file plays or identifies it.
-- **File associations (optional).** Configure electron-builder
-  `fileAssociations` so users can choose Anishelf as a local video player.
-
-### 5. System appearance and behaviour
+### 4. System appearance and behaviour
 
 - Follow system theme changes live through `nativeTheme.on('updated')` or a
   `matchMedia` change listener.
-- Use `shell.openPath` to open local files with the default application.
 
 ## Suggested first step
 

@@ -9,13 +9,24 @@
     <meta name="description" content="Anishelf, your local media shelf." />
     <title>Anishelf</title>
     <script>
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        document.documentElement.classList.add("dark");
-        document.documentElement.style.colorScheme = "dark";
+      (() => {
+        let preference = "system";
+        try {
+          const saved = window.localStorage.getItem("anishelf:theme");
+          if (saved === "light" || saved === "dark" || saved === "system") {
+            preference = saved;
+          }
+        } catch {}
+        const dark =
+          preference === "dark" ||
+          (preference === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
         document
           .querySelector('meta[name="theme-color"]')
-          ?.setAttribute("content", "#0f0f10");
-      }
+          ?.setAttribute("content", dark ? "#0f0f10" : "#fafafa");
+      })();
     </script>
   </head>
   <body>

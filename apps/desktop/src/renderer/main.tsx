@@ -27,7 +27,23 @@ const mount = document.getElementById("app");
 if (!mount) throw new Error("Desktop mount point is missing.");
 const root = createRoot(mount);
 
-const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+function readInitialThemePreference(): "system" | "light" | "dark" {
+	try {
+		const saved = window.localStorage.getItem("anishelf:theme");
+		if (saved === "light" || saved === "dark" || saved === "system") {
+			return saved;
+		}
+	} catch (error) {
+		console.warn("desktop.theme_preference_read_failed", { error });
+	}
+	return "system";
+}
+
+const initialThemePreference = readInitialThemePreference();
+const dark =
+	initialThemePreference === "dark" ||
+	(initialThemePreference === "system" &&
+		window.matchMedia("(prefers-color-scheme: dark)").matches);
 document.documentElement.classList.toggle("dark", dark);
 document.documentElement.style.colorScheme = dark ? "dark" : "light";
 

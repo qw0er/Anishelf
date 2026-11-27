@@ -4,9 +4,10 @@
 		"library": "Library",
 		"settings": "Settings",
 		"primaryNavigation": "Primary navigation",
-		"switchToMode": "Switch to {{mode}} mode",
-		"light": "light",
-		"dark": "dark",
+		"changeTheme": "Change theme",
+		"themeSystem": "Follow system",
+		"themeLight": "Light",
+		"themeDark": "Dark",
 		"history": "History",
 		"files": "Files",
 		"changeLanguage": "Change language"

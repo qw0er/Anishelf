@@ -4,9 +4,10 @@
 		"library": "媒体库",
 		"settings": "设置",
 		"primaryNavigation": "主导航",
-		"switchToMode": "切换到{{mode}}模式",
-		"light": "浅色",
-		"dark": "深色",
+		"changeTheme": "切换主题",
+		"themeSystem": "跟随系统",
+		"themeLight": "浅色",
+		"themeDark": "深色",
 		"history": "播放记录",
 		"files": "文件",
 		"changeLanguage": "切换语言"
