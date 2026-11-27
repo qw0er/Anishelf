@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useParams, useSearchParams } from "react-router";
-import { useAnimePlaybackTitle } from "../../../features/anime/public.js";
+import { useAnimePlaybackMetadata } from "../../../features/anime/public.js";
 
 import { FilePlayer, PlayerHeader } from "../../../features/playback/ui.js";
 import {
@@ -75,7 +75,7 @@ function LoadedPlayerPage({ data }: { data: FileResponse }) {
 	const { reload, settings, library } = useAppRuntime();
 	const resources = resourceContext(settings, library);
 	const [searchParams] = useSearchParams();
-	const displayTitle = useAnimePlaybackTitle(data.file.id, {
+	const displayMetadata = useAnimePlaybackMetadata(data.file.id, {
 		workId: searchParams.get("anime"),
 		episodeId: searchParams.get("episode"),
 		sourceVersion: searchParams.get("version"),
@@ -85,7 +85,7 @@ function LoadedPlayerPage({ data }: { data: FileResponse }) {
 			slots={playbackUiSlots}
 			key={JSON.stringify([data.file.id, resources.identity, playerVersion])}
 			data={data}
-			displayTitle={displayTitle}
+			displayMetadata={displayMetadata}
 			autoPlay={location.state?.autoPlay === true}
 			returnDirectoryId={searchParams.get("directory")}
 			returnTo={animeReturnPath(searchParams)}

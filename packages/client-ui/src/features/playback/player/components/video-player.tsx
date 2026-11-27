@@ -24,6 +24,7 @@ import {
 	isSupportedLanguage,
 } from "../../../../shared/config/languages.js";
 import type { NextEpisodeAction } from "../../public.js";
+import { useSystemMediaSession } from "../../use-system-media-session.js";
 import {
 	readPlaybackPreferences,
 	savePlaybackPreferences,
@@ -41,6 +42,7 @@ const desktopRequest = { credentials: "omit" } as const;
 interface VideoPlayerProps {
 	fileId: string;
 	displayTitle: string;
+	artworkUrl?: string | undefined;
 	active: ActivePlayback;
 	sourceVersion: string;
 	silent: boolean;
@@ -123,6 +125,7 @@ export default function VideoPlayer(props: VideoPlayerProps) {
 
 function VideoAttempt({
 	active,
+	artworkUrl,
 	aspectRatio,
 	bind,
 	displayTitle,
@@ -152,6 +155,8 @@ function VideoAttempt({
 		? i18n.resolvedLanguage
 		: defaultLanguage;
 	const player = useRef<LibmediaPlayerHandle>(null);
+	const systemMedia = useSystemMediaSession(player, displayTitle, artworkUrl);
+	const closeSystemMedia = systemMedia.close;
 	const [binding, setBinding] = useState<PlaybackBinding | null>(null);
 	const [ready, setReady] = useState(false);
 	const [failure, setFailure] = useState<
@@ -190,8 +195,11 @@ function VideoAttempt({
 	useLayoutEffect(() => {
 		const next = bind(timeline, sourceVersion);
 		setBinding(next);
-		return () => next?.dispose();
-	}, [bind, sourceVersion, timeline]);
+		return () => {
+			closeSystemMedia();
+			next?.dispose();
+		};
+	}, [bind, closeSystemMedia, sourceVersion, timeline]);
 
 	useEffect(() => {
 		const handle = player.current;
@@ -219,6 +227,7 @@ function VideoAttempt({
 		if (error.fatal) {
 			if (failureReported.current) return;
 			failureReported.current = true;
+			closeSystemMedia();
 			console.warn("[playback] Media playback failed.", {
 				...metadata,
 				reason,
@@ -304,9 +313,23 @@ function VideoAttempt({
 						...(nextEpisode ? { nextEpisode: nextEpisode.label } : {}),
 					}}
 					{...(nextEpisode ? { onNextEpisode: nextEpisode.run } : {})}
+					onPlaybackStateChange={(event) => {
+						binding.events.onPlaybackStateChange?.(event);
+						if (binding.accepts(event.sessionId))
+							systemMedia.playbackStateChanged(event);
+					}}
+					onTimeUpdate={(event) => {
+						binding.events.onTimeUpdate?.(event);
+						systemMedia.positionChanged(event);
+					}}
+					onSeeked={(event) => {
+						binding.events.onSeeked?.(event);
+						systemMedia.positionChanged(event);
+					}}
 					onReady={(event) => {
 						if (!binding.accepts(event.sessionId)) return;
 						if (event.initialPositionResult?.restored !== true) {
+							closeSystemMedia();
 							failedRestore.current = event.sessionId;
 							setFailure("restore");
 							setFailedSession(event.sessionId);
@@ -319,6 +342,7 @@ function VideoAttempt({
 
 						readySession.current = event.sessionId;
 						binding.events.onReady?.(event);
+						systemMedia.ready(event);
 						setReady(true);
 						onPlaybackRecovered();
 						console.info("[playback] Media ready.", metadata);

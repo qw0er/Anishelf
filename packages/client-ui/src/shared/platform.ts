@@ -62,8 +62,40 @@ export type VideoDownloadProgress =
 	| { status: "preparing" }
 	| { status: "downloading"; percent: number | null };
 
+export type SystemMediaAction =
+	| { kind: "play" }
+	| { kind: "pause" }
+	| { kind: "seekTo"; positionMs: number }
+	| { kind: "seekBy"; offsetMs: number };
+
+interface SystemMediaPlayback {
+	status: "playing" | "paused";
+	positionMs: number;
+	durationMs: number | null;
+	playbackRate: number;
+}
+
+export interface SystemMediaMetadata {
+	title: string;
+	artworkUrl?: string | undefined;
+}
+
+export interface SystemMediaSession {
+	setMetadata(metadata: SystemMediaMetadata): void;
+	update(playback: SystemMediaPlayback): void;
+	close(): void;
+}
+
+export interface SystemMediaHost {
+	open(
+		metadata: SystemMediaMetadata,
+		handleAction: (action: SystemMediaAction) => Promise<void>,
+	): SystemMediaSession;
+}
+
 export interface ClientPlatform {
 	offlineCache?: { host: OfflineCacheHost; server: string };
+	systemMedia?: SystemMediaHost;
 	updates: {
 		kind: "web" | "desktop";
 		check(): Promise<ClientUpdateCheck>;

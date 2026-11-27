@@ -11,6 +11,10 @@ export type {
 	ExternalPlayerDraft,
 	ExternalPlayerHost,
 	PlayerMedia,
+	SystemMediaAction,
+	SystemMediaHost,
+	SystemMediaMetadata,
+	SystemMediaSession,
 	VideoDownloadProgress,
 } from "../shared/platform.js";
 export { createBrowserExternalPlayers };

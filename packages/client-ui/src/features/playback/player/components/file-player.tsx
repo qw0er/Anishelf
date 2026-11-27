@@ -61,7 +61,7 @@ export function PlayerHeader({
 
 export default function FilePlayer({
 	data,
-	displayTitle,
+	displayMetadata,
 	autoPlay = false,
 	returnDirectoryId,
 	returnTo,
@@ -70,7 +70,9 @@ export default function FilePlayer({
 }: {
 	data: FileResponse;
 	autoPlay?: boolean;
-	displayTitle?: { title: string; sourceVersion: string } | undefined;
+	displayMetadata?:
+		| { title: string; sourceVersion: string; artworkUrl?: string | undefined }
+		| undefined;
 	returnDirectoryId: string | null;
 	returnTo?: string | null;
 	onRetry(): void;
@@ -92,11 +94,12 @@ export default function FilePlayer({
 		onAssetsChanged,
 		recheck,
 	} = usePlaybackController(data, autoPlay);
-	const title =
-		displayTitle &&
-		(!source || displayTitle.sourceVersion === source.sourceVersion)
-			? displayTitle.title
-			: data.file.name;
+	const metadata =
+		displayMetadata &&
+		(!source || displayMetadata.sourceVersion === source.sourceVersion)
+			? displayMetadata
+			: undefined;
+	const title = metadata?.title ?? data.file.name;
 	const blocked = !selection.loading && !active;
 	const [optionsOpen, setOptionsOpen] = useState(false);
 	const preparationAction = slots?.renderPreparation({
@@ -176,6 +179,7 @@ export default function FilePlayer({
 										])}
 										fileId={data.file.id}
 										displayTitle={title}
+										artworkUrl={metadata?.artworkUrl}
 										active={active}
 										sourceVersion={source.sourceVersion}
 										silent={audio === "none"}
@@ -213,7 +217,7 @@ export default function FilePlayer({
 					<PlaybackActionsMenu
 						key={`actions:${data.file.id}`}
 						fileId={data.file.id}
-						episode={!!displayTitle}
+						episode={!!displayMetadata}
 						cacheTarget={{
 							fileId: data.file.id,
 							name: data.file.name,

@@ -21,6 +21,7 @@ import { Link, useLocation, useParams } from "react-router";
 import { Button, buttonStyles } from "../../../shared/components/ui/button.js";
 import { InlineError } from "../../../shared/components/ui/inline-error.js";
 import { Skeleton } from "../../../shared/components/ui/skeleton.js";
+import { useSystemMediaSession } from "../use-system-media-session.js";
 import { useOfflineCache } from "./state.js";
 
 const LibmediaPlayer = lazy(async () => ({
@@ -66,6 +67,7 @@ function OfflineVideo({
 }) {
 	const { t, i18n } = useTranslation();
 	const player = useRef<LibmediaPlayerHandle>(null);
+	const systemMedia = useSystemMediaSession(player, data.name);
 	const position = useRef(data.positionMs);
 	const lastWrite = useRef(0);
 	const ready = useRef(false);
@@ -112,23 +114,29 @@ function OfflineVideo({
 				initialPositionMs={data.positionMs}
 				locale={i18n.resolvedLanguage === "zh-CN" ? "zh-CN" : "en"}
 				labels={{ player: t("player.videoLabel", { name: data.name }) }}
-				onReady={() => {
+				onReady={(event) => {
 					ready.current = true;
+					if (event.initialPositionResult?.restored !== false)
+						systemMedia.ready(event);
 				}}
-				onTimeUpdate={({ positionMs }) => {
-					if (!ended.current) record(positionMs, false);
+				onTimeUpdate={(event) => {
+					if (!ended.current) record(event.positionMs, false);
+					systemMedia.positionChanged(event);
 				}}
-				onSeeked={({ positionMs }) => {
+				onSeeked={(event) => {
 					ended.current = false;
-					record(positionMs, true);
+					record(event.positionMs, true);
+					systemMedia.positionChanged(event);
 				}}
-				onPlaybackStateChange={({ status }) => {
+				onPlaybackStateChange={(event) => {
+					const { status } = event;
 					if (status === "playing") ended.current = false;
 					if (status === "paused" && !ended.current)
 						record(
 							player.current?.getSnapshot().positionMs ?? position.current,
 							true,
 						);
+					systemMedia.playbackStateChanged(event);
 				}}
 				onEnded={() => {
 					ended.current = true;
@@ -136,6 +144,7 @@ function OfflineVideo({
 				}}
 				onError={(failure) => {
 					if (failure.fatal && failure.reason !== "aborted") {
+						systemMedia.close();
 						console.warn("offline_cache.playback_failed", {
 							reason: failure.reason,
 						});

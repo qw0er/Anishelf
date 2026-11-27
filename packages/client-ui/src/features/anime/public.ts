@@ -4,7 +4,7 @@ export type {
 } from "./catalog/public.js";
 export {
 	localWorkDetailQuery,
-	useAnimePlaybackTitle,
+	useAnimePlaybackMetadata,
 } from "./catalog/public.js";
 export { fileReviewsQuery } from "./catalog/queries.js";
 export type { AnimeStatusState } from "./catalog/status-query.js";

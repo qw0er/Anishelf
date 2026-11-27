@@ -15,6 +15,12 @@
 		"save": "all"
 	},
 	{
+		"label": "Run dev desktop",
+		"command": "npm run dev:desktop",
+		"hide": "on_success",
+		"save": "all"
+	},
+	{
 		"label": "Example task",
 		"command": "for i in {1..5}; do echo \"Hello $i/5\"; sleep 1; done",
 		//"args": [],

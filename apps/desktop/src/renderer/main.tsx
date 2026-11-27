@@ -50,6 +50,7 @@ async function start() {
 	};
 	const client = await createDesktopServerClient(desktop, onAuthRequired);
 	const platform = await createDesktopPlatform(desktop, {
+		fetchResource: client.connection.fetchResource,
 		canChooseDirectories: client.server.kind === "local",
 		cacheServer:
 			client.server.kind === "local" ? "local" : client.server.origin,

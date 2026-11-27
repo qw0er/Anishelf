@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { getClientRuntime } from "../../../shared/api/connection.js";
 import { useQueryScope } from "../../../shared/api/queries.js";
-import { sourceQuery } from "./queries.js";
-export function useAnimePlaybackTitle(
+import { localWorkDetailQuery, sourceQuery } from "./queries.js";
+
+export function useAnimePlaybackMetadata(
 	fileId: string,
 	selection: {
 		workId: string | null;
@@ -10,7 +12,8 @@ export function useAnimePlaybackTitle(
 		sourceVersion: string | null;
 	},
 ) {
-	const source = useQuery(sourceQuery(fileId, useQueryScope()));
+	const scope = useQueryScope();
+	const source = useQuery(sourceQuery(fileId, scope));
 	const { t } = useTranslation();
 	const associations = (source.data?.associations ?? []).toSorted((a, b) =>
 		a.number.localeCompare(b.number, "en", { numeric: true }),
@@ -41,10 +44,25 @@ export function useAnimePlaybackTitle(
 	const title = [...groups.values()]
 		.map((group) => `${group.title} — ${group.episodes.join(", ")}`)
 		.join(" / ");
-	return title &&
-		source.data &&
-		(!selection.sourceVersion ||
-			selection.sourceVersion === source.data.sourceVersion)
-		? { title, sourceVersion: source.data.sourceVersion }
-		: undefined;
+	const sourceVersion = source.data?.sourceVersion;
+	const matchesVersion =
+		sourceVersion !== undefined &&
+		(!selection.sourceVersion || selection.sourceVersion === sourceVersion);
+	const [workId] = groups.keys();
+	const artworkWork = matchesVersion && groups.size === 1 ? workId : undefined;
+	const { platform } = getClientRuntime();
+	const detail = useQuery({
+		...localWorkDetailQuery(artworkWork ?? "", scope),
+		enabled: Boolean(platform.systemMedia && artworkWork),
+	});
+	if (!title || !matchesVersion) return;
+	const work = detail.data?.work;
+	return {
+		title,
+		sourceVersion,
+		artworkUrl:
+			work && work.id === artworkWork
+				? (work.coverUrl ?? undefined)
+				: undefined,
+	};
 }

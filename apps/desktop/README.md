@@ -83,6 +83,13 @@ position on this computer. Remove completed caches from the offline list to
 free disk space. Interrupted transfers can be restarted while their source
 server is connected.
 
+Desktop system media controls can show the current title and artwork and
+control playback for streamed and cached videos. Anishelf uses the matched anime
+cover when available during streaming and the app icon for other videos and
+offline playback. The available controls depend on the operating system and
+media format. Playback can be paused or resumed while the window is hidden in
+the tray.
+
 On Linux, Anishelf enables Chromium's `VaapiOnNvidiaGPUs` feature by default.
 Hardware decoding depends on the driver and media format. To disable the
 feature, launch Anishelf with `--disable-features=VaapiOnNvidiaGPUs`.

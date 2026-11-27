@@ -4,13 +4,19 @@ import {
 } from "@anishelf/client-ui/browser-platform";
 import type { DesktopBridge } from "../../ipc/desktop.js";
 import { createDesktopExternalPlayers } from "./external-players.js";
+import { createSystemMediaHost } from "./system-media.js";
 import { createVideoDownloads } from "./video-downloads.js";
 
 export async function createDesktopPlatform(
 	desktop: DesktopBridge,
-	options: { canChooseDirectories?: boolean; cacheServer?: string } = {},
+	options: {
+		canChooseDirectories?: boolean;
+		cacheServer?: string;
+		fetchResource(path: string, init: RequestInit): Promise<Response>;
+	},
 ): Promise<ClientPlatform> {
 	const externalPlayers = await createDesktopExternalPlayers(desktop);
+	const media = navigator.mediaSession;
 	function requestDownload(url: string, filename: string) {
 		return desktop.downloadFile(url, filename).catch(() => {
 			console.warn("platform.download_failed");
@@ -23,6 +29,9 @@ export async function createDesktopPlatform(
 			return browserPlatform.device;
 		},
 		externalPlayers,
+		...(media && {
+			systemMedia: createSystemMediaHost(media, options.fetchResource),
+		}),
 		offlineCache: {
 			host: desktop.offlineCache,
 			server: options.cacheServer ?? "local",
