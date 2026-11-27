@@ -54,13 +54,42 @@ The groups are in suggested priority order.
 
 ### 2. Native notifications
 
-- Use Electron `Notification` for these events: new episodes for a
-  subscription, download completed or imported, matches that need review,
-  offline cache completed, and update available.
-- When the user clicks a notification, open the related page.
-- Show native notifications only while the window is hidden or unfocused. Keep
-  in-app toasts while the window is focused.
-- Give each notification category its own switch in Settings → Desktop.
+Give each category a switch in Settings → Desktop. For each enabled event,
+show an in-app toast while the window has focus. When the window is hidden,
+minimized or unfocused, use Electron `Notification`. Clicking a notification
+should bring the relevant window or folder to the foreground.
+
+| Priority | When to notify | Where a click leads |
+| --- | --- | --- |
+| First release | A subscribed episode has successfully entered the library. Include the work title and episode number. Group a season pack into one message with the number of imported episodes. | The episode, or the work page for a group. |
+| First release | An import needs a match confirmed or has exhausted its automatic retries. Group related items that need attention. | The review item, failed task or list of affected items. |
+| First release | An offline cache entry is ready to play or has failed. | The offline episode, or the cache entry with its retry action. |
+| Optional | A video saved from the player has finished downloading to this computer. | The saved file in its folder. |
+| Optional | A background update check finds a release with a package for this installation. Notify once per version. | The release details. |
+
+#### Delivery from a bundled or remote backend
+
+The current download activity endpoint requires a work key, and the activity
+panel polls while mounted. For subscription imports and items needing review,
+add one authenticated endpoint that returns events across works in ascending ID
+order after a supplied cursor.
+
+1. When an import enters a state listed above, persist the event in the same
+   database transaction as the state change. Give it a monotonically increasing
+   ID, its type, and the work, episode, task or review identifiers needed to open
+   the destination.
+2. While signed in, have the Electron main process poll every 30 seconds using
+   the existing device session. Polling continues in the tray and works through
+   the same outbound connection for bundled and remote servers, including a NAS
+   or VPS. It requires no inbound port on the user's computer.
+3. Store the last processed event ID per device and server. On first connection,
+   start at the server's latest ID. On reconnect, wake or restart, fetch subsequent
+   events and advance the cursor as they are processed. Group accumulated episodes
+   by work and skip review items that have already been resolved.
+
+While the desktop app is fully quit, a running remote backend continues recording
+events. The desktop app summarizes them on its next launch. Immediate delivery
+during that interval would require a separate push channel.
 
 ### 3. Taskbar, dock and tray
 
@@ -102,8 +131,8 @@ The groups are in suggested priority order.
 ## Suggested first step
 
 Implement native notifications and the extended tray menu next.
-The changes are mostly in the main process
-and the player adapter, carry low risk and give visible results. Deep links
+Start with offline cache events to verify tray delivery and click navigation.
+Then add the backend event feed for subscription imports and review items. Deep links
 support notification navigation and opening the desktop app from Web, so they
 fit a second stage.
 
