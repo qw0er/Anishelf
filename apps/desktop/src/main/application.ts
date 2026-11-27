@@ -7,11 +7,16 @@ import {
 	BrowserWindow,
 	clipboard,
 	net,
+	powerMonitor,
 	powerSaveBlocker,
 	session,
 	type WebContents,
 } from "electron";
-import type { DesktopMenuCommand, ServerSignInResult } from "../ipc/desktop.js";
+import type {
+	DesktopMenuCommand,
+	DesktopPowerEvent,
+	ServerSignInResult,
+} from "../ipc/desktop.js";
 import { registerDesktopIpc } from "./ipc.js";
 import { downloadMedia, revealDownload } from "./native/download.js";
 import { createExternalPlayerService } from "./native/external-players.js";
@@ -323,6 +328,7 @@ export class DesktopApplication {
 				() => this.offlineCache?.origin,
 			),
 		);
+		this.listenForPowerEvents();
 		await this.createWindow();
 		app.on("activate", this.onActivate);
 		this.cleanup.push(() => app.off("activate", this.onActivate));
@@ -361,6 +367,31 @@ export class DesktopApplication {
 	private readonly onActivate = () => {
 		this.showWindow();
 	};
+
+	private listenForPowerEvents(): void {
+		const suspend = () => this.dispatchPowerEvent("suspend");
+		const lock = () => this.dispatchPowerEvent("lock-screen");
+		const resume = () => this.dispatchPowerEvent("resume");
+		powerMonitor.on("suspend", suspend);
+		powerMonitor.on("lock-screen", lock);
+		powerMonitor.on("resume", resume);
+		this.cleanup.push(() => {
+			powerMonitor.off("suspend", suspend);
+			powerMonitor.off("lock-screen", lock);
+			powerMonitor.off("resume", resume);
+		});
+	}
+
+	private dispatchPowerEvent(event: DesktopPowerEvent): void {
+		console.debug("desktop.power_event", { event });
+		for (const contents of this.windows) {
+			if (
+				!contents.isDestroyed() &&
+				contents.mainFrame?.origin === desktopOrigin
+			)
+				contents.send("desktop:power-event", event);
+		}
+	}
 
 	private cache() {
 		if (!this.offlineCache) throw new Error("Offline cache is unavailable.");

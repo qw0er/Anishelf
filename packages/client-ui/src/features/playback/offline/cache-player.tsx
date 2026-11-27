@@ -67,12 +67,19 @@ function OfflineVideo({
 }) {
 	const { t, i18n } = useTranslation();
 	const player = useRef<LibmediaPlayerHandle>(null);
-	const systemPlayback = useSystemPlayback(player, data.name);
 	const position = useRef(data.positionMs);
 	const lastWrite = useRef(0);
 	const ready = useRef(false);
 	const ended = useRef(false);
 	const [error, setError] = useState(false);
+	const systemPlayback = useSystemPlayback(player, data.name, {
+		checkpoint(snapshot) {
+			const positionMs = snapshot.seeking
+				? position.current
+				: snapshot.positionMs;
+			record(ended.current ? 0 : positionMs, true);
+		},
+	});
 
 	useEffect(() => {
 		function persist() {

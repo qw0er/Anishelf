@@ -56,6 +56,8 @@ export type DesktopMenuCommand =
 	| { kind: "checkForUpdates" }
 	| { kind: "history"; direction: "back" | "forward" };
 
+export type DesktopPowerEvent = "suspend" | "lock-screen" | "resume";
+
 export interface DesktopBridge {
 	offlineCache: OfflineCacheHost;
 	checkForUpdates(): Promise<DesktopUpdateCheck>;
@@ -67,6 +69,7 @@ export interface DesktopBridge {
 	getCloseToTray(): Promise<boolean>;
 	setCloseToTray(enabled: boolean): Promise<void>;
 	setVideoPlaying(playing: boolean): Promise<void>;
+	onPowerEvent(listener: (event: DesktopPowerEvent) => void): () => void;
 	setWindowControlsColors(color: string, symbolColor: string): Promise<void>;
 	getServerConnection(): Promise<{
 		kind: "local" | "external";

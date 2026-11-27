@@ -97,6 +97,8 @@ export interface ClientPlatform {
 	offlineCache?: { host: OfflineCacheHost; server: string };
 	systemMedia?: SystemMediaHost;
 	keepDisplayAwake?(): () => void;
+	onSystemPause?(callback: () => void): () => void;
+	onSystemResume?(callback: () => void): () => void;
 	updates: {
 		kind: "web" | "desktop";
 		check(): Promise<ClientUpdateCheck>;

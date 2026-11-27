@@ -8,6 +8,7 @@ import type {
 export type SubscriptionListItem = { title: string; view: SubscriptionView };
 
 const path = "/api/acquisition/subscriptions";
+export const subscriptionKeys = ["acquisition", "subscription"] as const;
 export const getSubscription = (
 	workKey: string,
 	page: number,
@@ -50,7 +51,7 @@ export const acquisitionProfilesQuery = () => ({
 });
 
 export const subscriptionListQuery = () => ({
-	queryKey: ["acquisition", "subscription", "list"] as const,
+	queryKey: [...subscriptionKeys, "list"] as const,
 	queryFn: ({ signal }: { signal: AbortSignal }) =>
 		request<SubscriptionListItem[]>(`${path}/list`, "GET", { signal }),
 	refetchInterval: 15000,

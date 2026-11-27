@@ -5,6 +5,7 @@ import {
 } from "@anishelf/contracts/media";
 import type {
 	LibmediaPlaybackProgress,
+	LibmediaPlaybackSnapshot,
 	LibmediaPlaybackState,
 	LibmediaPlayerEvents,
 } from "libmedia-react-player";
@@ -46,6 +47,7 @@ export interface PlaybackBinding {
 		| "onEnded"
 	>;
 	accepts(sessionId: string): boolean;
+	checkpoint(snapshot: LibmediaPlaybackSnapshot): void;
 	dispose(): void;
 }
 
@@ -170,6 +172,11 @@ export class PlaybackSessionController {
 		const binding: PlaybackBinding = {
 			initialPositionMs,
 			accepts,
+			checkpoint: (snapshot) => {
+				if (!accepts(snapshot.sessionId) || !this.state.restored) return;
+				if (!snapshot.seeking && !ended) capture(snapshot);
+				void this.flush(true);
+			},
 			events: {
 				onPlaybackStateChange: (next) => {
 					if (!active() || retired.has(next.sessionId)) return;

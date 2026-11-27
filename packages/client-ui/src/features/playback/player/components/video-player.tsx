@@ -155,9 +155,12 @@ function VideoAttempt({
 		? i18n.resolvedLanguage
 		: defaultLanguage;
 	const player = useRef<LibmediaPlayerHandle>(null);
-	const systemPlayback = useSystemPlayback(player, displayTitle, artworkUrl);
-	const closeSystemPlayback = systemPlayback.close;
 	const [binding, setBinding] = useState<PlaybackBinding | null>(null);
+	const systemPlayback = useSystemPlayback(player, displayTitle, {
+		artworkUrl,
+		checkpoint: (snapshot) => binding?.checkpoint(snapshot),
+	});
+	const closeSystemPlayback = systemPlayback.close;
 	const [ready, setReady] = useState(false);
 	const [failure, setFailure] = useState<
 		"restore" | PlaybackFailure["reason"]

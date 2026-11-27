@@ -20,7 +20,7 @@ settings.
 | Language | Follows `app.getLocale()` unless the user stores a language. The tray and menu follow the in-app language. | `apps/desktop/src/main` |
 | Media session | Sets `navigator.mediaSession` metadata (work title, episode, poster), playback/position state and play, pause, seek, previous and next handlers. Runtime verification on each desktop backend remains pending. | `packages/client-ui/src/features/playback/media-session.ts` |
 
-Not implemented: native notifications, `powerMonitor`,
+Not implemented: native notifications,
 taskbar progress, badge counts, Windows thumbnail toolbar and jump lists, macOS
 dock menu, a custom URL protocol, file associations, drag and drop,
 picture-in-picture or mini player, live theme following, and automatic update
@@ -45,9 +45,10 @@ The groups are in suggested priority order.
   offline playback with Electron's `powerSaveBlocker`. The app releases the
   blocker when playback stops, the player is left or the window closes.
   Closing to the tray releases it until the window reopens.
-- **Power events.** Use `powerMonitor` `suspend` and `lock-screen` to pause
-  playback and save progress. On `resume`, reconnect to the backend and refresh
-  subscription and download state.
+- **Power events.** The desktop app pauses built-in playback and saves the
+  position on `suspend` and on `lock-screen` (macOS and Windows). On `resume`,
+  it checks the backend session, retries pending progress saves, and refreshes
+  subscription and download state. Playback remains paused after wake.
 - **Mini player.** Add an optional compact, always-on-top window
   (`setAlwaysOnTop`) for watching alongside other work.
 

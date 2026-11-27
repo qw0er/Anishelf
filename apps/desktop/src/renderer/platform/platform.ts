@@ -28,6 +28,11 @@ export async function createDesktopPlatform(
 			console.warn("platform.download_failed");
 		});
 	}
+	function onSystemResume(callback: () => void) {
+		return desktop.onPowerEvent((event) => {
+			if (event === "resume") callback();
+		});
+	}
 	return {
 		...browserPlatform,
 		updates: { kind: "desktop", check: desktop.checkForUpdates },
@@ -45,6 +50,20 @@ export async function createDesktopPlatform(
 			return () => {
 				if (displayRequests.delete(request) && displayRequests.size === 0)
 					setVideoPlaying(false);
+			};
+		},
+		onSystemPause(callback) {
+			return desktop.onPowerEvent((event) => {
+				if (event === "suspend" || event === "lock-screen") callback();
+			});
+		},
+		onSystemResume,
+		onPlaybackLifecycle(handlers) {
+			const stopBrowser = browserPlatform.onPlaybackLifecycle(handlers);
+			const stopPower = onSystemResume(handlers.onOnline);
+			return () => {
+				stopPower();
+				stopBrowser();
 			};
 		},
 		offlineCache: {

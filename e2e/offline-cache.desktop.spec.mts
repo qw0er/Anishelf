@@ -153,6 +153,16 @@ async function captureDisplayBlocker(app: ElectronApplication) {
 		expect.poll(() => probe.evaluate((isActive) => isActive())).toBe(active);
 }
 
+function emitPowerEvent(
+	app: ElectronApplication,
+	event: "suspend" | "lock-screen" | "resume",
+) {
+	return app.evaluate(
+		({ powerMonitor }, event) => powerMonitor.emit(event),
+		event,
+	);
+}
+
 test("plays a cached video and sidecar after a restart with the server stopped", async ({
 	backend,
 }) => {
@@ -195,6 +205,47 @@ test("plays a cached video and sidecar after a restart with the server stopped",
 		await expectMediaSession(window, "playing", animeTitle);
 		await expectDisplayBlocker(true);
 		await expectArtwork(window, "blob:", 192);
+		await expect
+			.poll(async () => Number(await position(window, animeTitle).inputValue()))
+			.toBeGreaterThan(500);
+		const [saved] = await Promise.all([
+			window.waitForResponse(
+				(response) =>
+					response.request().method() === "PUT" &&
+					/\/api\/playback\/sessions\/[^/]+\/progress$/.test(response.url()),
+			),
+			emitPowerEvent(online, "suspend"),
+		]);
+		expect(saved.ok()).toBe(true);
+		expect(saved.request().postDataJSON().positionMs).toBeGreaterThan(500);
+		await expectMediaSession(window, "paused", animeTitle);
+		await expectDisplayBlocker(false);
+		await player(window, animeTitle).press("Space");
+		await expect(player(window, animeTitle)).toHaveAttribute(
+			"data-status",
+			"playing",
+		);
+		await expectDisplayBlocker(true);
+
+		const subscriptions = window.getByRole("link", {
+			name: "Subscriptions",
+			exact: true,
+		});
+		const subscriptionList = "**/api/acquisition/subscriptions/list";
+		await Promise.all([
+			window.waitForResponse(subscriptionList),
+			subscriptions.click(),
+		]);
+		await expectDisplayBlocker(false);
+		const currentSession = "**/api/auth/device-sessions/current";
+		await window.route(currentSession, (route) => route.abort(), { times: 1 });
+		const [session, refreshed] = await Promise.all([
+			window.waitForResponse(currentSession),
+			window.waitForResponse(subscriptionList),
+			emitPowerEvent(online, "resume"),
+		]);
+		expect(session.ok()).toBe(true);
+		expect(refreshed.ok()).toBe(true);
 		await files.click();
 		await expectMediaSession(window, "none", null);
 		await expectDisplayBlocker(false);
@@ -235,19 +286,22 @@ test("plays a cached video and sidecar after a restart with the server stopped",
 			player(window).getByText(offlineCue, { exact: true }),
 		).toBeVisible();
 		const transport = player(window).locator(".lmp-transport");
+		await expect(transport).toBeEnabled();
 		const nativeWindow = await offline.browserWindow(window);
 		await nativeWindow.evaluate((window) => window.hide());
 		await expectDisplayBlocker(false);
 		await sendMediaAction(window, { action: "pause" });
 		await expectMediaSession(window, "paused", sampleName);
+		await expect(transport).toBeEnabled();
 		await sendMediaAction(window, { action: "play" });
 		await expectMediaSession(window, "playing", sampleName);
 		await nativeWindow.evaluate((window) => window.show());
 		await expectDisplayBlocker(true);
-		await sendMediaAction(window, { action: "pause" });
+		await emitPowerEvent(offline, "lock-screen");
 		await expectMediaSession(window, "paused", sampleName);
 		await expectDisplayBlocker(false);
 		await expect(transport).toHaveAttribute("aria-label", "Play");
+		await expect(transport).toBeEnabled();
 		await sendMediaAction(window, { action: "seekto", seekTime: 12 });
 		await expect
 			.poll(async () => Number(await position(window).inputValue()))

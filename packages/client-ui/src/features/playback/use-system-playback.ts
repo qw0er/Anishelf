@@ -1,9 +1,16 @@
 import type {
 	LibmediaPlaybackProgress,
+	LibmediaPlaybackSnapshot,
 	LibmediaPlaybackState,
 	LibmediaPlayerHandle,
 } from "libmedia-react-player";
-import { type RefObject, useCallback, useLayoutEffect, useRef } from "react";
+import {
+	type RefObject,
+	useCallback,
+	useEffectEvent,
+	useLayoutEffect,
+	useRef,
+} from "react";
 import { getClientRuntime } from "../../shared/api/connection.js";
 import type {
 	SystemMediaAction,
@@ -49,12 +56,19 @@ async function runAction(
 export function useSystemPlayback(
 	player: RefObject<LibmediaPlayerHandle | null>,
 	title: string,
-	artworkUrl?: string,
+	{
+		artworkUrl,
+		checkpoint,
+	}: {
+		artworkUrl?: string | undefined;
+		checkpoint(snapshot: LibmediaPlaybackSnapshot): void;
+	},
 ) {
 	const { connection, platform } = getClientRuntime();
-	const { systemMedia: host, keepDisplayAwake } = platform;
+	const { systemMedia: host, keepDisplayAwake, onSystemPause } = platform;
 	const signal = connection.signal;
 	const attempt = useRef<Attempt>(null);
+	const saveCheckpoint = useEffectEvent(checkpoint);
 
 	const close = useCallback(() => {
 		const current = attempt.current;
@@ -73,6 +87,73 @@ export function useSystemPlayback(
 	useLayoutEffect(() => {
 		attempt.current?.session?.setMetadata({ title, artworkUrl });
 	}, [title, artworkUrl]);
+	useLayoutEffect(() => {
+		if (!onSystemPause) return;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		let pausing: string | undefined;
+
+		async function pause(
+			handle: LibmediaPlayerHandle,
+			sessionId: string,
+			retries: number,
+		): Promise<void> {
+			const active = () =>
+				pausing === sessionId &&
+				player.current === handle &&
+				!signal.aborted &&
+				handle.getSnapshot().sessionId === sessionId;
+			if (!active()) return;
+			let pauseError: unknown;
+			try {
+				const { status, seeking } = handle.getSnapshot();
+				if (status === "playing" && !seeking) {
+					await handle.pause();
+					if (active()) pausing = undefined;
+					return;
+				}
+			} catch (error) {
+				pauseError = error;
+			}
+			if (!active()) return;
+			const { status } = handle.getSnapshot();
+			const stillPlaying = status === "playing" || status === "starting";
+			// The player serializes pause with in-flight seeks and track changes.
+			if (stillPlaying && retries > 0) {
+				timer = setTimeout(
+					() => void pause(handle, sessionId, retries - 1),
+					100,
+				);
+				return;
+			}
+			pausing = undefined;
+			if (stillPlaying || pauseError)
+				console.warn("playback.system_pause_failed", {
+					status,
+					error: pauseError,
+				});
+		}
+
+		const stop = onSystemPause(() => {
+			const handle = player.current;
+			if (!handle || signal.aborted) return;
+			const snapshot = handle.getSnapshot();
+			const { sessionId, status } = snapshot;
+			if (status !== "playing" && status !== "starting" && status !== "paused")
+				return;
+
+			// Dispatch the save before waiting for the decoder or the OS to suspend.
+			saveCheckpoint(snapshot);
+			if (status === "paused" || pausing === sessionId) return;
+			clearTimeout(timer);
+			pausing = sessionId;
+			void pause(handle, sessionId, 30);
+		});
+		return () => {
+			stop();
+			pausing = undefined;
+			clearTimeout(timer);
+		};
+	}, [onSystemPause, player, signal]);
 
 	function publish(current: Attempt) {
 		const { status, seeking, positionMs, durationMs, playbackRate } = current;

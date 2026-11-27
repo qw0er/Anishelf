@@ -242,7 +242,10 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
 
 - **Desktop playback power:** Keep the display and system awake during built-in
   playback, including offline playback. Release the request when playback stops
-  or the playback window closes, including when it closes to the tray.
+  or the playback window closes, including when it closes to the tray. Pause
+  built-in playback and save its position on system sleep and supported lock
+  events. On wake, revalidate the backend session and refresh subscription and
+  download status.
 
 Mobile clients and mobile offline viewing remain future work. iPhone fullscreen
 should keep playback controls usable. A TV application

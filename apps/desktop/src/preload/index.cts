@@ -1,4 +1,8 @@
-import type { DesktopBridge, DesktopMenuCommand } from "../ipc/desktop.js";
+import type {
+	DesktopBridge,
+	DesktopMenuCommand,
+	DesktopPowerEvent,
+} from "../ipc/desktop.js";
 
 const { contextBridge, ipcRenderer } =
 	require("electron") as typeof import("electron");
@@ -33,6 +37,16 @@ const desktop: DesktopBridge = {
 	setCloseToTray: (enabled) => ipcRenderer.invoke("desktop:tray:set", enabled),
 	setVideoPlaying: (playing) =>
 		ipcRenderer.invoke("desktop:playback:set-playing", playing),
+	onPowerEvent(listener) {
+		const receive = (
+			_event: Electron.IpcRendererEvent,
+			powerEvent: DesktopPowerEvent,
+		) => listener(powerEvent);
+		ipcRenderer.on("desktop:power-event", receive);
+		return () => {
+			ipcRenderer.off("desktop:power-event", receive);
+		};
+	},
 	setWindowControlsColors: (color, symbolColor) =>
 		ipcRenderer.invoke(
 			"desktop:window-controls:set-colors",

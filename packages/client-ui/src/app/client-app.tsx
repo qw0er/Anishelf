@@ -24,11 +24,13 @@ import { authenticatedRoute } from "./auth/guard.js";
 import AppHeader from "./components/app-header.js";
 import { FilesNavigation } from "./components/files-layout.js";
 import { createLibraryRoute } from "./routes/library.js";
+import { watchServerResume } from "./runtime/server-resume.js";
 
 export async function initializeClient(host: ClientHost) {
 	const runtime = configureClientRuntime(host);
 	try {
 		await initializeLanguage(host.platform);
+		watchServerResume(runtime);
 		return runtime;
 	} catch (error) {
 		runtime.dispose();
