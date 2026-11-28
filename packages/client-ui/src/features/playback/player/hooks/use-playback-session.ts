@@ -1,5 +1,6 @@
 import type { MediaTimeline } from "@anishelf/contracts/media";
 import { useQueryClient } from "@tanstack/react-query";
+import type { LibmediaPlaybackSnapshot } from "libmedia-react-player";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getClientRuntime } from "../../../../shared/api/connection.js";
@@ -144,8 +145,13 @@ export function usePlaybackSession(
 		[autoPlay, fileId, t],
 	);
 	const bind = useCallback(
-		(timeline: MediaTimeline, sourceVersion: string) =>
-			controllerRef.current?.bind(timeline, sourceVersion) ?? null,
+		(
+			timeline: MediaTimeline,
+			sourceVersion: string,
+			readSnapshot?: () => LibmediaPlaybackSnapshot | null,
+		) =>
+			controllerRef.current?.bind(timeline, sourceVersion, readSnapshot) ??
+			null,
 		[],
 	);
 	return {

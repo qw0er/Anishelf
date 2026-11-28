@@ -1,6 +1,7 @@
 import type { MediaTimeline } from "@anishelf/contracts/media";
 import type {
 	ExternalSubtitleTrack,
+	LibmediaPlaybackSnapshot,
 	LibmediaPlayerError,
 	LibmediaPlayerHandle,
 } from "libmedia-react-player";
@@ -46,7 +47,11 @@ interface VideoPlayerProps {
 	active: ActivePlayback;
 	sourceVersion: string;
 	silent: boolean;
-	bind(timeline: MediaTimeline, sourceVersion: string): PlaybackBinding | null;
+	bind(
+		timeline: MediaTimeline,
+		sourceVersion: string,
+		readSnapshot?: () => LibmediaPlaybackSnapshot | null,
+	): PlaybackBinding | null;
 	startContinuation(
 		play: () => Promise<void>,
 		signal: AbortSignal,
@@ -199,7 +204,11 @@ function VideoAttempt({
 	const format = container === "matroska" ? "mkv" : (container ?? undefined);
 
 	useLayoutEffect(() => {
-		const next = bind(timeline, sourceVersion);
+		const next = bind(
+			timeline,
+			sourceVersion,
+			() => player.current?.getSnapshot() ?? null,
+		);
 		setBinding(next);
 		return () => {
 			closeSystemPlayback();

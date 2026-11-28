@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
+import { originalTimeline } from "@anishelf/contracts/media";
+import type { LibmediaPlaybackSnapshot } from "libmedia-react-player";
 import { expect, test, vi } from "vitest";
 import * as playbackApi from "../../../src/features/playback/player/api.js";
 import { playbackPolicy } from "../../../src/features/playback/player/policy.js";
+import { PlaybackSessionController } from "../../../src/features/playback/player/session.js";
 import { ApiClientError } from "../../../src/shared/api/client.js";
 import type { PlaybackSessionResponse } from "../../../src/shared/api/contracts.js";
 
@@ -178,4 +181,138 @@ test("injected save interval and request timeout control the progress lifecycle"
 		status: "saved",
 		progress: session.progress,
 	});
+});
+
+function createSnapshotController(
+	readSnapshot: () => LibmediaPlaybackSnapshot | null,
+) {
+	const controller = new PlaybackSessionController(
+		"file",
+		() => {},
+		playbackPolicy,
+	);
+	const makeSnapshot = (
+		overrides: Partial<LibmediaPlaybackSnapshot> = {},
+	): LibmediaPlaybackSnapshot => ({
+		sessionId: "s1",
+		src: "/media/fixture",
+		positionMs: 40000,
+		durationMs: 100000,
+		status: "playing",
+		buffering: false,
+		playbackRate: 1,
+		seeking: false,
+		...overrides,
+	});
+	return { controller, makeSnapshot, readSnapshot };
+}
+
+test("samples live snapshot on binding dispose, flush, pause, and periodic save", async () => {
+	vi.useFakeTimers();
+	let livePositionMs = 40000;
+	let liveStatus: LibmediaPlaybackSnapshot["status"] = "playing";
+	const { controller, makeSnapshot } = createSnapshotController(() =>
+		makeSnapshot({ positionMs: livePositionMs, status: liveStatus }),
+	);
+	await controller.open();
+	const binding = controller.bind(
+		originalTimeline(),
+		session.sourceVersion,
+		() => makeSnapshot({ positionMs: livePositionMs, status: liveStatus }),
+	);
+	if (!binding) throw new Error("Expected playback binding.");
+	binding.events.onPlaybackStateChange?.(makeSnapshot({ status: "ready" }));
+	binding.events.onReady?.({
+		...makeSnapshot({ status: "ready", positionMs: 40000 }),
+		initialPositionResult: { requestedPositionMs: 40000, restored: true },
+	});
+	binding.events.onPlaybackStateChange?.(makeSnapshot({ status: "playing" }));
+
+	// Periodic save captures fresher snapshot without an intervening onTimeUpdate.
+	livePositionMs = 42500;
+	await vi.advanceTimersByTimeAsync(playbackPolicy.progressSaveIntervalMs);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 42500 }),
+		expect.anything(),
+	);
+
+	// Pause captures fresher snapshot.
+	livePositionMs = 44200;
+	liveStatus = "paused";
+	binding.events.onPlaybackStateChange?.(makeSnapshot({ status: "paused" }));
+	await tick();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 44200 }),
+		expect.anything(),
+	);
+
+	// Flush captures fresher snapshot.
+	livePositionMs = 46800;
+	await controller.flush(true);
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 46800 }),
+		expect.objectContaining({ keepalive: true }),
+	);
+
+	// Binding dispose + controller dispose captures fresher snapshot.
+	livePositionMs = 48900;
+	binding.dispose();
+	await controller.dispose();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 48900 }),
+		expect.anything(),
+	);
+});
+
+test("ignores seeking or mismatched-session snapshots and keeps the last captured position", async () => {
+	let snapshot: LibmediaPlaybackSnapshot | null = null;
+	const controller = new PlaybackSessionController(
+		"file",
+		() => {},
+		playbackPolicy,
+	);
+	await controller.open();
+	const binding = controller.bind(
+		originalTimeline(),
+		session.sourceVersion,
+		() => snapshot,
+	);
+	if (!binding) throw new Error("Expected playback binding.");
+	const base: LibmediaPlaybackSnapshot = {
+		sessionId: "s1",
+		src: "/media/fixture",
+		positionMs: 40000,
+		durationMs: 100000,
+		status: "ready",
+		buffering: false,
+		playbackRate: 1,
+		seeking: false,
+	};
+	binding.events.onPlaybackStateChange?.(base);
+	binding.events.onReady?.({
+		...base,
+		initialPositionResult: { requestedPositionMs: 40000, restored: true },
+	});
+	binding.events.onTimeUpdate?.({ ...base, positionMs: 43000 });
+
+	snapshot = { ...base, positionMs: 90000, seeking: true };
+	await controller.flush();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 43000 }),
+		expect.anything(),
+	);
+
+	snapshot = { ...base, sessionId: "stale", positionMs: 95000 };
+	await controller.flush();
+	expect(playbackApi.savePlaybackProgress).toHaveBeenLastCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 43000 }),
+		expect.anything(),
+	);
+	await controller.dispose();
 });

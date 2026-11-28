@@ -360,3 +360,21 @@ test("detaching during sidecar discovery prevents a stale player from starting",
 	);
 	expect(mockPlayer.instances).toHaveLength(0);
 });
+
+test("unmounting captures live player snapshot even without a recent timeupdate", async () => {
+	const input = props();
+	const view = render(<VideoPlayer {...input} />);
+	const player = await mounted();
+	await waitFor(() => expect(input.onPlaybackRecovered).toHaveBeenCalledOnce());
+	Object.getOwnPropertyDescriptor(
+		HTMLMediaElement.prototype,
+		"currentTime",
+	)?.set?.call(player.video, 55);
+	view.unmount();
+	await controller.dispose();
+	expect(api.savePlaybackProgress).toHaveBeenCalledWith(
+		"token",
+		expect.objectContaining({ positionMs: 55000 }),
+		expect.anything(),
+	);
+});

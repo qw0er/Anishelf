@@ -13,6 +13,7 @@ import {
 	lazy,
 	Suspense,
 	useEffect,
+	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
@@ -81,9 +82,12 @@ function OfflineVideo({
 		},
 	});
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		function persist() {
 			if (!ready.current) return;
+			const snapshot = player.current?.getSnapshot();
+			if (snapshot && !snapshot.seeking && Number.isFinite(snapshot.positionMs))
+				position.current = Math.max(0, Math.round(snapshot.positionMs));
 			const value = ended.current ? 0 : position.current;
 			void host.savePosition(data.lease, value).catch(() => {
 				console.warn("offline_cache.position_save_failed");

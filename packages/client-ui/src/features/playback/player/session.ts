@@ -75,6 +75,7 @@ export class PlaybackSessionController {
 	private evidence = new PlaybackEvidence();
 	private naturalEnd = false;
 	private binding: PlaybackBinding | null = null;
+	private syncBinding: (() => void) | null = null;
 	private position: Position | null = null;
 	private sequence = 0;
 	private pending: SavePlaybackProgressRequest | null = null;
@@ -134,7 +135,11 @@ export class PlaybackSessionController {
 		return this.opening;
 	}
 
-	bind(timeline: MediaTimeline, sourceVersion: string): PlaybackBinding | null {
+	bind(
+		timeline: MediaTimeline,
+		sourceVersion: string,
+		readSnapshot?: () => LibmediaPlaybackSnapshot | null,
+	): PlaybackBinding | null {
 		const { session } = this.state;
 		if (!session || this.closed || session.sourceVersion !== sourceVersion)
 			return null;
@@ -169,12 +174,22 @@ export class PlaybackSessionController {
 			if (playing() && state && mediaPositionMs !== undefined)
 				this.evidence.sample(mediaPositionMs, state.playbackRate);
 		};
+		const syncSnapshot = () => {
+			if (!this.state.restored || ended || state?.seeking) return;
+			const snapshot = readSnapshot?.();
+			if (!snapshot || !accepts(snapshot.sessionId) || snapshot.seeking) return;
+			capture(snapshot);
+			sample();
+		};
 		const binding: PlaybackBinding = {
 			initialPositionMs,
 			accepts,
 			checkpoint: (snapshot) => {
 				if (!accepts(snapshot.sessionId) || !this.state.restored) return;
-				if (!snapshot.seeking && !ended) capture(snapshot);
+				if (!snapshot.seeking && !ended) {
+					capture(snapshot);
+					sample();
+				}
 				void this.flush(true);
 			},
 			events: {
@@ -192,6 +207,7 @@ export class PlaybackSessionController {
 					const changedRate = next.playbackRate !== state?.playbackRate;
 					const isPaused =
 						next.status === "paused" && state?.status !== "paused";
+					if (wasPlaying && isPaused) syncSnapshot();
 					if (
 						next.status !== "playing" ||
 						next.seeking ||
@@ -205,7 +221,10 @@ export class PlaybackSessionController {
 					}
 					state = next;
 					if (this.state.restored && (!wasPlaying || changedRate)) sample();
-					if (isPaused && this.state.restored) this.queueSave();
+					if (isPaused && this.state.restored) {
+						syncSnapshot();
+						this.queueSave();
+					}
 				},
 				onReady: (progress) => {
 					if (
@@ -257,20 +276,26 @@ export class PlaybackSessionController {
 			},
 			dispose: () => {
 				if (!active()) return;
+				syncSnapshot();
 				this.clearBinding();
 			},
 		};
 		this.binding = binding;
+		this.syncBinding = syncSnapshot;
 		this.naturalEnd = false;
 		this.publish({ restored: false });
 		this.timer = setInterval(() => {
-			if (this.state.restored && playing()) this.queueSave();
+			if (this.state.restored && playing()) {
+				syncSnapshot();
+				this.queueSave();
+			}
 		}, this.policy.progressSaveIntervalMs);
 		return binding;
 	}
 
 	private clearBinding(): void {
 		this.binding = null;
+		this.syncBinding = null;
 		this.evidence.reset();
 		clearInterval(this.timer);
 		clearTimeout(this.seekTimer);
@@ -307,6 +332,7 @@ export class PlaybackSessionController {
 	async flush(keepalive = false): Promise<boolean> {
 		if (this.closed) return false;
 		this.keepalive ||= keepalive;
+		this.syncBinding?.();
 		if (!this.state.session || !this.position) return true;
 		if (this.state.error && !isRetryablePlaybackError(this.state.error.cause))
 			return false;
@@ -316,6 +342,7 @@ export class PlaybackSessionController {
 
 	async dispose(): Promise<void> {
 		if (this.closed) return;
+		this.binding?.dispose();
 		this.clearBinding();
 		clearTimeout(this.retryTimer);
 		this.closed = true;
