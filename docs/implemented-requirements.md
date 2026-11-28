@@ -393,7 +393,7 @@ AniList cumulative progress does not provide an independent watched/unwatched fl
 | S10 | Automatically subscribe to anime in AniList Watching | Complete | Completed | [Opt-in Watching automation with explicit activation scope](#delivery-notes-s) | 1.0.0 |
 | S11 | Find a suitable release source without entering an RSS URL for each anime | Complete | Completed | [Configured-site discovery with pinned sources](#delivery-notes-s) | 1.0.0 |
 | S12 | Keep manual and automatic subscription management independent | Complete | Completed | [Independent manual controls and automatic lifecycle](#delivery-notes-s) | 1.0.6 |
-| S14 | Download and ingest season packs | Complete | Completed | [Verified coverage and selective file acquisition](#selective-season-pack-acquisition-s14) | Unreleased |
+| S14 | Download and ingest season packs | Complete | Completed | [Verified coverage and selective file acquisition](#selective-season-pack-acquisition-s14) | 2.2.0 |
 | WI08 | Add a built-in compatibility-first preset for automatic subscription configuration | Complete | Completed | [H.264/VP9 preferred with fallback](#delivery-notes-s) | 1.4.1 |
 | WI13 | Combine results from multiple search keywords for unified matching | Complete | Completed | [Merged keyword search results](#merged-keyword-search-results-wi13) | 1.4.2 |
 | WI14 | Improve Chinese resource searches using available Chinese titles | Complete | Completed | [Chinese search titles and merged names](#chinese-search-titles-and-merged-names-wi14) | 1.4.2 |
@@ -432,8 +432,8 @@ Diagnostics reports verified episode coverage and candidate decisions.
 
 The qBittorrent 5.2.3 acceptance scenario verified the E03 selection, expansion to
 the eleven remaining episodes, a concurrent E04 request, restart recovery and
-import retry. See the [design and acceptance scenario](development/season-pack-acquisition.md#end-to-end-acceptance-scenario)
-and the [operator guide](guide/watching-automation.md#selective-season-packs).
+import retry. See the
+[operator guide](guide/watching-automation.md#selective-season-packs).
 
 #### Merged Keyword Search Results (WI13)
 

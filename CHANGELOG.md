@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.3.0
+
+### Added
+
+- Integrate desktop system media controls to display the current title and
+  artwork and control playback for streamed and cached videos, including while
+  the window is hidden in the tray. See the
+  [desktop guide](https://github.com/qw0er/Anishelf/blob/main/apps/desktop/README.md).
+- Keep the display and system awake during built-in desktop playback (including
+  offline playback), pause playback and save position on system sleep and
+  supported lock events, and revalidate the backend session and refresh
+  subscription and download status on wake.
+- Add quick-navigation items (**Library**, **History**, **Offline Cache**,
+  **Review**, and **Subscriptions**) to the desktop tray menu and macOS Dock
+  menu, with the pending review count shown in the menus and on the native app
+  badge on macOS and Linux.
+- Show active video download and offline cache transfer progress on the desktop
+  taskbar.
+- Persist an explicit **Follow system** theme preference (`system`, `light`, or
+  `dark`) and watch system color-scheme changes globally during client
+  initialization.
+
+### Changed
+
+- Upgrade `libmedia-react-player` to `1.6.2`, adding session-scoped playback
+  state and progress events (`onReady`, `onPlaybackStateChange`,
+  `onTimeUpdate`, `onSeeked`), reporting `initialPositionResult` on `onReady`,
+  and emitting initial active tracks in `onTrackChange` to support system media
+  controls and sleep/resume handling.
+
+### Fixed
+
+- Prevent the player ready handler from reverting an earlier audio track
+  selection.
+- Sample the live player snapshot when saving or disposing a playback session.
+
 ## 2.2.0
 
 ### Added

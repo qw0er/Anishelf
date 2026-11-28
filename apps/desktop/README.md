@@ -38,16 +38,19 @@ On Wayland, the compositor controls window positioning.
 In **Settings → Desktop → Window and tray**, enable **Keep running in the
 tray when closing the window** to keep the window and bundled backend alive
 after closing the window. The option is off by default. Use **Open Anishelf**
-in the tray menu to show the window and **Quit Anishelf** to exit and stop the
-bundled backend. On Linux, tray visibility depends on the desktop environment.
-Launching Anishelf again brings the existing window back.
+in the tray menu to show the window, jump directly to **Library**, **History**,
+**Offline Cache**, **Review** (with pending review count), or **Subscriptions**,
+and **Quit Anishelf** to exit and stop the bundled backend. On Linux, tray
+visibility depends on the desktop environment. Launching Anishelf again brings
+the existing window back.
 
 On macOS, Anishelf provides a native application menu bar with **About
 Anishelf**, **Check for Updates…**, **Settings…** (`Cmd+,`), **Go** navigation
 shortcuts (`Cmd+[` / `Cmd+]` and `Cmd+1` through `Cmd+6`), window recovery via
 **Window → Show Main Window**, and project links under **Help**. Developer
-tools in **View** are shown only in unpackaged builds, and both the macOS menu
-bar and the tray menu follow the in-app language setting.
+tools in **View** are shown only in unpackaged builds, and the macOS menu bar,
+Dock quick-navigation menu, and tray menu follow the in-app language setting.
+On macOS and Linux, the native app badge shows the pending review count.
 
 In **Settings → Desktop → Startup**, enable **Launch Anishelf when you sign in
 to your computer** to start the desktop app when you sign in. The bundled
@@ -89,6 +92,13 @@ cover when available during streaming and the app icon for other videos and
 offline playback. The available controls depend on the operating system and
 media format. Playback can be paused or resumed while the window is hidden in
 the tray.
+
+During built-in playback (including offline playback), Anishelf keeps the
+display and system awake until playback stops or the window closes. On system
+sleep and supported lock events, built-in playback pauses and saves its
+position; on wake, the app revalidates the backend session and refreshes
+subscription and download status. Active video downloads and offline cache
+transfers also report aggregate progress on the desktop taskbar.
 
 On Linux, Anishelf enables Chromium's `VaapiOnNvidiaGPUs` feature by default.
 Hardware decoding depends on the driver and media format. To disable the

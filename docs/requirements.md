@@ -28,7 +28,7 @@ and the [Design system](development/design-system.md).
 
 Requirements describe outcomes rather than prescribing implementation. When code and
 documentation disagree, verify the intended behavior and update the affected documents.
-The current release is 2.1.0. Version 2.2.0 is upcoming.
+The current release is 2.3.0.
 
 ## 2. Feature Inventory and Version Tracking
 
@@ -233,8 +233,7 @@ Simultaneous accounts and cross-source episode mappings remain future work. See 
   native external-player commands, a local directory picker, window persistence,
   optional tray and launch-at-login settings. Packaging targets Linux, Windows and
   macOS; real-device acceptance across platforms remains outstanding. See the
-  [desktop guide](../apps/desktop/README.md) and
-  [Windows compatibility audit](development/windows-compatibility.md).
+  [desktop guide](../apps/desktop/README.md).
 
 - **C15:** Desktop can cache originals and supported external subtitles for
   offline access, manage cached files, and resume playback from a local position.

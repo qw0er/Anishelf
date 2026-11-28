@@ -91,7 +91,7 @@ track and subtitle selection, resume and progress reporting. It starts a bundled
 backend by default and can instead connect to a separately running server over
 HTTPS or loopback HTTP. The [desktop guide](../../apps/desktop/README.md) covers
 platform integration and packaging. Real-device validation across Windows, macOS
-and Linux remains necessary; see the [Windows audit](windows-compatibility.md).
+and Linux remains necessary.
 
 ## Mobile
 
