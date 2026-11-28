@@ -176,6 +176,94 @@ test("maps same-language asset tracks and silence back to source audio without r
 	expect(input.onAudioChange).toHaveBeenLastCalledWith(null);
 });
 
+test("does not revert an audio track change that arrives before the ready effect flushes", async () => {
+	const input = props();
+	const first = input.active.asset.audioTracks[0];
+	if (!first || !input.active.audio) throw new Error("Missing audio tracks.");
+	const active = {
+		...input.active,
+		asset: {
+			...input.active.asset,
+			audioTracks: [
+				...input.active.asset.audioTracks,
+				{ stream: { ...first.stream, index: 2 }, sourceStreamIndex: 7 },
+			],
+		},
+	};
+	let switched = false;
+	input.onPlaybackRecovered.mockImplementation(() => {
+		if (switched) return;
+		switched = true;
+		mockPlayer.instances[0]?.track(2);
+	});
+	const view = render(<VideoPlayer {...input} active={active} />);
+	const player = await mounted();
+	await waitFor(() => expect(input.onPlaybackRecovered).toHaveBeenCalledOnce());
+	expect(input.onAudioChange).toHaveBeenCalledExactlyOnceWith(7);
+	view.rerender(
+		<VideoPlayer
+			{...input}
+			active={{
+				...active,
+				audio: { streamIndex: 2, sourceStreamIndex: 7, position: 1 },
+			}}
+		/>,
+	);
+	expect(await mounted()).toBe(player);
+	expect(player.selectAudio).not.toHaveBeenCalled();
+});
+
+test("applies external audio selection changes after and before becoming ready", async () => {
+	const firstInput = props();
+	const firstTrack = firstInput.active.asset.audioTracks[0];
+	if (!firstTrack || !firstInput.active.audio) {
+		throw new Error("Missing audio tracks.");
+	}
+	const active = {
+		...firstInput.active,
+		asset: {
+			...firstInput.active.asset,
+			audioTracks: [
+				...firstInput.active.asset.audioTracks,
+				{ stream: { ...firstTrack.stream, index: 2 }, sourceStreamIndex: 7 },
+			],
+		},
+	};
+	const view = render(<VideoPlayer {...firstInput} active={active} />);
+	const player = await mounted();
+	await waitFor(() =>
+		expect(firstInput.onPlaybackRecovered).toHaveBeenCalledOnce(),
+	);
+	view.rerender(
+		<VideoPlayer
+			{...firstInput}
+			active={{
+				...active,
+				audio: { streamIndex: 2, sourceStreamIndex: 7, position: 1 },
+			}}
+		/>,
+	);
+	await waitFor(() => expect(player.selectAudio).toHaveBeenCalledWith(2));
+	view.unmount();
+
+	const secondInput = props();
+	const secondView = render(<VideoPlayer {...secondInput} active={active} />);
+	const secondPlayer = await mounted();
+	secondView.rerender(
+		<VideoPlayer
+			{...secondInput}
+			active={{
+				...active,
+				audio: { streamIndex: 2, sourceStreamIndex: 7, position: 1 },
+			}}
+		/>,
+	);
+	await waitFor(() =>
+		expect(secondInput.onPlaybackRecovered).toHaveBeenCalledOnce(),
+	);
+	await waitFor(() => expect(secondPlayer.selectAudio).toHaveBeenCalledWith(2));
+});
+
 test("reports structured failures, then reloads at the last settled position", async () => {
 	const input = props();
 	const view = render(<VideoPlayer {...input} />);

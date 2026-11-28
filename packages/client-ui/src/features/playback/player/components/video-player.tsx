@@ -190,6 +190,9 @@ function VideoAttempt({
 							: { streamIndex: requestedAudio, strict: true },
 				}),
 	}));
+	// initialPreferences already passes the initial requestedAudio on mount; track the
+	// last synced prop separately so becoming ready does not revert an earlier onTrackChange.
+	const syncedAudio = useRef(requestedAudio);
 	const currentAudio = useRef(requestedAudio);
 	const confirmedAudio = useRef(false);
 	const container = active.asset.container;
@@ -214,7 +217,9 @@ function VideoAttempt({
 
 	useEffect(() => {
 		const handle = player.current;
-		if (!ready || !handle || currentAudio.current === requestedAudio) return;
+		if (!ready || !handle || syncedAudio.current === requestedAudio) return;
+		syncedAudio.current = requestedAudio;
+		if (currentAudio.current === requestedAudio) return;
 		currentAudio.current = requestedAudio;
 		if (requestedAudio !== undefined)
 			void handle.selectAudio(requestedAudio).catch(() => {});
