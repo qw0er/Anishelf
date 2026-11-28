@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1
+
+### Changed
+
+- Upgrade `libmedia-react-player` to `1.6.3` to fix playback bugs.
+
 ## 2.3.0
 
 ### Added
